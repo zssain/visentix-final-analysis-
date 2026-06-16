@@ -1,9 +1,12 @@
 # Secrets
 .env
+.env.*
+!.env.example
 
 # Python
 __pycache__/
 *.py[cod]
+*.pyc
 *.egg-info/
 dist/
 build/
@@ -13,6 +16,15 @@ venv/
 # Node
 node_modules/
 .next/
+
+# Local overrides
+*.local
+
+# Model / weights cache
+.cache/
+models/
+*.gguf
+*.bin
 
 # IDE
 .vscode/
