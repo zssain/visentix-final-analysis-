@@ -64,10 +64,10 @@ def _decode_jwt(token: str, cfg: Settings) -> dict:
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token expired",
         )
-    except jwt.InvalidTokenError as e:
+    except jwt.InvalidTokenError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Invalid token: {e}",
+            detail="Invalid token",
         )
 
 
