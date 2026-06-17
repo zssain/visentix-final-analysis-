@@ -52,10 +52,10 @@ async def test_health_no_secrets_in_response():
 
 
 @pytest.mark.anyio
-async def test_stub_routers_exist():
-    """Verify stub routers return responses (not 404)."""
+async def test_stub_routers_require_auth():
+    """Verify protected routers reject unauthenticated requests (not 404)."""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         for path in ["/assessments/", "/findings/", "/reports/", "/admin/status"]:
             r = await client.get(path)
-            assert r.status_code == 200, f"{path} returned {r.status_code}"
+            assert r.status_code == 401, f"{path} should be 401 without auth"
