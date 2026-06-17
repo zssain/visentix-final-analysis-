@@ -22,7 +22,7 @@ node_modules/
 
 # Model / weights cache
 .cache/
-models/
+/models/
 *.gguf
 *.bin
 
