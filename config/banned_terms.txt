@@ -1,0 +1,19 @@
+# Banned legal-verdict terms (AGENTS.md §2)
+# One term per line. Case-insensitive, word-boundary matching.
+# Extensible — add new terms here without code changes.
+violation
+violations
+violate
+violates
+violated
+violating
+illegal
+unlawful
+non-compliant
+noncompliant
+breach of law
+guilty
+liable
+in violation of
+found guilty
+legally liable
