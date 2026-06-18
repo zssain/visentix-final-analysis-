@@ -1,0 +1,18 @@
+# Jurisdiction Weights (JW) for regulatory exposure scoring.
+# Weight reflects the regulatory intensity of each jurisdiction for privacy.
+# Range: 0.0 (minimal) to 1.0 (maximum exposure).
+# Used by F-002 Regulatory Exposure Score.
+
+jurisdictions:
+  US-FED: 0.9       # Federal (FTC, CFPB, OCR) — broad reach
+  US-CA:  1.0       # California (CCPA/CPRA + CPPA) — most active
+  US-TX:  0.7       # Texas — growing enforcement
+  US-CT:  0.5       # Connecticut — CTDPA, moderate activity
+  US-CO:  0.6       # Colorado — CPA, growing
+  US-WA:  0.5       # Washington — MHMD, moderate
+  US-VA:  0.5       # Virginia — VCDPA
+  US-NY:  0.7       # New York — SHIELD Act, active AG
+  EU:     0.8       # GDPR (for cross-border exposure)
+
+# Default for unlisted jurisdictions
+default_jw: 0.3
