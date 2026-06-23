@@ -9,6 +9,7 @@ from app.auth import AuthenticatedUser, require_role
 from app.config import settings
 from app.services.report.assembly import assemble_report
 from app.services.report.renderer import render_html, render_pdf_weasyprint
+from app.services.review import customer_can_view, get_active_findings
 
 router = APIRouter(prefix="/reports", tags=["reports"])
 
@@ -23,10 +24,22 @@ async def get_report(
     Built ONLY from stored derived_data_item, risk_finding, snapshots,
     and guardrailed narrative.
     """
-    # For MVP, return a sample assembled report
-    # In production, this would load from stored data
+    # Gate mode check for customer role
+    if user.role == "customer":
+        can_view, banner = customer_can_view(assessment_id)
+        if not can_view:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Report pending expert review (gate_mode=strict).",
+            )
+    else:
+        banner = ""
+
     report = _assemble_from_stored(assessment_id)
-    return asdict(report)
+    result = asdict(report)
+    if banner:
+        result["draft_banner"] = banner
+    return result
 
 
 @router.get("/{assessment_id}/pdf")
