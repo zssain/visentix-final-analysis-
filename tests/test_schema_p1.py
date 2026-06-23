@@ -180,14 +180,14 @@ def test_recommendation_library_stubs():
 def test_exemplar_stubs():
     r = _get("exemplar", select="source_internal_ref,clause_text,sme_cleaned", limit=100)
     rows = r.json()
-    assert len(rows) == 3
+    assert len(rows) >= 3  # 3 stubs + 40 auto-candidates from Phase 3.2
+    # All should be sme_cleaned=false (stubs + candidates)
     for row in rows:
         assert row["sme_cleaned"] is False
-        assert "STUB" in row["clause_text"]
 
 
 # ------------------------------------------------------------------
-# Test 7: organization_intelligence_profile is empty
+# Test 7: organization_intelligence_profile populated (Phase 4)
 # ------------------------------------------------------------------
-def test_oip_empty():
-    assert _count("organization_intelligence_profile") == 0
+def test_oip_populated():
+    assert _count("organization_intelligence_profile") == 30

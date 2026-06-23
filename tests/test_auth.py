@@ -51,9 +51,9 @@ def _mock_profile(role: str = "customer", org_id: str | None = _TEST_ORG_ID):
 async def test_no_token_returns_401():
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as c:
-        for path in ["/assessments/", "/findings/", "/reports/", "/admin/status"]:
+        for path in ["/assessments/", "/findings/", "/reports/test-id", "/admin/status"]:
             r = await c.get(path)
-            assert r.status_code == 401, f"{path} should be 401 without token"
+            assert r.status_code == 401, f"{path} should be 401 without token, got {r.status_code}"
 
 
 @pytest.mark.anyio
@@ -133,7 +133,7 @@ async def test_admin_can_access_all_routes():
     with _mock_profile("admin"):
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as c:
-            for path in ["/assessments/", "/findings/", "/reports/", "/admin/status"]:
+            for path in ["/assessments/", "/findings/", "/reports/test-id", "/admin/status"]:
                 r = await c.get(path, headers=_auth_header(token))
                 assert r.status_code == 200, f"Admin should access {path}"
 
