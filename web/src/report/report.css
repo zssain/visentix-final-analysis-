@@ -1,0 +1,38 @@
+/* Report styles — deterministic for Playwright capture */
+.report-container {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  max-width: 900px;
+  margin: 0 auto;
+  color: #1a1a2e;
+  line-height: 1.6;
+}
+
+.report-section {
+  margin-bottom: 28px;
+}
+
+.report-section h2 {
+  color: #0f3460;
+  border-bottom: 1px solid #e0e0e0;
+  padding-bottom: 4px;
+}
+
+.tier-high { color: #991b1b; font-weight: 600; }
+.tier-elevated { color: #92400e; font-weight: 600; }
+.tier-moderate { color: #1e40af; font-weight: 600; }
+.tier-low { color: #065f46; font-weight: 600; }
+
+/* Disable all animations for Playwright capture stability */
+.chart-container * {
+  animation: none !important;
+  transition: none !important;
+}
+
+/* Print stylesheet for PDF */
+@media print {
+  .report-container { max-width: 100%; margin: 0; }
+  .draft-banner { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .report-page-break { page-break-inside: avoid; }
+  .chart-container * { animation: none !important; transition: none !important; }
+  nav, button { display: none !important; }
+}
