@@ -21,3 +21,12 @@ async def trigger_assessment(
 ):
     """Trigger a new assessment run. Implemented in Phase 3."""
     return {"detail": "not_implemented"}
+
+
+@router.get("/training-stats")
+async def training_stats(
+    user: AuthenticatedUser = require_role("admin"),
+):
+    """Training label statistics — counts by action, domain, over time."""
+    from app.services.training import get_training_stats
+    return get_training_stats()

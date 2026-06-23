@@ -100,6 +100,10 @@ def submit_finding_action(
     if review.status == AssessmentStatus.DRAFT:
         review.status = AssessmentStatus.IN_REVIEW
 
+    # Capture previous state for training label
+    previous = review.finding_reviews.get(finding_id)
+    original_state = {"finding_id": finding_id, "action": previous.action if previous else None}
+
     fr = FindingReview(
         finding_id=finding_id,
         action=action,
@@ -108,6 +112,19 @@ def submit_finding_action(
         reviewed_at=datetime.now(timezone.utc).isoformat(),
     )
     review.finding_reviews[finding_id] = fr
+
+    # Capture training label (non-blocking)
+    from app.services.training import capture_label
+    capture_label(
+        assessment_id=assessment_id,
+        finding_id=finding_id,
+        action=action.value,
+        original=original_state,
+        corrected={"action": action.value, **(edited_fields or {})},
+        field="finding",
+        sme_user_id=reviewer_id,
+    )
+
     return fr
 
 
