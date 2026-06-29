@@ -1,6 +1,6 @@
-# Release Notes — Visentix MVP v1.0
+# Release Notes — Visentix MVP v1.1 (Gap Closure)
 
-**Date:** 2026-06-23
+**Date:** 2026-06-29 (v1.1 gap closure over v1.0 base of 2026-06-23)
 
 ## What Shipped
 
@@ -109,9 +109,69 @@
 | test_report_assembly.py | 15 |
 | test_review_gate.py | 21 |
 | test_training_labels.py | 12 |
-| **Backend total** | **307** |
+| **Backend total (v1.0)** | **307** |
 | web AuthGuard.test.tsx | 9 |
 | web api.test.ts | 3 |
 | web Report.test.tsx | 14 |
-| **Frontend total** | **26** |
-| **Grand total** | **333** |
+| **Frontend total (v1.0)** | **26** |
+| **v1.0 Grand total** | **333** |
+
+## v1.1 Gap Closure (Phase 11)
+
+### What shipped in gap closure
+
+| Gap | What | Tests Added |
+|---|---|---|
+| G1: F-004 Enforcement Correlation | ES×RPW×EFW×100, 26 notice rows, similarity.py helper | 14 |
+| G2: clause_obligation matching | obligation_match.py, obligation embeddings (154), de-id validator | 12 |
+| G3: Regulator heatmap | 9×8 grid (RPW×density×EFW), wired into Section 5 | 12 |
+| G4: LLM classify wiring | POST /assessments uses Qwen (keyword fallback), corpus reclassify (1,663/2,391) | 9 |
+| G5: F-001 recompute | 303 verification rows, zero drift report | 12 |
+| G6: F-012/F-013 trend | Honest "no_prior_history" + real deltas when prior exists | 18 |
+| G7: Exemplar SME review | Clean/approve routes, de-id validator, 3 demo cleaned exemplars | 15 |
+| G8: Login redirect fix | AuthProvider context, declarative redirect, no race | 10 |
+| G9: Report route | /reports/:assessmentId renders 12-section view from API | 9 |
+| G10: Renderer + CORS | RENDERER config, CORS defaults both dev origins, Playwright blocked (reported) | 9 |
+
+### Updated test counts
+
+| Test File | Tests |
+|---|---|
+| test_f004.py | 14 |
+| test_clause_obligation.py | 12 |
+| test_heatmap.py | 12 |
+| test_live_classify.py | 9 |
+| test_f001.py | 12 |
+| test_trend.py | 18 |
+| test_exemplar_review.py | 15 |
+| test_render_cors.py | 9 |
+| **New backend tests** | **101** |
+| **Backend total (v1.1)** | **408** |
+| web auth_redirect.test.tsx | 10 |
+| web report_page.test.tsx | 9 |
+| **New frontend tests** | **19** |
+| **Frontend total (v1.1)** | **45** |
+| **v1.1 Grand total** | **453** |
+
+### Data changes
+
+| Metric | v1.0 | v1.1 |
+|---|---|---|
+| derived_data_item rows | 554 | 883 (+329: F-004 26, F-001 303) |
+| obligation embeddings | 0 | 154 (all backfilled) |
+| sme_cleaned exemplars | 0 | 3 (demo seeds) |
+| Corpus reclassified (other→domain) | 0 | 1,663 (via category_v2) |
+| "other" gap | 65.4% | ~20% |
+
+## Phase 2 Deferrals (updated)
+
+| Feature | Status | Notes |
+|---|---|---|
+| Per-company trend line at scale | Deferred | F-012 built, needs monitoring history over time |
+| Real SME-authored finding/recommendation content | Deferred | Stubs in place (sme_authored=false), 3 demo exemplars cleaned |
+| Non-US jurisdictions | Deferred | US-only corpus for MVP |
+| Production volumes (>1000 orgs) | Deferred | MVP cohort ~30 |
+| Playwright PDF renderer | Blocked | pypi.org unreachable; weasyprint active |
+| clause_obligation population at scale | Partial | Module + embeddings ready; needs batch run |
+| GRC dashboard integration | Deferred | Enterprise feature |
+| White-label / multi-tenant | Deferred | Single-tenant for MVP |
