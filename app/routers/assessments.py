@@ -97,25 +97,42 @@ async def create_assessment(
     if not org_id:
         org_id = str(uuid4())  # anonymous assessment
 
-    # Decompose (keyword classification first, then LLM enhancement if available)
+    # Decompose: keyword classification as structural parse
     notice = decompose(extracted_text)
 
-    # LLM reclassification: upgrade "other" clauses via Qwen when available
+    # LLM classification: classify ALL clauses via Qwen, keyword as fallback
+    llm_classified = 0
+    keyword_fallback = 0
+    taxonomy = [
+        "data_sharing", "tracking_cookies", "consumer_rights", "cross_border",
+        "sensitive_data", "retention", "children_teens", "ai_automated_decisions", "other",
+    ]
     try:
         from app.services.llm import get_llm_client
         llm = get_llm_client()
-        taxonomy = [
-            "data_sharing", "tracking_cookies", "consumer_rights", "cross_border",
-            "sensitive_data", "retention", "children_teens", "ai_automated_decisions", "other",
-        ]
+
         for clause in notice.clauses:
-            if clause.category == "other" and len(clause.raw_text) > 30:
+            if len(clause.raw_text) < 20:
+                continue  # too short for meaningful classification
+            try:
                 result = await llm.classify(clause.raw_text, taxonomy)
-                if result.get("category") in taxonomy and result["category"] != "other":
-                    clause.category = result["category"]
-                    clause.nlp_confidence = min(result.get("confidence", 0.7), 0.9)
+                cat = result.get("category", "")
+                if cat in taxonomy:
+                    clause.category = cat
+                    clause.nlp_confidence = min(result.get("confidence", 0.7), 0.95)
+                    llm_classified += 1
+                else:
+                    keyword_fallback += 1  # keep keyword classification
+            except Exception:
+                keyword_fallback += 1  # per-clause fallback, no crash
     except Exception:
-        pass  # LLM unavailable — keep keyword classifications
+        keyword_fallback = len(notice.clauses)
+        # LLM entirely unavailable — all clauses keep keyword classification
+
+    log.info(
+        "Classification: llm=%d keyword_fallback=%d total=%d (text not logged)",
+        llm_classified, keyword_fallback, len(notice.clauses),
+    )
 
     notice_id = str(uuid4())
 

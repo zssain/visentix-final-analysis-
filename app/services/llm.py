@@ -69,7 +69,11 @@ class LLMClient:
         )
 
         log.info("LLM classify: sending %d chars (text not logged)", len(text))
-        response = await self._chat(system, prompt)
+        try:
+            response = await self._chat(system, prompt)
+        except Exception:
+            log.warning("LLM classify: chat failed, returning 'other'")
+            return {"category": "other", "confidence": 0.5}
 
         # Parse constrained JSON
         try:
