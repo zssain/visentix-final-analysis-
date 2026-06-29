@@ -9,6 +9,7 @@ import { Login } from "./pages/Login";
 import { CustomerDashboard } from "./pages/customer/Dashboard";
 import { ReviewQueue } from "./pages/sme/ReviewQueue";
 import { AdminConsole } from "./pages/admin/Console";
+import { ReportPage } from "./pages/ReportPage";
 import "./App.css";
 
 function NavLink({ to, children }: { to: string; children: React.ReactNode }) {
@@ -83,6 +84,13 @@ function AppRoutes() {
           <Route path="/admin" element={
             <ProtectedRoute allowedRoles={["admin"]}>
               <AdminConsole />
+            </ProtectedRoute>
+          } />
+
+          {/* Protected — report view (all authenticated roles) */}
+          <Route path="/reports/:assessmentId" element={
+            <ProtectedRoute allowedRoles={["customer", "sme", "admin"]}>
+              <ReportPage />
             </ProtectedRoute>
           } />
 

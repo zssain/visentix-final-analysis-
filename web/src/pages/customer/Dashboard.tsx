@@ -89,7 +89,7 @@ export function CustomerDashboard() {
                     {a.content_hash?.slice(0, 16)}...
                   </td>
                   <td>
-                    <button className="btn btn-outline btn-sm">View Report</button>
+                    <a href={`/reports/${a.notice_id}`} className="btn btn-outline btn-sm">View Report</a>
                   </td>
                 </tr>
               ))}
