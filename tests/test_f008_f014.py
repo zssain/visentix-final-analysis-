@@ -115,7 +115,7 @@ def test_f011_honest_cohort_size():
 def test_f012_no_prior():
     r = compute_f012(80, None)
     assert r.score == 0.0
-    assert "requires_monitoring_history" in r.source_lineage.get("note", "")
+    assert r.source_lineage.get("reason") == "no_prior_history"
 
 
 def test_f012_positive_delta():
@@ -137,7 +137,8 @@ def test_f013_zero_without_risk_increase():
 
 def test_f013_scales_with_inputs():
     r = compute_f013(risk_increase=0.5, enforcement_correlation=0.8,
-                     priority=0.9, confidence=0.7)
+                     monitoring_priority=0.9, confidence=0.7,
+                     has_monitoring_data=True)
     assert r.score > 0
 
 

@@ -177,44 +177,104 @@ def compute_f011(
 
 
 # ── F-012: Trend Delta ──────────────────────────────────────
+#
+# Definition: F-012 = (current - prior) / prior
+# When no prior exists: return 0 with reason="no_prior_history", LOW VCI,
+# and a label the report surfaces as "trend unavailable — single point in time".
 
 def compute_f012(
     current_score: float,
     prior_score: float | None,
+    current_snapshot_id: str = "",
+    prior_snapshot_id: str = "",
+    metric_name: str = "overall_intelligence",
 ) -> FormulaResult:
-    """F-012 = (Current − Prior) / Prior. Requires monitoring history."""
-    if prior_score is None or prior_score == 0:
+    """F-012 Trend Delta = (current − prior) / prior.
+
+    If prior exists: real delta, traceable to both snapshot points.
+    If no prior: honest 0 with "no_prior_history" label and LOW VCI.
+    """
+    if prior_score is None:
         return FormulaResult(
             formula_version_id="F-012_v1", object_type="trend_delta",
             score=0.0,
-            source_lineage={"reason": "no_prior_score", "note": "requires_monitoring_history"},
-            confidence_score=0.2,
+            source_lineage={
+                "reason": "no_prior_history",
+                "label": "Trend unavailable — single point in time.",
+                "metric": metric_name,
+                "current_score": current_score,
+                "current_snapshot_id": current_snapshot_id,
+            },
+            confidence_score=0.1,  # very low — no trend data
         )
 
-    delta = (current_score - prior_score) / prior_score
+    if prior_score == 0:
+        # Avoid divide-by-zero; prior was 0 → infinite % change is meaningless
+        return FormulaResult(
+            formula_version_id="F-012_v1", object_type="trend_delta",
+            score=0.0,
+            source_lineage={
+                "reason": "prior_score_zero",
+                "label": "Trend unavailable — prior baseline is zero.",
+                "current_score": current_score,
+                "prior_score": 0.0,
+            },
+            confidence_score=0.15,
+        )
+
+    delta_pct = round(((current_score - prior_score) / prior_score) * 100, 2)
+
     return FormulaResult(
         formula_version_id="F-012_v1", object_type="trend_delta",
-        score=round(delta * 100, 2),
-        source_lineage={"current": current_score, "prior": prior_score,
-                        "delta_pct": round(delta * 100, 2)},
-        confidence_score=0.6,
+        score=delta_pct,
+        source_lineage={
+            "current_score": current_score,
+            "prior_score": prior_score,
+            "delta_pct": delta_pct,
+            "current_snapshot_id": current_snapshot_id,
+            "prior_snapshot_id": prior_snapshot_id,
+            "metric": metric_name,
+        },
+        confidence_score=0.7,  # two real data points → moderate-high confidence
     )
 
 
 # ── F-013: Alert Escalation ─────────────────────────────────
+#
+# Definition: F-013 = Risk Δ × Enforcement Correlation × Priority × Confidence
+# When monitoring data is absent: degrade to low-confidence, don't invent.
 
 def compute_f013(
     risk_increase: float = 0.0,
     enforcement_correlation: float = 0.0,
-    priority: float = 0.5,
+    monitoring_priority: float = 0.5,
     confidence: float = 0.5,
+    has_monitoring_data: bool = False,
+    monitoring_event_id: str = "",
 ) -> FormulaResult:
-    """F-013 = RiskIncrease × EnfCorrelation × Priority × Confidence.
+    """F-013 Alert Escalation = Risk Δ × Enforcement Correlation × Priority × Confidence.
 
-    Only fully applies with monitoring history.
+    has_monitoring_data=True: real signal from monitoring_event → higher VCI.
+    has_monitoring_data=False: no monitoring → low VCI + honest label.
     """
-    score = risk_increase * enforcement_correlation * priority * confidence * 100
+    score = risk_increase * enforcement_correlation * monitoring_priority * confidence * 100
     score = round(min(max(score, 0), 100), 2)
+
+    if not has_monitoring_data:
+        return FormulaResult(
+            formula_version_id="F-013_v1", object_type="alert_escalation",
+            score=score,
+            source_lineage={
+                "risk_increase": risk_increase,
+                "enforcement_correlation": enforcement_correlation,
+                "monitoring_priority": monitoring_priority,
+                "confidence": confidence,
+                "has_monitoring_data": False,
+                "label": "Alert escalation based on static analysis only — "
+                         "no monitoring events available. Interpret with caution.",
+            },
+            confidence_score=0.2,  # low — no monitoring signal
+        )
 
     return FormulaResult(
         formula_version_id="F-013_v1", object_type="alert_escalation",
@@ -222,11 +282,12 @@ def compute_f013(
         source_lineage={
             "risk_increase": risk_increase,
             "enforcement_correlation": enforcement_correlation,
-            "priority": priority,
+            "monitoring_priority": monitoring_priority,
             "confidence": confidence,
-            "note": "requires_monitoring_history_for_full_accuracy",
+            "has_monitoring_data": True,
+            "monitoring_event_id": monitoring_event_id,
         },
-        confidence_score=0.3 if risk_increase == 0 else 0.5,
+        confidence_score=0.6,  # real monitoring signal → moderate confidence
     )
 
 
