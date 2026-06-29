@@ -180,10 +180,10 @@ def test_recommendation_library_stubs():
 def test_exemplar_stubs():
     r = _get("exemplar", select="source_internal_ref,clause_text,sme_cleaned", limit=100)
     rows = r.json()
-    assert len(rows) >= 3  # 3 stubs + 40 auto-candidates from Phase 3.2
-    # All should be sme_cleaned=false (stubs + candidates)
-    for row in rows:
-        assert row["sme_cleaned"] is False
+    assert len(rows) >= 3  # 3 stubs + 40 auto-candidates + demo cleaned
+    # Most should be sme_cleaned=false (stubs + candidates); some may be demo-cleaned
+    uncleaned = [row for row in rows if not row["sme_cleaned"]]
+    assert len(uncleaned) >= 40
 
 
 # ------------------------------------------------------------------
