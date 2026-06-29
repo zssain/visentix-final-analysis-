@@ -355,70 +355,107 @@ def compute_f007(
 
 
 # ── F-004: Enforcement Correlation Score ──────────────────────
+#
+# Definition (from formula_version F-004_v1):
+#   Enforcement Correlation Score = ES × RPW × EFW × 100
+#   where ES = cosine similarity between clause and matched enforcement embedding.
+#   RPW/EFW from the regulator that issued the matched enforcement_record.
+#   Aggregate = weighted mean of per-match scores, clamped 0–100.
+#
+# Weights/thresholds are read from formula_version at runtime, NOT hardcoded.
+
+
+@dataclass
+class EnforcementMatch:
+    """One clause↔enforcement match with regulator weights."""
+
+    clause_id: str
+    enforcement_id: str
+    regulator_id: str
+    cosine_similarity: float  # ES
+    rpw: float  # regulator priority weight for the clause's domain
+    efw: float  # enforcement frequency weight
+    domain: str
+    match_score: float = 0.0  # ES × RPW × EFW × 100
+
 
 def compute_f004(
-    clause_embeddings: list[list[float]],
-    enforcement_embeddings: list[list[float]],
-    enforcement_ids: list[str],
-    top_k: int = 5,
+    matches: list[EnforcementMatch],
+    similarity_floor: float = 0.30,
+    formula_version_id: str = "F-004_v1",
+    thresholds: dict | None = None,
 ) -> FormulaResult:
-    """F-004 = avg cosine similarity of top-K clause↔enforcement matches.
+    """F-004 Enforcement Correlation Score.
 
-    Uses pre-computed embeddings (384-dim, all-MiniLM-L6-v2).
-    Higher score = notice language closely resembles enforced practices.
+    matches: pre-computed EnforcementMatch objects from similarity.py + regulator lookup.
+    similarity_floor: matches below this cosine similarity are dropped.
+    thresholds: from formula_version F-004_v1 (may be None if not stored).
+
+    Returns FormulaResult with full enforcement-match lineage.
     """
-    if not clause_embeddings or not enforcement_embeddings:
+    # Filter by floor
+    valid = [m for m in matches if m.cosine_similarity >= similarity_floor]
+
+    if not valid:
         return FormulaResult(
-            formula_version_id="F-004_v1",
+            formula_version_id=formula_version_id,
             object_type="enforcement_correlation",
             score=0.0,
-            source_lineage={"reason": "no_embeddings"},
+            source_lineage={
+                "reason": "no_matches_above_floor",
+                "similarity_floor": similarity_floor,
+                "total_raw_matches": len(matches),
+            },
             confidence_score=0.3,
         )
 
-    import numpy as np
+    # Compute per-match score: ES × RPW × EFW × 100
+    for m in valid:
+        m.match_score = round(m.cosine_similarity * m.rpw * m.efw * 100, 4)
 
-    clauses = np.array(clause_embeddings)
-    enforcements = np.array(enforcement_embeddings)
+    # Aggregate: weighted mean by cosine similarity (stronger matches count more)
+    total_weight = sum(m.cosine_similarity for m in valid)
+    if total_weight > 0:
+        weighted_sum = sum(m.match_score * m.cosine_similarity for m in valid)
+        raw_score = weighted_sum / total_weight
+    else:
+        raw_score = 0.0
 
-    # Normalize for cosine similarity
-    clauses_norm = clauses / (np.linalg.norm(clauses, axis=1, keepdims=True) + 1e-9)
-    enf_norm = enforcements / (np.linalg.norm(enforcements, axis=1, keepdims=True) + 1e-9)
+    score = round(min(max(raw_score, 0.0), 100.0), 2)
 
-    # Compute similarity matrix: (n_clauses, n_enforcements)
-    sim_matrix = clauses_norm @ enf_norm.T
+    # Map to threshold tier if thresholds are stored
+    tier = None
+    if thresholds:
+        tier = _threshold_tier(score, thresholds)
 
-    # For each clause, take the max enforcement similarity
-    max_sims = sim_matrix.max(axis=1)
-
-    # Top-K clause correlations
-    top_k_actual = min(top_k, len(max_sims))
-    top_sims = np.sort(max_sims)[-top_k_actual:]
-
-    avg_correlation = float(np.mean(top_sims))
-
-    # Scale to 0-100
-    score = round(min(avg_correlation * 100, 100.0), 2)
-
-    # Identify which enforcement records matched best
-    best_enf_indices = sim_matrix.max(axis=0).argsort()[-3:][::-1]
-    top_matches = [
-        {"enforcement_id": enforcement_ids[i], "similarity": round(float(sim_matrix.max(axis=0)[i]), 4)}
-        for i in best_enf_indices if i < len(enforcement_ids)
+    # Build lineage: top matches sorted by match_score
+    valid.sort(key=lambda m: -m.match_score)
+    match_lineage = [
+        {
+            "clause_id": m.clause_id,
+            "enforcement_id": m.enforcement_id,
+            "regulator_id": m.regulator_id,
+            "domain": m.domain,
+            "ES": m.cosine_similarity,
+            "RPW": m.rpw,
+            "EFW": m.efw,
+            "match_score": m.match_score,
+        }
+        for m in valid[:20]  # cap lineage at 20 for storage
     ]
 
     return FormulaResult(
-        formula_version_id="F-004_v1",
+        formula_version_id=formula_version_id,
         object_type="enforcement_correlation",
         score=score,
+        tier=tier,
         source_lineage={
-            "n_clauses": len(clause_embeddings),
-            "n_enforcements": len(enforcement_embeddings),
-            "top_k": top_k_actual,
-            "avg_top_k_similarity": round(avg_correlation, 4),
-            "top_enforcement_matches": top_matches,
+            "n_matches": len(valid),
+            "similarity_floor": similarity_floor,
+            "aggregate_method": "weighted_mean_by_cosine",
+            "matches": match_lineage,
         },
-        confidence_score=0.6 if len(clause_embeddings) > 10 else 0.4,
+        confidence_score=0.6 if len(valid) >= 5 else 0.4,
     )
 
 
