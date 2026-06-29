@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 
 interface LoginProps {
   onSignIn: (email: string, password: string) => Promise<void>;
@@ -10,7 +9,6 @@ export function Login({ onSignIn }: LoginProps) {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -18,10 +16,9 @@ export function Login({ onSignIn }: LoginProps) {
     setLoading(true);
     try {
       await onSignIn(email, password);
-      navigate("/");
+      // Don't navigate — App.tsx will auto-redirect via isAuth check on /login route
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Login failed");
-    } finally {
       setLoading(false);
     }
   }

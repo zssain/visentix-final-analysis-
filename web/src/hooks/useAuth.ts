@@ -29,6 +29,8 @@ export function useAuth(): AuthState & {
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       updateState(session);
+    }).catch(() => {
+      setState(s => ({ ...s, loading: false }));
     });
 
     // Listen for changes
@@ -41,25 +43,34 @@ export function useAuth(): AuthState & {
     return () => subscription.unsubscribe();
   }, []);
 
-  async function updateState(session: Session | null) {
+  function updateState(session: Session | null) {
     if (!session?.user) {
       setState({ session: null, user: null, role: null, loading: false });
       return;
     }
 
-    // Fetch role from profiles table
-    const { data } = await supabase
+    // Set session IMMEDIATELY so isAuth becomes true (fixes redirect race)
+    setState((prev) => ({
+      session,
+      user: session.user,
+      role: prev.role ?? "customer",
+      loading: false,
+    }));
+
+    // Then fetch role in background (non-blocking)
+    supabase
       .from("profiles")
       .select("role")
       .eq("user_id", session.user.id)
-      .single();
-
-    setState({
-      session,
-      user: session.user,
-      role: (data?.role as UserRole) ?? "customer",
-      loading: false,
-    });
+      .single()
+      .then(({ data, error }) => {
+        if (data?.role && !error) {
+          setState((prev) => ({ ...prev, role: data.role as UserRole }));
+        }
+      })
+      .catch(() => {
+        // Keep default "customer" role
+      });
   }
 
   async function signIn(email: string, password: string) {

@@ -97,8 +97,26 @@ async def create_assessment(
     if not org_id:
         org_id = str(uuid4())  # anonymous assessment
 
-    # Decompose
+    # Decompose (keyword classification first, then LLM enhancement if available)
     notice = decompose(extracted_text)
+
+    # LLM reclassification: upgrade "other" clauses via Qwen when available
+    try:
+        from app.services.llm import get_llm_client
+        llm = get_llm_client()
+        taxonomy = [
+            "data_sharing", "tracking_cookies", "consumer_rights", "cross_border",
+            "sensitive_data", "retention", "children_teens", "ai_automated_decisions", "other",
+        ]
+        for clause in notice.clauses:
+            if clause.category == "other" and len(clause.raw_text) > 30:
+                result = await llm.classify(clause.raw_text, taxonomy)
+                if result.get("category") in taxonomy and result["category"] != "other":
+                    clause.category = result["category"]
+                    clause.nlp_confidence = min(result.get("confidence", 0.7), 0.9)
+    except Exception:
+        pass  # LLM unavailable — keep keyword classifications
+
     notice_id = str(uuid4())
 
     # Store privacy_notice

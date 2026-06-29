@@ -354,6 +354,74 @@ def compute_f007(
     )
 
 
+# ── F-004: Enforcement Correlation Score ──────────────────────
+
+def compute_f004(
+    clause_embeddings: list[list[float]],
+    enforcement_embeddings: list[list[float]],
+    enforcement_ids: list[str],
+    top_k: int = 5,
+) -> FormulaResult:
+    """F-004 = avg cosine similarity of top-K clause↔enforcement matches.
+
+    Uses pre-computed embeddings (384-dim, all-MiniLM-L6-v2).
+    Higher score = notice language closely resembles enforced practices.
+    """
+    if not clause_embeddings or not enforcement_embeddings:
+        return FormulaResult(
+            formula_version_id="F-004_v1",
+            object_type="enforcement_correlation",
+            score=0.0,
+            source_lineage={"reason": "no_embeddings"},
+            confidence_score=0.3,
+        )
+
+    import numpy as np
+
+    clauses = np.array(clause_embeddings)
+    enforcements = np.array(enforcement_embeddings)
+
+    # Normalize for cosine similarity
+    clauses_norm = clauses / (np.linalg.norm(clauses, axis=1, keepdims=True) + 1e-9)
+    enf_norm = enforcements / (np.linalg.norm(enforcements, axis=1, keepdims=True) + 1e-9)
+
+    # Compute similarity matrix: (n_clauses, n_enforcements)
+    sim_matrix = clauses_norm @ enf_norm.T
+
+    # For each clause, take the max enforcement similarity
+    max_sims = sim_matrix.max(axis=1)
+
+    # Top-K clause correlations
+    top_k_actual = min(top_k, len(max_sims))
+    top_sims = np.sort(max_sims)[-top_k_actual:]
+
+    avg_correlation = float(np.mean(top_sims))
+
+    # Scale to 0-100
+    score = round(min(avg_correlation * 100, 100.0), 2)
+
+    # Identify which enforcement records matched best
+    best_enf_indices = sim_matrix.max(axis=0).argsort()[-3:][::-1]
+    top_matches = [
+        {"enforcement_id": enforcement_ids[i], "similarity": round(float(sim_matrix.max(axis=0)[i]), 4)}
+        for i in best_enf_indices if i < len(enforcement_ids)
+    ]
+
+    return FormulaResult(
+        formula_version_id="F-004_v1",
+        object_type="enforcement_correlation",
+        score=score,
+        source_lineage={
+            "n_clauses": len(clause_embeddings),
+            "n_enforcements": len(enforcement_embeddings),
+            "top_k": top_k_actual,
+            "avg_top_k_similarity": round(avg_correlation, 4),
+            "top_enforcement_matches": top_matches,
+        },
+        confidence_score=0.6 if len(clause_embeddings) > 10 else 0.4,
+    )
+
+
 # ── Helpers ──────────────────────────────────────────────────
 
 def _threshold_tier(score: float, thresholds: dict[str, list]) -> str:
