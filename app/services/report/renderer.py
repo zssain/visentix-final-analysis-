@@ -1,7 +1,16 @@
-"""Report PDF renderer — weasyprint (primary) with Playwright fallback.
+"""Report PDF renderer — env-driven backend selection.
 
-Renders the report payload to HTML then to PDF. The HTML is the same structure
-the React portal would display, ensuring PDF matches the portal.
+Renderer selection via RENDERER env var:
+  - "weasyprint" (default, active): weasyprint HTML→PDF
+  - "playwright": headless Chromium via Playwright (requires install)
+
+NOTE (2026-06-29): Playwright install blocked by network egress restrictions
+(pypi.org unreachable). weasyprint is the active renderer. When Playwright
+becomes available, set RENDERER=playwright and run:
+    pip install playwright && playwright install chromium
+
+The renderer renders ONLY our own report HTML (set_content, not goto) —
+never an arbitrary URL. No SSRF via the renderer.
 """
 
 from __future__ import annotations
@@ -48,6 +57,13 @@ def render_html(report: ReportPayload) -> str:
 </div>
 </body>
 </html>"""
+
+
+async def render_pdf(report: ReportPayload, renderer: str = "weasyprint") -> bytes:
+    """Dispatch to the configured renderer. Never accepts arbitrary URLs."""
+    if renderer == "playwright":
+        return await render_pdf_playwright(report)
+    return render_pdf_weasyprint(report)
 
 
 def render_pdf_weasyprint(report: ReportPayload) -> bytes:

@@ -45,17 +45,12 @@ async def get_report(
 @router.get("/{assessment_id}/pdf")
 async def get_report_pdf(
     assessment_id: str,
-    renderer: str = Query("weasyprint", enum=["weasyprint", "playwright"]),
     user: AuthenticatedUser = require_role("customer", "sme", "admin"),
 ):
-    """Render the report as PDF. Same data as the portal view."""
+    """Render the report as PDF. Uses env RENDERER setting (weasyprint|playwright)."""
+    from app.services.report.renderer import render_pdf
     report = _assemble_from_stored(assessment_id)
-
-    if renderer == "playwright":
-        from app.services.report.renderer import render_pdf_playwright
-        pdf_bytes = await render_pdf_playwright(report)
-    else:
-        pdf_bytes = render_pdf_weasyprint(report)
+    pdf_bytes = await render_pdf(report, renderer=settings.renderer)
 
     return Response(
         content=pdf_bytes,

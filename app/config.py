@@ -13,7 +13,12 @@ class Settings(BaseSettings):
 
     # App
     app_env: str = Field(default="development")
-    cors_allowed_origins: str = Field(default="http://localhost:5173")
+    cors_allowed_origins: str = Field(
+        default="http://localhost:5173,http://127.0.0.1:5173"
+    )
+
+    # Renderer: "weasyprint" (default) or "playwright" (requires Chromium installed)
+    renderer: str = Field(default="weasyprint")
 
     # Supabase
     supabase_url: str

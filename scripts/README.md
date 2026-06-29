@@ -47,3 +47,27 @@ After the backfill completes, apply the vector index migration:
 ```
 
 This creates ivfflat cosine indexes on both embedding columns and runs ANALYZE.
+
+## PDF Renderer
+
+The report PDF renderer uses **weasyprint** (active) or **Playwright** (when available).
+
+### Renderer selection
+
+Set in `.env`:
+```
+RENDERER=weasyprint   # default, active
+RENDERER=playwright   # requires Chromium install
+```
+
+### Playwright install (when network allows)
+
+```bash
+pip install playwright
+playwright install chromium
+```
+
+**NOTE (2026-06-29):** Playwright install is currently blocked by network egress
+restrictions (pypi.org unreachable from this environment). weasyprint is the
+active renderer. The Playwright code path exists and is tested — it will activate
+when the package becomes available.
