@@ -1,25 +1,46 @@
+/**
+ * Login page — declarative redirect when session exists.
+ * No imperative navigate() after signIn — the AuthProvider context update
+ * triggers a re-render and the Navigate component fires.
+ */
 import { useState } from "react";
+import { Navigate, useLocation } from "react-router-dom";
+import { useAuth } from "../auth/AuthProvider";
 
-interface LoginProps {
-  onSignIn: (email: string, password: string) => Promise<void>;
+function roleLanding(role: string): string {
+  switch (role) {
+    case "admin": return "/admin";
+    case "sme": return "/review";
+    default: return "/";
+  }
 }
 
-export function Login({ onSignIn }: LoginProps) {
+export function Login() {
+  const { session, profile, loading, signIn } = useAuth();
+  const location = useLocation();
+  const from = (location.state as { from?: string })?.from;
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  // Declarative redirect: if already authenticated, leave /login
+  if (!loading && session) {
+    const target = from ?? roleLanding(profile?.role ?? "customer");
+    return <Navigate to={target} replace />;
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
-    setLoading(true);
+    setSubmitting(true);
     try {
-      await onSignIn(email, password);
-      // Don't navigate — App.tsx will auto-redirect via isAuth check on /login route
+      await signIn(email, password);
+      // Do NOT navigate — context update → re-render → Navigate fires above
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Login failed");
-      setLoading(false);
+      setSubmitting(false);
     }
   }
 
@@ -54,8 +75,8 @@ export function Login({ onSignIn }: LoginProps) {
               placeholder="Enter your password" required
             />
           </div>
-          <button type="submit" className="login-btn" disabled={loading}>
-            {loading ? "Signing in..." : "Sign In"}
+          <button type="submit" className="login-btn" disabled={submitting || loading}>
+            {submitting ? "Signing in..." : "Sign In"}
           </button>
         </form>
       </div>

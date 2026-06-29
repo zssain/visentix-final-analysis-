@@ -1,6 +1,10 @@
+/**
+ * App — uses AuthProvider context for all auth state.
+ * No imperative navigate() after sign-in. All redirects are declarative.
+ */
 import { BrowserRouter, Link, Navigate, Route, Routes, useLocation } from "react-router-dom";
-import { AuthGuard } from "./components/AuthGuard";
-import { useAuth } from "./hooks/useAuth";
+import { AuthProvider, useAuth } from "./auth/AuthProvider";
+import { ProtectedRoute } from "./auth/ProtectedRoute";
 import { Login } from "./pages/Login";
 import { CustomerDashboard } from "./pages/customer/Dashboard";
 import { ReviewQueue } from "./pages/sme/ReviewQueue";
@@ -17,13 +21,13 @@ function NavLink({ to, children }: { to: string; children: React.ReactNode }) {
   );
 }
 
-function AppContent() {
-  const { session, role, loading, signIn, signOut, user } = useAuth();
-  const isAuth = !!session;
+function AppRoutes() {
+  const { session, profile, signOut } = useAuth();
+  const role = profile?.role;
 
   return (
     <div className="app-layout">
-      {isAuth && (
+      {session && (
         <nav className="top-nav">
           <div className="nav-brand">
             <div className="logo-icon">V</div>
@@ -39,15 +43,16 @@ function AppContent() {
             )}
           </div>
           <div className="nav-user">
-            <span className="nav-role">{role}</span>
+            <span className="nav-role">{role ?? ""}</span>
             <button onClick={signOut} className="nav-signout">Sign Out</button>
           </div>
         </nav>
       )}
 
-      <div className={isAuth ? "main-content" : ""}>
+      <div className={session ? "main-content" : ""}>
         <Routes>
-          <Route path="/login" element={<Login onSignIn={signIn} />} />
+          {/* Public */}
+          <Route path="/login" element={<Login />} />
           <Route path="/unauthorized" element={
             <div style={{ padding: 60, textAlign: "center" }}>
               <h2 style={{ color: "var(--danger)" }}>403 — Access Denied</h2>
@@ -60,22 +65,25 @@ function AppContent() {
             </div>
           } />
 
+          {/* Protected — customer */}
           <Route path="/" element={
-            <AuthGuard role={role} allowedRoles={["customer", "sme", "admin"]} isAuthenticated={isAuth} loading={loading}>
+            <ProtectedRoute allowedRoles={["customer", "sme", "admin"]}>
               <CustomerDashboard />
-            </AuthGuard>
+            </ProtectedRoute>
           } />
 
+          {/* Protected — sme */}
           <Route path="/review" element={
-            <AuthGuard role={role} allowedRoles={["sme", "admin"]} isAuthenticated={isAuth} loading={loading}>
+            <ProtectedRoute allowedRoles={["sme", "admin"]}>
               <ReviewQueue />
-            </AuthGuard>
+            </ProtectedRoute>
           } />
 
+          {/* Protected — admin */}
           <Route path="/admin" element={
-            <AuthGuard role={role} allowedRoles={["admin"]} isAuthenticated={isAuth} loading={loading}>
+            <ProtectedRoute allowedRoles={["admin"]}>
               <AdminConsole />
-            </AuthGuard>
+            </ProtectedRoute>
           } />
 
           <Route path="*" element={<Navigate to="/" replace />} />
@@ -88,7 +96,9 @@ function AppContent() {
 export default function App() {
   return (
     <BrowserRouter>
-      <AppContent />
+      <AuthProvider>
+        <AppRoutes />
+      </AuthProvider>
     </BrowserRouter>
   );
 }
