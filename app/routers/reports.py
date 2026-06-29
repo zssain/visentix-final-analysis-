@@ -101,8 +101,30 @@ def _assemble_from_stored(assessment_id: str):
              "prose": "Consider specifying retention periods for each data category to reduce exposure."},
         ],
         exemplars=[],  # No sme_cleaned exemplars yet → placeholder in section 8
-        enforcement_heatmap=[],
+        enforcement_heatmap=_build_sample_heatmap(),
         cohort_size=30,
         cohort_date="2026-06-19",
         snapshot_id=assessment_id,
     )
+
+
+def _build_sample_heatmap() -> list[dict]:
+    """Build a real heatmap from sample data for the MVP placeholder report."""
+    from collections import Counter
+    from app.services.scoring.heatmap import build_regulator_heatmap, heatmap_to_serializable
+
+    sample_regulators = [
+        {"regulator_id": "FTC", "name": "Federal Trade Commission", "jurisdiction": "US-FED",
+         "enforcement_frequency_weight": 0.9,
+         "priority_weights": {"data_sharing": 0.9, "tracking_cookies": 0.9, "sensitive_data": 0.9,
+                              "consumer_rights": 0.6, "children_teens": 0.9, "retention": 0.6,
+                              "cross_border": 0.4, "ai_automated_decisions": 0.8}},
+        {"regulator_id": "CPPA", "name": "CA Privacy Protection Agency", "jurisdiction": "US-CA",
+         "enforcement_frequency_weight": 0.7,
+         "priority_weights": {"data_sharing": 0.9, "tracking_cookies": 0.9, "sensitive_data": 0.8,
+                              "consumer_rights": 0.9, "children_teens": 0.7, "retention": 0.7,
+                              "cross_border": 0.5, "ai_automated_decisions": 0.9}},
+    ]
+    sample_clauses = Counter({"data_sharing": 10, "tracking_cookies": 5, "retention": 2, "other": 20})
+    rows = build_regulator_heatmap(sample_regulators, sample_clauses)
+    return heatmap_to_serializable(rows)
