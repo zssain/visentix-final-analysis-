@@ -49,26 +49,55 @@ def _extract_token(request: Request) -> str:
     return auth_header[7:]
 
 
+_jwks_client = None
+
+
+def _get_jwks_client():
+    """Lazy-init JWKS client for ES256 verification."""
+    global _jwks_client
+    if _jwks_client is None:
+        from jwt import PyJWKClient
+        jwks_url = f"{settings.supabase_url}/auth/v1/.well-known/jwks.json"
+        _jwks_client = PyJWKClient(
+            jwks_url,
+            headers={"apikey": settings.supabase_anon_key},
+            cache_keys=True,
+            lifespan=3600,
+        )
+    return _jwks_client
+
+
 def _decode_jwt(token: str, cfg: Settings) -> dict:
-    """Decode and verify a Supabase JWT."""
+    """Decode and verify a Supabase JWT (supports ES256 + HS256 fallback)."""
+    # Try ES256 via JWKS first (newer Supabase projects)
     try:
-        payload = jwt.decode(
-            token,
-            cfg.supabase_jwt_secret,
+        header = jwt.get_unverified_header(token)
+        if header.get("alg") == "ES256":
+            jwks_client = _get_jwks_client()
+            signing_key = jwks_client.get_signing_key_from_jwt(token)
+            return jwt.decode(
+                token, signing_key.key,
+                algorithms=["ES256"],
+                audience="authenticated",
+            )
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token expired")
+    except jwt.InvalidTokenError:
+        pass  # fall through to HS256
+    except Exception:
+        pass  # JWKS unavailable, fall through
+
+    # Fallback: HS256 with JWT secret
+    try:
+        return jwt.decode(
+            token, cfg.supabase_jwt_secret,
             algorithms=["HS256"],
             audience="authenticated",
         )
-        return payload
     except jwt.ExpiredSignatureError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token expired",
-        )
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token expired")
     except jwt.InvalidTokenError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token",
-        )
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
 
 
 async def _load_profile(user_id: str) -> dict | None:

@@ -1,15 +1,11 @@
 /**
- * AuthProvider — single source of truth for session + profile + loading.
- *
- * Rules:
- * - loading=true until the first auth event resolves (never redirect during loading).
- * - signIn/signOut update context; callers NEVER call navigate() imperatively.
- * - Profile (role) is fetched once session is set, in background.
- * - Uses ANON key only — service-role key NEVER appears here.
+ * AuthProvider — manages auth with fully manual session persistence.
+ * Bypasses Supabase's built-in session storage which doesn't work
+ * reliably with sb_publishable_ key format.
  */
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useState, useCallback } from "react";
 import type { ReactNode } from "react";
-import type { Session, User } from "@supabase/supabase-js";
+import type { Session } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabase";
 
 export type UserRole = "customer" | "sme" | "admin";
@@ -21,7 +17,7 @@ export interface AuthProfile {
 
 interface AuthContextValue {
   session: Session | null;
-  user: User | null;
+  user: { id: string; email: string } | null;
   profile: AuthProfile | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
@@ -29,88 +25,103 @@ interface AuthContextValue {
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
+const STORAGE_KEY = "visentix-auth-session";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null);
+  const [session, setSession] = useState<Session | null>(() => {
+    // Initialize from localStorage synchronously to avoid flash
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) return JSON.parse(raw) as Session;
+    } catch {}
+    return null;
+  });
   const [profile, setProfile] = useState<AuthProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const user = session?.user ? { id: session.user.id, email: session.user.email ?? "" } : null;
+
+  // Fetch profile when session changes
   useEffect(() => {
-    let mounted = true;
+    if (!session?.user?.id) {
+      setProfile(null);
+      setLoading(false);
+      return;
+    }
 
-    // 1. Get initial session
-    supabase.auth.getSession().then(({ data: { session: s } }) => {
-      if (mounted) {
-        setSession(s);
-        if (s?.user) {
-          fetchProfile(s.user.id);
-        } else {
-          setLoading(false);
-        }
-      }
-    }).catch(() => {
-      if (mounted) setLoading(false);
-    });
-
-    // 2. Subscribe to auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, s) => {
-        if (!mounted) return;
-        setSession(s);
-        if (s?.user) {
-          fetchProfile(s.user.id);
-        } else {
-          setProfile(null);
-          setLoading(false);
-        }
-      },
-    );
-
-    async function fetchProfile(userId: string) {
-      try {
-        const { data } = await supabase
-          .from("profiles")
-          .select("role, organization_id")
-          .eq("user_id", userId)
-          .single();
-
-        if (mounted) {
+    let cancelled = false;
+    supabase
+      .from("profiles")
+      .select("role, organization_id")
+      .eq("user_id", session.user.id)
+      .single()
+      .then(({ data }) => {
+        if (!cancelled) {
           setProfile({
             role: (data?.role as UserRole) ?? "customer",
             organizationId: data?.organization_id ?? null,
           });
+          setLoading(false);
         }
-      } catch {
-        if (mounted) {
+      })
+      .catch(() => {
+        if (!cancelled) {
           setProfile({ role: "customer", organizationId: null });
+          setLoading(false);
         }
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    }
+      });
 
-    return () => {
-      mounted = false;
-      subscription.unsubscribe();
-    };
+    return () => { cancelled = true; };
+  }, [session?.user?.id]);
+
+  // On mount: check if Supabase has a session (it may not with sb_publishable_ keys)
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session: s } }) => {
+      if (s) {
+        setSession(s);
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); } catch {}
+      }
+      // If no Supabase session but we have one in localStorage, keep it
+      // (already initialized in useState)
+    }).catch(() => {});
   }, []);
 
-  async function signIn(email: string, password: string) {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const signIn = useCallback(async (email: string, password: string) => {
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
-    // Do NOT navigate here — the onAuthStateChange callback will update session,
-    // which triggers a re-render, and the declarative redirect fires.
-  }
+    if (data.session) {
+      // Save to localStorage AND React state
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data.session)); } catch {}
 
-  async function signOut() {
-    await supabase.auth.signOut();
+      // Fetch profile BEFORE setting session — so role is ready on first render
+      let role: UserRole = "customer";
+      let orgId: string | null = null;
+      try {
+        const { data: p } = await supabase
+          .from("profiles")
+          .select("role, organization_id")
+          .eq("user_id", data.session.user.id)
+          .single();
+        if (p?.role) role = p.role as UserRole;
+        if (p?.organization_id) orgId = p.organization_id;
+      } catch {}
+
+      setProfile({ role, organizationId: orgId });
+      setSession(data.session);
+      setLoading(false);
+    }
+  }, []);
+
+  const signOut = useCallback(async () => {
+    try { await supabase.auth.signOut(); } catch {}
+    try { localStorage.removeItem(STORAGE_KEY); } catch {}
     setSession(null);
     setProfile(null);
-  }
+  }, []);
 
   const value = useMemo<AuthContextValue>(
-    () => ({ session, user: session?.user ?? null, profile, loading, signIn, signOut }),
-    [session, profile, loading],
+    () => ({ session, user, profile, loading, signIn, signOut }),
+    [session, user, profile, loading, signIn, signOut],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

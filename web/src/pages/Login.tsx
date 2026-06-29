@@ -37,7 +37,8 @@ export function Login() {
     setSubmitting(true);
     try {
       await signIn(email, password);
-      // Do NOT navigate — context update → re-render → Navigate fires above
+      // signIn sets session in context → this component re-renders →
+      // the `if (!loading && session)` check above fires → Navigate renders
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Login failed");
       setSubmitting(false);
