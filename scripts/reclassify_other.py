@@ -91,7 +91,9 @@ async def main():
     args = parser.parse_args()
 
     llm = get_llm_client()
-    log.info("LLM backend: %s", llm._backend)
+    # Force local backend for batch work (hosted is for live only)
+    llm._backend = "local"
+    log.info("LLM backend: %s (forced local for batch)", llm._backend)
 
     total_processed = 0
     total_reclassified = 0
