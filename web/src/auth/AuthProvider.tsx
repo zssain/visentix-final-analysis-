@@ -25,18 +25,25 @@ interface AuthContextValue {
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
-const STORAGE_KEY = "visentix-auth-session";
+const SESSION_KEY = "visentix-auth-session";
+const PROFILE_KEY = "visentix-auth-profile";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(() => {
-    // Initialize from localStorage synchronously to avoid flash
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
+      const raw = localStorage.getItem(SESSION_KEY);
       if (raw) return JSON.parse(raw) as Session;
     } catch {}
     return null;
   });
-  const [profile, setProfile] = useState<AuthProfile | null>(null);
+  const [profile, setProfile] = useState<AuthProfile | null>(() => {
+    // Also restore profile from localStorage so role is correct on reload
+    try {
+      const raw = localStorage.getItem(PROFILE_KEY);
+      if (raw) return JSON.parse(raw) as AuthProfile;
+    } catch {}
+    return null;
+  });
   const [loading, setLoading] = useState(true);
 
   const user = session?.user ? { id: session.user.id, email: session.user.email ?? "" } : null;
@@ -50,17 +57,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     let cancelled = false;
-    supabase
-      .from("profiles")
-      .select("role, organization_id")
-      .eq("user_id", session.user.id)
-      .single()
-      .then(({ data }) => {
+    Promise.resolve(
+      supabase
+        .from("profiles")
+        .select("role, organization_id")
+        .eq("user_id", session.user.id)
+        .single()
+    ).then(({ data }) => {
         if (!cancelled) {
-          setProfile({
+          const prof = {
             role: (data?.role as UserRole) ?? "customer",
             organizationId: data?.organization_id ?? null,
-          });
+          };
+          try { localStorage.setItem(PROFILE_KEY, JSON.stringify(prof)); } catch {}
+          setProfile(prof);
           setLoading(false);
         }
       })
@@ -79,7 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     supabase.auth.getSession().then(({ data: { session: s } }) => {
       if (s) {
         setSession(s);
-        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); } catch {}
+        try { localStorage.setItem(SESSION_KEY, JSON.stringify(s)); } catch {}
       }
       // If no Supabase session but we have one in localStorage, keep it
       // (already initialized in useState)
@@ -91,7 +101,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) throw error;
     if (data.session) {
       // Save to localStorage AND React state
-      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data.session)); } catch {}
+      try { localStorage.setItem(SESSION_KEY, JSON.stringify(data.session)); } catch {}
 
       // Fetch profile BEFORE setting session — so role is ready on first render
       let role: UserRole = "customer";
@@ -106,7 +116,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (p?.organization_id) orgId = p.organization_id;
       } catch {}
 
-      setProfile({ role, organizationId: orgId });
+      const prof = { role, organizationId: orgId };
+      try { localStorage.setItem(PROFILE_KEY, JSON.stringify(prof)); } catch {}
+      setProfile(prof);
       setSession(data.session);
       setLoading(false);
     }
@@ -114,7 +126,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(async () => {
     try { await supabase.auth.signOut(); } catch {}
-    try { localStorage.removeItem(STORAGE_KEY); } catch {}
+    try { localStorage.removeItem(SESSION_KEY); } catch {}
+    try { localStorage.removeItem(PROFILE_KEY); } catch {}
     setSession(null);
     setProfile(null);
   }, []);
