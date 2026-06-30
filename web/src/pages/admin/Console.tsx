@@ -16,7 +16,7 @@ export function AdminConsole() {
   useEffect(() => {
     Promise.all([
       api.get("/admin/training-stats").catch(() => null),
-      fetch("http://localhost:8000/health").then(r => r.json()).catch(() => null),
+      fetch((import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000") + "/health").then(r => r.json()).catch(() => null),
     ]).then(([s, h]) => {
       setStats(s as TrainingStats);
       setHealth(h as Record<string, unknown>);
