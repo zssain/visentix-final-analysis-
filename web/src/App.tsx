@@ -10,6 +10,7 @@ import { CustomerDashboard } from "./pages/customer/Dashboard";
 import { ReviewQueue } from "./pages/sme/ReviewQueue";
 import { AdminConsole } from "./pages/admin/Console";
 import { ReportPage } from "./pages/ReportPage";
+import { NewAssessment } from "./pages/NewAssessment";
 import "./App.css";
 
 function NavLink({ to, children }: { to: string; children: React.ReactNode }) {
@@ -36,6 +37,7 @@ function AppRoutes() {
           </div>
           <div className="nav-links">
             <NavLink to="/">Assessments</NavLink>
+            <NavLink to="/assess">New Assessment</NavLink>
             {(role === "sme" || role === "admin") && (
               <NavLink to="/review">Review Queue</NavLink>
             )}
@@ -70,6 +72,13 @@ function AppRoutes() {
           <Route path="/" element={
             <ProtectedRoute allowedRoles={["customer", "sme", "admin"]}>
               <CustomerDashboard />
+            </ProtectedRoute>
+          } />
+
+          {/* New assessment */}
+          <Route path="/assess" element={
+            <ProtectedRoute allowedRoles={["customer", "sme", "admin"]}>
+              <NewAssessment />
             </ProtectedRoute>
           } />
 
