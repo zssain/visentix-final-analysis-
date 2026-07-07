@@ -22,6 +22,13 @@ function NavLink({ to, children }: { to: string; children: React.ReactNode }) {
   );
 }
 
+function RoleBasedHome() {
+  const { profile } = useAuth();
+  if (profile?.role === "admin") return <Navigate to="/admin" replace />;
+  if (profile?.role === "sme") return <Navigate to="/review" replace />;
+  return <CustomerDashboard />;
+}
+
 function AppRoutes() {
   const { session, profile, signOut } = useAuth();
   const role = profile?.role;
@@ -35,7 +42,7 @@ function AppRoutes() {
             <span>Visentix</span>
           </div>
           <div className="nav-links">
-            <NavLink to="/">Assessments</NavLink>
+            <NavLink to="/assessments">Assessments</NavLink>
             {(role === "sme" || role === "admin") && (
               <NavLink to="/review">Review Queue</NavLink>
             )}
@@ -66,8 +73,15 @@ function AppRoutes() {
             </div>
           } />
 
-          {/* Protected — customer */}
+          {/* Root → role-based landing (login redirect target) */}
           <Route path="/" element={
+            <ProtectedRoute allowedRoles={["customer", "sme", "admin"]}>
+              <RoleBasedHome />
+            </ProtectedRoute>
+          } />
+
+          {/* Protected — assessments (all roles; explicit nav target) */}
+          <Route path="/assessments" element={
             <ProtectedRoute allowedRoles={["customer", "sme", "admin"]}>
               <CustomerDashboard />
             </ProtectedRoute>

@@ -1,12 +1,21 @@
 import { useEffect, useState } from "react";
 import { api, ApiError } from "../../lib/api";
 
+interface OrgInfo {
+  name: string;
+  domain: string | null;
+  industry: string | null;
+  size: string | null;
+  geography: string | null;
+}
+
 interface Assessment {
   notice_id: string;
   organization_id: string;
   notice_type: string;
-  effective_date: string;
+  effective_date: string | null;
   content_hash: string;
+  organization: OrgInfo | null;
 }
 
 export function CustomerDashboard() {
@@ -30,7 +39,7 @@ export function CustomerDashboard() {
     <div>
       <div className="page-header">
         <h1>Privacy Assessments</h1>
-        <p>Your organization's privacy intelligence assessments</p>
+        <p>Organization privacy intelligence assessments</p>
       </div>
 
       <div className="stats-grid">
@@ -46,6 +55,12 @@ export function CustomerDashboard() {
         </div>
         <div className="stat-card">
           <div className="stat-value" style={{ color: "var(--accent)" }}>
+            {new Set(assessments.map(a => a.organization_id)).size}
+          </div>
+          <div className="stat-label">Organizations</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-value" style={{ color: "var(--text-muted)" }}>
             {assessments.filter(a => a.notice_type !== "live_assessment").length}
           </div>
           <div className="stat-label">Corpus Notices</div>
@@ -66,30 +81,43 @@ export function CustomerDashboard() {
           <table>
             <thead>
               <tr>
-                <th>Notice ID</th>
+                <th>Organization</th>
+                <th>Industry</th>
+                <th>Size</th>
+                <th>Geography</th>
                 <th>Type</th>
                 <th>Effective Date</th>
-                <th>Content Hash</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               {assessments.map((a) => (
                 <tr key={a.notice_id}>
-                  <td style={{ fontFamily: "monospace", fontSize: "0.85rem" }}>
-                    {a.notice_id?.slice(0, 12)}...
+                  <td>
+                    <div style={{ fontWeight: 600 }}>{a.organization?.name ?? "—"}</div>
+                    {a.organization?.domain && (
+                      <div style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>
+                        {a.organization.domain}
+                      </div>
+                    )}
                   </td>
+                  <td style={{ textTransform: "capitalize" }}>
+                    {a.organization?.industry ?? "—"}
+                  </td>
+                  <td style={{ textTransform: "capitalize" }}>
+                    {a.organization?.size ?? "—"}
+                  </td>
+                  <td>{a.organization?.geography ?? "—"}</td>
                   <td>
                     <span className={`badge ${a.notice_type === "live_assessment" ? "badge-success" : "badge-moderate"}`}>
-                      {a.notice_type?.replace("_", " ")}
+                      {a.notice_type?.replace(/_/g, " ")}
                     </span>
                   </td>
-                  <td>{a.effective_date || "—"}</td>
-                  <td style={{ fontFamily: "monospace", fontSize: "0.8rem", color: "var(--text-muted)" }}>
-                    {a.content_hash?.slice(0, 16)}...
-                  </td>
+                  <td>{a.effective_date ?? "—"}</td>
                   <td>
-                    <a href={`/reports/${a.notice_id}`} className="btn btn-outline btn-sm">View Report</a>
+                    <a href={`/reports/${a.notice_id}`} className="btn btn-outline btn-sm">
+                      View Report
+                    </a>
                   </td>
                 </tr>
               ))}

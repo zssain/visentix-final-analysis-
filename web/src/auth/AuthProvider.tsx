@@ -1,12 +1,10 @@
 /**
- * AuthProvider — manages auth with fully manual session persistence.
- * Bypasses Supabase's built-in session storage which doesn't work
- * reliably with sb_publishable_ key format.
+ * AuthProvider — local auth (no Supabase auth service).
+ * Calls POST /auth/login on the FastAPI backend, stores the JWT in
+ * localStorage, and exposes session + profile via context.
  */
-import { createContext, useContext, useEffect, useMemo, useState, useCallback } from "react";
+import { createContext, useContext, useCallback, useMemo, useState } from "react";
 import type { ReactNode } from "react";
-import type { Session } from "@supabase/supabase-js";
-import { supabase } from "../lib/supabase";
 
 export type UserRole = "customer" | "sme" | "admin";
 
@@ -15,8 +13,13 @@ export interface AuthProfile {
   organizationId: string | null;
 }
 
+interface LocalSession {
+  access_token: string;
+  user: { id: string; email: string };
+}
+
 interface AuthContextValue {
-  session: Session | null;
+  session: LocalSession | null;
   user: { id: string; email: string } | null;
   profile: AuthProfile | null;
   loading: boolean;
@@ -28,104 +31,69 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 const SESSION_KEY = "visentix-auth-session";
 const PROFILE_KEY = "visentix-auth-profile";
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
+
+function readLocalSession(): LocalSession | null {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    if (raw) return JSON.parse(raw) as LocalSession;
+  } catch {}
+  return null;
+}
+
+function readLocalProfile(): AuthProfile | null {
+  try {
+    const raw = localStorage.getItem(PROFILE_KEY);
+    if (raw) return JSON.parse(raw) as AuthProfile;
+  } catch {}
+  return null;
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<Session | null>(() => {
-    try {
-      const raw = localStorage.getItem(SESSION_KEY);
-      if (raw) return JSON.parse(raw) as Session;
-    } catch {}
-    return null;
-  });
-  const [profile, setProfile] = useState<AuthProfile | null>(() => {
-    // Also restore profile from localStorage so role is correct on reload
-    try {
-      const raw = localStorage.getItem(PROFILE_KEY);
-      if (raw) return JSON.parse(raw) as AuthProfile;
-    } catch {}
-    return null;
-  });
-  const [loading, setLoading] = useState(true);
+  const [session, setSession] = useState<LocalSession | null>(readLocalSession);
+  const [profile, setProfile] = useState<AuthProfile | null>(readLocalProfile);
+  // No async bootstrap needed — everything is in localStorage.
+  const [loading] = useState(false);
 
-  const user = session?.user ? { id: session.user.id, email: session.user.email ?? "" } : null;
-
-  // Fetch profile when session changes
-  useEffect(() => {
-    if (!session?.user?.id) {
-      setProfile(null);
-      setLoading(false);
-      return;
-    }
-
-    let cancelled = false;
-    Promise.resolve(
-      supabase
-        .from("profiles")
-        .select("role, organization_id")
-        .eq("user_id", session.user.id)
-        .single()
-    ).then(({ data }) => {
-        if (!cancelled) {
-          const prof = {
-            role: (data?.role as UserRole) ?? "customer",
-            organizationId: data?.organization_id ?? null,
-          };
-          try { localStorage.setItem(PROFILE_KEY, JSON.stringify(prof)); } catch {}
-          setProfile(prof);
-          setLoading(false);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setProfile({ role: "customer", organizationId: null });
-          setLoading(false);
-        }
-      });
-
-    return () => { cancelled = true; };
-  }, [session?.user?.id]);
-
-  // On mount: check if Supabase has a session (it may not with sb_publishable_ keys)
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session: s } }) => {
-      if (s) {
-        setSession(s);
-        try { localStorage.setItem(SESSION_KEY, JSON.stringify(s)); } catch {}
-      }
-      // If no Supabase session but we have one in localStorage, keep it
-      // (already initialized in useState)
-    }).catch(() => {});
-  }, []);
+  const user = session ? session.user : null;
 
   const signIn = useCallback(async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) throw error;
-    if (data.session) {
-      // Save to localStorage AND React state
-      try { localStorage.setItem(SESSION_KEY, JSON.stringify(data.session)); } catch {}
+    const res = await fetch(`${API_BASE}/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
 
-      // Fetch profile BEFORE setting session — so role is ready on first render
-      let role: UserRole = "customer";
-      let orgId: string | null = null;
-      try {
-        const { data: p } = await supabase
-          .from("profiles")
-          .select("role, organization_id")
-          .eq("user_id", data.session.user.id)
-          .single();
-        if (p?.role) role = p.role as UserRole;
-        if (p?.organization_id) orgId = p.organization_id;
-      } catch {}
-
-      const prof = { role, organizationId: orgId };
-      try { localStorage.setItem(PROFILE_KEY, JSON.stringify(prof)); } catch {}
-      setProfile(prof);
-      setSession(data.session);
-      setLoading(false);
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({})) as { detail?: string };
+      throw new Error(body.detail ?? "Login failed");
     }
+
+    const data = await res.json() as {
+      access_token: string;
+      user_id: string;
+      email: string;
+      role: string;
+      organization_id: string | null;
+    };
+
+    const newSession: LocalSession = {
+      access_token: data.access_token,
+      user: { id: data.user_id, email: data.email },
+    };
+    const newProfile: AuthProfile = {
+      role: data.role as UserRole,
+      organizationId: data.organization_id ?? null,
+    };
+
+    try { localStorage.setItem(SESSION_KEY, JSON.stringify(newSession)); } catch {}
+    try { localStorage.setItem(PROFILE_KEY, JSON.stringify(newProfile)); } catch {}
+
+    setProfile(newProfile);
+    setSession(newSession);
   }, []);
 
   const signOut = useCallback(async () => {
-    try { await supabase.auth.signOut(); } catch {}
     try { localStorage.removeItem(SESSION_KEY); } catch {}
     try { localStorage.removeItem(PROFILE_KEY); } catch {}
     setSession(null);

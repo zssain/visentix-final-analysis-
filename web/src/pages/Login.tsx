@@ -11,7 +11,7 @@ function roleLanding(role: string): string {
   switch (role) {
     case "admin": return "/admin";
     case "sme": return "/review";
-    default: return "/";
+    default: return "/assessments";
   }
 }
 
@@ -27,7 +27,7 @@ export function Login() {
 
   // Declarative redirect: if already authenticated, leave /login
   if (!loading && session) {
-    const target = from ?? roleLanding(profile?.role ?? "customer");
+    const target = from && from !== "/" ? from : roleLanding(profile?.role ?? "customer");
     return <Navigate to={target} replace />;
   }
 

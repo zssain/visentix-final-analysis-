@@ -35,7 +35,7 @@ async def get_report(
     else:
         banner = ""
 
-    report = _assemble_from_stored(assessment_id)
+    report = await _assemble_from_stored(assessment_id)
     result = asdict(report)
     if banner:
         result["draft_banner"] = banner
@@ -49,7 +49,7 @@ async def get_report_pdf(
 ):
     """Render the report as PDF. Uses env RENDERER setting (weasyprint|playwright)."""
     from app.services.report.renderer import render_pdf
-    report = _assemble_from_stored(assessment_id)
+    report = await _assemble_from_stored(assessment_id)
     pdf_bytes = await render_pdf(report, renderer=settings.renderer)
 
     return Response(
@@ -59,11 +59,30 @@ async def get_report_pdf(
     )
 
 
-def _assemble_from_stored(assessment_id: str):
-    """Assemble report from stored data. MVP: uses placeholder data."""
-    return assemble_report(
+async def _fetch_org_for_notice(assessment_id: str) -> dict:
+    """Fetch organization details for a privacy notice."""
+    from app.db import supabase_rest_get
+
+    r = await supabase_rest_get(
+        "privacy_notice",
+        select="organization_id,organization(name,domain,industry,size,geography)",
+        filters=f"notice_id=eq.{assessment_id}",
+        limit=1,
+    )
+    rows = r.json() if r.status_code == 200 else []
+    if rows:
+        return rows[0].get("organization") or {}
+    return {}
+
+
+async def _assemble_from_stored(assessment_id: str):
+    """Assemble report from stored data. Fetches real org name from Supabase."""
+    org = await _fetch_org_for_notice(assessment_id)
+    org_name = org.get("name") or "Unknown Organization"
+
+    report = assemble_report(
         assessment_id=assessment_id,
-        org_name="Assessment Organization",
+        org_name=org_name,
         scores={
             "f002": {"score": 45.0, "tier": "moderate", "lineage": {}},
             "f003": {"score": 15.0, "lineage": {}},
@@ -80,7 +99,7 @@ def _assemble_from_stored(assessment_id: str):
         ],
         vci={"score": 58.0, "label": "moderate"},
         narrative_exec=(
-            "Assessment Organization presents an overall privacy intelligence score of "
+            f"{org_name} presents an overall privacy intelligence score of "
             "62.5 out of 100, placing it at the 71.0th percentile within its peer cohort "
             "(n=30, as of 2026-06-19). The assessment identified 2 areas of elevated "
             "exposure. Confidence level: moderate."
@@ -101,6 +120,16 @@ def _assemble_from_stored(assessment_id: str):
         cohort_date="2026-06-19",
         snapshot_id=assessment_id,
     )
+
+    # Inject real org details into the Cover section content
+    cover = next((s for s in report.sections if s.number == 1), None)
+    if cover:
+        cover.content["org_domain"] = org.get("domain") or ""
+        cover.content["org_industry"] = org.get("industry") or ""
+        cover.content["org_size"] = org.get("size") or ""
+        cover.content["org_geography"] = org.get("geography") or ""
+
+    return report
 
 
 def _build_sample_heatmap() -> list[dict]:

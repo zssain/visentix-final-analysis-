@@ -34,7 +34,7 @@ async def list_assessments(
     """List assessments visible to the current user."""
     r = await supabase_rest_get(
         "privacy_notice",
-        select="notice_id,organization_id,notice_type,effective_date,content_hash",
+        select="notice_id,organization_id,notice_type,effective_date,content_hash,organization(name,domain,industry,size,geography)",
         limit=100,
     )
     return r.json()
