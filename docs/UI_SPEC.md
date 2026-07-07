@@ -231,7 +231,7 @@ SME Workbench v2 — `ReviewQueue.tsx` → upgrade to three-pane layout
 
 **Decision:** Keep. The insight that regulators review on mobile while traveling is real. "Prose-first, metrics as pills" is the right adaptation.
 
-**Product caveat (document for Carlos):**  
+**Product caveat (document for product approval):**  
 "Advisor becomes the hero on mobile" is a product decision, not just a layout one — it makes evidence secondary on small screens, slightly undercutting the evidence-first thesis. Fine to default mobile to Advisor view, but:
 1. View switch must be a **thumb-tap away** (fixed bottom bar, not buried in a menu).
 2. Lineage drawer must render as a **full-screen bottom sheet** on mobile so evidence is never lost, just reordered.
@@ -325,7 +325,7 @@ These components appear globally. Their specs are the authority.
 | Methodology / About page | Spec exists | No page exists | New page to build |
 | Quarterly Report reader | Spec exists | No page exists | New page to build |
 | SME Workbench v2 | Spec exists | ReviewQueue.tsx stub only | Three-pane layout + de-id mode to build |
-| Framework Crosswalk | "held for Carlos" | Not built | Hold — build shell only |
+| Framework Crosswalk | "held for product approval" | Not built | Hold — build shell only |
 | Intake & Decomposition Explorer | Gap in screens.md | No page exists | New page (Screen 1 above) |
 
 ### Report sections in codebase vs. spec
@@ -362,18 +362,18 @@ All 12 sections exist as TSX files in `web/src/report/sections/`. Known gaps:
 9. Methodology page → new route
 10. Mobile responsive pass → all screens, mobile Advisor View, bottom sheet
 11. Quarterly Report reader → editorial layout
-12. Framework Crosswalk shell → held for Carlos
+12. Framework Crosswalk shell → held for product approval
 
 ---
 
-## Open Decisions (waiting on Carlos / product)
+## Open Decisions (waiting on product approval)
 
 | ID | Decision | Blocker |
 |---|---|---|
-| OD-01 | Framework Crosswalk copy — descriptive vs. verdict language | Carlos must confirm guardrail extension |
-| OD-02 | Reader register names — Executive / Practitioner / Plain-language (final names TBD) | Carlos |
+| OD-01 | Framework Crosswalk copy — descriptive vs. verdict language | Product approval must confirm guardrail extension |
+| OD-02 | Reader register names — Executive / Practitioner / Plain-language (final names TBD) | Product approval |
 | OD-03 | "Advisor becomes hero on mobile" default — does it contradict evidence-first thesis? | Product decision documented in §6 |
-| OD-04 | Real SME names in attribution slot — governance timing | Carlos / SME team |
+| OD-04 | Real SME names in attribution slot — governance timing | SME team |
 | OD-05 | Cohort size threshold for "low confidence" label | Data team to define n cutoff |
 
 ---
@@ -399,7 +399,9 @@ All 12 sections exist as TSX files in `web/src/report/sections/`. Known gaps:
 | M-10 | Lineage Drawer | Formula plain-language descriptions are hardcoded strings | `formula_version` table — `description` column | Table exists; descriptions may need to be populated if NULL |
 | M-11 | Finding Codex | Codex entries are a static JSON array | `finding_type` catalog table in Supabase | Table exists with real codes; build a `/api/codex` GET endpoint |
 | M-12 | All screens | Cohort size shown as `n=30` everywhere | Real cohort query: `SELECT COUNT(*) FROM benchmark_membership WHERE cohort_id = …` | Never display a static n; always query live |
+| M-13 | Admin Console | Global Gate Mode setting simulated in React console component | `GET /api/admin/gate-mode` and `POST /api/admin/gate-mode` | Backend endpoints do not exist; UI simulates the configuration state locally. |
+| M-14 | Admin Console | Trigger Batch Assessment simulated with a delay and notification | `POST /api/admin/trigger-assessment` | Backend route exists as a stub returning not_implemented; UI simulates full execution. |
 
 ---
 
-*Last updated: 2026-07-07. Branch: test-2. All phrasing in this document follows exposure/maturity/likelihood/benchmark/confidence language — no legal verdicts.*
+*Last updated: 2026-07-07. Branch: phase-4-ui-login. All phrasing in this document follows exposure/maturity/likelihood/benchmark/confidence language — no legal verdicts.*

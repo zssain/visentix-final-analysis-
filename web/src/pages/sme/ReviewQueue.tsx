@@ -140,8 +140,8 @@ export function ReviewQueue() {
       }}>
 
         {/* ── LEFT: Source clause ── */}
-        <div className="card" style={{ overflow: "hidden" }}>
-          <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--border)", background: "var(--soft-white)" }}>
+        <div className="card" style={{ overflow: "visible" }}>
+          <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--border)", background: "var(--soft-white)", borderTopLeftRadius: "var(--radius-lg)", borderTopRightRadius: "var(--radius-lg)" }}>
             <div className="section-label">Source Clause</div>
             <div style={{ display: "flex", gap: 8, marginTop: 6, flexWrap: "wrap" }}>
               <span className="code-chip" style={{ fontSize: "0.7rem" }}>C-118</span>
@@ -202,8 +202,8 @@ export function ReviewQueue() {
         </div>
 
         {/* ── CENTER: Auto-finding ── */}
-        <div className="card" style={{ overflow: "hidden" }}>
-          <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--border)", background: "var(--soft-white)" }}>
+        <div className="card" style={{ overflow: "visible" }}>
+          <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--border)", background: "var(--soft-white)", borderTopLeftRadius: "var(--radius-lg)", borderTopRightRadius: "var(--radius-lg)" }}>
             <div className="section-label">Auto Finding</div>
           </div>
           <div style={{ padding: "14px 16px" }}>
@@ -320,8 +320,8 @@ export function ReviewQueue() {
         </div>
 
         {/* ── RIGHT: Advisor Note editor ── */}
-        <div className="card" style={{ overflow: "hidden" }}>
-          <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--border)", background: "var(--soft-white)" }}>
+        <div className="card" style={{ overflow: "visible" }}>
+          <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--border)", background: "var(--soft-white)", borderTopLeftRadius: "var(--radius-lg)", borderTopRightRadius: "var(--radius-lg)" }}>
             <div className="section-label">Advisor Note Editor</div>
           </div>
           <div style={{ padding: "14px 16px", display: "flex", flexDirection: "column", gap: 12 }}>

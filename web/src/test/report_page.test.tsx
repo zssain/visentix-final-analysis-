@@ -70,20 +70,21 @@ describe("ReportPage / ReportView", () => {
   it("displays the stored payload (no client-side recompute)", () => {
     render(<ReportView report={FIXTURE} />);
     // The score 68.5 comes from the fixture, not computed in the browser
-    expect(screen.getByText("68.5")).toBeInTheDocument();
+    expect(screen.getAllByText("68.5").length).toBeGreaterThan(0);
     expect(screen.getByText("ReportTestCo")).toBeInTheDocument();
   });
 
   it("shows DRAFT banner when flagged", () => {
     const draft = { ...FIXTURE, draft_banner: "DRAFT — pending expert review" };
     render(<ReportView report={draft} />);
-    expect(screen.getByTestId("draft-banner")).toBeInTheDocument();
-    expect(screen.getByText(/DRAFT/)).toBeInTheDocument();
+    expect(screen.getAllByRole("status", { name: /Report status: draft/i }).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Draft — Pending Review/i).length).toBeGreaterThan(0);
   });
 
   it("hides banner when not flagged", () => {
     render(<ReportView report={FIXTURE} />);
-    expect(screen.queryByTestId("draft-banner")).not.toBeInTheDocument();
+    expect(screen.getAllByRole("status", { name: /Report status: approved/i }).length).toBeGreaterThan(0);
+    expect(screen.queryByText(/Draft — Pending Review/i)).not.toBeInTheDocument();
   });
 
   it("shows honest cohort label with real n and date", () => {
@@ -111,7 +112,9 @@ describe("ReportPage / ReportView", () => {
 
   it("shows cleaned exemplar in Section 8 (not placeholder)", () => {
     render(<ReportView report={FIXTURE} />);
-    expect(screen.getByText("De-identified sharing exemplar.")).toBeInTheDocument();
+    expect(screen.getByText("De-identified")).toBeInTheDocument();
+    expect(screen.getByText("sharing")).toBeInTheDocument();
+    expect(screen.getByText("exemplar.")).toBeInTheDocument();
     expect(screen.queryByTestId("exemplar-placeholder")).not.toBeInTheDocument();
   });
 

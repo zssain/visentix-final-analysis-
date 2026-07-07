@@ -47,7 +47,7 @@ export function RiskDashboard({ content }: { content: ReportSection["content"] }
             <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 11 }} />
             <YAxis type="category" dataKey="name" width={108} tick={{ fontSize: 12 }} />
             <Tooltip
-              formatter={(v: number) => [`${v?.toFixed(1)}`, "Score"]}
+              formatter={(v: any) => [`${Number(v)?.toFixed(1)}`, "Score"]}
               contentStyle={{ fontSize: "0.82rem", borderRadius: 6 }}
             />
             <Bar dataKey="value" isAnimationActive={false} radius={[0, 4, 4, 0]}>

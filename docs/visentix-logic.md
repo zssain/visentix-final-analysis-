@@ -56,7 +56,7 @@ The feedback "check consistency if a report is pulled multiple times" is a **fir
 Every finding holds two content layers over the same underlying data:
 
 - **Analyst layer** — deterministic, generated from formula outputs. Score, percentile, VCI, lineage chips. Always available the moment scoring completes.
-- **Advisor layer** — the human reading. In the current release it's authored in a **house voice ("The Visentix Privacy Desk")**; later it becomes SME-authored/approved (governance = Carlos's call). Phrased strictly in exposure/maturity/benchmark terms — **never** a legal verdict.
+- **Advisor layer** — the human reading. In the current release it's authored in a **house voice ("The Visentix Privacy Desk")**; later it becomes SME-authored/approved (governance = SME team's call). Phrased strictly in exposure/maturity/benchmark terms — **never** a legal verdict.
 
 The **switch** just toggles which layer renders; both are stored in the snapshot so both are reproducible. The attribution slot is designed to later carry a real reviewer name + credential without a layout change.
 

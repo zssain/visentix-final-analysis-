@@ -2,7 +2,7 @@
 
 Screens for the next release and the near roadmap. Order reflects build priority. Each spec is written for a UI designer: purpose, layout, key components, and states — not database detail (see `visentix-logic.md` for that).
 
-**Recommended build order:** Advisor Note component → Continuous Monitoring dashboard (hero) → report showcase upgrade → Finding Codex → Methodology page → Quarterly Report reader → SME Workbench v2 → Framework Crosswalk (held for Carlos).
+**Recommended build order:** Advisor Note component → Continuous Monitoring dashboard (hero) → report showcase upgrade → Finding Codex → Methodology page → Quarterly Report reader → SME Workbench v2 → Framework Crosswalk (held for product approval).
 
 ---
 
@@ -64,7 +64,7 @@ The novel, ownable piece. A single finding rendered two ways behind one switch.
 - **Basis of findings / signed-off-by** — reserved block for reviewer name + credential (empty house-voice for now, per DDR-003).
 - **Every number** gets the lineage-drawer affordance (DDR-005); **every code** gets the Codex tooltip (DDR-006).
 - **Benchmark Language Comparison** — a **clause comparison slider**: drag between "your clause" and the exemplar, with diffs highlighted. Memorable, and directly shows "we see this → you do this."
-- **Reader-register toggle** — Executive / Practitioner / Plain-language (hold final names for Carlos). Same data, three renderings; both registers frozen into the snapshot.
+- **Reader-register toggle** — Executive / Practitioner / Plain-language (hold final names for product approval). Same data, three renderings; both registers frozen into the snapshot.
 
 ---
 
@@ -104,11 +104,11 @@ The novel, ownable piece. A single finding rendered two ways behind one switch.
 
 ---
 
-## 8. Framework Crosswalk explorer  ·  *held for Carlos*
+## 8. Framework Crosswalk explorer  ·  *held for product approval*
 
 **Purpose.** Map the 8 domains + finding codes to NIST Privacy Framework / ISO 27701 / GDPR-CCPA references.
 
-**Design now, copy later.** Build the explorer UI (domain → framework references, side by side). **Hold all mapping copy** until Carlos confirms it stays *descriptive*, never a compliance verdict (guardrail risk). Ship the shell; wire the language when approved.
+**Design now, copy later.** Build the explorer UI (domain → framework references, side by side). **Hold all mapping copy** until product approval confirms it stays *descriptive*, never a compliance verdict (guardrail risk). Ship the shell; wire the language when approved.
 
 ---
 

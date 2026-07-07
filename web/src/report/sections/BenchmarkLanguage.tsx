@@ -60,7 +60,7 @@ export function BenchmarkLanguage({ content }: { content: ReportSection["content
     return (
       <div data-testid="section-8" className="report-section">
         <h2>8. Benchmark Language Comparison</h2>
-        <div style={{
+        <div data-testid="exemplar-placeholder" style={{
           background: "rgba(200,164,106,0.08)", border: "1px dashed var(--gold)",
           padding: "16px 20px", borderRadius: "var(--radius)",
           color: "var(--text-secondary)", fontSize: "0.88rem",

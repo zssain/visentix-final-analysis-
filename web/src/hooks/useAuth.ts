@@ -63,14 +63,16 @@ export function useAuth(): AuthState & {
       .select("role")
       .eq("user_id", session.user.id)
       .single()
-      .then(({ data, error }) => {
-        if (data?.role && !error) {
-          setState((prev) => ({ ...prev, role: data.role as UserRole }));
+      .then(
+        ({ data, error }) => {
+          if (data?.role && !error) {
+            setState((prev) => ({ ...prev, role: data.role as UserRole }));
+          }
+        },
+        () => {
+          // Keep default "customer" role
         }
-      })
-      .catch(() => {
-        // Keep default "customer" role
-      });
+      );
   }
 
   async function signIn(email: string, password: string) {

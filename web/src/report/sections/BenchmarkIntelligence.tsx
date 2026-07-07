@@ -68,7 +68,7 @@ export function BenchmarkIntelligence({ content }: { content: ReportSection["con
             <XAxis dataKey="name" tick={{ fontSize: 11 }} />
             <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} />
             <Tooltip
-              formatter={(v: number) => [`${v?.toFixed(1)}`, "Score"]}
+              formatter={(v: any) => [`${Number(v)?.toFixed(1)}`, "Score"]}
               contentStyle={{ fontSize: "0.82rem", borderRadius: 6 }}
             />
             <Bar dataKey="value" isAnimationActive={false} radius={[4, 4, 0, 0]}>

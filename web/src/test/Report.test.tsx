@@ -85,7 +85,7 @@ describe("ReportView", () => {
 
   it("shows overall score", () => {
     render(<ReportView report={FIXTURE} />);
-    expect(screen.getByText("62.5")).toBeInTheDocument();
+    expect(screen.getAllByText("62.5").length).toBeGreaterThan(0);
   });
 
   it("shows VCI badge", () => {
@@ -113,13 +113,13 @@ describe("ReportView", () => {
   it("shows exemplar placeholder when sme_cleaned=false", () => {
     render(<ReportView report={FIXTURE} />);
     expect(screen.getByTestId("exemplar-placeholder")).toBeInTheDocument();
-    expect(screen.getByText(/Pending SME-cleaned exemplar/)).toBeInTheDocument();
+    expect(screen.getByText(/Pending SME-reviewed/)).toBeInTheDocument();
   });
 
   it("shows findings table", () => {
     render(<ReportView report={FIXTURE} />);
-    expect(screen.getByText("SH-002")).toBeInTheDocument();
-    expect(screen.getByText("RT-003")).toBeInTheDocument();
+    expect(screen.getAllByText("SH-002").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("RT-003").length).toBeGreaterThan(0);
   });
 
   it("contains no banned terms", () => {
@@ -133,13 +133,14 @@ describe("ReportView", () => {
   it("shows draft banner when present", () => {
     const draft = { ...FIXTURE, draft_banner: "DRAFT — pending expert review" };
     render(<ReportView report={draft} />);
-    expect(screen.getByTestId("draft-banner")).toBeInTheDocument();
-    expect(screen.getByText(/DRAFT/)).toBeInTheDocument();
+    expect(screen.getAllByRole("status", { name: /Report status: draft/i }).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Draft — Pending Review/i).length).toBeGreaterThan(0);
   });
 
   it("hides draft banner when not present", () => {
     render(<ReportView report={FIXTURE} />);
-    expect(screen.queryByTestId("draft-banner")).not.toBeInTheDocument();
+    expect(screen.getAllByRole("status", { name: /Report status: approved/i }).length).toBeGreaterThan(0);
+    expect(screen.queryByText(/Draft — Pending Review/i)).not.toBeInTheDocument();
   });
 
   it("shows takeaways in executive summary", () => {

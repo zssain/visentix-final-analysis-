@@ -1,6 +1,6 @@
 # Visentix — Design Decision Records (DDRs)
 
-Design decisions for the next release, aimed at Carlos's circle of **regulators, legal officers, and advisors**. These are the visual/interaction equivalent of ADRs: each one pins a choice, why it was made, and what we rejected — so the decision can be defended later, the same way this audience defends its own findings.
+Design decisions for the next release, aimed at the circle of **regulators, legal officers, and advisors**. These are the visual/interaction equivalent of ADRs: each one pins a choice, why it was made, and what we rejected — so the decision can be defended later, the same way this audience defends its own findings.
 
 Design tokens are unchanged from the existing system (Deep Navy `#09234F`, Executive Blue `#005FA3`, Teal `#55C7B3`, Soft White `#F7F8FA`, Warm Gray `#D9DDE2`, Subtle Gold `#C8A46A`, plus `#F87171` red / `#10b981` emerald for status). Fonts: Fraunces (serif/display), Inter (UI), Source Sans 3 (data/numerics). These DDRs govern *how* those tokens are used, not the tokens themselves.
 
@@ -30,7 +30,7 @@ Consumer "premium" is gloss and motion. **Legal-and-regulator "premium" is confi
 
 ## DDR-003 — House voice fills the attribution slot now; SME name later
 
-- **Context.** We want the Advisor Note to look *authored* today, but governance of who authors it is Carlos's/SMEs' call later.
+- **Context.** We want the Advisor Note to look *authored* today, but governance of who authors it is the SME team's call later.
 - **Decision.** Ship a named house persona — **"The Visentix Privacy Desk"** — in the attribution slot. The component reserves a visible **"reviewer & credential" slot** directly beneath it, styled but empty, ready to hold a real SME name once expert review is enabled.
 - **Rationale.** Solves the demo (looks human-authored) without pre-empting the governance decision. The empty slot is honest and forward-looking rather than a placeholder that looks unfinished.
 - **Rejected.** Anonymous "Summary" (loses the human signal); inventing fake reviewer names (dishonest to a legal audience — a fast way to lose trust).
@@ -69,7 +69,7 @@ Consumer "premium" is gloss and motion. **Legal-and-regulator "premium" is confi
 
 Responsive to mobile · visible keyboard focus on all interactive elements · `prefers-reduced-motion` respected (evidence still reachable, just without the slide) · numerics always tabular (`font-variant-numeric: tabular-nums`) so figures align in tables · gold reserved for *provisional/premium*, teal for *verified/live*, red only for genuine low-score exposure.
 
-## Open decisions (waiting on Carlos)
+## Open decisions (waiting on product approval)
 
-- **Framework crosswalk language.** Any mapping to NIST/ISO/GDPR must stay *descriptive* ("relates to CCPA §1798.120"), never *verdict* ("complies with"). Design the explorer, hold the copy until Carlos confirms the guardrail extension.
+- **Framework crosswalk language.** Any mapping to NIST/ISO/GDPR must stay *descriptive* ("relates to CCPA §1798.120"), never *verdict* ("complies with"). Design the explorer, hold the copy until product approval confirms the guardrail extension.
 - **Reader registers.** Executive / Practitioner / Plain-language toggle — approved in principle; final register names and defaults pending.
