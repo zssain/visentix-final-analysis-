@@ -1,38 +1,147 @@
-/* Report styles — deterministic for Playwright capture */
+/* ─── Report styles ──────────────────────────────────────────────────────────
+   Deterministic for Playwright capture. Uses Visentix design tokens.
+   ──────────────────────────────────────────────────────────────────────────── */
+
+/* Import fonts for print/PDF */
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,600&family=Source+Sans+3:wght@400;600;700&display=swap');
+
 .report-container {
-  font-family: 'Segoe UI', system-ui, sans-serif;
+  font-family: 'Source Sans 3', 'Segoe UI', system-ui, sans-serif;
   max-width: 900px;
   margin: 0 auto;
-  color: #1a1a2e;
+  color: #1a2035;
   line-height: 1.6;
+  position: relative;
 }
 
 .report-section {
-  margin-bottom: 28px;
+  margin-bottom: 40px;
 }
 
 .report-section h2 {
-  color: #0f3460;
-  border-bottom: 1px solid #e0e0e0;
-  padding-bottom: 4px;
+  font-family: var(--font-ui, 'Inter', sans-serif);
+  color: #09234F;
+  border-bottom: 2px solid #D9DDE2;
+  padding-bottom: 6px;
+  margin-bottom: 16px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
 }
 
-.tier-high { color: #991b1b; font-weight: 600; }
-.tier-elevated { color: #92400e; font-weight: 600; }
-.tier-moderate { color: #1e40af; font-weight: 600; }
-.tier-low { color: #065f46; font-weight: 600; }
+/* Cover section */
+.cover-section { text-align: center; padding: 32px 0 24px; }
+.cover-hairline {
+  width: 80px; height: 2px;
+  background: linear-gradient(90deg, #C8A46A, #E8C98A);
+  margin: 0 auto 20px;
+  border-radius: 1px;
+}
+.cover-org-name {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: #09234F;
+  letter-spacing: -0.03em;
+  margin-bottom: 8px;
+}
+.cover-meta {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  flex-wrap: wrap;
+  font-size: 0.85rem;
+  color: #64748b;
+  margin-bottom: 10px;
+}
+.cover-meta b { color: #09234F; margin-right: 3px; }
+.cover-title {
+  font-size: 1rem;
+  color: #4A5568;
+  margin-bottom: 20px;
+}
+.cover-score-block {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  background: rgba(9,35,79,0.03);
+  border: 1px solid #D9DDE2;
+  border-radius: 12px;
+  padding: 20px 40px;
+  margin-bottom: 20px;
+}
+.cover-score-num {
+  font-family: 'Source Sans 3', sans-serif;
+  font-variant-numeric: tabular-nums;
+  font-size: 3.5rem;
+  font-weight: 700;
+  color: #09234F;
+  line-height: 1;
+}
+.cover-score-label {
+  font-size: 0.8rem;
+  color: #8896A5;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.cover-scope-block {
+  text-align: left;
+  max-width: 640px;
+  margin: 16px auto 0;
+  background: rgba(200,164,106,0.06);
+  border-left: 3px solid #C8A46A;
+  padding: 12px 16px;
+  border-radius: 0 6px 6px 0;
+}
+.cover-scope-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: #7a5c20;
+  margin-bottom: 4px;
+}
+.cover-scope-text {
+  font-size: 0.84rem;
+  color: #4A5568;
+  line-height: 1.6;
+}
+.cover-footer {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+}
 
-/* Disable all animations for Playwright capture stability */
+/* Severity tiers */
+.tier-high     { color: #b91c1c; font-weight: 700; }
+.tier-elevated { color: #92400e; font-weight: 700; }
+.tier-moderate { color: #1d4ed8; font-weight: 700; }
+.tier-low      { color: #065f46; font-weight: 700; }
+
+/* Disable all animations for Playwright PDF capture */
 .chart-container * {
   animation: none !important;
   transition: none !important;
 }
 
-/* Print stylesheet for PDF */
+/* Report footer */
+.report-footer {
+  margin-top: 48px;
+  border-top: 1px solid #D9DDE2;
+  padding-top: 10px;
+  font-size: 0.75rem;
+  color: #8896A5;
+  font-family: 'Source Sans 3', sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Print stylesheet for PDF export */
 @media print {
   .report-container { max-width: 100%; margin: 0; }
-  .draft-banner { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .report-page-break { page-break-inside: avoid; }
   .chart-container * { animation: none !important; transition: none !important; }
-  nav, button { display: none !important; }
+  nav, button, .lineage-drawer, .lineage-backdrop { display: none !important; }
+  .cover-hairline { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }

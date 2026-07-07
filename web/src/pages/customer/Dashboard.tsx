@@ -1,33 +1,181 @@
+/**
+ * CustomerDashboard — Continuous Monitoring hero screen
+ *
+ * Layout per screens.md §2:
+ *   Left:  Overall score + sparkline + delta · Domain scorecards (8)
+ *   Right: Change feed (chronological) · Alert center
+ *
+ * [MOCK M-06] Sparkline data static — real: F-012 Trend outputs
+ * [MOCK M-07] Change feed static — real: monitoring_event table
+ * [MOCK M-08] Alert cards static — real: F-013 Alert Escalation
+ * [MOCK M-09] Snapshot ID static — real: report_snapshot.id
+ */
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { api, ApiError } from "../../lib/api";
-
-interface OrgInfo {
-  name: string;
-  domain: string | null;
-  industry: string | null;
-  size: string | null;
-  geography: string | null;
-}
+import { AdvisorNote }      from "../../components/AdvisorNote";
+import { ProvenanceRibbon } from "../../components/ProvenanceRibbon";
+import { IntelligenceMark } from "../../components/IntelligenceMark";
+import "../../components/furniture.css";
 
 interface Assessment {
   notice_id: string;
   organization_id: string;
   notice_type: string;
   effective_date: string | null;
-  content_hash: string;
-  organization: OrgInfo | null;
+  organization: { name: string; domain: string | null; industry: string | null; size: string | null; geography: string | null } | null;
+}
+
+// ── Mock data (M-06, M-07, M-08, M-09) ────────────────────────────────────────
+const MOCK_SNAPSHOT = "S-2041";
+const MOCK_SCORE    = 41.3;
+const MOCK_DELTA    = -3.0;
+const MOCK_TREND    = [48, 46, 44, 47, 43, 44, 41];
+
+const MOCK_DOMAIN_SCORES = [
+  { domain: "Data Sharing",          score: 58, delta: -2 },
+  { domain: "Tracking & Cookies",    score: 71, delta:  0 },
+  { domain: "Consumer Rights",       score: 34, delta: -4 },
+  { domain: "Cross-Border",          score: 62, delta:  1 },
+  { domain: "Sensitive Data",        score: 47, delta:  0 },
+  { domain: "Retention",             score: 29, delta: -1 },
+  { domain: "Children & Teens",      score: 52, delta:  0 },
+  { domain: "AI & Decisions",        score: 38, delta: -2 },
+];
+
+const MOCK_CHANGE_FEED = [
+  { id: "cf-1", type: "score_moved",    label: "Overall score moved",     detail: "41.3 → 38.0", time: "2h ago", delta: -3 },
+  { id: "cf-2", type: "notice_updated", label: "Privacy notice updated",  detail: "New section detected: AI & Decisions", time: "2h ago", delta: null },
+  { id: "cf-3", type: "regulator",      label: "Regulator signal",        detail: "FTC — new enforcement action in data_sharing domain", time: "1d ago", delta: null },
+  { id: "cf-4", type: "cohort",         label: "Cohort re-benchmarked",   detail: "n=30 peers updated", time: "3d ago", delta: null },
+];
+
+const MOCK_ALERTS = [
+  {
+    id: "alert-1", severity: "high", code: "TRK-007",
+    title: "Third-Party Tracking Disclosure",
+    domain: "tracking_cookies",
+    advisorLede: "Tracking disclosure language presents a measurable exposure gap against cohort norms.",
+    advisorBody: "The organisation's current tracking notice lacks specificity regarding third-party recipient categories and data retention limits. This falls below the 70th percentile of peer practice.",
+    score: 71, percentile: 72, vci: 82,
+  },
+  {
+    id: "alert-2", severity: "medium", code: "RT-003",
+    title: "Retention Duration Absent",
+    domain: "retention",
+    advisorLede: "Retention language offers no bounded ceiling, creating a maturity gap relative to leading peer practice.",
+    advisorBody: "The notice defers to 'legal requirements' without citing specific retention periods. This is below the 40th percentile of the assessed cohort.",
+    score: 29, percentile: 31, vci: 75,
+  },
+];
+
+// Inline SVG sparkline
+function Sparkline({ data, size = "sm" }: { data: number[]; size?: "sm" | "lg" }) {
+  const w = size === "lg" ? 180 : 80;
+  const h = size === "lg" ? 48 : 28;
+  const pad = 3;
+  const min = Math.min(...data), max = Math.max(...data);
+  const range = max - min || 1;
+  const pts = data.map((v, i) => {
+    const x = pad + (i / (data.length - 1)) * (w - pad * 2);
+    const y = h - pad - ((v - min) / range) * (h - pad * 2);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  });
+  const last = data[data.length - 1], prev = data[data.length - 2];
+  const color = last >= prev ? "var(--teal)" : "var(--red)";
+  return (
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} aria-hidden="true">
+      <polyline points={pts.join(" ")} fill="none" stroke={color} strokeWidth={size === "lg" ? 2.5 : 1.5}
+        strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx={pts[pts.length - 1].split(",")[0]} cy={pts[pts.length - 1].split(",")[1]}
+        r={size === "lg" ? 4 : 2.5} fill={color} />
+    </svg>
+  );
+}
+
+function scoreColor(score: number): string {
+  if (score >= 65) return "var(--red)";
+  if (score >= 42) return "var(--gold)";
+  return "var(--teal)";
+}
+
+function FeedIcon({ type }: { type: string }) {
+  const icons: Record<string, string> = {
+    score_moved:    "▲",
+    notice_updated: "◉",
+    regulator:      "⚖",
+    cohort:         "◎",
+  };
+  return <span aria-hidden="true" style={{ fontSize: "0.85rem" }}>{icons[type] ?? "•"}</span>;
+}
+
+function AlertCard({ alert, expanded, onToggle }: {
+  alert: typeof MOCK_ALERTS[number];
+  expanded: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <div style={{
+      border: `1px solid ${alert.severity === "high" ? "rgba(248,113,113,0.3)" : "var(--border)"}`,
+      borderRadius: "var(--radius)",
+      overflow: "hidden",
+    }}>
+      <button
+        style={{
+          width: "100%", textAlign: "left",
+          padding: "10px 14px",
+          background: alert.severity === "high" ? "rgba(248,113,113,0.05)" : "var(--soft-white)",
+          display: "flex", alignItems: "center", gap: 10,
+          cursor: "pointer", border: "none",
+        }}
+        onClick={onToggle}
+        aria-expanded={expanded}
+        id={`alert-toggle-${alert.id}`}
+      >
+        <span className={`badge ${alert.severity === "high" ? "badge-high" : "badge-elevated"}`}>
+          {alert.severity.toUpperCase()}
+        </span>
+        <span className="code-chip" style={{ fontSize: "0.7rem" }}>{alert.code}</span>
+        <span style={{ fontSize: "0.85rem", fontWeight: 600, color: "var(--navy)", flex: 1 }}>
+          {alert.title}
+        </span>
+        <span style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>{expanded ? "↑" : "↓"}</span>
+      </button>
+      {expanded && (
+        <div style={{ padding: "12px 14px" }}>
+          <AdvisorNote
+            findingCode={alert.code}
+            title={alert.title}
+            domain={alert.domain}
+            status="draft"
+            snapshotId={MOCK_SNAPSHOT}
+            frozenDate="2026-07-07"
+            exposureScore={alert.score}
+            cohortPercentile={alert.percentile}
+            vci={alert.vci}
+            formulaId="F-008"
+            formulaDesc="Blends regulatory, disclosure, and enforcement dimensions into a single compound risk indicator."
+            cohortSize={30}
+            cohortDate="2026-06-19"
+            advisorLede={alert.advisorLede}
+            advisorBody={alert.advisorBody}
+            defaultView="advisor"
+          />
+        </div>
+      )}
+    </div>
+  );
 }
 
 export function CustomerDashboard() {
   const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [expandedAlert, setExpandedAlert] = useState<string | null>(null);
 
   useEffect(() => {
     api.get("/assessments/")
-      .then((data) => {
-        setAssessments(Array.isArray(data) ? data : []);
-      })
+      .then((data) => setAssessments(Array.isArray(data) ? data : []))
       .catch((err) => {
         if (err instanceof ApiError && err.status === 401) return;
         setError("Failed to load assessments");
@@ -37,94 +185,233 @@ export function CustomerDashboard() {
 
   return (
     <div>
-      <div className="page-header">
-        <h1>Privacy Assessments</h1>
-        <p>Organization privacy intelligence assessments</p>
+      {/* ── Org header ── */}
+      <div style={{ marginBottom: 20 }}>
+        {/* [MOCK M-09] */}
+        <ProvenanceRibbon
+          snapshotId={MOCK_SNAPSHOT}
+          frozenDate="2026-07-07"
+          status="draft"
+        />
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 4 }}>
+          <h1 style={{ fontSize: "1.4rem", fontWeight: 800, color: "var(--navy)", letterSpacing: "-0.02em" }}>
+            Privacy Intelligence Monitor
+          </h1>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.78rem", fontWeight: 600, color: "var(--emerald)" }}>
+            <span className="live-dot" /> Monitoring active
+          </div>
+        </div>
+        <p style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>
+          Continuous surveillance across {assessments.length || "—"} assessments · cohort n=30 as of 2026-06-19
+          {/* [MOCK M-07, M-08] */}
+          <span style={{
+            marginLeft: 10, fontSize: "0.65rem", background: "rgba(200,164,106,0.15)",
+            color: "#7a5c20", border: "1px dashed var(--gold)",
+            padding: "1px 7px", borderRadius: 10, fontWeight: 700,
+          }}>MOCK M-07, M-08</span>
+        </p>
       </div>
 
-      <div className="stats-grid">
-        <div className="stat-card">
-          <div className="stat-value">{assessments.length}</div>
-          <div className="stat-label">Total Assessments</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-value" style={{ color: "var(--success)" }}>
-            {assessments.filter(a => a.notice_type === "live_assessment").length}
-          </div>
-          <div className="stat-label">Live Assessments</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-value" style={{ color: "var(--accent)" }}>
-            {new Set(assessments.map(a => a.organization_id)).size}
-          </div>
-          <div className="stat-label">Organizations</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-value" style={{ color: "var(--text-muted)" }}>
-            {assessments.filter(a => a.notice_type !== "live_assessment").length}
-          </div>
-          <div className="stat-label">Corpus Notices</div>
-        </div>
-      </div>
+      {/* ── Main monitoring layout ── */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: 20, alignItems: "start" }}>
 
-      <div className="card" style={{ overflow: "hidden" }}>
-        {loading ? (
-          <div className="empty-state"><p>Loading assessments...</p></div>
-        ) : error ? (
-          <div className="empty-state"><h3>{error}</h3></div>
-        ) : assessments.length === 0 ? (
-          <div className="empty-state">
-            <h3>No assessments yet</h3>
-            <p>Submit a privacy notice to get started</p>
+        {/* ── LEFT ── */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+
+          {/* Overall score hero */}
+          <div className="card" style={{ padding: 24 }}>
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 24, flexWrap: "wrap" }}>
+              <div>
+                <div style={{ fontSize: "0.68rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.09em", color: "var(--text-muted)", marginBottom: 4 }}>
+                  Overall Privacy Intelligence Score
+                </div>
+                <div style={{
+                  fontFamily: "var(--font-data)", fontVariantNumeric: "tabular-nums",
+                  fontSize: "3rem", fontWeight: 700, color: scoreColor(MOCK_SCORE),
+                  lineHeight: 1.1,
+                }}>
+                  {MOCK_SCORE.toFixed(1)}
+                </div>
+                <div style={{
+                  fontFamily: "var(--font-data)", fontVariantNumeric: "tabular-nums",
+                  fontSize: "0.88rem", fontWeight: 700,
+                  color: MOCK_DELTA >= 0 ? "var(--teal)" : "var(--red)",
+                  marginTop: 4,
+                }}>
+                  {MOCK_DELTA >= 0 ? "▲" : "▼"} {Math.abs(MOCK_DELTA).toFixed(1)} vs last snapshot
+                </div>
+              </div>
+              <div>
+                <div style={{ fontSize: "0.68rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.09em", color: "var(--text-muted)", marginBottom: 4 }}>
+                  Trend {/* [MOCK M-06] */}
+                </div>
+                <Sparkline data={MOCK_TREND} size="lg" />
+              </div>
+            </div>
           </div>
-        ) : (
-          <table>
-            <thead>
-              <tr>
-                <th>Organization</th>
-                <th>Industry</th>
-                <th>Size</th>
-                <th>Geography</th>
-                <th>Type</th>
-                <th>Effective Date</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {assessments.map((a) => (
-                <tr key={a.notice_id}>
-                  <td>
-                    <div style={{ fontWeight: 600 }}>{a.organization?.name ?? "—"}</div>
-                    {a.organization?.domain && (
-                      <div style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>
-                        {a.organization.domain}
+
+          {/* Domain scorecards */}
+          <div>
+            <div className="section-label" style={{ marginBottom: 10 }}>Domain Scorecards</div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10 }}>
+              {MOCK_DOMAIN_SCORES.map(ds => (
+                <div key={ds.domain} className="card" style={{ padding: "12px 16px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                    <div>
+                      <div style={{ fontSize: "0.72rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", color: "var(--text-muted)", marginBottom: 3 }}>
+                        {ds.domain}
                       </div>
-                    )}
-                  </td>
-                  <td style={{ textTransform: "capitalize" }}>
-                    {a.organization?.industry ?? "—"}
-                  </td>
-                  <td style={{ textTransform: "capitalize" }}>
-                    {a.organization?.size ?? "—"}
-                  </td>
-                  <td>{a.organization?.geography ?? "—"}</td>
-                  <td>
-                    <span className={`badge ${a.notice_type === "live_assessment" ? "badge-success" : "badge-moderate"}`}>
-                      {a.notice_type?.replace(/_/g, " ")}
-                    </span>
-                  </td>
-                  <td>{a.effective_date ?? "—"}</td>
-                  <td>
-                    <a href={`/reports/${a.notice_id}`} className="btn btn-outline btn-sm">
-                      View Report
-                    </a>
-                  </td>
-                </tr>
+                      <div style={{
+                        fontFamily: "var(--font-data)", fontVariantNumeric: "tabular-nums",
+                        fontSize: "1.5rem", fontWeight: 700, color: scoreColor(ds.score),
+                      }}>
+                        {ds.score}
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
+                      <Sparkline data={[ds.score - 5, ds.score + 3, ds.score - 2, ds.score + ds.delta]} size="sm" />
+                      {ds.delta !== 0 && (
+                        <div style={{
+                          fontFamily: "var(--font-data)", fontSize: "0.75rem", fontWeight: 700,
+                          color: ds.delta >= 0 ? "var(--teal)" : "var(--red)",
+                        }}>
+                          {ds.delta >= 0 ? "▲" : "▼"}{Math.abs(ds.delta)}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  {/* Score bar */}
+                  <div style={{ height: 3, background: "var(--border)", borderRadius: 2, marginTop: 8, overflow: "hidden" }}>
+                    <div style={{ height: "100%", width: `${ds.score}%`, background: scoreColor(ds.score), borderRadius: 2 }} />
+                  </div>
+                </div>
               ))}
-            </tbody>
-          </table>
-        )}
+            </div>
+          </div>
+
+          {/* Assessments list */}
+          <div className="card" style={{ overflow: "hidden" }}>
+            <div style={{ padding: "14px 20px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div style={{ fontWeight: 700, color: "var(--navy)", fontSize: "0.9rem" }}>Active Assessments</div>
+              <Link to="/intake" className="btn btn-sm btn-outline" id="new-assessment-btn">+ New Assessment</Link>
+            </div>
+            {loading ? (
+              <div className="empty-state"><p>Loading assessments…</p></div>
+            ) : error ? (
+              <div className="empty-state"><h3>{error}</h3></div>
+            ) : assessments.length === 0 ? (
+              <div className="empty-state">
+                <h3>No assessments yet</h3>
+                <p style={{ marginBottom: 12 }}>Submit a privacy notice to begin monitoring</p>
+                <Link to="/intake" className="btn btn-primary btn-sm">Start Intake →</Link>
+              </div>
+            ) : (
+              <table>
+                <thead>
+                  <tr>
+                    <th>Organisation</th>
+                    <th>Industry</th>
+                    <th>Type</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {assessments.slice(0, 8).map((a) => (
+                    <tr key={a.notice_id}>
+                      <td>
+                        <div style={{ fontWeight: 600 }}>{a.organization?.name ?? "—"}</div>
+                        {a.organization?.domain && (
+                          <div style={{ fontSize: "0.78rem", color: "var(--text-muted)" }}>{a.organization.domain}</div>
+                        )}
+                      </td>
+                      <td style={{ textTransform: "capitalize", color: "var(--text-secondary)", fontSize: "0.85rem" }}>
+                        {a.organization?.industry ?? "—"}
+                      </td>
+                      <td>
+                        <span className={`badge ${a.notice_type === "live_assessment" ? "badge-teal" : "badge-moderate"}`}>
+                          {a.notice_type?.replace(/_/g, " ")}
+                        </span>
+                      </td>
+                      <td>
+                        <Link to={`/reports/${a.notice_id}`} className="btn btn-outline btn-xs">
+                          Report →
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
+
+        {/* ── RIGHT ── */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
+
+          {/* Change feed [MOCK M-07] */}
+          <div className="card" style={{ overflow: "hidden" }}>
+            <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--border)", fontWeight: 700, color: "var(--navy)", fontSize: "0.85rem" }}>
+              Change Feed
+            </div>
+            <div style={{ padding: "8px 0" }}>
+              {MOCK_CHANGE_FEED.map((ev, i) => (
+                <div key={ev.id} style={{
+                  padding: "10px 16px",
+                  borderBottom: i < MOCK_CHANGE_FEED.length - 1 ? "1px solid var(--border)" : "none",
+                  display: "flex", gap: 10, alignItems: "flex-start",
+                }}>
+                  {/* Left stripe */}
+                  <div style={{
+                    width: 2, borderRadius: 1, alignSelf: "stretch", flexShrink: 0,
+                    background: ev.type === "score_moved" ? (ev.delta! < 0 ? "var(--red)" : "var(--teal)") : "var(--border)",
+                  }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
+                      <FeedIcon type={ev.type} />
+                      <span style={{ fontSize: "0.8rem", fontWeight: 600, color: "var(--navy)" }}>{ev.label}</span>
+                    </div>
+                    <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>{ev.detail}</div>
+                    <div style={{ fontSize: "0.7rem", color: "var(--text-muted)", marginTop: 3 }}>{ev.time}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Alert center [MOCK M-08] */}
+          <div className="card" style={{ overflow: "hidden" }}>
+            <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ fontWeight: 700, color: "var(--navy)", fontSize: "0.85rem" }}>Alert Center</div>
+              <span className="badge badge-high" style={{ fontSize: "0.65rem" }}>
+                {MOCK_ALERTS.filter(a => a.severity === "high").length} HIGH
+              </span>
+            </div>
+            <div style={{ padding: "10px" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {MOCK_ALERTS.map(a => (
+                  <AlertCard
+                    key={a.id}
+                    alert={a}
+                    expanded={expandedAlert === a.id}
+                    onToggle={() => setExpandedAlert(expandedAlert === a.id ? null : a.id)}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", justifyContent: "flex-end" }}>
+            <IntelligenceMark />
+          </div>
+        </div>
       </div>
+
+      {/* Mobile: collapse right panel below left at 900px via inline responsive */}
+      <style>{`
+        @media (max-width: 900px) {
+          .monitor-grid { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
     </div>
   );
 }
