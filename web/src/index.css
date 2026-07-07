@@ -233,8 +233,9 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   font-weight: 600;
   margin-top: 6px;
 }
-.stat-card .stat-delta.up   { color: var(--emerald); }
-.stat-card .stat-delta.down { color: var(--red); }
+/* Deltas are colored by improvement, not direction (exposure falling = better) */
+.stat-card .stat-delta.improving { color: var(--teal); }
+.stat-card .stat-delta.worsening { color: var(--red); }
 
 /* ─── Tables ──────────────────────────────────────────────────────────────────── */
 table { width: 100%; border-collapse: collapse; }
@@ -255,6 +256,52 @@ table td {
   font-size: 0.9rem;
 }
 table tr:hover td { background: rgba(9,35,79,0.02); }
+
+/* ─── Page patterns ──────────────────────────────────────────────────────────────
+   Shared by Dashboard / Workbench / Console / Codex. Prefer these over inline
+   styles — inline drift is how the score-band inconsistency happened. */
+.page-title {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--navy);
+  letter-spacing: -0.02em;
+}
+.micro-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+.card-head {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--soft-white);
+  border-top-left-radius: var(--radius-lg);
+  border-top-right-radius: var(--radius-lg);
+}
+.card-head-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.card-title {
+  font-weight: 700;
+  color: var(--navy);
+  font-size: 0.9rem;
+}
+.notice-box {
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  font-size: 0.8rem;
+  font-weight: 600;
+  border: 1px solid;
+}
+.notice-box.teal { background: rgba(85,199,179,0.08);  border-color: rgba(85,199,179,0.3);  color: #0d6b5c; }
+.notice-box.red  { background: rgba(248,113,113,0.06); border-color: rgba(248,113,113,0.25); color: #b91c1c; }
+.notice-box.gold { background: rgba(200,164,106,0.08); border-color: var(--gold);            color: #7a5c20; }
 
 /* ─── Page headers ────────────────────────────────────────────────────────────── */
 .page-header { margin-bottom: 28px; }
@@ -359,6 +406,8 @@ table tr:hover td { background: rgba(9,35,79,0.02); }
 @media (max-width: 768px) {
   .content-grid     { grid-template-columns: 1fr; }
   .stats-grid       { grid-template-columns: repeat(2, 1fr); }
+  .codex-layout     { grid-template-columns: 1fr !important; }
+  .codex-rail       { position: static !important; }
 }
 @media (max-width: 480px) {
   .stats-grid       { grid-template-columns: 1fr; }

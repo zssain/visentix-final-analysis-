@@ -11,6 +11,7 @@ import { useEffect, useState } from "react";
 import { api, ApiError } from "../../lib/api";
 import { CodexTooltip }   from "../../components/CodexTooltip";
 import { IntelligenceMark } from "../../components/IntelligenceMark";
+import { PageHeader } from "../../components/PageHeader";
 import "../../components/furniture.css";
 
 interface ReviewItem {
@@ -107,41 +108,35 @@ export function ReviewQueue() {
 
   return (
     <div>
-      {/* Header */}
-      <div style={{ marginBottom: 16 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap", marginBottom: 6 }}>
-          <h1 style={{ fontSize: "1.4rem", fontWeight: 800, color: "var(--navy)", letterSpacing: "-0.02em" }}>
-            SME Workbench
-          </h1>
-          <span className="badge badge-gold">
-            {loading ? "—" : queue.length} findings pending
-          </span>
-        </div>
-
-        {/* [MOCK M-04] Training label counter */}
-        <div style={{ display: "flex", gap: 16, fontSize: "0.8rem", color: "var(--text-muted)", flexWrap: "wrap" }}>
-          <span>Training labels
-            <span style={{
-              marginLeft: 6, fontSize: "0.65rem", background: "rgba(200,164,106,0.15)",
-              color: "#7a5c20", border: "1px dashed var(--gold)",
-              padding: "1px 7px", borderRadius: 10, fontWeight: 700,
-            }}>MOCK M-04</span>:
-          </span>
-          <span style={{ color: "var(--teal)", fontWeight: 700 }}>✓ {MOCK_LABELS.confirmed} confirmed</span>
-          <span style={{ color: "var(--exec-blue)", fontWeight: 700 }}>✎ {MOCK_LABELS.edited} edited</span>
-          <span style={{ color: "var(--red)", fontWeight: 700 }}>✕ {MOCK_LABELS.dismissed} dismissed</span>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="Workbench"
+        title="SME Workbench"
+        description="Review each machine finding before it reaches the client: confirm it, edit its language, or dismiss it — and author the Advisor Note. Every decision is saved as a training label."
+        actions={
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
+            <span className="badge badge-gold">
+              {loading ? "—" : queue.length} findings pending
+            </span>
+            {/* [MOCK M-04] Training label counter */}
+            <div style={{ display: "flex", gap: 12, fontSize: "0.78rem", color: "var(--text-muted)", flexWrap: "wrap" }}>
+              <span style={{ color: "var(--teal)", fontWeight: 700 }}>✓ {MOCK_LABELS.confirmed}</span>
+              <span style={{ color: "var(--exec-blue)", fontWeight: 700 }}>✎ {MOCK_LABELS.edited}</span>
+              <span style={{ color: "var(--red)", fontWeight: 700 }}>✕ {MOCK_LABELS.dismissed}</span>
+              <span className="mock-badge" style={{ marginLeft: 0 }}>MOCK M-04</span>
+            </div>
+          </div>
+        }
+      />
 
       {/* Three-pane workbench */}
-      <div style={{
+      <div className="workbench-grid" style={{
         display: "grid", gridTemplateColumns: "1fr 1fr 1fr",
         gap: 16, alignItems: "start",
       }}>
 
         {/* ── LEFT: Source clause ── */}
         <div className="card" style={{ overflow: "visible" }}>
-          <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--border)", background: "var(--soft-white)", borderTopLeftRadius: "var(--radius-lg)", borderTopRightRadius: "var(--radius-lg)" }}>
+          <div className="card-head">
             <div className="section-label">Source Clause</div>
             <div style={{ display: "flex", gap: 8, marginTop: 6, flexWrap: "wrap" }}>
               <span className="code-chip" style={{ fontSize: "0.7rem" }}>C-118</span>
@@ -185,11 +180,7 @@ export function ReviewQueue() {
           )}
 
           {redacted && (
-            <div style={{
-              margin: "0 16px 14px", padding: "8px 12px",
-              background: "rgba(85,199,179,0.08)", border: "1px solid rgba(85,199,179,0.3)",
-              borderRadius: "var(--radius)", fontSize: "0.78rem", color: "#0d6b5c", fontWeight: 600,
-            }}>
+            <div className="notice-box teal" style={{ margin: "0 16px 14px" }}>
               ✓ All PII replaced with [REDACTED]
             </div>
           )}
@@ -203,7 +194,7 @@ export function ReviewQueue() {
 
         {/* ── CENTER: Auto-finding ── */}
         <div className="card" style={{ overflow: "visible" }}>
-          <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--border)", background: "var(--soft-white)", borderTopLeftRadius: "var(--radius-lg)", borderTopRightRadius: "var(--radius-lg)" }}>
+          <div className="card-head">
             <div className="section-label">Auto Finding</div>
           </div>
           <div style={{ padding: "14px 16px" }}>
@@ -229,7 +220,7 @@ export function ReviewQueue() {
                 { label: "Formula", value: "F-002" },
               ].map(m => (
                 <div key={m.label} style={{ background: "white", padding: "10px 12px" }}>
-                  <div style={{ fontSize: "0.65rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-muted)", marginBottom: 2 }}>{m.label}</div>
+                  <div className="micro-label" style={{ marginBottom: 2 }}>{m.label}</div>
                   <div style={{ fontFamily: "var(--font-data)", fontVariantNumeric: "tabular-nums", fontSize: "1.1rem", fontWeight: 700, color: "var(--navy)" }}>{m.value}</div>
                 </div>
               ))}
@@ -306,13 +297,7 @@ export function ReviewQueue() {
               </p>
             )}
             {action && (
-              <div style={{
-                marginTop: 10, padding: "8px 12px",
-                background: action === "dismiss" ? "rgba(248,113,113,0.06)" : "rgba(85,199,179,0.08)",
-                border: `1px solid ${action === "dismiss" ? "rgba(248,113,113,0.25)" : "rgba(85,199,179,0.3)"}`,
-                borderRadius: "var(--radius)", fontSize: "0.78rem", fontWeight: 600,
-                color: action === "dismiss" ? "#b91c1c" : "#0d6b5c",
-              }}>
+              <div className={`notice-box ${action === "dismiss" ? "red" : "teal"}`} style={{ marginTop: 10 }}>
                 Action: <strong>{action.toUpperCase()}</strong> — label will be saved on submit
               </div>
             )}
@@ -321,12 +306,12 @@ export function ReviewQueue() {
 
         {/* ── RIGHT: Advisor Note editor ── */}
         <div className="card" style={{ overflow: "visible" }}>
-          <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--border)", background: "var(--soft-white)", borderTopLeftRadius: "var(--radius-lg)", borderTopRightRadius: "var(--radius-lg)" }}>
+          <div className="card-head">
             <div className="section-label">Advisor Note Editor</div>
           </div>
           <div style={{ padding: "14px 16px", display: "flex", flexDirection: "column", gap: 12 }}>
             <div>
-              <label style={{ display: "block", fontSize: "0.72rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-muted)", marginBottom: 5 }}>
+              <label className="micro-label" style={{ display: "block", marginBottom: 5 }}>
                 Italic lede (Fraunces)
               </label>
               <textarea
@@ -343,7 +328,7 @@ export function ReviewQueue() {
               />
             </div>
             <div>
-              <label style={{ display: "block", fontSize: "0.72rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-muted)", marginBottom: 5 }}>
+              <label className="micro-label" style={{ display: "block", marginBottom: 5 }}>
                 Body
               </label>
               <textarea
@@ -361,10 +346,10 @@ export function ReviewQueue() {
 
             {/* Attribution */}
             <div style={{ background: "var(--soft-white)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "10px 12px" }}>
-              <div style={{ fontSize: "0.72rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-muted)", marginBottom: 4 }}>Attribution</div>
+              <div className="micro-label">Attribution</div>
               <div style={{ fontWeight: 700, fontSize: "0.85rem", color: "var(--navy)" }}>The Visentix Privacy Desk</div>
               <div style={{ marginTop: 8, borderTop: "1px dashed var(--border)", paddingTop: 8 }}>
-                <div style={{ fontSize: "0.68rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", color: "var(--text-muted)", marginBottom: 3 }}>Expert Reviewer Slot</div>
+                <div className="micro-label" style={{ marginBottom: 3 }}>Expert Reviewer Slot</div>
                 <div style={{ fontSize: "0.78rem", color: "var(--text-muted)", fontStyle: "italic" }}>Reserved for SME name + credential</div>
               </div>
             </div>

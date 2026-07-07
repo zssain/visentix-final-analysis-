@@ -419,17 +419,7 @@
 
 
 /* ─── Grid layouts ────────────────────────────────────────────────────────────── */
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 16px;
-  margin-bottom: 24px;
-}
-.content-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 24px;
-}
+/* .stats-grid and .content-grid are defined once in index.css */
 .three-col {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
@@ -454,7 +444,14 @@
   .content-grid { grid-template-columns: 1fr; }
   .three-col { grid-template-columns: 1fr; }
   .stats-grid { grid-template-columns: repeat(2, 1fr); }
-  .nav-links { display: none; }
+  /* Keep nav usable on mobile: horizontal scroll, not hidden */
+  .nav-links {
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .nav-links::-webkit-scrollbar { display: none; }
+  .nav-link { padding: 7px 10px; font-size: 0.8rem; flex-shrink: 0; }
+  .nav-role { display: none; }
 }
 @media (max-width: 480px) {
   .stats-grid { grid-template-columns: 1fr; }

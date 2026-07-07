@@ -55,7 +55,7 @@ export function Login() {
       <div className="login-form-pane">
         <div className="login-brand-header">
           <div className="logo-icon" aria-hidden="true">V</div>
-          <span>visentix</span>
+          <span>Visentix</span>
         </div>
 
         <div className="login-form-wrapper">
@@ -65,19 +65,7 @@ export function Login() {
           {error && <div className="login-error" role="alert">{error}</div>}
           
           {infoMessage && (
-            <div 
-              className="login-info-box" 
-              style={{ 
-                background: "rgba(200,164,106,0.08)", 
-                border: "1px solid var(--gold)", 
-                color: "#7a5c20", 
-                padding: "12px 16px", 
-                borderRadius: "var(--radius)", 
-                fontSize: "0.85rem", 
-                marginBottom: "20px" 
-              }}
-              role="status"
-            >
+            <div className="notice-box gold" style={{ marginBottom: 20 }} role="status">
               {infoMessage}
             </div>
           )}
@@ -164,9 +152,8 @@ export function Login() {
         </div>
 
         <div className="login-footer-mark">
-          <span className="intelligence-mark" title="Visentix produces exposure and maturity intelligence. It does not make legal determinations.">
-            <span className="im-icon" aria-hidden="true">ⓘ</span>
-            Intelligence, not legal advice
+          <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
+            © Visentix · Privacy Intelligence Platform
           </span>
         </div>
       </div>

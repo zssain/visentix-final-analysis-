@@ -36,6 +36,10 @@ function RoleBasedHome() {
 function AppRoutes() {
   const { session, profile, signOut } = useAuth();
   const role = profile?.role;
+  const location = useLocation();
+  // Login is the only full-bleed route; everything else (including the public
+  // /codex and /methodology pages) gets the standard content container.
+  const fullBleed = location.pathname === "/login";
 
   return (
     <div className="app-layout">
@@ -49,12 +53,13 @@ function AppRoutes() {
           <div className="nav-divider" aria-hidden="true" />
 
           {/* Primary nav */}
+          {/* Nav labels match each page's title/eyebrow so "where am I" is never ambiguous */}
           <div className="nav-links">
             <NavLink to="/assessments">
-              Intelligence
+              Monitor
             </NavLink>
             <NavLink to="/intake">
-              + Intake
+              Intake
             </NavLink>
             {(role === "sme" || role === "admin") && (
               <NavLink to="/review">
@@ -89,7 +94,7 @@ function AppRoutes() {
         </nav>
       )}
 
-      <div className={session ? "main-content" : ""}>
+      <div className={fullBleed ? "" : "main-content"}>
         <Routes>
           {/* Public */}
           <Route path="/login" element={<Login />} />

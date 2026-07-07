@@ -77,12 +77,7 @@ export function BenchmarkLanguage({ content }: { content: ReportSection["content
       <h2>8. Benchmark Language Comparison</h2>
       <p style={{ color: "var(--text-muted)", fontSize: "0.85rem", marginBottom: 12 }}>
         Your clause language compared to the SME-reviewed cohort exemplar.
-        {/* [MOCK M-03] */}
-        <span style={{
-          marginLeft: 8, fontSize: "0.68rem", background: "rgba(200,164,106,0.15)",
-          color: "#7a5c20", border: "1px dashed var(--gold)",
-          padding: "1px 6px", borderRadius: 10, fontWeight: 700,
-        }}>MOCK M-03</span>
+        <span className="mock-badge">MOCK M-03</span>
       </p>
 
       {/* Toggle */}

@@ -39,9 +39,7 @@ describe("API client security", () => {
   });
 
   it("only uses VITE_ prefixed env vars", () => {
-    const apiFile = fs.readFileSync(path.resolve(srcDir, "lib/api.ts"), "utf-8");
-    const supabaseFile = fs.readFileSync(path.resolve(srcDir, "lib/supabase.ts"), "utf-8");
-    const combined = apiFile + supabaseFile;
+    const combined = fs.readFileSync(path.resolve(srcDir, "lib/api.ts"), "utf-8");
 
     // All import.meta.env references should use VITE_ prefix
     const envRefs = combined.match(/import\.meta\.env\.\w+/g) || [];

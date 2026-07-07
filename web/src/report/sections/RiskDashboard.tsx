@@ -1,6 +1,7 @@
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Cell, ResponsiveContainer } from "recharts";
 import { VciBadge } from "../VciBadge";
 import { ScoreCell } from "../../components/ScoreCell";
+import { scoreBandColor } from "../../lib/scoreBands";
 import type { ReportSection } from "../types";
 
 // Formula descriptions (plain English only — no math)
@@ -13,12 +14,6 @@ const FORMULA_DESCS: Record<string, string> = {
   "F-008": "Blends regulatory, disclosure, and enforcement dimensions into a single compound risk indicator.",
   "F-010": "Weighted combination of all six risk dimensions to produce the overall privacy intelligence score.",
 };
-
-function tierColor(score: number): string {
-  if (score >= 70) return "#F87171"; // red — high exposure (only legitimate use)
-  if (score >= 45) return "#C8A46A"; // gold — elevated
-  return "#55C7B3";                  // teal — lower exposure
-}
 
 export function RiskDashboard({ content }: { content: ReportSection["content"] }) {
   const snapshotId = (content.snapshot_id as string | undefined) ?? "S-0000";
@@ -52,7 +47,7 @@ export function RiskDashboard({ content }: { content: ReportSection["content"] }
             />
             <Bar dataKey="value" isAnimationActive={false} radius={[0, 4, 4, 0]}>
               {metrics.map((m, i) => (
-                <Cell key={i} fill={tierColor(m.value ?? 0)} />
+                <Cell key={i} fill={scoreBandColor(m.value ?? 0)} />
               ))}
             </Bar>
           </BarChart>

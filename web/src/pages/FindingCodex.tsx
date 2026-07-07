@@ -5,7 +5,7 @@
  * Real source: finding_type catalog table in Supabase + /api/codex GET endpoint
  */
 import { useState, useMemo } from "react";
-import { IntelligenceMark } from "../components/IntelligenceMark";
+import { PageHeader } from "../components/PageHeader";
 import "../components/furniture.css";
 
 const DOMAINS = [
@@ -143,14 +143,19 @@ export function FindingCodex() {
   }, [query, domain]);
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "220px 1fr", gap: 24, alignItems: "start" }}>
+    <div>
+      <PageHeader
+        eyebrow="Codex"
+        title="Finding Codex"
+        description={`Plain-English definitions for all ${CODEX.length} finding codes used in reports — what each code means, the exposure it signals, and an example pattern. This is the source of truth behind every code chip and tooltip.`}
+        actions={<span className="mock-badge" style={{ marginLeft: 0 }}>MOCK M-11 — replace with /api/codex</span>}
+      />
+
+      <div className="codex-layout" style={{ display: "grid", gridTemplateColumns: "220px 1fr", gap: 24, alignItems: "start" }}>
       {/* ── Left rail: domain filter ── */}
-      <div className="card" style={{ padding: 0, overflow: "hidden", position: "sticky", top: 76 }}>
-        <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--border)", background: "var(--navy)" }}>
-          <div style={{ color: "white", fontWeight: 700, fontSize: "0.85rem" }}>Finding Codex</div>
-          <div style={{ color: "rgba(255,255,255,0.5)", fontSize: "0.72rem", marginTop: 2 }}>
-            {CODEX.length}+ finding codes {/* [MOCK M-11] */}
-          </div>
+      <div className="card codex-rail" style={{ padding: 0, overflow: "hidden", position: "sticky", top: 76 }}>
+        <div className="card-head">
+          <div className="card-title">Filter by domain</div>
         </div>
         <div style={{ padding: "8px 0" }}>
           <button
@@ -187,20 +192,9 @@ export function FindingCodex() {
       {/* ── Main: search + code list ── */}
       <div>
         <div style={{ marginBottom: 20 }}>
-          <h1 style={{ fontSize: "1.5rem", fontWeight: 800, color: "var(--navy)", letterSpacing: "-0.02em", marginBottom: 6 }}>
-            Finding Codex
-          </h1>
-          <p style={{ color: "var(--text-muted)", fontSize: "0.88rem", marginBottom: 12 }}>
-            Governed glossary of every finding code. Source of truth for all report tooltips and PDF appendices.
-            <span style={{
-              marginLeft: 10, fontSize: "0.65rem", background: "rgba(200,164,106,0.15)",
-              color: "#7a5c20", border: "1px dashed var(--gold)",
-              padding: "1px 7px", borderRadius: 10, fontWeight: 700,
-            }}>MOCK M-11 — replace with /api/codex</span>
-          </p>
           <input
             type="search"
-            placeholder={`Search ${CODEX.length}+ finding codes…`}
+            placeholder={`Search ${CODEX.length} finding codes…`}
             value={query}
             onChange={e => setQuery(e.target.value)}
             id="codex-search-input"
@@ -230,9 +224,7 @@ export function FindingCodex() {
           </div>
         )}
 
-        <div style={{ marginTop: 24, display: "flex", justifyContent: "flex-end" }}>
-          <IntelligenceMark />
-        </div>
+      </div>
       </div>
     </div>
   );

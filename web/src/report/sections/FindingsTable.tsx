@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { AdvisorNote } from "../../components/AdvisorNote";
 import { CodexTooltip } from "../../components/CodexTooltip";
 import type { ReportSection } from "../types";
@@ -57,8 +57,8 @@ export function FindingsTable({ content }: { content: ReportSection["content"] }
             const code = f.finding_code ?? f.id;
             const isOpen = expanded === f.id;
             return (
-              <>
-                <tr key={f.id} style={{ borderBottom: "1px solid var(--border)" }}>
+              <Fragment key={f.id}>
+                <tr style={{ borderBottom: "1px solid var(--border)" }}>
                   <td style={td}>
                     <CodexTooltip code={code} />
                   </td>
@@ -88,7 +88,7 @@ export function FindingsTable({ content }: { content: ReportSection["content"] }
                   </td>
                 </tr>
                 {isOpen && (
-                  <tr key={`${f.id}-detail`}>
+                  <tr>
                     <td colSpan={6} style={{ padding: "16px 8px 20px" }}>
                       <AdvisorNote
                         findingCode={code}
@@ -111,7 +111,7 @@ export function FindingsTable({ content }: { content: ReportSection["content"] }
                     </td>
                   </tr>
                 )}
-              </>
+              </Fragment>
             );
           })}
         </tbody>

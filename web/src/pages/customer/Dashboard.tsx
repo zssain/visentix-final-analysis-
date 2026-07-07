@@ -15,7 +15,8 @@ import { Link } from "react-router-dom";
 import { api, ApiError } from "../../lib/api";
 import { AdvisorNote }      from "../../components/AdvisorNote";
 import { ProvenanceRibbon } from "../../components/ProvenanceRibbon";
-import { IntelligenceMark } from "../../components/IntelligenceMark";
+import { PageHeader }       from "../../components/PageHeader";
+import { scoreBandColor, trendColor } from "../../lib/scoreBands";
 import "../../components/furniture.css";
 
 interface Assessment {
@@ -69,7 +70,7 @@ const MOCK_ALERTS = [
   },
 ];
 
-// Inline SVG sparkline
+// Inline SVG sparkline — colored by improvement (exposure falling = teal)
 function Sparkline({ data, size = "sm" }: { data: number[]; size?: "sm" | "lg" }) {
   const w = size === "lg" ? 180 : 80;
   const h = size === "lg" ? 48 : 28;
@@ -82,7 +83,7 @@ function Sparkline({ data, size = "sm" }: { data: number[]; size?: "sm" | "lg" }
     return `${x.toFixed(1)},${y.toFixed(1)}`;
   });
   const last = data[data.length - 1], prev = data[data.length - 2];
-  const color = last >= prev ? "var(--teal)" : "var(--red)";
+  const color = trendColor(last - prev);
   return (
     <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} aria-hidden="true">
       <polyline points={pts.join(" ")} fill="none" stroke={color} strokeWidth={size === "lg" ? 2.5 : 1.5}
@@ -91,12 +92,6 @@ function Sparkline({ data, size = "sm" }: { data: number[]; size?: "sm" | "lg" }
         r={size === "lg" ? 4 : 2.5} fill={color} />
     </svg>
   );
-}
-
-function scoreColor(score: number): string {
-  if (score >= 65) return "var(--red)";
-  if (score >= 42) return "var(--gold)";
-  return "var(--teal)";
 }
 
 function FeedIcon({ type }: { type: string }) {
@@ -185,35 +180,29 @@ export function CustomerDashboard() {
 
   return (
     <div>
-      {/* ── Org header ── */}
+      {/* ── Page header ── */}
+      <PageHeader
+        eyebrow="Monitor"
+        title="Privacy Intelligence Monitor"
+        description="Watches your assessed privacy notices and their peer benchmarks. Score changes, notice edits, and regulator signals appear here as they happen."
+        actions={
+          <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.78rem", fontWeight: 600, color: "var(--emerald)" }}>
+            <span className="live-dot" /> Monitoring active
+          </div>
+        }
+      />
+
+      {/* [MOCK M-09] */}
       <div style={{ marginBottom: 20 }}>
-        {/* [MOCK M-09] */}
         <ProvenanceRibbon
           snapshotId={MOCK_SNAPSHOT}
           frozenDate="2026-07-07"
           status="draft"
         />
-        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 4 }}>
-          <h1 style={{ fontSize: "1.4rem", fontWeight: 800, color: "var(--navy)", letterSpacing: "-0.02em" }}>
-            Privacy Intelligence Monitor
-          </h1>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.78rem", fontWeight: 600, color: "var(--emerald)" }}>
-            <span className="live-dot" /> Monitoring active
-          </div>
-        </div>
-        <p style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>
-          Continuous surveillance across {assessments.length || "—"} assessments · cohort n=30 as of 2026-06-19
-          {/* [MOCK M-07, M-08] */}
-          <span style={{
-            marginLeft: 10, fontSize: "0.65rem", background: "rgba(200,164,106,0.15)",
-            color: "#7a5c20", border: "1px dashed var(--gold)",
-            padding: "1px 7px", borderRadius: 10, fontWeight: 700,
-          }}>MOCK M-07, M-08</span>
-        </p>
       </div>
 
       {/* ── Main monitoring layout ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: 20, alignItems: "start" }}>
+      <div className="monitor-grid" style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: 20, alignItems: "start" }}>
 
         {/* ── LEFT ── */}
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
@@ -222,12 +211,12 @@ export function CustomerDashboard() {
           <div className="card" style={{ padding: 24 }}>
             <div style={{ display: "flex", alignItems: "flex-start", gap: 24, flexWrap: "wrap" }}>
               <div>
-                <div style={{ fontSize: "0.68rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.09em", color: "var(--text-muted)", marginBottom: 4 }}>
+                <div className="micro-label">
                   Overall Privacy Intelligence Score
                 </div>
                 <div style={{
                   fontFamily: "var(--font-data)", fontVariantNumeric: "tabular-nums",
-                  fontSize: "3rem", fontWeight: 700, color: scoreColor(MOCK_SCORE),
+                  fontSize: "3rem", fontWeight: 700, color: scoreBandColor(MOCK_SCORE),
                   lineHeight: 1.1,
                 }}>
                   {MOCK_SCORE.toFixed(1)}
@@ -235,14 +224,14 @@ export function CustomerDashboard() {
                 <div style={{
                   fontFamily: "var(--font-data)", fontVariantNumeric: "tabular-nums",
                   fontSize: "0.88rem", fontWeight: 700,
-                  color: MOCK_DELTA >= 0 ? "var(--teal)" : "var(--red)",
+                  color: trendColor(MOCK_DELTA),
                   marginTop: 4,
                 }}>
                   {MOCK_DELTA >= 0 ? "▲" : "▼"} {Math.abs(MOCK_DELTA).toFixed(1)} vs last snapshot
                 </div>
               </div>
               <div>
-                <div style={{ fontSize: "0.68rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.09em", color: "var(--text-muted)", marginBottom: 4 }}>
+                <div className="micro-label">
                   Trend {/* [MOCK M-06] */}
                 </div>
                 <Sparkline data={MOCK_TREND} size="lg" />
@@ -258,31 +247,27 @@ export function CustomerDashboard() {
                 <div key={ds.domain} className="card" style={{ padding: "12px 16px" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                     <div>
-                      <div style={{ fontSize: "0.72rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", color: "var(--text-muted)", marginBottom: 3 }}>
+                      <div className="micro-label" style={{ marginBottom: 3 }}>
                         {ds.domain}
                       </div>
                       <div style={{
                         fontFamily: "var(--font-data)", fontVariantNumeric: "tabular-nums",
-                        fontSize: "1.5rem", fontWeight: 700, color: scoreColor(ds.score),
+                        fontSize: "1.5rem", fontWeight: 700, color: scoreBandColor(ds.score),
                       }}>
                         {ds.score}
                       </div>
                     </div>
-                    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
-                      <Sparkline data={[ds.score - 5, ds.score + 3, ds.score - 2, ds.score + ds.delta]} size="sm" />
-                      {ds.delta !== 0 && (
-                        <div style={{
-                          fontFamily: "var(--font-data)", fontSize: "0.75rem", fontWeight: 700,
-                          color: ds.delta >= 0 ? "var(--teal)" : "var(--red)",
-                        }}>
-                          {ds.delta >= 0 ? "▲" : "▼"}{Math.abs(ds.delta)}
-                        </div>
-                      )}
+                    {/* Delta only — one sparkline per screen (the hero); 8 mini-sparklines read as noise */}
+                    <div style={{
+                      fontFamily: "var(--font-data)", fontSize: "0.78rem", fontWeight: 700,
+                      color: ds.delta !== 0 ? trendColor(ds.delta) : "var(--text-muted)",
+                    }}>
+                      {ds.delta === 0 ? "—" : `${ds.delta > 0 ? "▲" : "▼"}${Math.abs(ds.delta)}`}
                     </div>
                   </div>
                   {/* Score bar */}
                   <div style={{ height: 3, background: "var(--border)", borderRadius: 2, marginTop: 8, overflow: "hidden" }}>
-                    <div style={{ height: "100%", width: `${ds.score}%`, background: scoreColor(ds.score), borderRadius: 2 }} />
+                    <div style={{ height: "100%", width: `${ds.score}%`, background: scoreBandColor(ds.score), borderRadius: 2 }} />
                   </div>
                 </div>
               ))}
@@ -291,8 +276,8 @@ export function CustomerDashboard() {
 
           {/* Assessments list */}
           <div className="card" style={{ overflow: "hidden" }}>
-            <div style={{ padding: "14px 20px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <div style={{ fontWeight: 700, color: "var(--navy)", fontSize: "0.9rem" }}>Active Assessments</div>
+            <div className="card-head card-head-row">
+              <div className="card-title">Active Assessments</div>
               <Link to="/intake" className="btn btn-sm btn-outline" id="new-assessment-btn">+ New Assessment</Link>
             </div>
             {loading ? (
@@ -350,8 +335,8 @@ export function CustomerDashboard() {
 
           {/* Change feed [MOCK M-07] */}
           <div className="card" style={{ overflow: "hidden" }}>
-            <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--border)", fontWeight: 700, color: "var(--navy)", fontSize: "0.85rem" }}>
-              Change Feed
+            <div className="card-head">
+              <div className="card-title">Change Feed<span className="mock-badge">MOCK M-07</span></div>
             </div>
             <div style={{ padding: "8px 0" }}>
               {MOCK_CHANGE_FEED.map((ev, i) => (
@@ -363,7 +348,7 @@ export function CustomerDashboard() {
                   {/* Left stripe */}
                   <div style={{
                     width: 2, borderRadius: 1, alignSelf: "stretch", flexShrink: 0,
-                    background: ev.type === "score_moved" ? (ev.delta! < 0 ? "var(--red)" : "var(--teal)") : "var(--border)",
+                    background: ev.type === "score_moved" ? trendColor(ev.delta ?? 0) : "var(--border)",
                   }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
@@ -380,8 +365,8 @@ export function CustomerDashboard() {
 
           {/* Alert center [MOCK M-08] */}
           <div className="card" style={{ overflow: "hidden" }}>
-            <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 8 }}>
-              <div style={{ fontWeight: 700, color: "var(--navy)", fontSize: "0.85rem" }}>Alert Center</div>
+            <div className="card-head" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div className="card-title">Alert Center<span className="mock-badge">MOCK M-08</span></div>
               <span className="badge badge-high" style={{ fontSize: "0.65rem" }}>
                 {MOCK_ALERTS.filter(a => a.severity === "high").length} HIGH
               </span>
@@ -400,9 +385,6 @@ export function CustomerDashboard() {
             </div>
           </div>
 
-          <div style={{ display: "flex", justifyContent: "flex-end" }}>
-            <IntelligenceMark />
-          </div>
         </div>
       </div>
 

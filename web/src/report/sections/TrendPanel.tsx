@@ -1,3 +1,4 @@
+import { trendColor } from "../../lib/scoreBands";
 import type { ReportSection } from "../types";
 
 // [MOCK M-06] Sparkline data is static — real: F-012 Trend Delta from /api/monitoring/trend
@@ -15,14 +16,15 @@ function Sparkline({ data }: { data: number[] }) {
   });
   const last = data[data.length - 1];
   const prev = data[data.length - 2];
-  const up   = last >= prev;
+  // Colored by improvement: exposure falling = teal
+  const color = trendColor(last - prev);
 
   return (
     <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} aria-hidden="true">
       <polyline
         points={pts.join(" ")}
         fill="none"
-        stroke={up ? "var(--teal)" : "var(--red)"}
+        stroke={color}
         strokeWidth={2}
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -31,7 +33,7 @@ function Sparkline({ data }: { data: number[] }) {
         cx={pts[pts.length - 1].split(",")[0]}
         cy={pts[pts.length - 1].split(",")[1]}
         r={3}
-        fill={up ? "var(--teal)" : "var(--red)"}
+        fill={color}
       />
     </svg>
   );
@@ -70,8 +72,9 @@ export function TrendPanel({ content }: { content: ReportSection["content"] }) {
                 Score over time
               </div>
               <Sparkline data={trendData} />
-              {/* [MOCK M-06] */}
-              <div style={{ fontSize: "0.65rem", color: "var(--gold)", marginTop: 2 }}>MOCK M-06 — real: F-012 trend output</div>
+              <div style={{ marginTop: 4 }}>
+                <span className="mock-badge" style={{ marginLeft: 0 }}>MOCK M-06 — real: F-012 trend output</span>
+              </div>
             </div>
             {trendDelta !== undefined && (
               <div>
@@ -81,7 +84,7 @@ export function TrendPanel({ content }: { content: ReportSection["content"] }) {
                 <div style={{
                   fontFamily: "var(--font-data)", fontVariantNumeric: "tabular-nums",
                   fontSize: "1.6rem", fontWeight: 700,
-                  color: isDeltaUp ? "var(--teal)" : "var(--red)",
+                  color: trendColor(trendDelta),
                 }}>
                   {isDeltaUp ? "▲" : "▼"} {Math.abs(trendDelta).toFixed(1)}
                 </div>

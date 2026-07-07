@@ -1,5 +1,4 @@
 import { useEffect, useRef } from "react";
-import { motion } from "motion/react";
 import { cn } from "../../lib/utils";
 
 interface AnimatedGradientBackgroundProps {
@@ -84,6 +83,10 @@ export function BeamsBackground({
         updateCanvasSize();
         window.addEventListener("resize", updateCanvasSize);
 
+        // Quality floor: respect prefers-reduced-motion — render one static
+        // frame of beams instead of the animation loop.
+        const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
         function resetBeam(beam: Beam, index: number) {
             if (!canvas) return beam;
             
@@ -142,7 +145,7 @@ export function BeamsBackground({
             ctx.restore();
         }
 
-        function animate() {
+        function drawFrame(advance: boolean) {
             if (!canvas || !ctx) return;
 
             const width = canvas.width / (window.devicePixelRatio || 1);
@@ -152,21 +155,30 @@ export function BeamsBackground({
             ctx.filter = "blur(35px)";
 
             beamsRef.current.forEach((beam, index) => {
-                beam.y -= beam.speed;
-                beam.pulse += beam.pulseSpeed;
+                if (advance) {
+                    beam.y -= beam.speed;
+                    beam.pulse += beam.pulseSpeed;
 
-                // Reset beam when it goes off screen
-                if (beam.y + beam.length < -100) {
-                    resetBeam(beam, index);
+                    // Reset beam when it goes off screen
+                    if (beam.y + beam.length < -100) {
+                        resetBeam(beam, index);
+                    }
                 }
 
                 drawBeam(ctx, beam);
             });
+        }
 
+        function animate() {
+            drawFrame(true);
             animationFrameRef.current = requestAnimationFrame(animate);
         }
 
-        animate();
+        if (reduceMotion) {
+            drawFrame(false); // single static frame, no animation loop
+        } else {
+            animate();
+        }
 
         return () => {
             window.removeEventListener("resize", updateCanvasSize);
@@ -204,16 +216,10 @@ export function BeamsBackground({
                 }}
             />
 
-            <motion.div
+            {/* Static tint overlay — was a framer-motion opacity pulse, but the
+                oscillation was imperceptible and ignored prefers-reduced-motion */}
+            <div
                 className="absolute inset-0 bg-neutral-950/5"
-                animate={{
-                    opacity: [0.03, 0.1, 0.03],
-                }}
-                transition={{
-                    duration: 10,
-                    ease: "easeInOut",
-                    repeat: Number.POSITIVE_INFINITY,
-                }}
                 style={{
                     position: "absolute",
                     inset: 0,

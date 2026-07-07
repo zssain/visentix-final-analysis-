@@ -1,4 +1,5 @@
 /** Honest cohort label — always shows real n + date. */
+import { LOW_CONFIDENCE_COHORT_N } from "../lib/scoreBands";
 
 interface CohortLabelProps {
   size: number;
@@ -8,10 +9,10 @@ interface CohortLabelProps {
 export function CohortLabel({ size, date }: CohortLabelProps) {
   return (
     <span className="cohort-label" data-testid="cohort-label" style={{
-      fontSize: "0.85em", color: "#6b7280", fontStyle: "italic",
+      fontSize: "0.85em", color: "var(--text-muted)", fontStyle: "italic",
     }}>
       Benchmarked against {size} peers as of {date}
-      {size < 50 && " (small cohort; interpret with caution)"}
+      {size < LOW_CONFIDENCE_COHORT_N && " (small cohort; interpret with caution)"}
     </span>
   );
 }

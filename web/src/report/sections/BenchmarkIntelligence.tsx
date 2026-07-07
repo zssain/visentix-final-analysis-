@@ -2,6 +2,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, Cell, ResponsiveContainer } from 
 import { CohortLabel }    from "../CohortLabel";
 import { ScoreCell }      from "../../components/ScoreCell";
 import { IntelligenceMark } from "../../components/IntelligenceMark";
+import { scoreBandColor, LOW_CONFIDENCE_COHORT_N } from "../../lib/scoreBands";
 import type { ReportSection } from "../types";
 
 export function BenchmarkIntelligence({ content }: { content: ReportSection["content"] }) {
@@ -14,7 +15,7 @@ export function BenchmarkIntelligence({ content }: { content: ReportSection["con
 
   // Honest benchmark bars — exact cohort values, not invented
   const data = [
-    { name: "Your Score",   value: orgScore, fill: orgScore >= 70 ? "#F87171" : orgScore >= 45 ? "#C8A46A" : "#55C7B3" },
+    { name: "Your Score",   value: orgScore, fill: scoreBandColor(orgScore) },
     { name: "Peer Median",  value: content.peer_median  as number ?? 50, fill: "#D9DDE2" },
     { name: "Top Quartile", value: content.top_quartile as number ?? 75, fill: "#09234F" },
   ];
@@ -85,7 +86,7 @@ export function BenchmarkIntelligence({ content }: { content: ReportSection["con
       </div>
 
       {/* Low-confidence label when cohort is small */}
-      {cohortSize > 0 && cohortSize < 15 && (
+      {cohortSize > 0 && cohortSize < LOW_CONFIDENCE_COHORT_N && (
         <div style={{
           marginTop: 10, padding: "8px 12px",
           background: "rgba(200,164,106,0.09)", border: "1px dashed var(--gold)",

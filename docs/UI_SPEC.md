@@ -26,6 +26,14 @@ These tokens are **fixed**. Never invent new colours outside this set.
 `gold (#C8A46A)` = added/new · `warm-gray strikethrough (#D9DDE2)` = removed/old.  
 Red stays reserved for low-score exposure. This palette must be consistent across all screens.
 
+**Score-band rule (single source of truth: `web/src/lib/scoreBands.ts`):**  
+`≥70` = red (high exposure) · `≥45` = gold (elevated) · below = teal. Never redefine these thresholds locally.
+
+**Trend/delta color rule — color by IMPROVEMENT, not direction:**  
+Exposure scores read lower = better. A falling score is **teal** (improving); a rising score is **red** (worsening). Arrows (▲/▼) show direction; color carries the judgement. Applies to deltas, sparklines, and change-feed stripes. Emerald stays reserved for the live-dot only.
+
+**Low-confidence cohort threshold:** one constant, `LOW_CONFIDENCE_COHORT_N` (currently 10, OD-05 pending). Every "small cohort" warning uses it — never a local literal.
+
 **Typography:**
 - `Fraunces` — display/serif headlines, Advisor Note lede, report covers
 - `Inter` — all UI chrome, labels, nav, buttons
@@ -277,8 +285,23 @@ Full-screen sheet slides up from bottom. Same content as the lineage drawer (DDR
 
 These components appear globally. Their specs are the authority.
 
+### PageHeader (every routed screen)
+- One component (`PageHeader.tsx`): **eyebrow** (where you are — matches the nav label) · **title** · **description** (one plain-language sentence saying what the screen does) · **actions** (right side: status chips, counts, primary CTA).
+- Every routed screen opens with it. No screen may invent its own header layout.
+- Language balance: the title may use product vocabulary (Codex, Workbench); the description must be plain English a first-time legal reader understands.
+- Nav label ↔ eyebrow ↔ title must agree. Current map:
+  | Route | Nav label | Title |
+  |---|---|---|
+  | `/assessments` | Monitor | Privacy Intelligence Monitor |
+  | `/intake` | Intake | Submit a Privacy Notice |
+  | `/review` | Workbench | SME Workbench |
+  | `/admin` | Admin | Admin Console |
+  | `/codex` | Codex | Finding Codex |
+  | `/methodology` | Methodology | How Visentix Works |
+
 ### Provenance Ribbon (DDR-004)
 - Appears on every report page and every dashboard surface
+- **Snapshot surfaces only** — never on Admin or other screens where nothing is a reproducible snapshot; diluting the ribbon's meaning breaks its trust story
 - Contents: `S-2041` (monospace snapshot ID) · formula version + frozen date · Reproducible mark
 - Approved state: teal mark. Draft state: gold mark + diagonal "DRAFT — PENDING EXPERT REVIEW" watermark behind content
 - Condensed variant on mobile (ID + status mark only, tap to expand)
@@ -308,9 +331,10 @@ These components appear globally. Their specs are the authority.
 - `prefers-reduced-motion`: static dot, no pulse
 
 ### "Intelligence, not legal advice" mark (DDR-007)
-- Appears at foot of every finding card and report section
+- Appears at foot of every finding card and report section, and in the lineage drawer and SME editor
+- **Not** on Login, Monitor chrome, Admin, Codex, or Methodology — repeated everywhere it reads as nervousness, not discipline
 - Small, designed mark — not a paragraph of legalese
-- Never omit; never make it larger than necessary
+- Never omit where findings/reports appear; never make it larger than necessary
 
 ---
 

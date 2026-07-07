@@ -1,4 +1,4 @@
-import { IntelligenceMark } from "../components/IntelligenceMark";
+import { PageHeader } from "../components/PageHeader";
 import "../components/furniture.css";
 
 const FORMULAS = [
@@ -34,17 +34,11 @@ const SME_STEPS = [
 export function Methodology() {
   return (
     <div style={{ maxWidth: 800, margin: "0 auto" }}>
-      {/* Hero */}
-      <div style={{ marginBottom: 48, textAlign: "center", padding: "32px 0 0" }}>
-        <div style={{ width: 60, height: 3, background: "linear-gradient(90deg, var(--gold), var(--teal))", margin: "0 auto 24px", borderRadius: 2 }} />
-        <h1 style={{ fontFamily: "var(--font-display)", fontSize: "2.4rem", fontWeight: 700, color: "var(--navy)", letterSpacing: "-0.03em", marginBottom: 12 }}>
-          How Visentix Works
-        </h1>
-        <p style={{ fontSize: "1rem", color: "var(--text-secondary)", lineHeight: 1.7, maxWidth: 600, margin: "0 auto" }}>
-          Privacy intelligence built on deterministic formulas, human expert review, and honest benchmarking.
-          Every figure is traceable. Every report is reproducible.
-        </p>
-      </div>
+      <PageHeader
+        eyebrow="Methodology"
+        title="How Visentix Works"
+        description="Privacy intelligence built on deterministic formulas, human expert review, and honest benchmarking. Every figure is traceable. Every report is reproducible."
+      />
 
       {/* The formulas */}
       <section style={{ marginBottom: 48 }}>
@@ -169,9 +163,6 @@ export function Methodology() {
         </p>
       </section>
 
-      <div style={{ display: "flex", justifyContent: "flex-start", paddingBottom: 40 }}>
-        <IntelligenceMark />
-      </div>
     </div>
   );
 }

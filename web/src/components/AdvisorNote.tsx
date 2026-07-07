@@ -4,6 +4,7 @@ import { CodexTooltip } from "./CodexTooltip";
 import { ProvenanceRibbon } from "./ProvenanceRibbon";
 import { ScoreCell } from "./ScoreCell";
 import { IntelligenceMark } from "./IntelligenceMark";
+import { scoreBandColor } from "../lib/scoreBands";
 import "./advisor-note.css";
 import "./furniture.css";
 
@@ -37,12 +38,6 @@ export interface AdvisorNoteProps {
 
   /* View switch default */
   defaultView?: "analyst" | "advisor";
-}
-
-function scoreBarColor(score: number): string {
-  if (score >= 70) return "var(--red)";
-  if (score >= 45) return "var(--gold)";
-  return "var(--teal)";
 }
 
 function domainLabel(d: string): string {
@@ -121,7 +116,7 @@ export function AdvisorNote({
                     className="an-score-bar-fill"
                     style={{
                       width: `${exposureScore}%`,
-                      background: scoreBarColor(exposureScore),
+                      background: scoreBandColor(exposureScore),
                     }}
                   />
                 </div>

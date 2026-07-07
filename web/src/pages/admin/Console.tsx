@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../../lib/api";
-import { ProvenanceRibbon } from "../../components/ProvenanceRibbon";
-import { IntelligenceMark } from "../../components/IntelligenceMark";
+import { PageHeader } from "../../components/PageHeader";
 import "../../components/furniture.css";
 
 interface TrainingStats {
@@ -73,22 +72,19 @@ export function AdminConsole() {
 
   return (
     <div>
-      {/* Monospace Provenance Ribbon */}
-      <ProvenanceRibbon
-        snapshotId="SYS-ADM-2041"
-        formulaVersion="v0.2.0"
-        frozenDate="2026-07-07"
-        status="approved"
+      {/* No provenance ribbon here — the ribbon means "reproducible snapshot" and
+          nothing on the admin console is a snapshot. Keep its meaning exact. */}
+      <PageHeader
+        eyebrow="Admin"
+        title="Admin Console"
+        description="System health, database record counts, the gate-mode policy that controls when customers see drafts, batch operations, and training-label statistics."
+        actions={
+          <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.78rem", fontWeight: 600, color: health ? "var(--emerald)" : "var(--red)" }}>
+            <span className="live-dot" style={{ background: health ? "var(--emerald)" : "var(--red)" }} />
+            {health ? "System active" : "API offline"}
+          </div>
+        }
       />
-
-      <div className="page-header" style={{ marginBottom: 24 }}>
-        <h1 style={{ fontFamily: "var(--font-display)", fontSize: "2rem", fontWeight: 700, color: "var(--navy)", marginBottom: 6 }}>
-          Admin Control Center
-        </h1>
-        <p style={{ color: "var(--text-secondary)", fontSize: "0.95rem" }}>
-          Configure global policies, review system operational statuses, and analyze fine-tuning training labels.
-        </p>
-      </div>
 
       <div className="content-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, alignItems: "start" }}>
         
@@ -186,23 +182,16 @@ export function AdminConsole() {
             </p>
 
             {gateModeStatus && (
-              <div style={{
+              <div className="notice-box teal" style={{
                 marginBottom: 16,
-                padding: "10px 14px",
-                background: "rgba(85, 199, 179, 0.08)",
-                border: "1px solid rgba(85, 199, 179, 0.3)",
-                borderRadius: "var(--radius)",
-                color: "#0d6b5c",
-                fontSize: "0.8rem",
-                fontWeight: 600,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between"
               }}>
                 <span>{gateModeStatus}</span>
-                <button 
-                  onClick={() => setGateModeStatus(null)} 
-                  style={{ background: "transparent", color: "#0d6b5c", fontWeight: 700, fontSize: "0.9rem", border: "none" }}
+                <button
+                  onClick={() => setGateModeStatus(null)}
+                  style={{ background: "transparent", color: "inherit", fontWeight: 700, fontSize: "0.9rem", border: "none" }}
                 >
                   ×
                 </button>
@@ -280,16 +269,7 @@ export function AdminConsole() {
             </p>
 
             {triggerMessage && (
-              <div style={{
-                marginBottom: 16,
-                padding: "10px 14px",
-                background: triggerStatus === "success" ? "rgba(85, 199, 179, 0.08)" : "rgba(248, 113, 113, 0.08)",
-                border: `1px solid ${triggerStatus === "success" ? "rgba(85, 199, 179, 0.3)" : "rgba(248, 113, 113, 0.3)"}`,
-                borderRadius: "var(--radius)",
-                color: triggerStatus === "success" ? "#0d6b5c" : "#b91c1c",
-                fontSize: "0.8rem",
-                fontWeight: 600
-              }}>
+              <div className={`notice-box ${triggerStatus === "success" ? "teal" : "red"}`} style={{ marginBottom: 16 }}>
                 {triggerMessage}
               </div>
             )}
@@ -360,15 +340,15 @@ export function AdminConsole() {
 
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 24 }}>
                   <div style={{ background: "var(--soft-white)", borderRadius: "var(--radius)", padding: "10px 12px", border: "1px solid var(--border)" }}>
-                    <div style={{ fontSize: "0.68rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Confirmed</div>
+                    <div className="micro-label">Confirmed</div>
                     <div className="tabular" style={{ fontSize: "1.2rem", fontWeight: 700, color: "var(--teal)" }}>{actualStats.by_action.confirm}</div>
                   </div>
                   <div style={{ background: "var(--soft-white)", borderRadius: "var(--radius)", padding: "10px 12px", border: "1px solid var(--border)" }}>
-                    <div style={{ fontSize: "0.68rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Edited</div>
+                    <div className="micro-label">Edited</div>
                     <div className="tabular" style={{ fontSize: "1.2rem", fontWeight: 700, color: "var(--gold)" }}>{actualStats.by_action.edit}</div>
                   </div>
                   <div style={{ background: "var(--soft-white)", borderRadius: "var(--radius)", padding: "10px 12px", border: "1px solid var(--border)" }}>
-                    <div style={{ fontSize: "0.68rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Dismissed</div>
+                    <div className="micro-label">Dismissed</div>
                     <div className="tabular" style={{ fontSize: "1.2rem", fontWeight: 700, color: "var(--red)" }}>{actualStats.by_action.dismiss}</div>
                   </div>
                 </div>
@@ -406,10 +386,6 @@ export function AdminConsole() {
                 </div>
               </div>
             )}
-          </div>
-
-          <div style={{ display: "flex", justifyContent: "flex-end" }}>
-            <IntelligenceMark />
           </div>
 
         </div>

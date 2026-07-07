@@ -12,6 +12,7 @@
 import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../../lib/api";
+import { PageHeader } from "../../components/PageHeader";
 import "./intake.css";
 import "../../components/furniture.css";
 
@@ -154,7 +155,14 @@ export function Intake() {
   const isReady = step === "ready";
 
   return (
-    <div className="intake-layout">
+    <div>
+      <PageHeader
+        eyebrow="Intake"
+        title="Submit a Privacy Notice"
+        description="Add a notice by URL, PDF, or pasted text. Visentix splits it into individual clauses, sorts each into a privacy domain, and prepares it for scoring — you can watch each step below."
+      />
+
+      <div className="intake-layout">
       {/* ─── LEFT PANE ─── */}
       <div className="intake-left">
         <div className="intake-left-header">
@@ -267,19 +275,12 @@ export function Intake() {
             {isReady && (
               <>
                 &nbsp;·&nbsp;
-                <strong>{DOMAINS.length}</strong> domains detected
+                {/* Honest count — distinct domains actually present in extracted clauses */}
+                <strong>{new Set(MOCK_CLAUSES.map(c => c.domain)).size}</strong> domains detected
               </>
             )}
             {/* [MOCK M-01] badge */}
-            {isReady && (
-              <span style={{
-                fontSize: "0.65rem", background: "rgba(200,164,106,0.15)",
-                color: "#7a5c20", border: "1px dashed var(--gold)",
-                padding: "1px 7px", borderRadius: 10, fontWeight: 700,
-              }}>
-                MOCK
-              </span>
-            )}
+            {isReady && <span className="mock-badge">MOCK M-01</span>}
           </div>
         </div>
 
@@ -358,6 +359,7 @@ export function Intake() {
             </button>
           </div>
         )}
+      </div>
       </div>
     </div>
   );

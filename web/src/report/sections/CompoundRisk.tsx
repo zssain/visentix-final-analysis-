@@ -1,5 +1,6 @@
 import { ScoreCell }      from "../../components/ScoreCell";
 import { IntelligenceMark } from "../../components/IntelligenceMark";
+import { scoreBandColor } from "../../lib/scoreBands";
 import type { ReportSection } from "../types";
 
 export function CompoundRisk({ content }: { content: ReportSection["content"] }) {
@@ -9,12 +10,6 @@ export function CompoundRisk({ content }: { content: ReportSection["content"] })
   const frozenDate    = (content.date        as string | undefined) ?? "—";
   const cohortSize    = (content.cohort_size as number | undefined) ?? 0;
   const cohortDate    = (content.cohort_date as string | undefined) ?? "—";
-
-  function barColor(score: number): string {
-    if (score >= 70) return "var(--red)";
-    if (score >= 45) return "var(--gold)";
-    return "var(--teal)";
-  }
 
   return (
     <div data-testid="section-7" className="report-section">
@@ -55,7 +50,7 @@ export function CompoundRisk({ content }: { content: ReportSection["content"] })
                 <span style={{ fontSize: "0.82rem", fontWeight: 600, color: "var(--navy)" }}>{d.name}</span>
                 <span style={{
                   fontFamily: "var(--font-data)", fontVariantNumeric: "tabular-nums",
-                  fontSize: "0.82rem", fontWeight: 700, color: barColor(d.score),
+                  fontSize: "0.82rem", fontWeight: 700, color: scoreBandColor(d.score),
                 }}>
                   {d.score.toFixed(1)}
                   {d.weight && (
@@ -68,7 +63,7 @@ export function CompoundRisk({ content }: { content: ReportSection["content"] })
               <div style={{ height: 5, background: "var(--border)", borderRadius: 3, overflow: "hidden" }}>
                 <div style={{
                   height: "100%", width: `${d.score}%`,
-                  background: barColor(d.score), borderRadius: 3,
+                  background: scoreBandColor(d.score), borderRadius: 3,
                   transition: "width 0.4s ease",
                 }} />
               </div>
