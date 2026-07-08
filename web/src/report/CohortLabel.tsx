@@ -1,18 +1,25 @@
-/** Honest cohort label — always shows real n + date. */
+/** Honest cohort label — shows real n + date + population version. */
 import { LOW_CONFIDENCE_COHORT_N } from "../lib/scoreBands";
 
 interface CohortLabelProps {
   size: number;
   date: string;
+  populationVersion?: number | string;
 }
 
-export function CohortLabel({ size, date }: CohortLabelProps) {
+export function CohortLabel({ size, date, populationVersion }: CohortLabelProps) {
+  const cohortDesc = size > 0
+    ? `Benchmarked vs ${size} normalized peers`
+    : "Benchmark cohort not yet constructed";
+  const dateDesc = date ? ` as of ${date}` : "";
+  const popDesc = populationVersion ? ` (population ${populationVersion})` : "";
+
   return (
     <span className="cohort-label" data-testid="cohort-label" style={{
       fontSize: "0.85em", color: "var(--text-muted)", fontStyle: "italic",
     }}>
-      Benchmarked against {size} peers as of {date}
-      {size < LOW_CONFIDENCE_COHORT_N && " (small cohort; interpret with caution)"}
+      {cohortDesc}{dateDesc}{popDesc}
+      {size > 0 && size < LOW_CONFIDENCE_COHORT_N && " — small cohort; interpret with caution"}
     </span>
   );
 }

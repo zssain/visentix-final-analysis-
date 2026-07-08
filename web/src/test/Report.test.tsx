@@ -4,8 +4,17 @@
  */
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import { ExplainProvider } from "../report/explain/ExplainContext";
 import { ReportView } from "../report/ReportView";
 import type { ReportPayload } from "../report/types";
+
+function renderReport(report: ReportPayload) {
+  return render(
+    <ExplainProvider>
+      <ReportView report={report} />
+    </ExplainProvider>
+  );
+}
 
 // Banned terms that must never appear in generated prose
 const BANNED_TERMS = [
@@ -72,30 +81,30 @@ const FIXTURE: ReportPayload = {
 
 describe("ReportView", () => {
   it("renders all 12 sections", () => {
-    render(<ReportView report={FIXTURE} />);
+    renderReport(FIXTURE);
     for (let i = 1; i <= 12; i++) {
       expect(screen.getByTestId(`section-${i}`)).toBeInTheDocument();
     }
   });
 
   it("shows organization name in cover", () => {
-    render(<ReportView report={FIXTURE} />);
+    renderReport(FIXTURE);
     expect(screen.getByText("TestCo")).toBeInTheDocument();
   });
 
   it("shows overall score", () => {
-    render(<ReportView report={FIXTURE} />);
+    renderReport(FIXTURE);
     expect(screen.getAllByText("62.5").length).toBeGreaterThan(0);
   });
 
   it("shows VCI badge", () => {
-    render(<ReportView report={FIXTURE} />);
+    renderReport(FIXTURE);
     const badges = screen.getAllByTestId("vci-badge");
     expect(badges.length).toBeGreaterThan(0);
   });
 
   it("shows honest cohort label with real n and date", () => {
-    render(<ReportView report={FIXTURE} />);
+    renderReport(FIXTURE);
     const labels = screen.getAllByTestId("cohort-label");
     expect(labels.length).toBeGreaterThan(0);
     expect(labels[0].textContent).toContain("30");
@@ -103,7 +112,7 @@ describe("ReportView", () => {
   });
 
   it("does not show fabricated cohort sizes", () => {
-    render(<ReportView report={FIXTURE} />);
+    renderReport(FIXTURE);
     const html = document.body.innerHTML;
     expect(html).not.toContain("1,250");
     expect(html).not.toContain("1250+");
@@ -111,19 +120,19 @@ describe("ReportView", () => {
   });
 
   it("shows exemplar placeholder when sme_cleaned=false", () => {
-    render(<ReportView report={FIXTURE} />);
+    renderReport(FIXTURE);
     expect(screen.getByTestId("exemplar-placeholder")).toBeInTheDocument();
     expect(screen.getByText(/Pending SME-reviewed/)).toBeInTheDocument();
   });
 
   it("shows findings table", () => {
-    render(<ReportView report={FIXTURE} />);
+    renderReport(FIXTURE);
     expect(screen.getAllByText("SH-002").length).toBeGreaterThan(0);
     expect(screen.getAllByText("RT-003").length).toBeGreaterThan(0);
   });
 
   it("contains no banned terms", () => {
-    render(<ReportView report={FIXTURE} />);
+    renderReport(FIXTURE);
     const html = document.body.innerHTML.toLowerCase();
     for (const term of BANNED_TERMS) {
       expect(html).not.toContain(term);
@@ -132,29 +141,29 @@ describe("ReportView", () => {
 
   it("shows draft banner when present", () => {
     const draft = { ...FIXTURE, draft_banner: "DRAFT — pending expert review" };
-    render(<ReportView report={draft} />);
+    renderReport(draft);
     expect(screen.getAllByRole("status", { name: /Report status: draft/i }).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Draft — Pending Review/i).length).toBeGreaterThan(0);
   });
 
   it("hides draft banner when not present", () => {
-    render(<ReportView report={FIXTURE} />);
+    renderReport(FIXTURE);
     expect(screen.getAllByRole("status", { name: /Report status: approved/i }).length).toBeGreaterThan(0);
     expect(screen.queryByText(/Draft — Pending Review/i)).not.toBeInTheDocument();
   });
 
   it("shows takeaways in executive summary", () => {
-    render(<ReportView report={FIXTURE} />);
+    renderReport(FIXTURE);
     expect(screen.getByText("Data sharing exposure is elevated.")).toBeInTheDocument();
   });
 
   it("shows recommendations", () => {
-    render(<ReportView report={FIXTURE} />);
+    renderReport(FIXTURE);
     expect(screen.getByText(/Review data sharing practices/)).toBeInTheDocument();
   });
 
   it("renders the report container with testid", () => {
-    render(<ReportView report={FIXTURE} />);
+    renderReport(FIXTURE);
     expect(screen.getByTestId("report-view")).toBeInTheDocument();
   });
 });

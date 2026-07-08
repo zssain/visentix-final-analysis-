@@ -199,8 +199,65 @@ def get_pending_queue() -> list[AssessmentReview]:
     ]
 
 
+# ── VCI-based analyst review gate (VICBNF-010) ──────────────
+
+# In-memory store of objects pending analyst review
+_low_vci_objects: dict[str, list[dict]] = {}  # assessment_id → [{object_type, vci_score, ...}]
+_analyst_cleared: dict[str, set[str]] = {}    # assessment_id → {cleared object_types}
+
+
+def flag_low_vci_object(
+    assessment_id: str,
+    object_type: str,
+    vci_score: float,
+    score: float,
+) -> None:
+    """Flag a derived object for analyst review based on VCI threshold.
+
+    VCI < 60 → route for review (spec: Low/Very Low bands).
+    VCI < 40 → do NOT present as definitive.
+    """
+    from app.services.products.mapping import needs_analyst_review
+    if needs_analyst_review(vci_score):
+        _low_vci_objects.setdefault(assessment_id, []).append({
+            "object_type": object_type,
+            "vci_score": vci_score,
+            "score": score,
+            "needs_review": True,
+            "is_definitive": vci_score >= 40,
+        })
+
+
+def clear_low_vci_object(assessment_id: str, object_type: str) -> None:
+    """SME/admin clears a low-VCI object after analyst review."""
+    _analyst_cleared.setdefault(assessment_id, set()).add(object_type)
+
+
+def get_low_vci_objects(assessment_id: str) -> list[dict]:
+    """Return objects pending analyst review for an assessment."""
+    cleared = _analyst_cleared.get(assessment_id, set())
+    return [
+        obj for obj in _low_vci_objects.get(assessment_id, [])
+        if obj["object_type"] not in cleared
+    ]
+
+
+def get_analyst_review_banner(assessment_id: str) -> str | None:
+    """Return a banner message if any objects are pending analyst review."""
+    pending = get_low_vci_objects(assessment_id)
+    if not pending:
+        return None
+    types = [o["object_type"].replace("_", " ").title() for o in pending]
+    return (
+        f"Some scores have lower confidence and are pending analyst review: "
+        f"{', '.join(types)}. These should not be presented as definitive."
+    )
+
+
 def reset_reviews():
     """Reset all reviews (for testing only)."""
     _reviews.clear()
+    _low_vci_objects.clear()
+    _analyst_cleared.clear()
     global _gate_mode
     _gate_mode = DEFAULT_GATE_MODE

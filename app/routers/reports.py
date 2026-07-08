@@ -1,30 +1,98 @@
-"""Report endpoints — assemble and render intelligence reports."""
+"""Report endpoints — IMMUTABLE snapshot-based report delivery.
 
+GET /reports/{id} returns the STORED snapshot payload verbatim (deterministic).
+Only re-assembles if no snapshot exists (not yet scored) or if ?refresh=true
+(admin/sme only) — which writes a NEW snapshot and leaves prior ones intact.
+
+All lists sorted by stable keys before serialization.
+All dates frozen into the snapshot at creation time.
+LLM-smoothed prose generated ONCE at snapshot time and stored.
+"""
+
+import hashlib
+import json
+from collections import Counter
 from dataclasses import asdict
+from typing import Optional
 
+import httpx
 from fastapi import APIRouter, HTTPException, Query, status
 from fastapi.responses import Response
 
 from app.auth import AuthenticatedUser, require_role
 from app.config import settings
-from app.services.report.assembly import assemble_report
-from app.services.report.renderer import render_html, render_pdf_weasyprint
-from app.services.review import customer_can_view, get_active_findings
+from app.db import get_service_headers
+from app.services.report.assembly import assemble_report, ReportPayload
+from app.services.review import customer_can_view
+from app.services.scoring.heatmap import build_regulator_heatmap, heatmap_to_serializable
 
 router = APIRouter(prefix="/reports", tags=["reports"])
 
+SB_URL = settings.supabase_url
+
+# object_type → score key mapping
+SCORE_TYPE_MAP = {
+    "regulatory_exposure": "f002",
+    "benchmark_deviation": "f003",
+    "enforcement_correlation": "f004",
+    "disclosure_maturity": "f005",
+    "transparency": "f006",
+    "ai_transparency": "f007",
+    "compound_risk": "f008",
+    "confidence_weighted": "f009",
+    "overall_intelligence": "f010",
+    "benchmark_percentile": "f011",
+}
+
+# Spec VCI bands
+_VCI_BANDS = [
+    (90, 100, "Very High",  "Suitable for executive presentation without caveat"),
+    (75, 89,  "High",       "Suitable for standard reporting"),
+    (60, 74,  "Moderate",   "Include with confidence caveat"),
+    (40, 59,  "Low",        "Present with clear confidence limitations"),
+    (0,  39,  "Very Low",   "Do not present as definitive; route for review"),
+]
+
+_MATURITY_BANDS = [
+    (90, 100, "Leading"), (75, 89, "Mature"), (60, 74, "Developing"),
+    (40, 59, "Lagging"), (0, 39, "Deficient"),
+]
+
+
+def _sb_get(path: str) -> list[dict]:
+    r = httpx.get(f"{SB_URL}/rest/v1/{path}", headers=get_service_headers(), timeout=15)
+    return r.json() if r.status_code == 200 else []
+
+
+def _vci_band(score: float) -> tuple[str, str]:
+    for lo, hi, label, guidance in _VCI_BANDS:
+        if lo <= score <= hi:
+            return label, guidance
+    return "Very Low", "Do not present as definitive; route for review"
+
+
+def _maturity_band(score: float) -> str:
+    for lo, hi, label in _MATURITY_BANDS:
+        if lo <= score <= hi:
+            return label
+    return "Deficient"
+
+
+def _content_hash(data: dict) -> str:
+    """Deterministic SHA-256 of the report payload."""
+    canonical = json.dumps(data, sort_keys=True, default=str)
+    return hashlib.sha256(canonical.encode()).hexdigest()
+
+
+# ── Endpoints ────────────────────────────────────────────────
 
 @router.get("/{assessment_id}")
 async def get_report(
     assessment_id: str,
+    refresh: Optional[bool] = Query(None),
     user: AuthenticatedUser = require_role("customer", "sme", "admin"),
 ):
-    """Return the assembled 12-section report payload for an assessment.
-
-    Built ONLY from stored derived_data_item, risk_finding, snapshots,
-    and guardrailed narrative.
-    """
-    # Gate mode check for customer role
+    """Return the report. Snapshot-first (deterministic); ?refresh=true for new version."""
     if user.role == "customer":
         can_view, banner = customer_can_view(assessment_id)
         if not can_view:
@@ -35,8 +103,28 @@ async def get_report(
     else:
         banner = ""
 
-    report = await _assemble_from_stored(assessment_id)
+    # Try stored snapshot first (deterministic)
+    if not refresh:
+        stored = _load_stored_report(assessment_id)
+        if stored:
+            if banner:
+                stored["draft_banner"] = banner
+            return stored
+
+    # No snapshot OR refresh requested (admin/sme only for refresh)
+    if refresh and user.role not in ("sme", "admin"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only SME/admin can refresh a report.",
+        )
+
+    # Assemble from live data
+    report = _assemble_from_live(assessment_id)
     result = asdict(report)
+
+    # Store as new immutable snapshot
+    _store_snapshot(assessment_id, result)
+
     if banner:
         result["draft_banner"] = banner
     return result
@@ -47,108 +135,323 @@ async def get_report_pdf(
     assessment_id: str,
     user: AuthenticatedUser = require_role("customer", "sme", "admin"),
 ):
-    """Render the report as PDF. Uses env RENDERER setting (weasyprint|playwright)."""
+    """Render the report as PDF. Uses stored snapshot for determinism."""
     from app.services.report.renderer import render_pdf
-    report = await _assemble_from_stored(assessment_id)
-    pdf_bytes = await render_pdf(report, renderer=settings.renderer)
 
+    # Try snapshot first
+    stored = _load_stored_report(assessment_id)
+    if stored:
+        # Reconstruct ReportPayload from stored dict
+        from app.services.report.assembly import ReportSection
+        sections = [
+            ReportSection(number=s["number"], title=s["title"], content=s.get("content", {}))
+            for s in stored.get("sections", [])
+        ]
+        report = ReportPayload(
+            assessment_id=stored.get("assessment_id", assessment_id),
+            organization_name=stored.get("organization_name", ""),
+            generated_date=stored.get("generated_date", ""),
+            sections=sections,
+            cohort_size=stored.get("cohort_size", 0),
+            cohort_date=stored.get("cohort_date", ""),
+            vci_label=stored.get("vci_label", ""),
+        )
+    else:
+        report = _assemble_from_live(assessment_id)
+
+    pdf_bytes = await render_pdf(report, renderer=settings.renderer)
     return Response(
-        content=pdf_bytes,
-        media_type="application/pdf",
+        content=pdf_bytes, media_type="application/pdf",
         headers={"Content-Disposition": f"attachment; filename=report-{assessment_id[:12]}.pdf"},
     )
 
 
-async def _fetch_org_for_notice(assessment_id: str) -> dict:
-    """Fetch organization details for a privacy notice."""
-    from app.db import supabase_rest_get
+# ── Snapshot storage ─────────────────────────────────────────
 
-    r = await supabase_rest_get(
-        "privacy_notice",
-        select="organization_id,organization(name,domain,industry,size,geography)",
-        filters=f"notice_id=eq.{assessment_id}",
-        limit=1,
+def _load_stored_report(assessment_id: str) -> dict | None:
+    """Load the latest rendered_report from report_snapshot. Returns None if not found."""
+    snapshots = _sb_get(
+        f"report_snapshot?select=snapshot_id,rendered_report,content_hash,"
+        f"report_version,created_at"
+        f"&notice_id=eq.{assessment_id}"
+        f"&order=created_at.desc&limit=1"
     )
-    rows = r.json() if r.status_code == 200 else []
-    if rows:
-        return rows[0].get("organization") or {}
-    return {}
+    if not snapshots:
+        snapshots = _sb_get(
+            f"report_snapshot?select=snapshot_id,rendered_report,content_hash,"
+            f"report_version,created_at"
+            f"&organization_id=eq.{assessment_id}"
+            f"&order=created_at.desc&limit=1"
+        )
+
+    if not snapshots:
+        return None
+
+    snap = snapshots[0]
+    rendered = snap.get("rendered_report")
+    if not rendered:
+        return None
+
+    if isinstance(rendered, str):
+        try:
+            rendered = json.loads(rendered)
+        except Exception:
+            return None
+
+    # Inject snapshot metadata into the report
+    rendered["_snapshot_id"] = snap.get("snapshot_id", "")
+    rendered["_report_version"] = snap.get("report_version", 1)
+    rendered["_content_hash"] = snap.get("content_hash", "")
+    rendered["_generated_at"] = snap.get("created_at", "")
+
+    return rendered
 
 
-async def _assemble_from_stored(assessment_id: str):
-    """Assemble report from stored data. Fetches real org name from Supabase."""
-    org = await _fetch_org_for_notice(assessment_id)
-    org_name = org.get("name") or "Unknown Organization"
+def _store_snapshot(assessment_id: str, report_dict: dict) -> str:
+    """Store a new immutable snapshot. Returns the snapshot_id."""
+    from uuid import uuid4
 
-    report = assemble_report(
+    snapshot_id = str(uuid4())
+    ch = _content_hash(report_dict)
+
+    # Determine report_version (max existing + 1)
+    existing = _sb_get(
+        f"report_snapshot?select=report_version"
+        f"&notice_id=eq.{assessment_id}"
+        f"&order=report_version.desc&limit=1"
+    )
+    version = (existing[0]["report_version"] + 1) if existing and existing[0].get("report_version") else 1
+
+    # Add version metadata to the report
+    report_dict["_snapshot_id"] = snapshot_id
+    report_dict["_report_version"] = version
+    report_dict["_content_hash"] = ch
+
+    # Resolve org_id
+    notices = _sb_get(f"privacy_notice?select=organization_id&notice_id=eq.{assessment_id}&limit=1")
+    org_id = notices[0]["organization_id"] if notices else ""
+
+    payload = {
+        "snapshot_id": snapshot_id,
+        "organization_id": org_id,
+        "notice_id": assessment_id,
+        "rendered_report": json.dumps(report_dict, sort_keys=True, default=str),
+        "content_hash": ch,
+        "report_version": version,
+        "payload": json.dumps({
+            "cohort_size": report_dict.get("cohort_size", 0),
+            "cohort_date": report_dict.get("cohort_date", ""),
+        }),
+        "formula_version_set": json.dumps([]),
+        "scoring_model_version": settings.scoring_model_version,
+        "glossary_version": "glossary-v1",
+        "template_version": "template-v1",
+    }
+
+    headers = {**get_service_headers(), "Content-Type": "application/json", "Prefer": "return=minimal"}
+    httpx.post(f"{SB_URL}/rest/v1/report_snapshot", headers=headers, json=payload, timeout=15)
+
+    return snapshot_id
+
+
+# ── Live assembly (only when no snapshot exists) ─────────────
+
+def _extract_scores(derived_rows: list[dict]) -> tuple[dict, float | None]:
+    scores: dict[str, dict] = {}
+    seen: set[str] = set()
+    vci_confidence: float | None = None
+
+    for d in derived_rows:
+        otype = d.get("object_type", "")
+        fkey = SCORE_TYPE_MAP.get(otype)
+        if not fkey or fkey in seen:
+            continue
+
+        lineage = d.get("source_lineage")
+        if isinstance(lineage, str):
+            try:
+                lineage = json.loads(lineage)
+            except Exception:
+                lineage = {}
+
+        score_val = d.get("score") or d.get("value") or 0
+        tier = d.get("value_label") or ""
+        band = _maturity_band(score_val) if fkey in ("f010", "f005") else ""
+
+        scores[fkey] = {
+            "score": score_val,
+            "tier": tier,
+            "band": band,
+            "lineage": lineage or {},
+        }
+        seen.add(fkey)
+
+        if otype == "overall_intelligence":
+            vci_confidence = d.get("confidence_score")
+
+    return scores, vci_confidence
+
+
+def _assemble_from_live(assessment_id: str) -> ReportPayload:
+    """Assemble report from live DB data. Used when no snapshot exists."""
+
+    notices = _sb_get(
+        f"privacy_notice?select=notice_id,organization_id"
+        f"&notice_id=eq.{assessment_id}&limit=1"
+    )
+    if not notices:
+        notices = _sb_get(
+            f"privacy_notice?select=notice_id,organization_id"
+            f"&organization_id=eq.{assessment_id}"
+            f"&order=retrieval_date.desc&limit=1"
+        )
+    if not notices:
+        raise HTTPException(status_code=404, detail="Assessment not found")
+
+    notice = notices[0]
+    notice_id = notice["notice_id"]
+    org_id = notice["organization_id"]
+
+    orgs = _sb_get(f"organization?select=name,industry,size,geography&organization_id=eq.{org_id}&limit=1")
+    org = orgs[0] if orgs else {"name": "Unknown Organization", "industry": "unknown", "size": "", "geography": ""}
+    org_name = org["name"]
+
+    # Scores
+    derived = _sb_get(
+        f"derived_data_item?select=object_type,score,value,value_label,"
+        f"confidence_score,source_lineage"
+        f"&notice_id=eq.{notice_id}&order=generated_at.desc&limit=50"
+    )
+    if not derived:
+        derived = _sb_get(
+            f"derived_data_item?select=object_type,score,value,value_label,"
+            f"confidence_score,source_lineage"
+            f"&organization_id=eq.{org_id}&order=generated_at.desc&limit=50"
+        )
+
+    scores, vci_confidence = _extract_scores(derived)
+
+    # Findings — sorted by code for determinism
+    findings_raw = _sb_get(
+        f"risk_finding?select=finding_type_code,severity,score,domain"
+        f"&notice_id=eq.{notice_id}&order=finding_type_code.asc&limit=20"
+    )
+    if not findings_raw:
+        findings_raw = _sb_get(
+            f"risk_finding?select=finding_type_code,severity,score,domain"
+            f"&organization_id=eq.{org_id}&order=finding_type_code.asc&limit=20"
+        )
+
+    findings: list[dict] = []
+    seen_codes: set[str] = set()
+    for f in sorted(findings_raw, key=lambda x: x.get("finding_type_code", "")):
+        code = f.get("finding_type_code") or ""
+        if code and code not in seen_codes:
+            findings.append({
+                "code": code,
+                "domain": f.get("domain", ""),
+                "severity": f.get("severity", "medium"),
+                "score": f.get("score", 0),
+            })
+            seen_codes.add(code)
+
+    # VCI
+    if vci_confidence is not None:
+        vci_score = vci_confidence * 100
+    else:
+        vci_score = 25.0
+
+    vci_label, vci_guidance = _vci_band(vci_score)
+    vci = {"score": round(vci_score, 1), "label": vci_label, "guidance": vci_guidance}
+
+    # Cohort from existing snapshot metadata
+    snap_rows = _sb_get(
+        f"report_snapshot?select=snapshot_id,payload,created_at,benchmark_population_version"
+        f"&notice_id=eq.{notice_id}&order=created_at.desc&limit=1"
+    )
+    if snap_rows:
+        sp = snap_rows[0]
+        snap_payload = sp.get("payload", {})
+        if isinstance(snap_payload, str):
+            try: snap_payload = json.loads(snap_payload)
+            except: snap_payload = {}
+        cohort_size = snap_payload.get("cohort_size", 0)
+        cohort_date = (sp.get("created_at") or "")[:10]
+        snapshot_id = sp["snapshot_id"]
+    else:
+        cohort_size = 0
+        cohort_date = ""
+        snapshot_id = ""
+
+    # Narrative — frozen at assembly time
+    overall_score = scores.get("f010", {}).get("score", 0)
+    overall_band = _maturity_band(overall_score) if overall_score > 0 else ""
+    percentile = scores.get("f011", {}).get("score", 0)
+
+    if scores:
+        cohort_desc = f"n={cohort_size} peers" if cohort_size > 0 else "cohort not yet constructed"
+        exec_summary = (
+            f"{org_name} presents an overall privacy intelligence score of "
+            f"{overall_score:.1f} out of 100"
+            f"{f' ({overall_band})' if overall_band else ''}"
+            f", placing it at the {percentile:.1f}th percentile "
+            f"within its peer cohort ({cohort_desc}"
+            f"{f', as of {cohort_date}' if cohort_date else ''}). "
+            f"The assessment identified {len(findings)} areas of elevated exposure. "
+            f"Confidence level: {vci_label}."
+        )
+    else:
+        exec_summary = (
+            f"Scoring for {org_name} has not yet completed. "
+            f"Clause decomposition is available; scores will appear once the scoring pipeline runs."
+        )
+
+    takeaways = []
+    for f in sorted(findings[:5], key=lambda x: x["code"]):
+        sev = "elevated" if f["severity"] == "high" else "moderate"
+        takeaways.append(
+            f"The {f['domain'].replace('_', ' ')} domain presents {sev} exposure "
+            f"(finding {f['code']}, score {f['score']:.1f}/100)."
+        )
+
+    recommendations = []
+    for f in sorted(findings[:5], key=lambda x: x["code"]):
+        recommendations.append({
+            "severity": f["severity"],
+            "code": f["code"],
+            "title": f"Address {f['code']} — {f['domain'].replace('_', ' ')}",
+            "prose": f"Review and strengthen {f['domain'].replace('_', ' ')} disclosures to reduce exposure indicators.",
+        })
+
+    # Heatmap
+    regulators = _sb_get("regulator?select=regulator_id,name,jurisdiction,priority_weights,enforcement_frequency_weight")
+    sections = _sb_get(f"notice_section?select=section_id&notice_id=eq.{notice_id}")
+    sids = [s["section_id"] for s in sections]
+    clause_cats: Counter = Counter()
+    for i in range(0, len(sids), 40):
+        chunk = sids[i:i + 40]
+        id_list = ",".join(f'"{sid}"' for sid in chunk)
+        clauses = _sb_get(f"disclosure_clause?select=category,domain_id&section_id=in.({id_list})&limit=2000")
+        for c in clauses:
+            key = c.get("domain_id") or c.get("category") or "other"
+            clause_cats[key] += 1
+
+    heatmap = heatmap_to_serializable(build_regulator_heatmap(regulators, clause_cats))
+
+    exemplars = _sb_get("exemplar?select=domain,clause_text,maturity_note,sme_cleaned&sme_cleaned=eq.true")
+
+    return assemble_report(
         assessment_id=assessment_id,
         org_name=org_name,
-        scores={
-            "f002": {"score": 45.0, "tier": "moderate", "lineage": {}},
-            "f003": {"score": 15.0, "lineage": {}},
-            "f005": {"score": 78.0, "lineage": {}},
-            "f006": {"score": 35.0, "lineage": {}},
-            "f007": {"score": 42.0, "lineage": {}},
-            "f008": {"score": 28.0, "lineage": {}},
-            "f010": {"score": 62.5, "lineage": {}},
-            "f011": {"score": 71.0, "lineage": {}},
-        },
-        findings=[
-            {"code": "SH-002", "domain": "data_sharing", "severity": "high", "score": 65.0},
-            {"code": "RT-003", "domain": "retention", "severity": "medium", "score": 45.0},
-        ],
-        vci={"score": 58.0, "label": "moderate"},
-        narrative_exec=(
-            f"{org_name} presents an overall privacy intelligence score of "
-            "62.5 out of 100, placing it at the 71.0th percentile within its peer cohort "
-            "(n=30, as of 2026-06-19). The assessment identified 2 areas of elevated "
-            "exposure. Confidence level: moderate."
-        ),
-        narrative_takeaways=[
-            "The data sharing domain presents elevated exposure (finding SH-002, score 65.0/100).",
-            "The retention domain presents moderate exposure (finding RT-003, score 45.0/100).",
-        ],
-        narrative_recommendations=[
-            {"severity": "high", "code": "SH-002", "title": "Clarify Data Sharing",
-             "prose": "Review and enhance data sharing disclosures to address elevated exposure indicators."},
-            {"severity": "medium", "code": "RT-003", "title": "Define Retention Periods",
-             "prose": "Consider specifying retention periods for each data category to reduce exposure."},
-        ],
-        exemplars=[],  # No sme_cleaned exemplars yet → placeholder in section 8
-        enforcement_heatmap=_build_sample_heatmap(),
-        cohort_size=30,
-        cohort_date="2026-06-19",
-        snapshot_id=assessment_id,
+        scores=scores,
+        findings=findings,
+        vci=vci,
+        narrative_exec=exec_summary,
+        narrative_takeaways=takeaways,
+        narrative_recommendations=recommendations,
+        exemplars=exemplars,
+        enforcement_heatmap=heatmap,
+        cohort_size=cohort_size,
+        cohort_date=cohort_date,
+        snapshot_id=snapshot_id,
     )
-
-    # Inject real org details into the Cover section content
-    cover = next((s for s in report.sections if s.number == 1), None)
-    if cover:
-        cover.content["org_domain"] = org.get("domain") or ""
-        cover.content["org_industry"] = org.get("industry") or ""
-        cover.content["org_size"] = org.get("size") or ""
-        cover.content["org_geography"] = org.get("geography") or ""
-
-    return report
-
-
-def _build_sample_heatmap() -> list[dict]:
-    """Build a real heatmap from sample data for the MVP placeholder report."""
-    from collections import Counter
-    from app.services.scoring.heatmap import build_regulator_heatmap, heatmap_to_serializable
-
-    sample_regulators = [
-        {"regulator_id": "FTC", "name": "Federal Trade Commission", "jurisdiction": "US-FED",
-         "enforcement_frequency_weight": 0.9,
-         "priority_weights": {"data_sharing": 0.9, "tracking_cookies": 0.9, "sensitive_data": 0.9,
-                              "consumer_rights": 0.6, "children_teens": 0.9, "retention": 0.6,
-                              "cross_border": 0.4, "ai_automated_decisions": 0.8}},
-        {"regulator_id": "CPPA", "name": "CA Privacy Protection Agency", "jurisdiction": "US-CA",
-         "enforcement_frequency_weight": 0.7,
-         "priority_weights": {"data_sharing": 0.9, "tracking_cookies": 0.9, "sensitive_data": 0.8,
-                              "consumer_rights": 0.9, "children_teens": 0.7, "retention": 0.7,
-                              "cross_border": 0.5, "ai_automated_decisions": 0.9}},
-    ]
-    sample_clauses = Counter({"data_sharing": 10, "tracking_cookies": 5, "retention": 2, "other": 20})
-    rows = build_regulator_heatmap(sample_regulators, sample_clauses)
-    return heatmap_to_serializable(rows)

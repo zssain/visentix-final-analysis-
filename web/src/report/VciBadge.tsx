@@ -1,20 +1,35 @@
-/** VCI confidence affordance — shown next to every score. */
+/** VCI confidence badge — shows spec 5-band label. */
 
-// Text tones derived from the token palette (same dark tones used by badge-* in index.css)
+// Map both old underscore labels and new spec labels to display text
+const VCI_DISPLAY: Record<string, string> = {
+  very_high: "Very High",
+  "Very High": "Very High",
+  high: "High",
+  "High": "High",
+  moderate: "Moderate",
+  "Moderate": "Moderate",
+  low: "Low",
+  "Low": "Low",
+  very_low: "Very Low",
+  "Very Low": "Very Low",
+};
+
 const VCI_COLORS: Record<string, string> = {
-  very_high: "#0d6b5c", // teal text tone — matches badge-teal / badge-approved
-  high: "#005FA3",      // exec-blue token
-  moderate: "#7a5c20",  // gold text tone — matches badge-gold / badge-draft
-  low: "#b91c1c",       // red text tone — matches badge-high
-  very_low: "#b91c1c",
+  "Very High": "#0d6b5c",
+  "High": "#005FA3",
+  "Moderate": "#7a5c20",
+  "Low": "#b91c1c",
+  "Very Low": "#b91c1c",
 };
 
 interface VciBadgeProps {
   label: string;
+  guidance?: string;
 }
 
-export function VciBadge({ label }: VciBadgeProps) {
-  const color = VCI_COLORS[label] ?? "var(--text-muted)";
+export function VciBadge({ label, guidance }: VciBadgeProps) {
+  const display = VCI_DISPLAY[label] ?? label.replace(/_/g, " ");
+  const color = VCI_COLORS[display] ?? "var(--text-muted)";
   return (
     <span
       className="vci-badge"
@@ -29,8 +44,9 @@ export function VciBadge({ label }: VciBadgeProps) {
         marginLeft: 6,
       }}
       data-testid="vci-badge"
+      title={guidance || `Confidence: ${display}`}
     >
-      {label.replace("_", " ")}
+      {display}
     </span>
   );
 }

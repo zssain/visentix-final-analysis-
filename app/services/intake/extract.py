@@ -1,15 +1,25 @@
 """Text extraction from URL, PDF upload, or raw text.
 
-All extraction produces plain text ready for decomposition.
-Defenses: size limits, MIME validation, SSRF protection, no shell-outs.
+All extraction produces CLEAN PLAIN TEXT ready for decomposition. Output is
+structured with markdown headings (# / ## / ###) and blank-line-separated
+paragraphs so that decompose._split_sections picks them up correctly.
+
+Defenses:
+- SSRF: every redirect hop is re-validated (no TOCTOU via 302)
+- Size limits on response body, PDF, and text
+- MIME validation on URL fetches (not just uploads)
+- HTML cleaning strips scripts/styles/nav/chrome → body text only
+- Privacy-policy signal check (advisory, not blocking)
 """
 
 from __future__ import annotations
 
 import hashlib
-import io
+import re
+from urllib.parse import urljoin
 
 import httpx
+from bs4 import BeautifulSoup
 
 from app.services.intake.ssrf import (
     FETCH_TIMEOUT_SECONDS,
@@ -18,9 +28,13 @@ from app.services.intake.ssrf import (
     validate_url,
 )
 
-# Limits
+# ── Constants ────────────────────────────────────────────────
+
 MAX_TEXT_LENGTH = 500_000  # 500K chars
 MAX_PDF_BYTES = 10 * 1024 * 1024  # 10 MB
+MAX_REDIRECTS = 3
+MIN_POLICY_TEXT_CHARS = 300
+
 ALLOWED_MIME_TYPES = {
     "application/pdf",
     "text/html",
@@ -28,40 +42,189 @@ ALLOWED_MIME_TYPES = {
     "application/xhtml+xml",
 }
 
+USER_AGENT = (
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+    "AppleWebKit/537.36 (KHTML, like Gecko) "
+    "Chrome/130.0.0.0 Safari/537.36"
+)
+
+# Tags whose content is never privacy-notice text
+_STRIP_TAGS = (
+    "script", "style", "noscript", "svg", "img", "nav", "header",
+    "footer", "iframe", "form", "button", "aside", "template",
+)
+
+# Substrings that signal the page is likely a privacy policy
+_PRIVACY_SIGNALS = (
+    "privacy", "personal information", "data", "cookies", "collect",
+)
+
 
 class ExtractionError(ValueError):
     pass
 
 
-async def extract_from_url(url: str) -> tuple[str, str]:
-    """Fetch URL content and extract text. Returns (text, content_hash).
+# ── Public helpers ───────────────────────────────────────────
 
-    SSRF-safe: validates URL before fetching.
+def looks_like_privacy_policy(text: str) -> bool:
+    """Heuristic check: does the text look like a privacy policy?
+
+    Counts how many of the 5 privacy signals appear as substrings.
+    Returns True if >= 3 are present. Used for advisory warnings,
+    not hard blocking (spec principle: don't refuse unusual pages).
     """
-    safe_url = validate_url(url)
+    lower = text.lower()
+    hits = sum(1 for signal in _PRIVACY_SIGNALS if signal in lower)
+    return hits >= 3
+
+
+# ── SSRF-safe fetch with redirect re-validation ─────────────
+
+async def _fetch_ssrf_safe(url: str) -> httpx.Response:
+    """Fetch a URL, re-validating SSRF on every redirect hop.
+
+    - follow_redirects=False so WE control the redirect chain
+    - Each hop runs validate_url() (DNS resolve + IP block check)
+    - Max MAX_REDIRECTS hops, then error
+    """
+    current = validate_url(url)  # raises SSRFError if blocked
 
     async with httpx.AsyncClient(
         timeout=FETCH_TIMEOUT_SECONDS,
-        follow_redirects=True,
-        max_redirects=3,
+        follow_redirects=False,
+        headers={
+            "User-Agent": USER_AGENT,
+            "Accept-Language": "en-US,en;q=0.9",
+        },
     ) as client:
-        response = await client.get(safe_url)
-        response.raise_for_status()
+        for _ in range(MAX_REDIRECTS + 1):
+            response = await client.get(current)
 
-        # Size check
-        content_length = len(response.content)
-        if content_length > MAX_RESPONSE_BYTES:
-            raise ExtractionError(
-                f"Response too large: {content_length} bytes (max {MAX_RESPONSE_BYTES})"
-            )
+            if response.status_code in (301, 302, 303, 307, 308):
+                location = response.headers.get("location")
+                if not location:
+                    raise ExtractionError(
+                        f"Redirect {response.status_code} without Location header"
+                    )
+                # Resolve relative URLs and re-validate for SSRF
+                current = validate_url(urljoin(current, location))
+                continue
 
-        content_type = response.headers.get("content-type", "").split(";")[0].strip()
+            response.raise_for_status()
+            return response
 
-        if content_type == "application/pdf":
-            text = _extract_pdf_text(response.content)
-        else:
-            text = response.text
+    raise ExtractionError(f"Too many redirects (max {MAX_REDIRECTS})")
 
+
+# ── HTML → structured plain text ─────────────────────────────
+
+def _html_to_text(html: str) -> str:
+    """Convert HTML to structured plain text with markdown headings.
+
+    Output format matches what decompose._split_sections expects:
+    - # / ## / ### headings from <h1>–<h6>
+    - Blank-line-separated paragraphs from <p>, <li>, etc.
+    - All script/style/nav/footer chrome stripped
+    """
+    soup = BeautifulSoup(html, "lxml")
+
+    # Strip non-content tags
+    for tag in soup(_STRIP_TAGS):
+        tag.decompose()
+
+    block_tags = [
+        "h1", "h2", "h3", "h4", "h5", "h6",
+        "p", "li", "blockquote", "pre", "td", "dt", "dd",
+    ]
+    heading_prefix = {
+        "h1": "# ", "h2": "## ", "h3": "### ",
+        "h4": "### ", "h5": "### ", "h6": "### ",
+    }
+
+    blocks: list[str] = []
+    seen_elements: set[int] = set()  # track element ids to avoid duplicates
+
+    for el in soup.find_all(block_tags):
+        el_id = id(el)
+        if el_id in seen_elements:
+            continue
+
+        # Skip a <p> (or similar) nested inside an already-captured container
+        # e.g., <li><p>text</p></li> — the <li> already captured this text
+        if el.name in ("p", "dd") and el.parent and el.parent.name in ("li", "td", "blockquote"):
+            parent_id = id(el.parent)
+            if parent_id in seen_elements:
+                continue
+
+        text = el.get_text(" ", strip=True)
+        text = re.sub(r"[ \t]+", " ", text)
+
+        if not text:
+            continue
+
+        seen_elements.add(el_id)
+
+        prefix = heading_prefix.get(el.name, "")
+        blocks.append(f"{prefix}{text}")
+
+    if blocks:
+        return "\n\n".join(blocks).strip()
+
+    # Fallback: no block elements found (malformed HTML)
+    fallback = soup.get_text(separator="\n", strip=True)
+    fallback = re.sub(r"[ \t]+", " ", fallback)
+    fallback = re.sub(r"\n{3,}", "\n\n", fallback)
+    return fallback.strip()
+
+
+# ── Public extraction functions ──────────────────────────────
+
+async def extract_from_url(url: str) -> tuple[str, str]:
+    """Fetch URL content and extract clean text. Returns (text, content_hash).
+
+    SSRF-safe: re-validates on every redirect hop.
+    HTML cleaned: strips scripts/styles/nav, produces structured markdown.
+    MIME validated: rejects non-allowed content types.
+    """
+    response = await _fetch_ssrf_safe(url)
+
+    # Size check
+    content_length = len(response.content)
+    if content_length > MAX_RESPONSE_BYTES:
+        raise ExtractionError(
+            f"Response too large: {content_length} bytes (max {MAX_RESPONSE_BYTES})"
+        )
+
+    # MIME check
+    raw_ct = response.headers.get("content-type", "")
+    content_type = raw_ct.split(";")[0].strip().lower() if raw_ct else ""
+
+    if content_type and content_type not in ALLOWED_MIME_TYPES:
+        raise ExtractionError(
+            f"Content type '{content_type}' not allowed. "
+            f"Accepted: {', '.join(sorted(ALLOWED_MIME_TYPES))}"
+        )
+
+    # Extract text based on content type
+    if content_type == "application/pdf":
+        text = _extract_pdf_text(response.content)
+    elif content_type == "text/plain":
+        text = response.text
+    else:
+        # text/html, application/xhtml+xml, or missing header (treat as HTML)
+        text = _html_to_text(response.text)
+
+    text = text.strip()
+
+    # Minimum viable content check
+    if len(text) < MIN_POLICY_TEXT_CHARS:
+        raise ExtractionError(
+            f"Page yielded only {len(text)} characters of visible text "
+            f"(minimum {MIN_POLICY_TEXT_CHARS}). Check that the URL points "
+            f"directly at the privacy policy page."
+        )
+
+    # Truncate
     if len(text) > MAX_TEXT_LENGTH:
         text = text[:MAX_TEXT_LENGTH]
 

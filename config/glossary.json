@@ -1,0 +1,72 @@
+{
+  "__doc": "Decodes every short code used in the system. Every explain envelope title is resolved through this glossary.",
+
+  "org_dimensions": {
+    "IC":    {"plain": "Industry Classification", "technical": "Maps organization to a 10-industry taxonomy with sub-industry classification.", "defined_in": "app/services/profiling/live_profile.py"},
+    "RSS":   {"plain": "Regulatory Scrutiny Score", "technical": "Weighted score (0-100) reflecting how much regulatory attention an organization's data practices attract.", "defined_in": "app/services/profiling/live_profile.py"},
+    "PGMS":  {"plain": "Privacy Governance Maturity Score", "technical": "Weighted score (0-100) measuring the breadth and depth of privacy governance infrastructure.", "defined_in": "app/services/profiling/live_profile.py"},
+    "OSI":   {"plain": "Organizational Sophistication Index", "technical": "Weighted score (0-100) reflecting organizational capacity for privacy governance.", "defined_in": "app/services/profiling/live_profile.py"},
+    "DSI":   {"plain": "Data Sensitivity Index", "technical": "Weighted score (0-100) measuring sensitivity of data categories processed.", "defined_in": "app/services/profiling/live_profile.py"},
+    "EHP":   {"plain": "Enforcement History Profile", "technical": "Classification (Clean/Enforcement-Adjacent/Enforcement) based on regulatory enforcement records.", "defined_in": "app/services/profiling/live_profile.py"},
+    "AIGMS": {"plain": "AI Governance Maturity Score", "technical": "Weighted score (0-100) measuring AI/automated decision-making disclosure maturity.", "defined_in": "app/services/profiling/live_profile.py"}
+  },
+
+  "formulas": {
+    "F-001": {"plain": "Source Reliability", "technical": "Weighted sum of authority, freshness, completeness, and extraction confidence.", "defined_in": "app/services/scoring/f001.py"},
+    "F-002": {"plain": "Regulatory Exposure", "technical": "Sum of Jurisdiction Weight x Regulator Priority Weight x Disclosure Severity x Enforcement Frequency across all regulators, normalized 0-100.", "defined_in": "app/services/scoring/formulas.py"},
+    "F-003": {"plain": "Benchmark Deviation", "technical": "Gap between this organization and the weighted 75th percentile of its peer cohort.", "defined_in": "app/services/scoring/formulas.py"},
+    "F-004": {"plain": "Enforcement Correlation", "technical": "Cosine similarity between clause embeddings and enforcement record embeddings, weighted by regulator priority and enforcement frequency.", "defined_in": "app/services/scoring/formulas.py"},
+    "F-005": {"plain": "Disclosure Maturity", "technical": "Ratio of disclosure elements present to expected, minus ambiguity and missing-category penalties.", "defined_in": "app/services/scoring/formulas.py"},
+    "F-006": {"plain": "Transparency", "technical": "Product of completeness, clarity, specificity, and explainability factors, scaled to 0-100.", "defined_in": "app/services/scoring/formulas.py"},
+    "F-007": {"plain": "AI Transparency Maturity", "technical": "Ratio of AI-related clause depth to expected controls, minus AI ambiguity penalty.", "defined_in": "app/services/scoring/formulas.py"},
+    "F-008": {"plain": "Compound Risk", "technical": "Weighted sum of correlated domain risks with a correlation multiplier, normalized to 0-100.", "defined_in": "app/services/scoring/formulas_advanced.py"},
+    "F-009": {"plain": "Confidence-Weighted Score", "technical": "Any derived score multiplied by its VCI confidence factor.", "defined_in": "app/services/scoring/formulas_advanced.py"},
+    "F-010": {"plain": "Overall Privacy Intelligence", "technical": "100 minus the weighted aggregate of all risk dimension scores.", "defined_in": "app/services/scoring/formulas_advanced.py"},
+    "F-011": {"plain": "Benchmark Percentile", "technical": "Weighted percentile rank over normalization-weighted peer population.", "defined_in": "app/services/scoring/formulas_advanced.py"},
+    "F-012": {"plain": "Trend Delta", "technical": "Percentage change between current and prior snapshot score.", "defined_in": "app/services/scoring/formulas_advanced.py"},
+    "F-013": {"plain": "Alert Escalation", "technical": "Risk increase x Enforcement Correlation x Priority x Confidence.", "defined_in": "app/services/scoring/formulas_advanced.py"},
+    "F-014": {"plain": "Report Confidence Index", "technical": "Validated findings ratio x source reliability x NLP confidence.", "defined_in": "app/services/scoring/formulas_advanced.py"}
+  },
+
+  "vci": {
+    "VCI": {"plain": "Visentix Confidence Index", "technical": "Weighted sum of 5 confidence dimensions: NLP 30%, Benchmark 25%, Regulatory 15%, Enforcement 15%, Source 15%. Maps to 5 bands with output guidance."}
+  },
+
+  "vci_bands": {
+    "Very High":  {"plain": "Suitable for executive presentation", "range": "90-100"},
+    "High":       {"plain": "Suitable for standard reporting", "range": "75-89"},
+    "Moderate":   {"plain": "Include with confidence caveat", "range": "60-74"},
+    "Low":        {"plain": "Present with clear confidence limitations", "range": "40-59"},
+    "Very Low":   {"plain": "Do not present as definitive; route for review", "range": "0-39"}
+  },
+
+  "maturity_bands": {
+    "Leading":    {"plain": "Top-tier disclosure maturity", "range": "90-100"},
+    "Mature":     {"plain": "Strong disclosure practices", "range": "75-89"},
+    "Developing": {"plain": "Meaningful but incomplete disclosures", "range": "60-74"},
+    "Lagging":    {"plain": "Significant disclosure gaps", "range": "40-59"},
+    "Deficient":  {"plain": "Major disclosure deficiencies", "range": "0-39"}
+  },
+
+  "domain_ids": {
+    "CR":  {"plain": "Consumer Rights", "technical": "Clauses about access, deletion, correction, portability, appeal, opt-out, authorized agent."},
+    "DC":  {"plain": "Data Collection", "technical": "Clauses about personal information categories, sensitive data, biometric, location, children."},
+    "SH":  {"plain": "Sharing", "technical": "Clauses about service providers, advertising networks, analytics, affiliates, data brokers."},
+    "RT":  {"plain": "Retention", "technical": "Clauses about specific retention periods, criteria-based retention, or undefined retention."},
+    "AI":  {"plain": "AI Governance", "technical": "Clauses about automated decisions, profiling, human review, training data, AI transparency."},
+    "SEC": {"plain": "Security", "technical": "Clauses about safeguards, encryption, breach/incident notification."},
+    "TRK": {"plain": "Tracking", "technical": "Clauses about cookies, pixels, beacons, preference centers."},
+    "XB":  {"plain": "Cross-Border", "technical": "Clauses about international transfers, adequacy decisions, standard contractual clauses."}
+  },
+
+  "finding_codes": {
+    "AI-004":  {"plain": "AI Transparency Gap", "domain": "AI Governance"},
+    "TRK-007": {"plain": "Tracking Disclosure Weakness", "domain": "Tracking"},
+    "SH-002":  {"plain": "Data Sharing Exposure", "domain": "Sharing"},
+    "RT-003":  {"plain": "Retention Period Omission", "domain": "Retention"},
+    "CR-001":  {"plain": "Consumer Rights Gap", "domain": "Consumer Rights"},
+    "DC-005":  {"plain": "Disclosure Completeness Issue", "domain": "Data Collection"},
+    "SEC-002": {"plain": "Sensitive Data Handling Risk", "domain": "Security / Data Collection"},
+    "XB-001":  {"plain": "Cross-Border Transfer Gap", "domain": "Cross-Border"}
+  }
+}

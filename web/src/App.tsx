@@ -5,6 +5,7 @@
 import { BrowserRouter, Link, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { AuthProvider, useAuth } from "./auth/AuthProvider";
 import { ProtectedRoute }        from "./auth/ProtectedRoute";
+import { ExplainProvider }       from "./report/explain/ExplainContext";
 import { Login }                 from "./pages/Login";
 import { CustomerDashboard }     from "./pages/customer/Dashboard";
 import { Intake }                from "./pages/customer/Intake";
@@ -170,7 +171,9 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <AppRoutes />
+        <ExplainProvider>
+          <AppRoutes />
+        </ExplainProvider>
       </AuthProvider>
     </BrowserRouter>
   );

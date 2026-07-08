@@ -1,6 +1,7 @@
 import { Fragment, useState } from "react";
 import { AdvisorNote } from "../../components/AdvisorNote";
 import { CodexTooltip } from "../../components/CodexTooltip";
+import { InfoButton } from "../explain";
 import type { ReportSection } from "../types";
 
 interface Finding {
@@ -31,6 +32,7 @@ export function FindingsTable({ content }: { content: ReportSection["content"] }
   const cohortSize   = (content.cohort_size as number | undefined) ?? 0;
   const cohortDate   = (content.cohort_date as string | undefined) ?? "—";
   const isDraft      = (content.is_draft    as boolean | undefined) ?? false;
+  const assessmentId = (content.assessment_id as string | undefined) ?? "";
   const [expanded, setExpanded] = useState<string | null>(null);
 
   return (
@@ -60,7 +62,10 @@ export function FindingsTable({ content }: { content: ReportSection["content"] }
               <Fragment key={f.id}>
                 <tr style={{ borderBottom: "1px solid var(--border)" }}>
                   <td style={td}>
-                    <CodexTooltip code={code} />
+                    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                      <CodexTooltip code={code} />
+                      {assessmentId && <InfoButton assessmentId={assessmentId} elementType="finding" elementKey={code} label={code} />}
+                    </div>
                   </td>
                   <td style={{ ...td, textTransform: "capitalize" }}>
                     {f.domain.replace(/_/g, " ")}

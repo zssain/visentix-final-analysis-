@@ -1,176 +1,108 @@
 /**
- * Intake & Decomposition Explorer
+ * Intake — submit a privacy notice, show real pipeline results.
  *
- * Split-pane: left = intake form + progress stepper
- *             right = extracted clause chips + domain filter
- *
- * [MOCK M-01] Clause list is populated from MOCK_CLAUSES until the
- *             backend /api/assessments decomposition response is wired.
- * [MOCK M-02] "Verified source" badge always shown on URL fetch success.
- *             Real flag: ssrf_protected field in API response.
+ * POST /assessments/ returns:
+ *   status: "scored" | "decomposed"
+ *   scores?: { overall_intelligence, benchmark_percentile, finding_count,
+ *              vci_label, vci_score, cohort_size, relaxations, ... }
+ *   scoring_error?, content_warning?,
+ *   classification: { llm, keyword_fallback }
+ *   sections, clauses, content_hash
  */
 import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../../lib/api";
+import { maturityBand } from "../../lib/scoreBands";
 import { PageHeader } from "../../components/PageHeader";
 import "./intake.css";
 import "../../components/furniture.css";
 
-const DOMAINS = [
-  "data_sharing", "tracking_cookies", "consumer_rights",
-  "cross_border", "sensitive_data", "retention",
-  "children_teens", "ai_automated_decisions", "other",
-] as const;
-
-type Domain = typeof DOMAINS[number];
-
-function domainLabel(d: Domain): string {
-  return d.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
-}
-
-// [MOCK M-01] Static clauses until backend decomposition is wired
-const MOCK_CLAUSES: {
-  id: string; domain: Domain;
-  preview: string; full: string;
-}[] = [
-  {
-    id: "C-001", domain: "data_sharing",
-    preview: "We share your personal data with third-party partners for marketing and analytics purposes…",
-    full: "We share your personal data with third-party partners for marketing and analytics purposes. Recipients include advertising networks, analytics providers, and business affiliates. We may also share data with government authorities where required by law.",
-  },
-  {
-    id: "C-002", domain: "tracking_cookies",
-    preview: "Our website uses cookies and similar tracking technologies to personalise content and analyse traffic…",
-    full: "Our website uses cookies and similar tracking technologies to personalise content and analyse traffic. You may opt out of certain cookies via our cookie preference centre. Disabling cookies may affect functionality.",
-  },
-  {
-    id: "C-003", domain: "retention",
-    preview: "We retain your data for as long as necessary to fulfil the purposes outlined in this notice…",
-    full: "We retain your data for as long as necessary to fulfil the purposes outlined in this notice or as required by applicable law. Specific retention periods vary by data type and are available on request.",
-  },
-  {
-    id: "C-004", domain: "consumer_rights",
-    preview: "You have the right to access, correct, and delete your personal data. Requests can be submitted…",
-    full: "You have the right to access, correct, and delete your personal data. You may also object to or restrict certain processing. Requests can be submitted via our privacy portal or by emailing privacy@example.com.",
-  },
-  {
-    id: "C-005", domain: "cross_border",
-    preview: "Your data may be transferred to and processed in countries outside your country of residence…",
-    full: "Your data may be transferred to and processed in countries outside your country of residence. We rely on Standard Contractual Clauses and adequacy decisions to ensure appropriate protections apply.",
-  },
-  {
-    id: "C-006", domain: "sensitive_data",
-    preview: "We may process sensitive categories of data including health information where you have provided consent…",
-    full: "We may process sensitive categories of data including health information where you have provided explicit consent, or where processing is necessary for healthcare delivery, fraud prevention, or legal obligations.",
-  },
-  {
-    id: "C-007", domain: "ai_automated_decisions",
-    preview: "We use automated decision-making processes, including profiling, to personalise services and detect fraud…",
-    full: "We use automated decision-making processes, including profiling, to personalise services and detect fraud. Decisions with significant effects on you may be subject to human review upon request.",
-  },
-  {
-    id: "C-008", domain: "children_teens",
-    preview: "Our services are not intended for children under 13. We do not knowingly collect data from minors…",
-    full: "Our services are not intended for children under 13. We do not knowingly collect personal data from children. If we become aware of such collection we will delete the data promptly.",
-  },
-];
-
-type Step = "idle" | "ingesting" | "decomposing" | "classifying" | "ready" | "error";
+type Step = "idle" | "submitting" | "done" | "error";
 type InputMode = "url" | "pdf" | "text";
 
-function StepDot({ label, state }: { label: string; state: "idle" | "active" | "done" }) {
-  return (
-    <div className={`stepper-step ${state}`}>
-      <div className="stepper-dot" />
-      <span className="stepper-label">{label}</span>
-    </div>
-  );
+interface AssessmentResult {
+  assessment_id: string;
+  organization_id: string;
+  status: "scored" | "decomposed";
+  sections: number;
+  clauses: number;
+  content_hash: string;
+  classification: { llm: number; keyword_fallback: number };
+  scores?: {
+    overall_intelligence: number;
+    benchmark_percentile: number;
+    finding_count: number;
+    vci_label: string;
+    vci_score?: number;
+    suppress?: boolean;
+    snapshot_id?: string;
+    cohort_size?: number;
+    benchmark_population_version?: number;
+    relaxations?: string[];
+  };
+  scoring_error?: string;
+  content_warning?: string;
 }
 
 export function Intake() {
   const navigate = useNavigate();
-  const [mode, setMode]           = useState<InputMode>("url");
-  const [urlVal, setUrlVal]       = useState("");
-  const [textVal, setTextVal]     = useState("");
-  const [step, setStep]           = useState<Step>("idle");
-  const [verifiedSrc, setVerified]= useState(false);
-  const [activeDomain, setActiveDomain] = useState<Domain | "all">("all");
-  const [activeClause, setActiveClause] = useState<string | null>(null);
-  const [assessmentId, setAssessmentId] = useState<string | null>(null);
+  const [mode, setMode]         = useState<InputMode>("url");
+  const [urlVal, setUrlVal]     = useState("");
+  const [textVal, setTextVal]   = useState("");
+  const [step, setStep]         = useState<Step>("idle");
+  const [result, setResult]     = useState<AssessmentResult | null>(null);
+  const [errorMsg, setErrorMsg] = useState("");
 
-  const stepState = (target: Step): "idle" | "active" | "done" => {
-    const order: Step[] = ["idle", "ingesting", "decomposing", "classifying", "ready"];
-    const cur = order.indexOf(step);
-    const tgt = order.indexOf(target);
-    if (cur < tgt) return "idle";
-    if (cur === tgt) return "active";
-    return "done";
-  };
-
-  const filteredClauses = MOCK_CLAUSES.filter(
-    c => activeDomain === "all" || c.domain === activeDomain
-  );
+  const isProcessing = step === "submitting";
 
   const handleSubmit = useCallback(async () => {
     if (mode === "url" && !urlVal.trim()) return;
     if (mode === "text" && !textVal.trim()) return;
 
-    setStep("ingesting");
-    setVerified(false);
-
-    // [MOCK M-02] Simulate SSRF-safe URL fetch
-    await new Promise(r => setTimeout(r, 600));
-    if (mode === "url") setVerified(true); // real: read ssrf_protected flag from API
-
-    setStep("decomposing");
-    await new Promise(r => setTimeout(r, 700));
-
-    setStep("classifying");
-    await new Promise(r => setTimeout(r, 900));
+    setStep("submitting");
+    setResult(null);
+    setErrorMsg("");
 
     try {
-      // Real API call — fires and captures the assessment_id if available
-      const payload =
-        mode === "url" ? { url: urlVal } :
-        mode === "text" ? { text: textVal } : null;
+      const formData = new FormData();
+      if (mode === "url") formData.append("url", urlVal);
+      else if (mode === "text") formData.append("text", textVal);
 
-      if (payload) {
-        const res = await api.post("/assessments/", payload).catch(() => null);
-        if (res?.notice_id) setAssessmentId(res.notice_id);
+      const res = await api.postForm("/assessments/", formData) as AssessmentResult;
+      setResult(res);
+      setStep("done");
+
+      // Auto-redirect logic
+      if (res.scoring_error) {
+        // Don't auto-redirect — user needs to see the error
+      } else if (res.content_warning) {
+        // Delay redirect to show warning
+        setTimeout(() => navigate(`/reports/${res.assessment_id}`), 4000);
+      } else {
+        // Normal redirect after brief display
+        setTimeout(() => navigate(`/reports/${res.assessment_id}`), 1500);
       }
-    } catch { /* ignore — mock clauses still display */ }
-
-    setStep("ready");
-  }, [mode, urlVal, textVal]);
-
-  const handleViewAssessment = useCallback(() => {
-    if (assessmentId) {
-      navigate(`/reports/${assessmentId}`);
-    } else {
-      navigate("/assessments");
+    } catch (err: unknown) {
+      setStep("error");
+      setErrorMsg(err instanceof Error ? err.message : "Assessment failed");
     }
-  }, [assessmentId, navigate]);
-
-  const isProcessing = ["ingesting", "decomposing", "classifying"].includes(step);
-  const isReady = step === "ready";
+  }, [mode, urlVal, textVal, navigate]);
 
   return (
     <div>
       <PageHeader
         eyebrow="Intake"
         title="Submit a Privacy Notice"
-        description="Add a notice by URL, PDF, or pasted text. Visentix splits it into individual clauses, sorts each into a privacy domain, and prepares it for scoring — you can watch each step below."
+        description="Add a notice by URL or pasted text. Visentix extracts clauses, classifies each into a privacy domain, and scores the notice against normalized peers."
       />
 
       <div className="intake-layout">
-      {/* ─── LEFT PANE ─── */}
+      {/* ─── LEFT PANE: Form ─── */}
       <div className="intake-left">
         <div className="intake-left-header">
           <h2>Privacy Notice</h2>
-
-          {/* Input mode tabs */}
           <div className="intake-tabs" role="tablist" aria-label="Input method">
-            {(["url", "pdf", "text"] as InputMode[]).map(m => (
+            {(["url", "text"] as InputMode[]).map(m => (
               <button
                 key={m}
                 className={`intake-tab ${mode === m ? "active" : ""}`}
@@ -178,13 +110,12 @@ export function Intake() {
                 aria-selected={mode === m}
                 onClick={() => setMode(m)}
               >
-                {m === "url" ? "URL" : m === "pdf" ? "PDF Upload" : "Paste Text"}
+                {m === "url" ? "URL" : "Paste Text"}
               </button>
             ))}
           </div>
         </div>
 
-        {/* Form body */}
         <div className="intake-form-body">
           {mode === "url" && (
             <div className="intake-field">
@@ -196,13 +127,7 @@ export function Intake() {
                 value={urlVal}
                 onChange={e => setUrlVal(e.target.value)}
                 disabled={isProcessing}
-                aria-describedby={verifiedSrc ? "verified-source-label" : undefined}
               />
-              {verifiedSrc && (
-                <div className="verified-source-mark" id="verified-source-label">
-                  <span>✓</span> Verified source
-                </div>
-              )}
             </div>
           )}
           {mode === "text" && (
@@ -218,40 +143,13 @@ export function Intake() {
               />
             </div>
           )}
-          {mode === "pdf" && (
-            <div className="intake-field">
-              <label htmlFor="intake-pdf">Upload PDF</label>
-              <input
-                id="intake-pdf"
-                type="file"
-                accept=".pdf,application/pdf"
-                disabled={isProcessing}
-              />
-              <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: 6 }}>
-                Max 10 MB · PDF, HTML, or plain text
-              </p>
-            </div>
-          )}
         </div>
 
-        {/* Progress stepper */}
-        <div className="intake-stepper">
-          <div className="intake-stepper-title">Processing pipeline</div>
-          <div className="stepper-row">
-            <StepDot label="Ingest"    state={stepState("ingesting")} />
-            <div className="stepper-line" />
-            <StepDot label="Decompose" state={stepState("decomposing")} />
-            <div className="stepper-line" />
-            <StepDot label="Classify"  state={stepState("classifying")} />
-          </div>
-        </div>
-
-        {/* Actions */}
         <div className="intake-actions">
           <button
             className="btn btn-primary"
             onClick={handleSubmit}
-            disabled={isProcessing || isReady}
+            disabled={isProcessing || step === "done"}
             aria-busy={isProcessing}
             id="intake-submit-btn"
           >
@@ -259,104 +157,134 @@ export function Intake() {
           </button>
           {step === "error" && (
             <span style={{ fontSize: "0.82rem", color: "var(--red)" }}>
-              Could not process this notice. Please try again.
+              {errorMsg || "Could not process this notice."}
             </span>
           )}
         </div>
       </div>
 
-      {/* ─── RIGHT PANE ─── */}
+      {/* ─── RIGHT PANE: Results ─── */}
       <div className="intake-right">
-        <div className="intake-right-header">
-          <h2>Extracted Clauses</h2>
-          <div className="clause-count-bar">
-            <strong>{filteredClauses.length}</strong> clauses
-            {activeDomain !== "all" && <> in <strong>{domainLabel(activeDomain as Domain)}</strong></>}
-            {isReady && (
-              <>
-                &nbsp;·&nbsp;
-                {/* Honest count — distinct domains actually present in extracted clauses */}
-                <strong>{new Set(MOCK_CLAUSES.map(c => c.domain)).size}</strong> domains detected
-              </>
-            )}
-            {/* [MOCK M-01] badge */}
-            {isReady && <span className="mock-badge">MOCK M-01</span>}
-          </div>
-        </div>
-
-        {/* Domain filter */}
-        <div className="domain-filter-pills" role="group" aria-label="Filter by domain">
-          <button
-            className={`domain-pill ${activeDomain === "all" ? "active" : ""}`}
-            onClick={() => setActiveDomain("all")}
-          >
-            All
-          </button>
-          {DOMAINS.map(d => (
-            <button
-              key={d}
-              className={`domain-pill ${activeDomain === d ? "active" : ""}`}
-              onClick={() => setActiveDomain(activeDomain === d ? "all" : d)}
-            >
-              {domainLabel(d)}
-            </button>
-          ))}
-        </div>
-
-        {/* Clause list */}
-        {!isProcessing && !isReady && (
+        {step === "idle" && (
           <div className="intake-empty">
             <div className="intake-empty-icon">◉</div>
             <p className="intake-empty-msg">
               Submit a privacy notice above.<br />
-              Clauses will appear here as they are extracted and classified.
+              Results will appear here once processing is complete.
             </p>
           </div>
         )}
 
         {isProcessing && (
-          <div className="clause-list">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="processing-shimmer" style={{ animationDelay: `${i * 0.15}s` }} />
-            ))}
+          <div className="intake-empty">
+            <div style={{
+              width: 36, height: 36, border: "3px solid var(--border)",
+              borderTopColor: "var(--exec-blue)", borderRadius: "50%",
+              animation: "spin 0.8s linear infinite", margin: "0 auto 12px",
+            }} />
+            <p className="intake-empty-msg">Extracting, decomposing, classifying, and scoring…</p>
+            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
           </div>
         )}
 
-        {isReady && (
-          <div className="clause-list">
-            {filteredClauses.map(c => (
-              <button
-                key={c.id}
-                className={`clause-chip ${activeClause === c.id ? "active" : ""}`}
-                onClick={() => setActiveClause(activeClause === c.id ? null : c.id)}
-                aria-expanded={activeClause === c.id}
-                aria-label={`Clause ${c.id} — ${domainLabel(c.domain)}`}
-              >
-                <div className="cc-header">
-                  <span className="cc-code">{c.id}</span>
-                  <span className="cc-domain">{domainLabel(c.domain)}</span>
+        {step === "done" && result && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+
+            {/* Content warning (amber box) */}
+            {result.content_warning && (
+              <div style={{
+                background: "rgba(200,164,106,0.08)", border: "1px solid var(--gold)",
+                borderRadius: "var(--radius)", padding: "12px 16px",
+                color: "#7a5c20", fontSize: "0.88rem", fontWeight: 600,
+              }}>
+                {result.content_warning}
+              </div>
+            )}
+
+            {/* Decomposition summary */}
+            <div className="card" style={{ padding: "16px 20px" }}>
+              <div style={{ fontSize: "0.7rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-muted)", marginBottom: 8 }}>
+                Decomposition
+              </div>
+              <div style={{ fontSize: "0.95rem", color: "var(--text)" }}>
+                <strong>{result.sections}</strong> sections · <strong>{result.clauses}</strong> clauses · <strong>{result.classification.llm}</strong> LLM-classified
+                {result.classification.keyword_fallback > 0 && (
+                  <span style={{ color: "var(--text-muted)" }}> · {result.classification.keyword_fallback} keyword fallback</span>
+                )}
+              </div>
+            </div>
+
+            {/* Scores (when present) */}
+            {result.scores && (
+              <div className="card" style={{ padding: "16px 20px" }}>
+                <div style={{ fontSize: "0.7rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-muted)", marginBottom: 8 }}>
+                  Intelligence Scores
                 </div>
-                <span className="cc-preview">
-                  {activeClause === c.id ? c.full : c.preview}
-                </span>
-              </button>
-            ))}
-          </div>
-        )}
+                <div style={{ display: "flex", gap: 20, flexWrap: "wrap", alignItems: "baseline" }}>
+                  <div>
+                    <span style={{ fontFamily: "var(--font-data)", fontSize: "1.8rem", fontWeight: 700, color: "var(--navy)" }}>
+                      {result.scores.overall_intelligence?.toFixed(1)}
+                    </span>
+                    <span style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>/100</span>
+                    <div style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--exec-blue)", marginTop: 2 }}>
+                      {maturityBand(result.scores.overall_intelligence ?? 0)}
+                    </div>
+                  </div>
+                  <div style={{ fontSize: "0.88rem", color: "var(--text-secondary)", lineHeight: 1.6 }}>
+                    <strong>{result.scores.finding_count}</strong> findings ·
+                    Confidence: <strong>{result.scores.vci_label}</strong>
+                    {result.scores.benchmark_percentile != null && (
+                      <> · {result.scores.benchmark_percentile?.toFixed(1)}th percentile</>
+                    )}
+                  </div>
+                </div>
 
-        {/* Ready CTA */}
-        {isReady && (
-          <div className="intake-ready-cta">
-            <p className="ready-label">
-              <strong>Classification complete.</strong> Your notice has been analysed.
-            </p>
-            <button
-              className="btn btn-primary"
-              onClick={handleViewAssessment}
-              id="intake-view-assessment-btn"
-            >
-              View Assessment →
-            </button>
+                {/* Relaxation disclosure */}
+                {(
+                  (result.scores.cohort_size != null && result.scores.cohort_size < 20) ||
+                  (result.scores.relaxations && result.scores.relaxations.length > 0)
+                ) && (
+                  <div style={{
+                    marginTop: 10, padding: "8px 12px",
+                    background: "rgba(200,164,106,0.08)", border: "1px dashed var(--gold)",
+                    borderRadius: "var(--radius)", fontSize: "0.78rem", color: "#7a5c20",
+                  }}>
+                    Benchmark cohort was broadened for sufficiency; confidence adjusted.
+                    {result.scores.cohort_size != null && (
+                      <> Cohort size: {result.scores.cohort_size}.</>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Scoring error */}
+            {result.status === "decomposed" && result.scoring_error && (
+              <div className="card" style={{ padding: "16px 20px", borderColor: "var(--red)" }}>
+                <div style={{ fontSize: "0.7rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--red)", marginBottom: 8 }}>
+                  Scoring Issue
+                </div>
+                <p style={{ fontSize: "0.88rem", color: "var(--text-secondary)" }}>
+                  Assessment stored, but scoring failed: <code style={{ fontSize: "0.82rem" }}>{result.scoring_error}</code>
+                </p>
+                <a
+                  href={`/reports/${result.assessment_id}`}
+                  className="btn btn-outline btn-sm"
+                  style={{ marginTop: 10 }}
+                >
+                  View report anyway →
+                </a>
+              </div>
+            )}
+
+            {/* Normal CTA — only when no scoring error (redirect is pending) */}
+            {!result.scoring_error && (
+              <div style={{ textAlign: "center", color: "var(--text-muted)", fontSize: "0.82rem" }}>
+                {result.content_warning
+                  ? "Redirecting to report in a few seconds…"
+                  : "Redirecting to report…"}
+              </div>
+            )}
           </div>
         )}
       </div>

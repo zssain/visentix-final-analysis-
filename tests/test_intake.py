@@ -1,4 +1,4 @@
-"""Phase 5 intake tests — SSRF, size limits, decomposition, classification."""
+"""Intake tests — SSRF, HTML cleaning, size limits, decomposition, classification."""
 
 import pytest
 
@@ -7,6 +7,8 @@ from app.services.intake.extract import (
     ExtractionError,
     MAX_TEXT_LENGTH,
     extract_from_text,
+    looks_like_privacy_policy,
+    _html_to_text,
 )
 from app.services.intake.decompose import (
     classify_clause,
@@ -84,6 +86,132 @@ def test_text_extraction_whitespace_rejected():
 def test_text_extraction_oversized_rejected():
     with pytest.raises(ExtractionError, match="too long"):
         extract_from_text("x" * (MAX_TEXT_LENGTH + 1))
+
+
+# ── HTML → text cleaning ────────────────────────────────────
+
+SAMPLE_HTML = """
+<!DOCTYPE html>
+<html>
+<head><title>Privacy Policy</title></head>
+<body>
+  <script>var tracking = true; sendData();</script>
+  <style>.header { color: red; }</style>
+  <nav><a href="/">Home</a> | <a href="/about">About</a></nav>
+  <header><div class="logo">CompanyLogo</div></header>
+
+  <h1>Privacy Notice</h1>
+  <p>We care about your privacy and personal information. We collect data
+     to provide and improve our services.</p>
+
+  <h2>How We Share Your Data</h2>
+  <p>We share your data with third party service providers who assist
+     with payment processing, customer support, and analytics.</p>
+  <p>We may disclose data to advertising partners for targeted marketing,
+     subject to your opt-out preferences.</p>
+
+  <h2>Your Rights</h2>
+  <p>You have the right to access, delete, and correct your personal data.
+     You may opt out of data sales at any time.</p>
+  <p>To exercise your rights, contact our privacy team at privacy@example.com.</p>
+
+  <h2>International Transfers</h2>
+  <p>Your data may be transferred internationally outside the EU. We use
+     standard contractual clauses and adequacy decisions to protect transfers.</p>
+
+  <h2>Data Retention and Cookies</h2>
+  <p>We retain your data for the retention period specified in our schedule.
+     We use cookies and tracking pixels for analytics.</p>
+  <p>Our services are not intended for children under 13. We use automated
+     decision-making and AI profiling algorithms.</p>
+
+  <footer><p>Copyright 2026 Example Corp. All rights reserved.</p></footer>
+</body>
+</html>
+"""
+
+
+def test_html_strips_script_content():
+    text = _html_to_text(SAMPLE_HTML)
+    assert "sendData" not in text
+    assert "tracking = true" not in text
+
+
+def test_html_strips_style_content():
+    text = _html_to_text(SAMPLE_HTML)
+    assert ".header" not in text
+    assert "color: red" not in text
+
+
+def test_html_strips_nav_and_footer():
+    text = _html_to_text(SAMPLE_HTML)
+    assert "CompanyLogo" not in text
+    assert "Copyright 2026" not in text
+    # The Home/About nav links should be gone
+    assert "| About" not in text
+
+
+def test_html_no_angle_brackets():
+    """Output should be clean text — no HTML tags."""
+    text = _html_to_text(SAMPLE_HTML)
+    assert "<" not in text
+    assert ">" not in text
+
+
+def test_html_preserves_headings_as_markdown():
+    text = _html_to_text(SAMPLE_HTML)
+    assert "# Privacy Notice" in text
+    assert "## How We Share Your Data" in text
+    assert "## Your Rights" in text
+
+
+def test_html_preserves_paragraph_separation():
+    """Each paragraph should be separated by blank lines for decompose()."""
+    text = _html_to_text(SAMPLE_HTML)
+    # At least some double newlines between blocks
+    assert "\n\n" in text
+
+
+def test_html_to_text_then_decompose_yields_sections():
+    """The critical integration test: HTML → clean text → decompose() → real sections."""
+    text = _html_to_text(SAMPLE_HTML)
+    result = decompose(text)
+    assert len(result.sections) >= 4, f"Expected >=4 sections, got {len(result.sections)}"
+
+
+def test_html_to_text_then_decompose_yields_clauses():
+    text = _html_to_text(SAMPLE_HTML)
+    result = decompose(text)
+    assert len(result.clauses) >= 5, f"Expected >=5 clauses, got {len(result.clauses)}"
+
+
+def test_html_to_text_then_decompose_classifies_domains():
+    """Clauses should be classified into real domains, not all 'other'."""
+    text = _html_to_text(SAMPLE_HTML)
+    result = decompose(text)
+    categories = {c.category for c in result.clauses}
+    # The HTML has data sharing, rights, cross-border, retention content
+    non_other = categories - {"other"}
+    assert len(non_other) >= 3, (
+        f"Expected >=3 real domains, got {non_other}. "
+        f"All categories: {categories}"
+    )
+
+
+# ── Privacy policy signal check ──────────────────────────────
+
+def test_looks_like_privacy_policy_true():
+    text = _html_to_text(SAMPLE_HTML)
+    assert looks_like_privacy_policy(text) is True
+
+
+def test_looks_like_privacy_policy_false():
+    assert looks_like_privacy_policy("Hello world, welcome to our blog.") is False
+
+
+def test_looks_like_privacy_policy_borderline():
+    # Only 2 signals: "data" and "collect" — below threshold of 3
+    assert looks_like_privacy_policy("We collect some data from users.") is False
 
 
 # ── Classification ───────────────────────────────────────────

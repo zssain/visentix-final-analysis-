@@ -1,0 +1,137 @@
+{
+  "__doc__": "VICBNF v2 org profiling weights. All weights configurable — no hardcoded values in code.",
+
+  "industry_taxonomy": {
+    "retail":              {"industry_id": "IND-01", "sensitivity": 0.60},
+    "hospitality":         {"industry_id": "IND-02", "sensitivity": 0.50},
+    "airline":             {"industry_id": "IND-03", "sensitivity": 0.55},
+    "transportation":      {"industry_id": "IND-03", "sensitivity": 0.55},
+    "logistics":           {"industry_id": "IND-03", "sensitivity": 0.40},
+    "healthcare":          {"industry_id": "IND-04", "sensitivity": 0.90},
+    "financial_services":  {"industry_id": "IND-05", "sensitivity": 0.85},
+    "fintech":             {"industry_id": "IND-05", "sensitivity": 0.85},
+    "insurance":           {"industry_id": "IND-06", "sensitivity": 0.80},
+    "technology":          {"industry_id": "IND-07", "sensitivity": 0.70},
+    "saas":                {"industry_id": "IND-07", "sensitivity": 0.70},
+    "telecommunications":  {"industry_id": "IND-08", "sensitivity": 0.75},
+    "telecom":             {"industry_id": "IND-08", "sensitivity": 0.75},
+    "education":           {"industry_id": "IND-09", "sensitivity": 0.65},
+    "manufacturing":       {"industry_id": "IND-10", "sensitivity": 0.45}
+  },
+  "industry_default_sensitivity": 0.50,
+
+  "rss_weights": {
+    "state_exposure":           0.25,
+    "data_volume":              0.20,
+    "sensitive_data":           0.20,
+    "advertising_profiling":    0.15,
+    "industry_sensitivity":     0.10,
+    "regulatory_history":       0.10
+  },
+  "rss_state_lookup": {
+    "US-CA": 1.0,  "US-NY": 0.85, "US-TX": 0.70, "US-CO": 0.65,
+    "US-CT": 0.60, "US-VA": 0.55, "US-WA": 0.55, "US-FED": 0.90,
+    "EU": 0.80,    "_default": 0.30
+  },
+  "rss_tiers": [
+    {"label": "Minimal",  "min": 0,  "max": 20},
+    {"label": "Moderate", "min": 21, "max": 50},
+    {"label": "High",     "min": 51, "max": 80},
+    {"label": "Enhanced", "min": 81, "max": 100}
+  ],
+
+  "pgms_weights": {
+    "governance_infrastructure": 0.30,
+    "operational_controls":      0.30,
+    "transparency_practices":    0.20,
+    "consumer_rights_support":   0.20
+  },
+  "pgms_category_map": {
+    "governance_infrastructure": ["retention", "cross_border", "sensitive_data"],
+    "operational_controls":      ["data_sharing", "tracking_cookies"],
+    "transparency_practices":    ["ai_automated_decisions"],
+    "consumer_rights_support":   ["consumer_rights"]
+  },
+  "pgms_tiers": [
+    {"label": "Nascent",     "min": 0,  "max": 25},
+    {"label": "Developing",  "min": 26, "max": 50},
+    {"label": "Managed",     "min": 51, "max": 75},
+    {"label": "Mature",      "min": 76, "max": 90},
+    {"label": "Leading",     "min": 91, "max": 100}
+  ],
+
+  "osi_weights": {
+    "employee_count":       0.20,
+    "revenue":              0.15,
+    "public_company":       0.10,
+    "legal_dept":           0.15,
+    "privacy_office":       0.15,
+    "privacy_counsel":      0.10,
+    "security":             0.05,
+    "ai_governance":        0.05,
+    "governance_artifacts": 0.05
+  },
+  "osi_size_scores": {
+    "large": 80, "medium": 50, "small": 25, "unknown": 30
+  },
+  "osi_tiers": [
+    {"label": "Basic",      "min": 0,  "max": 25},
+    {"label": "Developing", "min": 26, "max": 50},
+    {"label": "Mature",     "min": 51, "max": 75},
+    {"label": "Advanced",   "min": 76, "max": 100}
+  ],
+
+  "dsi_category_weights": {
+    "sensitive_data":        1.0,
+    "children_teens":        0.9,
+    "ai_automated_decisions": 0.8,
+    "cross_border":          0.6,
+    "data_sharing":          0.5,
+    "retention":             0.4,
+    "tracking_cookies":      0.3,
+    "consumer_rights":       0.2,
+    "other":                 0.0
+  },
+  "dsi_processing_context_multiplier": 1.2,
+  "dsi_tiers": [
+    {"label": "Low",      "min": 0,  "max": 25},
+    {"label": "Moderate", "min": 26, "max": 50},
+    {"label": "High",     "min": 51, "max": 75},
+    {"label": "Critical", "min": 76, "max": 100}
+  ],
+
+  "aigms_weights": {
+    "ai_use_disclosure":             0.20,
+    "profiling_transparency":        0.20,
+    "automated_decision_disclosure": 0.20,
+    "training_data_disclosure":      0.15,
+    "consumer_controls":             0.15,
+    "ai_governance_artifacts":       0.10
+  },
+  "aigms_clause_type_map": {
+    "ai_use_disclosure":             ["AI Transparency", "Automated Decisions"],
+    "profiling_transparency":        ["Profiling"],
+    "automated_decision_disclosure": ["Automated Decisions"],
+    "training_data_disclosure":      ["Training Data"],
+    "consumer_controls":             ["Human Review"],
+    "ai_governance_artifacts":       ["AI Transparency"]
+  },
+  "aigms_tiers": [
+    {"label": "Absent",     "min": 0,  "max": 10},
+    {"label": "Minimal",    "min": 11, "max": 30},
+    {"label": "Developing", "min": 31, "max": 60},
+    {"label": "Mature",     "min": 61, "max": 85},
+    {"label": "Leading",    "min": 86, "max": 100}
+  ],
+
+  "ehp_classifications": {
+    "clean":                {"label": "Clean",                "score_range": [0, 15]},
+    "enforcement_adjacent": {"label": "Enforcement-Adjacent", "score_range": [16, 50]},
+    "enforcement":          {"label": "Enforcement",          "score_range": [51, 100]}
+  },
+  "ehp_tiers": [
+    {"label": "Clean",                "min": 0,  "max": 15},
+    {"label": "Enforcement-Adjacent", "min": 16, "max": 50},
+    {"label": "Enforcement",          "min": 51, "max": 100}
+  ]
+}

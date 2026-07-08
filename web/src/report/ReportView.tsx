@@ -5,8 +5,11 @@
  *
  * DDR-001: draft_banner replaced by ProvenanceRibbon + diagonal watermark.
  */
+import { useEffect } from "react";
 import type { ReportPayload } from "./types";
 import { ProvenanceRibbon } from "../components/ProvenanceRibbon";
+import { useExplain } from "./explain/ExplainContext";
+import "./explain/explain.css";
 import { Cover }              from "./sections/Cover";
 import { ExecutiveSummary }   from "./sections/ExecutiveSummary";
 import { RiskDashboard }      from "./sections/RiskDashboard";
@@ -40,6 +43,14 @@ interface ReportViewProps { report: ReportPayload; }
 
 export function ReportView({ report }: ReportViewProps) {
   const isDraft = !!report.draft_banner;
+  const { prefetch } = useExplain();
+
+  // Prefetch all explain envelopes when the report loads
+  useEffect(() => {
+    if (report.assessment_id) {
+      prefetch(report.assessment_id);
+    }
+  }, [report.assessment_id, prefetch]);
 
   // Extract snapshot ID from sections if available (Cover section carries it)
   const coverContent = report.sections.find(s => s.number === 1)?.content ?? {};

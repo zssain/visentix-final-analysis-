@@ -20,6 +20,28 @@ export function scoreBandColor(score: number): string {
 export const LOW_CONFIDENCE_COHORT_N = 10;
 
 /**
+ * VICBNF v2 spec maturity band labels (0-100 → Leading…Deficient).
+ */
+export function maturityBand(score: number): string {
+  if (score >= 90) return "Leading";
+  if (score >= 75) return "Mature";
+  if (score >= 60) return "Developing";
+  if (score >= 40) return "Lagging";
+  return "Deficient";
+}
+
+/**
+ * VICBNF v2 spec VCI band labels (0-100 → Very High…Very Low).
+ */
+export function vciBand(score: number): string {
+  if (score >= 90) return "Very High";
+  if (score >= 75) return "High";
+  if (score >= 60) return "Moderate";
+  if (score >= 40) return "Low";
+  return "Very Low";
+}
+
+/**
  * Trend/delta coloring — by IMPROVEMENT, not direction.
  * Exposure scores read lower = better, so a falling score is teal (improving)
  * and a rising score is red (worsening). Arrows (▲/▼) still show direction;

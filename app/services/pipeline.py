@@ -55,6 +55,7 @@ def score_notice(
     avg_source_reliability: float,
     finding_types: dict,
     recommendations: dict,
+    f004_score: float | None = None,
 ) -> dict:
     """Score a decomposed notice end-to-end using Phase 4 formulas.
 
@@ -106,15 +107,19 @@ def score_notice(
     f008 = compute_f008(risk_scores, ftc_rpw)
 
     # F-010: Overall Intelligence
+    enforcement_value = f004_score if f004_score is not None else 50
     component_map = {
         "regulatory": f002.score,
         "benchmark": f003.score,
         "disclosure": max(0, 100 - f005.score),
-        "enforcement": 50,
+        "enforcement": enforcement_value,
         "ai": max(0, 100 - f007.score),
         "compound": f008.score,
     }
     f010 = compute_f010(component_map, f010_weights)
+    # Auditable lineage: mark when enforcement is a neutral prior
+    if f004_score is None:
+        f010.source_lineage["enforcement_prior"] = "neutral_50_f004_not_computed"
 
     # F-011: Benchmark Percentile
     f011 = compute_f011(org_pgms, peer_scores, len(peer_scores) + 1)
@@ -166,18 +171,26 @@ def score_notice(
     )
     findings = select_findings(finding_input)
 
+    scores_dict = {
+        "f002": {"score": f002.score, "tier": f002.tier, "lineage": f002.source_lineage},
+        "f003": {"score": f003.score, "lineage": f003.source_lineage},
+        "f005": {"score": f005.score, "lineage": f005.source_lineage},
+        "f006": {"score": f006.score, "lineage": f006.source_lineage},
+        "f007": {"score": f007.score, "lineage": f007.source_lineage},
+        "f008": {"score": f008.score, "lineage": f008.source_lineage},
+        "f009": {"score": f009.score, "lineage": f009.source_lineage},
+        "f010": {"score": f010.score, "lineage": f010.source_lineage},
+        "f011": {"score": f011.score, "lineage": f011.source_lineage},
+    }
+    # Include f004 when computed externally
+    if f004_score is not None:
+        scores_dict["f004"] = {
+            "score": f004_score,
+            "lineage": {"source": "live_f004", "value": f004_score},
+        }
+
     return {
-        "scores": {
-            "f002": {"score": f002.score, "tier": f002.tier, "lineage": f002.source_lineage},
-            "f003": {"score": f003.score, "lineage": f003.source_lineage},
-            "f005": {"score": f005.score, "lineage": f005.source_lineage},
-            "f006": {"score": f006.score, "lineage": f006.source_lineage},
-            "f007": {"score": f007.score, "lineage": f007.source_lineage},
-            "f008": {"score": f008.score, "lineage": f008.source_lineage},
-            "f009": {"score": f009.score, "lineage": f009.source_lineage},
-            "f010": {"score": f010.score, "lineage": f010.source_lineage},
-            "f011": {"score": f011.score, "lineage": f011.source_lineage},
-        },
+        "scores": scores_dict,
         "vci": {
             "score": vci.score,
             "label": vci.label,

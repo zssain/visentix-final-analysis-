@@ -1,8 +1,14 @@
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Cell, ResponsiveContainer } from "recharts";
 import { VciBadge } from "../VciBadge";
 import { ScoreCell } from "../../components/ScoreCell";
+import { InfoButton } from "../explain";
 import { scoreBandColor } from "../../lib/scoreBands";
 import type { ReportSection } from "../types";
+
+const FID_TO_FKEY: Record<string, string> = {
+  "F-002": "f002", "F-005": "f005", "F-006": "f006",
+  "F-007": "f007", "F-008": "f008", "F-010": "f010",
+};
 
 // Formula descriptions (plain English only — no math)
 // [MOCK M-10] Real descriptions from formula_version.description column in Supabase
@@ -16,11 +22,12 @@ const FORMULA_DESCS: Record<string, string> = {
 };
 
 export function RiskDashboard({ content }: { content: ReportSection["content"] }) {
-  const snapshotId = (content.snapshot_id as string | undefined) ?? "S-0000";
-  const frozenDate = (content.date        as string | undefined) ?? "—";
-  const cohortSize = (content.cohort_size as number | undefined) ?? 0;
-  const cohortDate = (content.cohort_date as string | undefined) ?? "—";
-  const vci        = (content.vci_score   as number | undefined) ?? 0;
+  const snapshotId   = (content.snapshot_id  as string | undefined) ?? "S-0000";
+  const frozenDate   = (content.date         as string | undefined) ?? "—";
+  const cohortSize   = (content.cohort_size  as number | undefined) ?? 0;
+  const cohortDate   = (content.cohort_date  as string | undefined) ?? "—";
+  const vci          = (content.vci_score    as number | undefined) ?? 0;
+  const assessmentId = (content.assessment_id as string | undefined) ?? "";
 
   const metrics = [
     { name: "Overall",        value: content.overall_intelligence as number, fid: "F-010" },
@@ -70,8 +77,11 @@ export function RiskDashboard({ content }: { content: ReportSection["content"] }
             background: "var(--bg-card)",
             padding: "12px 14px",
           }}>
-            <div style={{ fontSize: "0.68rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-muted)", marginBottom: 4 }}>
+            <div style={{ fontSize: "0.68rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-muted)", marginBottom: 4, display: "flex", alignItems: "center", gap: 4 }}>
               {m.name}
+              {assessmentId && (
+                <InfoButton assessmentId={assessmentId} elementType="score" elementKey={FID_TO_FKEY[m.fid] ?? m.fid} label={m.name} />
+              )}
             </div>
             <ScoreCell
               value={m.value ?? 0}
