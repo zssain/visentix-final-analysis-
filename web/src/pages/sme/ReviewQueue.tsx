@@ -5,7 +5,7 @@
  * Center: Auto-finding + Analyst metric grid + Confirm / Edit / Dismiss
  * Right:  Advisor Note editor + Codex reference
  *
- * [MOCK M-04] Training label counts hardcoded — real: /api/admin/health training_stats
+ * Training label counts loaded from /admin/training-stats API.
  */
 import { useEffect, useState } from "react";
 import { api, ApiError } from "../../lib/api";
@@ -24,8 +24,7 @@ interface ReviewItem {
 // Simulated PII tokens in example clause (de-id checker)
 const EXAMPLE_CLAUSE = "This data sharing agreement was reviewed by Jane Smith (jane.smith@acmecorp.com) and covers transfers to https://analytics-partner.com for marketing analytics purposes.";
 
-// [MOCK M-04] — real: /api/admin/health training_stats block
-const MOCK_LABELS = { confirmed: 142, edited: 31, dismissed: 12 };
+// Training stats loaded from real API (was MOCK M-04)
 
 interface PiiToken { token: string; category: "name" | "email" | "url" | "custom"; start: number; end: number; }
 
@@ -94,6 +93,7 @@ export function ReviewQueue() {
   const [advisorLede, setAdvisorLede] = useState("");
   const [advisorBody, setAdvisorBody] = useState("");
   const [action, setAction] = useState<"confirm" | "edit" | "dismiss" | null>(null);
+  const [trainingStats, setTrainingStats] = useState({ confirmed: 0, edited: 0, dismissed: 0 });
 
   const clauseText = EXAMPLE_CLAUSE;
   const piiTokens  = detectPii(clauseText);
@@ -104,6 +104,10 @@ export function ReviewQueue() {
       .then((data) => setQueue(Array.isArray(data) ? data : []))
       .catch((err) => { if (err instanceof ApiError && err.status === 401) return; })
       .finally(() => setLoading(false));
+    // Load real training stats
+    api.get("/admin/training-stats")
+      .then((data) => { if (data && typeof data === "object") setTrainingStats(data as typeof trainingStats); })
+      .catch(() => {});
   }, []);
 
   return (
@@ -117,12 +121,10 @@ export function ReviewQueue() {
             <span className="badge badge-gold">
               {loading ? "—" : queue.length} findings pending
             </span>
-            {/* [MOCK M-04] Training label counter */}
             <div style={{ display: "flex", gap: 12, fontSize: "0.78rem", color: "var(--text-muted)", flexWrap: "wrap" }}>
-              <span style={{ color: "var(--teal)", fontWeight: 700 }}>✓ {MOCK_LABELS.confirmed}</span>
-              <span style={{ color: "var(--exec-blue)", fontWeight: 700 }}>✎ {MOCK_LABELS.edited}</span>
-              <span style={{ color: "var(--red)", fontWeight: 700 }}>✕ {MOCK_LABELS.dismissed}</span>
-              <span className="mock-badge" style={{ marginLeft: 0 }}>MOCK M-04</span>
+              <span style={{ color: "var(--teal)", fontWeight: 700 }}>✓ {trainingStats.confirmed}</span>
+              <span style={{ color: "var(--exec-blue)", fontWeight: 700 }}>✎ {trainingStats.edited}</span>
+              <span style={{ color: "var(--red)", fontWeight: 700 }}>✕ {trainingStats.dismissed}</span>
             </div>
           </div>
         }

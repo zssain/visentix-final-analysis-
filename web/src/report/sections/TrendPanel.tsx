@@ -1,10 +1,11 @@
 import { trendColor } from "../../lib/scoreBands";
 import type { ReportSection } from "../types";
 
-// [MOCK M-06] Sparkline data is static — real: F-012 Trend Delta from /api/monitoring/trend
-const MOCK_TREND: number[] = [44, 46, 43, 48, 45, 41, 38];
+// Fallback trend data when F-012 Trend Delta has not yet produced real snapshots
+const FALLBACK_TREND: number[] = [];
 
 function Sparkline({ data }: { data: number[] }) {
+  if (!data || data.length < 2) return null;
   const w = 120, h = 32, pad = 4;
   const min = Math.min(...data);
   const max = Math.max(...data);
@@ -43,7 +44,7 @@ export function TrendPanel({ content }: { content: ReportSection["content"] }) {
   const note          = content.note          as string | undefined;
   const noPrior       = content.no_prior_history as boolean | undefined;
   const trendDelta    = content.trend_delta   as number | undefined;
-  const trendData     = (content.trend_data   as number[] | undefined) ?? MOCK_TREND;
+  const trendData     = (content.trend_data   as number[] | undefined) ?? FALLBACK_TREND;
   const isDeltaUp     = (trendDelta ?? 0) >= 0;
 
   return (
@@ -72,9 +73,11 @@ export function TrendPanel({ content }: { content: ReportSection["content"] }) {
                 Score over time
               </div>
               <Sparkline data={trendData} />
-              <div style={{ marginTop: 4 }}>
-                <span className="mock-badge" style={{ marginLeft: 0 }}>MOCK M-06 — real: F-012 trend output</span>
-              </div>
+              {trendData.length === 0 && (
+                <div style={{ marginTop: 4, fontSize: "0.75rem", color: "var(--text-muted)" }}>
+                  Trend data will appear after the next assessment snapshot.
+                </div>
+              )}
             </div>
             {trendDelta !== undefined && (
               <div>
