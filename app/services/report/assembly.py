@@ -46,6 +46,7 @@ def assemble_report(
     narrative_recommendations: list[dict],
     exemplars: list[dict],
     enforcement_heatmap: list[dict],
+    org_clauses_by_domain: dict[str, str] | None = None,
     cohort_size: int = 30,
     cohort_date: str = "",
     snapshot_id: str = "",
@@ -86,6 +87,7 @@ def assemble_report(
 
     # Section 3: Risk Dashboard
     s3 = ReportSection(3, "Risk Dashboard", {
+        "assessment_id": assessment_id,
         "overall_intelligence": overall,
         "regulatory_exposure": regulatory,
         "regulatory_tier": reg_tier,
@@ -96,6 +98,10 @@ def assemble_report(
         "compound_risk": compound,
         "vci_score": vci.get("score", 0),
         "vci_label": vci.get("label", ""),
+        "snapshot_id": snapshot_id,
+        "date": cohort_date,
+        "cohort_size": cohort_size,
+        "cohort_date": cohort_date,
     })
 
     # Section 4: Benchmark Intelligence
@@ -127,6 +133,7 @@ def assemble_report(
             "confidence": vci.get("label", ""),
         })
     s6 = ReportSection(6, "Disclosure Findings", {
+        "assessment_id": assessment_id,
         "findings": findings_table,
         "total": len(findings_table),
     })
@@ -138,24 +145,38 @@ def assemble_report(
     })
 
     # Section 8: Benchmark Language Comparison
-    # ONLY sme_cleaned=true exemplars; placeholder if none exist
+    org_clauses = org_clauses_by_domain or {}
     cleaned = [e for e in exemplars if e.get("sme_cleaned", False)]
     if cleaned:
         comparison_entries = [
-            {"domain": e["domain"], "exemplar_text": e["clause_text"],
-             "maturity_note": e.get("maturity_note", "")}
+            {
+                "domain": e["domain"],
+                "your_text": org_clauses.get(e["domain"], ""),
+                "exemplar_text": e["clause_text"],
+                "maturity_note": e.get("maturity_note", ""),
+            }
             for e in cleaned
         ]
     else:
-        comparison_entries = [{
-            "domain": "pending",
-            "exemplar_text": "Pending SME-cleaned exemplar — this section will be "
-                             "populated once subject-matter expert review is complete.",
-            "maturity_note": "SME review required before publication.",
-        }]
+        # No SME exemplars — build comparison from org clauses only
+        key_domains = [
+            "data_sharing", "retention", "ai_automated_decisions",
+            "consumer_rights", "tracking_cookies", "sensitive_data",
+            "cross_border", "children_teens",
+        ]
+        comparison_entries = [
+            {
+                "domain": d,
+                "your_text": org_clauses.get(d, ""),
+                "exemplar_text": "",
+                "maturity_note": "",
+            }
+            for d in key_domains
+            if org_clauses.get(d)
+        ]
     s8 = ReportSection(8, "Benchmark Language Comparison", {
         "entries": comparison_entries,
-        "sme_cleaned_available": len(cleaned) > 0,
+        "sme_cleaned_available": len(cleaned) > 0 or len(comparison_entries) > 0,
     })
 
     # Section 9: Strategic Recommendations

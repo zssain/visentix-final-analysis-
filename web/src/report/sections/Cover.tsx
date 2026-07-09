@@ -1,6 +1,6 @@
-import { VciBadge } from "../VciBadge";
 import { ProvenanceRibbon } from "../../components/ProvenanceRibbon";
 import { IntelligenceMark } from "../../components/IntelligenceMark";
+import { maturityBand } from "../../lib/scoreBands";
 import type { ReportSection } from "../types";
 
 export function Cover({ content }: { content: ReportSection["content"] }) {
@@ -43,11 +43,22 @@ export function Cover({ content }: { content: ReportSection["content"] }) {
 
       <p className="cover-title">{content.report_title as string}</p>
 
-      {/* Score + VCI dial */}
+      {/* Score + maturity band */}
       <div className="cover-score-block">
         <div className="cover-score-num">{(content.overall_score as number)?.toFixed(1)}</div>
         <div className="cover-score-label">Overall Privacy Intelligence Score</div>
-        <VciBadge label={content.vci_label as string} />
+        <span style={{
+          display: "inline-block",
+          marginTop: 6,
+          padding: "2px 14px",
+          borderRadius: 4,
+          fontSize: "0.82rem",
+          fontWeight: 700,
+          border: "1.5px solid var(--navy)",
+          color: "var(--navy)",
+        }}>
+          {maturityBand((content.overall_score as number) ?? 0)}
+        </span>
       </div>
 
       {/* Scope & limitations */}

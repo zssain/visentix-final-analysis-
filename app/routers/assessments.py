@@ -138,8 +138,14 @@ async def create_assessment(
     org_id = organization_id
     if not org_id and organization_name:
         org_id = await _find_or_create_org(organization_name)
+    if not org_id and source_url:
+        # Derive org name from the URL domain
+        from urllib.parse import urlparse
+        domain = urlparse(source_url).netloc.replace("www.", "")
+        org_name_derived = domain.split(".")[0].title()
+        org_id = await _find_or_create_org(org_name_derived)
     if not org_id:
-        org_id = str(uuid4())  # anonymous assessment
+        org_id = await _find_or_create_org("Anonymous Assessment")
 
     # ── 3. DECOMPOSE ─────────────────────────────────────────
     notice = decompose(extracted_text)
@@ -171,7 +177,7 @@ async def create_assessment(
         "retrieval_date": str(date.today()),
         "content_hash": content_hash,
         "version_id": 0,
-        "jurisdiction_scope": json.dumps(["US"]),
+        "jurisdiction_scope": ["US"],
         "storage_path": "",
         "extraction_confidence": round(mean_conf, 4),
         "ai_disclosure_presence": any(
@@ -213,7 +219,9 @@ async def create_assessment(
         for s in notice.sections
     ]
     if section_rows:
-        await supabase_rest_post("notice_section", section_rows)
+        r = await supabase_rest_post("notice_section", section_rows)
+        if r.status_code >= 400:
+            log.error("notice_section insert failed: %d %s", r.status_code, r.text[:300])
 
     # 5c. disclosure_clause — ONE batch POST (includes v2 taxonomy fields)
     clause_rows = [
@@ -233,7 +241,12 @@ async def create_assessment(
         for c in notice.clauses
     ]
     if clause_rows:
-        await supabase_rest_post("disclosure_clause", clause_rows)
+        r = await supabase_rest_post("disclosure_clause", clause_rows)
+        if r.status_code >= 400:
+            log.error(
+                "disclosure_clause insert failed: %d %s",
+                r.status_code, r.text[:300],
+            )
 
     log.info(
         "Assessment persisted: notice=%s sections=%d clauses=%d",
@@ -324,10 +337,10 @@ async def _classify_clauses(notice: DecomposedNotice) -> tuple[int, int]:
 # ── Org resolution (injection-safe) ──────────────────────────
 
 async def _find_or_create_org(name: str) -> str:
-    """Find an existing org by name or create a new one.
+    """Find an existing org by name/slug or create a new one."""
+    slug = name.lower().replace(" ", "-")
 
-    Uses url-encoded name in the PostgREST filter to prevent injection.
-    """
+    # Try by name (exact)
     safe_name = urllib.parse.quote(name, safe="")
     r = await supabase_rest_get(
         "organization",
@@ -339,15 +352,39 @@ async def _find_or_create_org(name: str) -> str:
     if rows:
         return rows[0]["organization_id"]
 
+    # Try by slug (case-insensitive match)
+    safe_slug = urllib.parse.quote(slug, safe="")
+    r2 = await supabase_rest_get(
+        "organization",
+        select="organization_id",
+        filters=f"slug=eq.{safe_slug}",
+        limit=1,
+    )
+    rows2 = r2.json() if r2.status_code == 200 else []
+    if rows2:
+        return rows2[0]["organization_id"]
+
+    # Create new
     org_id = str(uuid4())
-    await supabase_rest_post("organization", {
+    r3 = await supabase_rest_post("organization", {
         "organization_id": org_id,
         "name": name,
-        "slug": name.lower().replace(" ", "-"),
+        "slug": slug,
         "industry": "unknown",
         "size": "unknown",
         "geography": "US",
         "entity_type": "target",
         "tenant_id": "proto",
     })
+    # Handle race condition / slug conflict — re-lookup
+    if r3.status_code >= 400:
+        r4 = await supabase_rest_get(
+            "organization",
+            select="organization_id",
+            filters=f"slug=eq.{safe_slug}",
+            limit=1,
+        )
+        rows4 = r4.json() if r4.status_code == 200 else []
+        if rows4:
+            return rows4[0]["organization_id"]
     return org_id

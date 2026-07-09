@@ -21,8 +21,8 @@ interface ReviewItem {
   approved_by: string;
 }
 
-// Simulated PII tokens in example clause (de-id checker)
-const EXAMPLE_CLAUSE = "This data sharing agreement was reviewed by Jane Smith (jane.smith@acmecorp.com) and covers transfers to https://analytics-partner.com for marketing analytics purposes.";
+// Clause text sourced from the selected review item; placeholder until item is selected
+const PLACEHOLDER_CLAUSE = "Select a finding from the review queue to view its source clause text and run the PII de-identification checker.";
 
 // Training stats loaded from real API (was MOCK M-04)
 
@@ -95,7 +95,7 @@ export function ReviewQueue() {
   const [action, setAction] = useState<"confirm" | "edit" | "dismiss" | null>(null);
   const [trainingStats, setTrainingStats] = useState({ confirmed: 0, edited: 0, dismissed: 0 });
 
-  const clauseText = EXAMPLE_CLAUSE;
+  const clauseText = PLACEHOLDER_CLAUSE;
   const piiTokens  = detectPii(clauseText);
   const hasPii     = piiTokens.length > 0 && !redacted;
 

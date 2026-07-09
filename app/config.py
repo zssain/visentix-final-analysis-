@@ -46,6 +46,11 @@ class Settings(BaseSettings):
     # Live enforcement correlation (F-004) — requires embeddings to be available
     enable_live_f004: bool = Field(default=False)
 
+    # External data-source APIs (ingest scripts)
+    govinfo_api_key: str = Field(default="")
+    courtlistener_token: str = Field(default="")
+    openstates_api_key: str = Field(default="")
+
     # Admin
     admin_email: str = Field(default="")
 

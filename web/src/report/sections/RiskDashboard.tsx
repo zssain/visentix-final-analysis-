@@ -10,15 +10,14 @@ const FID_TO_FKEY: Record<string, string> = {
   "F-007": "f007", "F-008": "f008", "F-010": "f010",
 };
 
-// Formula descriptions (plain English only — no math)
-// [MOCK M-10] Real descriptions from formula_version.description column in Supabase
+// Formula descriptions — static reference text (not data-bearing)
 const FORMULA_DESCS: Record<string, string> = {
-  "F-002": "Multiplies jurisdiction importance by regulator priority and disclosure severity across each domain.",
-  "F-005": "Scores how many required disclosure elements are present versus the master checklist.",
-  "F-006": "Combines readability, clarity, and completeness indicators into a composite transparency figure.",
-  "F-007": "Evaluates how specifically the notice addresses automated and AI-driven decision-making.",
-  "F-008": "Blends regulatory, disclosure, and enforcement dimensions into a single compound risk indicator.",
-  "F-010": "Weighted combination of all six risk dimensions to produce the overall privacy intelligence score.",
+  "F-002": "Regulatory Exposure — jurisdiction importance weighted by regulator priority across each domain.",
+  "F-005": "Disclosure Maturity — required disclosure elements present versus the master checklist.",
+  "F-006": "Transparency — readability, clarity, and completeness indicators.",
+  "F-007": "AI Transparency — how specifically the notice addresses automated decision-making.",
+  "F-008": "Compound Risk — regulatory, disclosure, and enforcement dimensions combined.",
+  "F-010": "Overall Intelligence — weighted combination of all risk dimensions.",
 };
 
 export function RiskDashboard({ content }: { content: ReportSection["content"] }) {

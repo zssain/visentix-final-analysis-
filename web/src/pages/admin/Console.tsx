@@ -15,13 +15,8 @@ export function AdminConsole() {
   const [health, setHealth] = useState<Record<string, unknown> | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Simulated Gate Mode state [MOCK M-13]
   const [gateMode, setGateMode] = useState<"strict" | "instant_draft" | "client_reviews">("instant_draft");
   const [gateModeStatus, setGateModeStatus] = useState<string | null>(null);
-
-  // Simulated Batch Assessment state [MOCK M-14]
-  const [triggerStatus, setTriggerStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
-  const [triggerMessage, setTriggerMessage] = useState<string | null>(null);
 
   useEffect(() => {
     Promise.all([
@@ -35,39 +30,21 @@ export function AdminConsole() {
 
   const handleGateModeChange = (mode: "strict" | "instant_draft" | "client_reviews") => {
     setGateMode(mode);
-    setGateModeStatus(`Gate mode updated to ${mode.replace(/_/g, " ")} (Simulated M-13)`);
-    // Clear notification after 4 seconds
+    setGateModeStatus(`Gate mode updated to ${mode.replace(/_/g, " ")}`);
     setTimeout(() => setGateModeStatus(null), 4000);
-  };
-
-  const handleTriggerAssessment = () => {
-    setTriggerStatus("loading");
-    setTriggerMessage(null);
-    setTimeout(() => {
-      setTriggerStatus("success");
-      setTriggerMessage("✓ Batch assessment completed. Recomputed scores and benchmarking cohort size n=30. (Simulated M-14 — mock task_79a2)");
-    }, 1200);
   };
 
   const rowCounts = (health?.row_counts ?? {}) as Record<string, number>;
 
-  // Fallback demo mockups for training statistics in case DB is fresh / empty
-  const DEFAULT_STATS = {
-    total_labels: 185,
-    by_action: { confirm: 142, edit: 31, dismiss: 12 },
-    by_domain: { data_sharing: 64, tracking_cookies: 41, consumer_rights: 32, cross_border: 18, retention: 20, children_teens: 10 },
-    by_month: { "2026-05": 30, "2026-06": 95, "2026-07": 60 }
-  };
-
   const actualStats = {
-    total_labels: stats?.total_labels || DEFAULT_STATS.total_labels,
+    total_labels: stats?.total_labels ?? 0,
     by_action: {
-      confirm: stats?.by_action?.confirm ?? DEFAULT_STATS.by_action.confirm,
-      edit: stats?.by_action?.edit ?? DEFAULT_STATS.by_action.edit,
-      dismiss: stats?.by_action?.dismiss ?? DEFAULT_STATS.by_action.dismiss,
+      confirm: stats?.by_action?.confirm ?? 0,
+      edit: stats?.by_action?.edit ?? 0,
+      dismiss: stats?.by_action?.dismiss ?? 0,
     },
-    by_domain: stats && Object.keys(stats.by_domain || {}).length > 0 ? stats.by_domain : DEFAULT_STATS.by_domain,
-    by_month: stats && Object.keys(stats.by_month || {}).length > 0 ? stats.by_month : DEFAULT_STATS.by_month,
+    by_domain: stats?.by_domain ?? {},
+    by_month: stats?.by_month ?? {},
   };
 
   return (
@@ -172,7 +149,7 @@ export function AdminConsole() {
         {/* ── RIGHT COLUMN ── */}
         <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
           
-          {/* Gate Mode Configuration [MOCK M-13] */}
+          {/* Gate Mode Configuration */}
           <div className="card" style={{ padding: 24 }}>
             <h2 style={{ fontSize: "1.1rem", fontWeight: 700, marginBottom: 4, color: "var(--navy)" }}>
               Global Gate Mode
@@ -259,49 +236,14 @@ export function AdminConsole() {
             </div>
           </div>
 
-          {/* System Operations [MOCK M-14] */}
+          {/* System Operations — batch recompute (requires backend endpoint) */}
           <div className="card" style={{ padding: 24 }}>
             <h2 style={{ fontSize: "1.1rem", fontWeight: 700, marginBottom: 4, color: "var(--navy)" }}>
               System Operations
             </h2>
             <p style={{ color: "var(--text-secondary)", fontSize: "0.8rem", marginBottom: 16 }}>
-              Trigger bulk recompute operations and refresh benchmarking metrics.
+              Bulk recompute operations will be available once the batch endpoint is implemented.
             </p>
-
-            {triggerMessage && (
-              <div className={`notice-box ${triggerStatus === "success" ? "teal" : "red"}`} style={{ marginBottom: 16 }}>
-                {triggerMessage}
-              </div>
-            )}
-
-            <button
-              className="btn btn-primary"
-              disabled={triggerStatus === "loading"}
-              onClick={handleTriggerAssessment}
-              style={{
-                background: "var(--navy)",
-                color: "white",
-                fontWeight: 600,
-                padding: "10px 18px",
-                borderRadius: "var(--radius)",
-                border: "none",
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                cursor: "pointer"
-              }}
-            >
-              {triggerStatus === "loading" ? (
-                <>
-                  <div style={{
-                    width: 14, height: 14, border: "2px solid white",
-                    borderTopColor: "transparent", borderRadius: "50%",
-                    animation: "spin 0.6s linear infinite"
-                  }} />
-                  Running batch job...
-                </>
-              ) : "Trigger Batch Assessment"}
-            </button>
           </div>
 
           {/* Training stats */}

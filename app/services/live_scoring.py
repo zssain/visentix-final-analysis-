@@ -148,6 +148,7 @@ async def score_and_persist(
 
             derived_rows.append({
                 "derived_data_item_id": str(uuid4()),
+                "item_code": f"{formula_version_id}|{notice_id[:8]}",
                 "object_type": object_type,
                 "organization_id": organization_id,
                 "notice_id": notice_id,
@@ -166,26 +167,7 @@ async def score_and_persist(
                 "benchmark_population_version": str(pop_version),
             })
 
-        # Interpretive Variance stub — honest null, never fabricated
-        derived_rows.append({
-            "derived_data_item_id": str(uuid4()),
-            "object_type": "interpretive_variance",
-            "organization_id": organization_id,
-            "notice_id": notice_id,
-            "score": None,
-            "value": None,
-            "value_label": "insufficient_data",
-            "confidence_score": 0.1,
-            "confidence_index": 0.1,
-            "confidence_components": json.dumps({"note": "Interpretive Variance requires regulator-guidance and legal-review-tag data not yet available."}),
-            "formula_version_id": "F-IVS_v1",
-            "source_lineage": json.dumps({"reason": "insufficient_interpretation_data", "conflicting_interps": 0, "total_relevant_interps": 0}),
-            "source_snapshot_id": snapshot_id,
-            "benchmark_population_id": pop_key,
-            "scoring_model_version": settings.scoring_model_version,
-            "source_corpus_version": settings.source_corpus_version,
-            "benchmark_population_version": str(pop_version),
-        })
+        # Interpretive Variance — skipped until formula_version row F-IVS_v1 exists
 
         if derived_rows:
             r = await client.post(
@@ -256,8 +238,7 @@ async def score_and_persist(
                 sorted(fv for _, fv in _FORMULA_OBJECT_TYPE.values())
             ),
             "benchmark_population_version": pop_version,
-            "source_corpus_version": settings.source_corpus_version,
-            "scoring_model_version": settings.scoring_model_version,
+            "source_corpus_version": pop_version,  # integer column
         }
         r = await client.post(
             f"{SB}/rest/v1/report_snapshot",

@@ -414,14 +414,27 @@ def _assemble_from_live(assessment_id: str) -> ReportPayload:
             f"(finding {f['code']}, score {f['score']:.1f}/100)."
         )
 
+    # Load real recommendations from recommendation_library
+    rec_lib = _sb_get("recommendation_library?select=finding_type_code,title,body_template,severity_bucket")
+    rec_map = {r["finding_type_code"]: r for r in rec_lib}
+
     recommendations = []
     for f in sorted(findings[:5], key=lambda x: x["code"]):
-        recommendations.append({
-            "severity": f["severity"],
-            "code": f["code"],
-            "title": f"Address {f['code']} — {f['domain'].replace('_', ' ')}",
-            "prose": f"Review and strengthen {f['domain'].replace('_', ' ')} disclosures to reduce exposure indicators.",
-        })
+        rec = rec_map.get(f["code"])
+        if rec:
+            recommendations.append({
+                "severity": f["severity"],
+                "code": f["code"],
+                "title": rec["title"],
+                "prose": rec["body_template"],
+            })
+        else:
+            recommendations.append({
+                "severity": f["severity"],
+                "code": f["code"],
+                "title": f"Address {f['code']} — {f['domain'].replace('_', ' ')}",
+                "prose": f"Review and strengthen {f['domain'].replace('_', ' ')} disclosures to reduce exposure indicators.",
+            })
 
     # Heatmap
     regulators = _sb_get("regulator?select=regulator_id,name,jurisdiction,priority_weights,enforcement_frequency_weight")
@@ -440,6 +453,26 @@ def _assemble_from_live(assessment_id: str) -> ReportPayload:
 
     exemplars = _sb_get("exemplar?select=domain,clause_text,maturity_note,sme_cleaned&sme_cleaned=eq.true")
 
+    # Fetch org's best clause per domain for benchmark comparison
+    org_clauses_by_domain: dict[str, str] = {}
+    for i in range(0, len(sids), 40):
+        chunk = sids[i:i + 40]
+        id_list = ",".join(f'"{sid}"' for sid in chunk)
+        c_rows = _sb_get(
+            f"disclosure_clause?select=category,normalized_text,nlp_confidence"
+            f"&section_id=in.({id_list})&limit=2000"
+        )
+        for c in c_rows:
+            cat = c.get("category", "other")
+            if cat == "other":
+                continue
+            text = c.get("normalized_text", "")
+            conf = c.get("nlp_confidence", 0)
+            # Keep the highest-confidence clause per domain
+            if cat not in org_clauses_by_domain or conf > 0.5:
+                if len(text) > 30:
+                    org_clauses_by_domain[cat] = text[:1000]
+
     return assemble_report(
         assessment_id=assessment_id,
         org_name=org_name,
@@ -454,4 +487,5 @@ def _assemble_from_live(assessment_id: str) -> ReportPayload:
         cohort_size=cohort_size,
         cohort_date=cohort_date,
         snapshot_id=snapshot_id,
+        org_clauses_by_domain=org_clauses_by_domain,
     )
