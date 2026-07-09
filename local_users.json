@@ -1,0 +1,26 @@
+[
+  {
+    "id": "0d5099b0-317b-4eb5-bf31-559c34b49ebf",
+    "email": "admin@visentix.com",
+    "password_hash": "c3877f1f5c0e2558f059ce7e69e1ae4bdc8f911f2a98266a8d9619fda7e16802",
+    "salt": "dec5a61034793061e412d6aaa9e5a2a0",
+    "role": "admin",
+    "organization_id": null
+  },
+  {
+    "id": "31838c73-4117-4d32-aba7-3c306ab943ab",
+    "email": "sme@visentix.com",
+    "password_hash": "c9d82ac00f4c3eb086cb69f88cc6b14bed63e5a0fadcb7234f1a756eeff295bd",
+    "salt": "d8988af18f34a77951667dde2d4b07a6",
+    "role": "sme",
+    "organization_id": null
+  },
+  {
+    "id": "2acd50ab-b58a-4d55-9cea-dbd6aa7dc92e",
+    "email": "customer@visentix.com",
+    "password_hash": "59946d52c29c5250c27675fd1586f54f713c380de5d5f992b4797a889a3a8a6b",
+    "salt": "3ca590afb70c06a8413d3bfebf279e6a",
+    "role": "customer",
+    "organization_id": null
+  }
+]
