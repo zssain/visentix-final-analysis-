@@ -48,7 +48,7 @@ export function ReportPage() {
         <div style={{ textAlign: "center", color: "var(--text-muted)" }}>
           <div style={{
             width: 40, height: 40, border: "3px solid var(--border)",
-            borderTopColor: "var(--accent)", borderRadius: "50%",
+            borderTopColor: "var(--exec-blue)", borderRadius: "50%",
             animation: "spin 0.8s linear infinite", margin: "0 auto 12px",
           }} />
           <p>Loading report…</p>
@@ -62,7 +62,7 @@ export function ReportPage() {
   if (error) {
     return (
       <div style={{ textAlign: "center", padding: "60px 24px" }}>
-        <h2 style={{ color: error.status === 403 ? "var(--danger)" : "var(--text-secondary)" }}>
+        <h2 style={{ color: error.status === 403 ? "var(--red)" : "var(--text-secondary)" }}>
           {error.status === 403 ? "403 — Not Permitted" : error.status === 404 ? "404 — Not Found" : "Error"}
         </h2>
         <p style={{ color: "var(--text-muted)", marginTop: 8 }}>{error.message}</p>
@@ -93,7 +93,7 @@ export function ReportPage() {
           ← Back to Assessments
         </Link>
         <a
-          href={`${import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000"}/reports/${assessmentId}/pdf`}
+          href={`${import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000"}/reports/${assessmentId}/pdf`}
           className="btn btn-outline btn-sm"
           target="_blank"
           rel="noopener noreferrer"

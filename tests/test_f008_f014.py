@@ -75,6 +75,106 @@ def test_f010_lineage_includes_weights():
     assert r.source_lineage["weights"] == F010_WEIGHTS
 
 
+# ── F-010 × F-004 interaction ─────────────────────────────────
+
+def test_f010_changes_with_f004_score():
+    """When f004_score is provided, F-010 enforcement component uses it."""
+    from app.services.pipeline import score_notice
+    from app.services.intake.decompose import DecomposedNotice, DecomposedClause, DecomposedSection
+
+    notice = DecomposedNotice()
+    notice.sections.append(DecomposedSection(
+        section_id="s1", title="Test", section_type="general", sequence=0, text="t",
+    ))
+    notice.clauses.append(DecomposedClause(
+        clause_id="c1", section_id="s1",
+        raw_text="We share data with third party service providers for analytics.",
+        normalized_text="we share data",
+        category="data_sharing", ambiguity_score=0.02, readability_score=0.7,
+        nlp_confidence=0.8, domain_id="SH", clause_type="Service Providers",
+        transparency_score=0.6,
+    ))
+
+    common_args = dict(
+        organization_id="org-1", notice_id="n-1", notice=notice,
+        regulators=[], jurisdiction_weights={"_default": 0.3},
+        f002_thresholds={"low": [0, 33], "moderate": [33.01, 66], "high": [66.01, 100]},
+        f010_weights=F010_WEIGHTS, peer_scores=[], org_pgms=50.0,
+        avg_source_reliability=0.7, finding_types={}, recommendations={},
+    )
+
+    r_none = score_notice(**common_args, f004_score=None)
+    r_real = score_notice(**common_args, f004_score=80.0)
+
+    # F-010 should differ because enforcement component changed from 50 → 80
+    assert r_none["scores"]["f010"]["score"] != r_real["scores"]["f010"]["score"]
+    # f004 not in scores when None
+    assert "f004" not in r_none["scores"]
+    # f004 in scores when provided
+    assert "f004" in r_real["scores"]
+    assert r_real["scores"]["f004"]["score"] == 80.0
+
+
+def test_f010_neutral_prior_lineage_when_no_f004():
+    """When f004_score is None, F-010 lineage must include the auditable marker."""
+    from app.services.pipeline import score_notice
+    from app.services.intake.decompose import DecomposedNotice, DecomposedClause, DecomposedSection
+
+    notice = DecomposedNotice()
+    notice.sections.append(DecomposedSection(
+        section_id="s1", title="Test", section_type="general", sequence=0, text="t",
+    ))
+    notice.clauses.append(DecomposedClause(
+        clause_id="c1", section_id="s1",
+        raw_text="We share data with third party service providers.",
+        normalized_text="we share data", category="data_sharing",
+        ambiguity_score=0.02, readability_score=0.7, nlp_confidence=0.8,
+        domain_id="SH", clause_type="Service Providers", transparency_score=0.6,
+    ))
+
+    r = score_notice(
+        organization_id="org-1", notice_id="n-1", notice=notice,
+        regulators=[], jurisdiction_weights={"_default": 0.3},
+        f002_thresholds={"low": [0, 33], "moderate": [33.01, 66], "high": [66.01, 100]},
+        f010_weights=F010_WEIGHTS, peer_scores=[], org_pgms=50.0,
+        avg_source_reliability=0.7, finding_types={}, recommendations={},
+        f004_score=None,
+    )
+
+    lineage = r["scores"]["f010"]["lineage"]
+    assert lineage.get("enforcement_prior") == "neutral_50_f004_not_computed"
+
+
+def test_f010_no_neutral_marker_when_f004_provided():
+    """When f004_score is provided, no neutral prior marker in lineage."""
+    from app.services.pipeline import score_notice
+    from app.services.intake.decompose import DecomposedNotice, DecomposedClause, DecomposedSection
+
+    notice = DecomposedNotice()
+    notice.sections.append(DecomposedSection(
+        section_id="s1", title="Test", section_type="general", sequence=0, text="t",
+    ))
+    notice.clauses.append(DecomposedClause(
+        clause_id="c1", section_id="s1",
+        raw_text="We share data with providers.",
+        normalized_text="we share data", category="data_sharing",
+        ambiguity_score=0.02, readability_score=0.7, nlp_confidence=0.8,
+        domain_id="SH", clause_type="Service Providers", transparency_score=0.6,
+    ))
+
+    r = score_notice(
+        organization_id="org-1", notice_id="n-1", notice=notice,
+        regulators=[], jurisdiction_weights={"_default": 0.3},
+        f002_thresholds={"low": [0, 33], "moderate": [33.01, 66], "high": [66.01, 100]},
+        f010_weights=F010_WEIGHTS, peer_scores=[], org_pgms=50.0,
+        avg_source_reliability=0.7, finding_types={}, recommendations={},
+        f004_score=65.0,
+    )
+
+    lineage = r["scores"]["f010"]["lineage"]
+    assert "enforcement_prior" not in lineage
+
+
 # ── F-011: Benchmark Percentile ──────────────────────────────
 
 def test_f011_no_peers():

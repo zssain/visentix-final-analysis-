@@ -3,7 +3,7 @@
  * Tests the component behaviour: spinner during loading, redirect when unauth, render when auth.
  */
 import { render, screen } from "@testing-library/react";
-import { MemoryRouter, Navigate, useLocation } from "react-router-dom";
+import { MemoryRouter, Navigate } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 import type { ReactNode } from "react";
 

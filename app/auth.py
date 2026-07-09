@@ -128,9 +128,19 @@ async def get_current_user(request: Request) -> AuthenticatedUser:
 
     email = payload.get("email", "")
 
+    # Local-auth tokens embed role + org directly — no profile lookup needed.
+    app_role = payload.get("app_role")
+    if app_role:
+        return AuthenticatedUser(
+            user_id=user_id,
+            role=app_role,
+            organization_id=payload.get("organization_id"),
+            email=email,
+        )
+
+    # Supabase-auth tokens: load role from profiles table.
     profile = await _load_profile(user_id)
     if profile is None:
-        # User exists in auth but not yet in profiles — treat as customer
         log.info("No profile found for user %s, defaulting to customer", user_id)
         return AuthenticatedUser(user_id=user_id, role="customer", email=email)
 

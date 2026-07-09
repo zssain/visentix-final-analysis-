@@ -6,8 +6,17 @@
  */
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import { ExplainProvider } from "../report/explain/ExplainContext";
 import { ReportView } from "../report/ReportView";
 import type { ReportPayload } from "../report/types";
+
+function renderReport(report: ReportPayload) {
+  return render(
+    <ExplainProvider>
+      <ReportView report={report} />
+    </ExplainProvider>
+  );
+}
 
 const BANNED_TERMS = [
   "violation", "violates", "illegal", "unlawful",
@@ -61,33 +70,34 @@ const FIXTURE: ReportPayload = {
 
 describe("ReportPage / ReportView", () => {
   it("renders all 12 sections", () => {
-    render(<ReportView report={FIXTURE} />);
+    renderReport(FIXTURE);
     for (let i = 1; i <= 12; i++) {
       expect(screen.getByTestId(`section-${i}`)).toBeInTheDocument();
     }
   });
 
   it("displays the stored payload (no client-side recompute)", () => {
-    render(<ReportView report={FIXTURE} />);
+    renderReport(FIXTURE);
     // The score 68.5 comes from the fixture, not computed in the browser
-    expect(screen.getByText("68.5")).toBeInTheDocument();
+    expect(screen.getAllByText("68.5").length).toBeGreaterThan(0);
     expect(screen.getByText("ReportTestCo")).toBeInTheDocument();
   });
 
   it("shows DRAFT banner when flagged", () => {
     const draft = { ...FIXTURE, draft_banner: "DRAFT — pending expert review" };
-    render(<ReportView report={draft} />);
-    expect(screen.getByTestId("draft-banner")).toBeInTheDocument();
-    expect(screen.getByText(/DRAFT/)).toBeInTheDocument();
+    renderReport(draft);
+    expect(screen.getAllByRole("status", { name: /Report status: draft/i }).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Draft — Pending Review/i).length).toBeGreaterThan(0);
   });
 
   it("hides banner when not flagged", () => {
-    render(<ReportView report={FIXTURE} />);
-    expect(screen.queryByTestId("draft-banner")).not.toBeInTheDocument();
+    renderReport(FIXTURE);
+    expect(screen.getAllByRole("status", { name: /Report status: approved/i }).length).toBeGreaterThan(0);
+    expect(screen.queryByText(/Draft — Pending Review/i)).not.toBeInTheDocument();
   });
 
   it("shows honest cohort label with real n and date", () => {
-    render(<ReportView report={FIXTURE} />);
+    renderReport(FIXTURE);
     const labels = screen.getAllByTestId("cohort-label");
     expect(labels.length).toBeGreaterThan(0);
     expect(labels[0].textContent).toContain("30");
@@ -95,14 +105,14 @@ describe("ReportPage / ReportView", () => {
   });
 
   it("does not show fabricated cohort sizes", () => {
-    render(<ReportView report={FIXTURE} />);
+    renderReport(FIXTURE);
     const html = document.body.innerHTML;
     expect(html).not.toContain("1,250");
     expect(html).not.toContain("1250+");
   });
 
   it("contains no banned terms", () => {
-    render(<ReportView report={FIXTURE} />);
+    renderReport(FIXTURE);
     const html = document.body.innerHTML.toLowerCase();
     for (const term of BANNED_TERMS) {
       expect(html).not.toContain(term);
@@ -110,14 +120,16 @@ describe("ReportPage / ReportView", () => {
   });
 
   it("shows cleaned exemplar in Section 8 (not placeholder)", () => {
-    render(<ReportView report={FIXTURE} />);
-    expect(screen.getByText("De-identified sharing exemplar.")).toBeInTheDocument();
+    renderReport(FIXTURE);
+    expect(screen.getByText("De-identified")).toBeInTheDocument();
+    expect(screen.getByText("sharing")).toBeInTheDocument();
+    expect(screen.getByText("exemplar.")).toBeInTheDocument();
     expect(screen.queryByTestId("exemplar-placeholder")).not.toBeInTheDocument();
   });
 
   it("is the same component used for PDF (ReportView)", () => {
     // This test confirms portal and PDF use the same component
-    const { container } = render(<ReportView report={FIXTURE} />);
+    const { container } = renderReport(FIXTURE);
     expect(container.querySelector("[data-testid='report-view']")).toBeInTheDocument();
   });
 });

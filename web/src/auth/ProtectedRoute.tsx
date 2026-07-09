@@ -29,7 +29,7 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
         <div style={{ textAlign: "center" }}>
           <div style={{
             width: 40, height: 40, border: "3px solid var(--border)",
-            borderTopColor: "var(--accent)", borderRadius: "50%",
+            borderTopColor: "var(--exec-blue)", borderRadius: "50%",
             animation: "spin 0.8s linear infinite", margin: "0 auto 12px",
           }} />
           <p>Loading…</p>

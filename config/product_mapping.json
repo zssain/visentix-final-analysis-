@@ -1,0 +1,91 @@
+{
+  "__doc__": "VICBNF-006 product consumption model. Maps intelligence objects to products + visibility notes.",
+
+  "products": {
+    "one_time": {
+      "label": "One-Time Assessment",
+      "objects": [
+        {"object_type": "regulatory_exposure",    "visibility": "Use exposure language, not legal violation language. Include VCI + cohort size."},
+        {"object_type": "benchmark_deviation",    "visibility": "Show percentile rank with honest cohort size + small-n caveat when applicable."},
+        {"object_type": "disclosure_maturity",    "visibility": "Present as maturity band (Leading/Mature/Developing/Lagging/Deficient)."},
+        {"object_type": "transparency",           "visibility": "Transparency composite — clarity + completeness + specificity."},
+        {"object_type": "ai_transparency",        "visibility": "AI governance maturity — disclose specific AI use cases assessed."},
+        {"object_type": "compound_risk",          "visibility": "Compound risk across correlated domains."},
+        {"object_type": "overall_intelligence",   "visibility": "Headline score with maturity band. Must reference benchmark cohort."},
+        {"object_type": "benchmark_percentile",   "visibility": "Percentile rank. Attach real cohort size + date + small-n label."},
+        {"object_type": "confidence_weighted",    "visibility": "Conservative estimate adjusted by confidence."},
+        {"object_type": "enforcement_correlation", "visibility": "Similarity to enforcement patterns. Low confidence when embeddings unavailable."}
+      ],
+      "includes_findings": true,
+      "includes_recommendations": true,
+      "includes_methodology": true,
+      "includes_vci": true,
+      "includes_cohort_disclosure": true
+    },
+
+    "grc_continuous": {
+      "label": "GRC Continuous Monitoring",
+      "objects": [
+        {"object_type": "regulatory_exposure",    "visibility": "Continuous monitoring — show delta vs. prior snapshot."},
+        {"object_type": "benchmark_deviation",    "visibility": "Track deviation trend over time."},
+        {"object_type": "disclosure_maturity",    "visibility": "Maturity progression tracking."},
+        {"object_type": "overall_intelligence",   "visibility": "Headline score with trend delta."},
+        {"object_type": "benchmark_percentile",   "visibility": "Rolling percentile with cohort updates."},
+        {"object_type": "trend_delta",            "visibility": "Score change since last snapshot."},
+        {"object_type": "alert_escalation",       "visibility": "Alert when thresholds crossed. Low VCI without monitoring events."},
+        {"object_type": "compound_risk",          "visibility": "Multi-domain risk compounding."}
+      ],
+      "includes_findings": true,
+      "includes_recommendations": true,
+      "includes_methodology": true,
+      "includes_vci": true,
+      "includes_cohort_disclosure": true
+    },
+
+    "white_label": {
+      "label": "White-Label Data Feed",
+      "objects": [
+        {"object_type": "regulatory_exposure",    "visibility": "Aggregate score only. No raw clause text unless permitted_use allows."},
+        {"object_type": "benchmark_deviation",    "visibility": "Aggregate deviation metric."},
+        {"object_type": "disclosure_maturity",    "visibility": "Maturity score with band label."},
+        {"object_type": "transparency",           "visibility": "Composite transparency metric."},
+        {"object_type": "ai_transparency",        "visibility": "AI maturity aggregate."},
+        {"object_type": "overall_intelligence",   "visibility": "Headline score."},
+        {"object_type": "benchmark_percentile",   "visibility": "Percentile rank — must include cohort metadata."},
+        {"object_type": "compound_risk",          "visibility": "Compound risk aggregate."},
+        {"object_type": "enforcement_correlation", "visibility": "Enforcement similarity aggregate — no raw enforcement text."},
+        {"object_type": "report_confidence",      "visibility": "Meta-confidence for the full report."}
+      ],
+      "includes_findings": false,
+      "includes_recommendations": false,
+      "includes_methodology": false,
+      "includes_vci": true,
+      "includes_cohort_disclosure": true,
+      "raw_clause_text_permitted": false,
+      "permitted_use_restriction": "Aggregate intelligence metrics only. Raw source clause text is not included. Redistribution requires data license agreement."
+    },
+
+    "quarterly": {
+      "label": "Quarterly Benchmark Report",
+      "objects": [
+        {"object_type": "regulatory_exposure",    "visibility": "Quarterly aggregate across assessed cohort."},
+        {"object_type": "benchmark_deviation",    "visibility": "Cohort-wide deviation distribution."},
+        {"object_type": "disclosure_maturity",    "visibility": "Maturity distribution by industry."},
+        {"object_type": "overall_intelligence",   "visibility": "Cohort summary statistics."},
+        {"object_type": "benchmark_percentile",   "visibility": "Distribution of percentile ranks."},
+        {"object_type": "trend_delta",            "visibility": "Quarter-over-quarter delta."},
+        {"object_type": "compound_risk",          "visibility": "Industry-level compound risk trends."}
+      ],
+      "includes_findings": true,
+      "includes_recommendations": true,
+      "includes_methodology": true,
+      "includes_vci": true,
+      "includes_cohort_disclosure": true
+    }
+  },
+
+  "vci_review_thresholds": {
+    "route_for_review": 60,
+    "do_not_present_as_definitive": 40
+  }
+}

@@ -1,39 +1,44 @@
 /**
- * API client — attaches JWT from Supabase session, handles 401/403.
- * Never sends the service-role key.
+ * API client — reads JWT from localStorage (local auth), handles 401/403.
  */
-import { supabase } from "./supabase";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
+const SESSION_KEY = "visentix-auth-session";
 
 export class ApiError extends Error {
-  constructor(
-    public status: number,
-    message: string,
-  ) {
+  status: number;
+  constructor(status: number, message: string) {
     super(message);
     this.name = "ApiError";
+    this.status = status;
   }
 }
 
-async function getAuthHeaders(): Promise<Record<string, string>> {
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  if (!session?.access_token) {
-    throw new ApiError(401, "Not authenticated");
-  }
-  return {
-    Authorization: `Bearer ${session.access_token}`,
-    "Content-Type": "application/json",
-  };
+function getAuthHeaders(): Record<string, string> {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    if (raw) {
+      const session = JSON.parse(raw) as { access_token?: string };
+      if (session?.access_token) {
+        return {
+          Authorization: `Bearer ${session.access_token}`,
+          "Content-Type": "application/json",
+        };
+      }
+    }
+  } catch {}
+  throw new ApiError(401, "Not authenticated");
+}
+
+function handleUnauth() {
+  localStorage.removeItem(SESSION_KEY);
+  localStorage.removeItem("visentix-auth-profile");
+  window.location.href = "/login";
 }
 
 async function handleResponse(res: Response) {
   if (res.status === 401) {
-    // Token expired — sign out and redirect
-    await supabase.auth.signOut();
-    window.location.href = "/login";
+    handleUnauth();
     throw new ApiError(401, "Session expired");
   }
   if (res.status === 403) {
@@ -48,17 +53,29 @@ async function handleResponse(res: Response) {
 
 export const api = {
   async get(path: string) {
-    const headers = await getAuthHeaders();
+    const headers = getAuthHeaders();
     const res = await fetch(`${API_BASE}${path}`, { headers });
     return handleResponse(res);
   },
 
   async post(path: string, body?: unknown) {
-    const headers = await getAuthHeaders();
+    const headers = getAuthHeaders();
     const res = await fetch(`${API_BASE}${path}`, {
       method: "POST",
       headers,
       body: body ? JSON.stringify(body) : undefined,
+    });
+    return handleResponse(res);
+  },
+
+  async postForm(path: string, formData: FormData) {
+    const headers = getAuthHeaders();
+    // Remove Content-Type so browser sets multipart boundary automatically
+    delete headers["Content-Type"];
+    const res = await fetch(`${API_BASE}${path}`, {
+      method: "POST",
+      headers,
+      body: formData,
     });
     return handleResponse(res);
   },

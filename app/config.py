@@ -39,6 +39,18 @@ class Settings(BaseSettings):
     hosted_qwen_api_key: str = Field(default="")
     hosted_qwen_model: str = Field(default="")
 
+    # Versioning metadata (VICBNF v2 quintet — stamped on every score/finding)
+    scoring_model_version: str = Field(default="vicbnf-2.0.0")
+    source_corpus_version: str = Field(default="corpus-2026Q2")
+
+    # Live enforcement correlation (F-004) — requires embeddings to be available
+    enable_live_f004: bool = Field(default=False)
+
+    # External data-source APIs (ingest scripts)
+    govinfo_api_key: str = Field(default="")
+    courtlistener_token: str = Field(default="")
+    openstates_api_key: str = Field(default="")
+
     # Admin
     admin_email: str = Field(default="")
 
