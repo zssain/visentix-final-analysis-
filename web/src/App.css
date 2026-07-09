@@ -18,28 +18,16 @@
 .nav-brand {
   display: flex;
   align-items: center;
-  gap: 10px;
   color: white;
-  font-weight: 800;
-  font-size: 1.1rem;
-  letter-spacing: -0.03em;
   flex-shrink: 0;
   margin-right: 8px;
 }
 
-.nav-brand .logo-icon {
-  width: 32px;
-  height: 32px;
-  background: linear-gradient(135deg, var(--teal) 0%, var(--exec-blue) 100%);
-  border-radius: 7px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--font-display);
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: white;
-  flex-shrink: 0;
+.nav-logo {
+  height: 24px;
+  width: auto;
+  display: block;
+  object-fit: contain;
 }
 
 .nav-divider {
@@ -159,24 +147,54 @@
 .login-brand-header {
   display: flex;
   align-items: center;
-  gap: 10px;
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 1.3rem;
-  color: var(--navy);
 }
 
-.login-brand-header .logo-icon {
-  width: 36px;
-  height: 36px;
-  background: linear-gradient(135deg, var(--teal) 0%, var(--exec-blue) 100%);
-  border-radius: 9px;
+.login-logo {
+  height: 28px;
+  width: auto;
+  display: block;
+  object-fit: contain;
+}
+
+.login-artwork-logo-container {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.2rem;
-  font-weight: 700;
-  color: white;
+  width: 140px;
+  height: 140px;
+  margin-bottom: 32px;
+}
+
+.login-artwork-logo {
+  width: 88px;
+  height: 88px;
+  object-fit: contain;
+  z-index: 2;
+  filter: drop-shadow(0 12px 24px rgba(9, 35, 79, 0.4)) drop-shadow(0 0 8px rgba(85, 199, 179, 0.2));
+}
+
+.logo-background-watermark {
+  position: absolute;
+  width: 160px;
+  height: 160px;
+  background-image: url('/logo.png');
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+  opacity: 0.12;
+  z-index: 1;
+  transform: rotate(-15deg);
+  animation: logo-float 6s ease-in-out infinite alternate;
+}
+
+@keyframes logo-float {
+  0% {
+    transform: rotate(-15deg) translateY(0);
+  }
+  100% {
+    transform: rotate(-10deg) translateY(-8px);
+  }
 }
 
 .login-form-wrapper {

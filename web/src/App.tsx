@@ -48,8 +48,7 @@ function AppRoutes() {
         <nav className="top-nav" role="navigation" aria-label="Main navigation">
           {/* Brand */}
           <div className="nav-brand">
-            <div className="logo-icon" aria-hidden="true">V</div>
-            <span>Visentix</span>
+            <img src="/wordmark logo for dark background.png" alt="Visentix" className="nav-logo" />
           </div>
           <div className="nav-divider" aria-hidden="true" />
 
