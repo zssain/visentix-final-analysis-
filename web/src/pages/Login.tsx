@@ -1,13 +1,7 @@
-/**
- * Login page — declarative redirect when session exists.
- * No imperative navigate() after signIn — the AuthProvider context update
- * triggers a re-render and the Navigate component fires.
- */
 import { useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
 import { BeamsBackground } from "../components/ui/beams-background";
-import { MetallicShield } from "../components/ui/metallic-shield";
 
 function roleLanding(role: string): string {
   switch (role) {
@@ -28,7 +22,6 @@ export function Login() {
   const [submitting, setSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [infoMessage, setInfoMessage] = useState("");
-  const [focusField, setFocusField] = useState<"email" | "password" | null>(null);
 
   // Declarative redirect: if already authenticated, leave /login
   if (!loading && session) {
@@ -54,8 +47,7 @@ export function Login() {
       {/* Form Pane */}
       <div className="login-form-pane">
         <div className="login-brand-header">
-          <div className="logo-icon" aria-hidden="true">V</div>
-          <span>Visentix</span>
+          <img src="/wordmark logo for white background.png" alt="Visentix" className="login-logo" />
         </div>
 
         <div className="login-form-wrapper">
@@ -78,8 +70,6 @@ export function Login() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                onFocus={() => setFocusField("email")}
-                onBlur={() => setFocusField(null)}
                 placeholder="you@company.com"
                 required
                 autoFocus
@@ -94,8 +84,6 @@ export function Login() {
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  onFocus={() => setFocusField("password")}
-                  onBlur={() => setFocusField(null)}
                   placeholder="Enter your password"
                   required
                 />
@@ -163,7 +151,10 @@ export function Login() {
         <div className="artwork-card">
           <BeamsBackground>
             <div className="artwork-card-content">
-              <MetallicShield focusField={focusField} />
+              <div className="login-artwork-logo-container">
+                <div className="logo-background-watermark" />
+                <img src="/logo.png" className="login-artwork-logo" alt="Visentix Logo" />
+              </div>
               <div className="artwork-eyebrow">Privacy Intelligence</div>
               <div className="artwork-title">Compared to whom, with what exposure, at what confidence.</div>
               <div className="artwork-subtitle">

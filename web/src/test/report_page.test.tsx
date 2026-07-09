@@ -121,9 +121,7 @@ describe("ReportPage / ReportView", () => {
 
   it("shows cleaned exemplar in Section 8 (not placeholder)", () => {
     renderReport(FIXTURE);
-    expect(screen.getByText("De-identified")).toBeInTheDocument();
-    expect(screen.getByText("sharing")).toBeInTheDocument();
-    expect(screen.getByText("exemplar.")).toBeInTheDocument();
+    expect(screen.getByText("De-identified sharing exemplar.")).toBeInTheDocument();
     expect(screen.queryByTestId("exemplar-placeholder")).not.toBeInTheDocument();
   });
 
