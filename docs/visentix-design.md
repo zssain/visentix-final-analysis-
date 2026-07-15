@@ -59,9 +59,23 @@ Consumer "premium" is gloss and motion. **Legal-and-regulator "premium" is confi
 ## DDR-007 — The guardrail is a visible trust mark, not a hidden disclaimer
 
 - **Context.** The platform never issues legal verdicts (banned-term guardrail).
-- **Decision.** A small, quiet **"Intelligence, not legal advice"** mark sits at the foot of findings and reports — designed, not buried in legalese.
+- **Decision.** A small, quiet **"Intelligence, not legal advice"** mark sits at the foot of findings and reports — designed, not buried in legalese. *Refinement (2026-07):* it appears only where findings/reports appear — finding cards, report sections, lineage drawer, SME editor. Not on Login, Monitor chrome, Admin, Codex, or Methodology: repeated on every surface it reads as nervousness, not discipline.
 - **Rationale.** A consumer would ignore it; a lawyer respects that we understand our own lane. It converts a disclaimer into a *trust signal*.
 - **Rejected.** Long legal disclaimer footer (nobody reads it, and it reads defensive); no mark at all (misses a chance to signal discipline).
+
+## DDR-008 — One PageHeader on every routed screen
+
+- **Context.** The six routed screens each invented their own header: different fonts and sizes, some screens never said what they do, and nav labels didn't match page titles.
+- **Decision.** Every routed screen opens with one shared **PageHeader** component: **eyebrow** (where you are — always the nav label) · **title** · **one plain-English sentence saying what the screen does** · right-side **actions** slot (status chips, counts, primary CTA). Nav label ↔ eyebrow ↔ title must agree (see the route map in `UI_SPEC.md`).
+- **Rationale.** A regulator landing on any screen should know in one glance where they are and what the screen is for. The description line is where the plain-language balance lives: titles may use product vocabulary (Codex, Workbench); descriptions must read for a first-time legal audience.
+- **Rejected.** Per-screen bespoke headers (drift is guaranteed); burying "what this does" in tooltips or docs (nobody hovers to learn a page's purpose).
+
+## DDR-009 — Trend deltas are colored by improvement, not direction
+
+- **Context.** Exposure scores read lower = better, but early UI colored upward movement teal and downward red — so an improving score (41.3 → 38.0) rendered as bad news.
+- **Decision.** Deltas, sparklines, and change-feed stripes are colored by **improvement**: exposure falling = teal (improving), rising = red (worsening). Arrows (▲/▼) still show direction; color carries the judgement. One helper (`trendColor` in `scoreBands.ts`) owns this everywhere. Emerald stays reserved for the live-dot.
+- **Rationale.** For this audience a color is a verdict. Celebrating rising exposure in teal is a factual error the reader will catch — and then distrust every other color in the product.
+- **Rejected.** ▲ teal / ▼ red by direction (wrong verdicts on exposure metrics); per-screen conventions (guaranteed contradiction).
 
 ---
 

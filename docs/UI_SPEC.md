@@ -340,17 +340,17 @@ These components appear globally. Their specs are the authority.
 
 ## Existing Screens — Status & Gaps
 
-| Screen | screens.md status | Codebase status | Gap |
+| Screen | screens.md status | Codebase status (2026-07-15) | Gap |
 |---|---|---|---|
-| Advisor Note component | "built — see visentix-advisor-note.html" | Not found in React | Must be built as React component |
-| Continuous Monitoring dashboard | Hero of release | Customer Dashboard.tsx is a stub | Full layout to build |
-| Report showcase upgrade | Styling on existing 12 sections | 12 sections exist in report/sections/ | Provenance ribbon, lineage drawer affordances, reader-register toggle missing |
-| Finding Codex | Spec exists | No page exists | New page to build |
-| Methodology / About page | Spec exists | No page exists | New page to build |
+| Advisor Note component | "built — see visentix-advisor-note.html" | Built — `AdvisorNote.tsx` | Wire real data (mocks per tracker) |
+| Continuous Monitoring dashboard | Hero of release | Built — `Dashboard.tsx` (PageHeader, hero sparkline, domain score+delta cards, feed, alerts) | M-06/M-07/M-08/M-09 mocks to wire |
+| Report showcase upgrade | Styling on existing 12 sections | 12 sections built with ribbon, lineage affordances, side-by-side diff | Reader-register toggle still a stub (OD-02) |
+| Finding Codex | Spec exists | Built — `FindingCodex.tsx` | M-11 mock → `/api/codex` |
+| Methodology / About page | Spec exists | Built — `Methodology.tsx` | — |
 | Quarterly Report reader | Spec exists | No page exists | New page to build |
-| SME Workbench v2 | Spec exists | ReviewQueue.tsx stub only | Three-pane layout + de-id mode to build |
+| SME Workbench v2 | Spec exists | Built — `ReviewQueue.tsx` three-pane + de-id mode | M-04 mock; wire real queue actions |
 | Framework Crosswalk | "held for product approval" | Not built | Hold — build shell only |
-| Intake & Decomposition Explorer | Gap in screens.md | No page exists | New page (Screen 1 above) |
+| Intake & Decomposition Explorer | Gap in screens.md | Built — `Intake.tsx` split-pane + stepper | M-01/M-02 mocks; PDF mode UI-only |
 
 ### Report sections in codebase vs. spec
 
@@ -428,4 +428,4 @@ All 12 sections exist as TSX files in `web/src/report/sections/`. Known gaps:
 
 ---
 
-*Last updated: 2026-07-07. Branch: phase-4-ui-login. All phrasing in this document follows exposure/maturity/likelihood/benchmark/confidence language — no legal verdicts.*
+*Last updated: 2026-07-15. All phrasing in this document follows exposure/maturity/likelihood/benchmark/confidence language — no legal verdicts. 2026-07-15 consistency pass: PageHeader furniture (DDR-008), improvement-based delta coloring (DDR-009), score-band + low-confidence-cohort constants centralised in `scoreBands.ts`, trust-mark placement trimmed (DDR-007 refinement), provenance ribbon restricted to snapshot surfaces, domain scorecards lost their mini-sparklines.*

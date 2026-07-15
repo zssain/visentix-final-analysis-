@@ -28,14 +28,14 @@ The novel, ownable piece. A single finding rendered two ways behind one switch.
 ┌───────────────────────────────────────────────────────────┐
 │  SiteNav (navy)                                            │
 ├───────────────────────────────────────────────────────────┤
-│  Org header · live-dot "Monitoring active" · provenance    │
+│  PageHeader (eyebrow·title·desc) · live-dot · provenance   │
 ├──────────────────────────────┬────────────────────────────┤
 │  Overall Intelligence Score  │  Change feed (chronological)│
 │  big figure + trend sparkline│  · notice updated           │
 │  ▲/▼ delta vs last snapshot  │  · score moved 41→38        │
 ├──────────────────────────────┤  · new regulator signal     │
 │  Domain scorecards (8)       │  · cohort re-benchmarked     │
-│  small sparkline each,       ├────────────────────────────┤
+│  score + delta each,         ├────────────────────────────┤
 │  color by score band         │  Alert center               │
 │                              │  High / Medium, each opens  │
 │                              │  an Advisor Note            │
@@ -43,7 +43,7 @@ The novel, ownable piece. A single finding rendered two ways behind one switch.
 ```
 
 **Key components.**
-- **Score-over-time sparklines** — one hero line for Overall, small ones per domain. Tabular figures. Trend delta uses ▲ teal / ▼ red, and reports `no prior history` cleanly on first assessment (don't fake a flat line).
+- **Score-over-time sparkline** — ONE hero line for Overall only. Domain scorecards show score + delta, no mini-sparklines (8 wiggly lines read as noise; the hero line stays the hero). Tabular figures. **Deltas and sparklines are colored by improvement, not direction**: exposure falling = teal (improving), rising = red (worsening); arrows show direction, color carries the judgement. Reports `no prior history` cleanly on first assessment (don't fake a flat line).
 - **Change feed** — reverse-chronological, each entry timestamped and snapshot-linked. Types: notice changed, score moved, regulator signal, cohort re-benchmarked. This is the "it's watching" proof.
 - **Alert center** — High/Medium severity chips; opening one reveals the Advisor Note for that finding (reuse component #1).
 - **Live-dot** — existing `.live-dot` emerald pulse = monitoring active.
@@ -74,7 +74,7 @@ The novel, ownable piece. A single finding rendered two ways behind one switch.
 
 **Layout.** Left rail = domain filter (the 8 taxonomy domains + other). Main = searchable code list; each entry expands to canonical definition, the exposure it signals, an anonymised example pattern, and related codes. Codes shown in the same navy chip used in reports for consistency.
 
-**States.** Search empty ("Search 40+ finding codes…"); no result (offer nearest domain, don't dead-end); code deep-link (each entry has its own URL so tooltips and PDFs can point to it).
+**States.** Search empty ("Search N finding codes…" — always the exact count, honest-numbers rule); no result (offer nearest domain, don't dead-end); code deep-link (each entry has its own URL so tooltips and PDFs can point to it).
 
 ---
 
@@ -114,8 +114,10 @@ The novel, ownable piece. A single finding rendered two ways behind one switch.
 
 ## Cross-screen furniture
 
-- **Provenance ribbon** — required on every report/dashboard surface (DDR-004).
+- **PageHeader** — every routed screen opens with it: eyebrow (matches nav label) · title · one plain-English sentence saying what the screen does · right-side actions/status. No screen invents its own header (DDR-008).
+- **Provenance ribbon** — required on every report/dashboard surface (DDR-004). Snapshot surfaces only — never on Admin.
 - **Lineage drawer** — global; any score, any screen.
 - **Codex tooltip** — global; any finding code, any screen.
 - **View switch** — anywhere a finding appears with a human layer.
 - **Live-dot** — monitoring surfaces only.
+- **"Intelligence, not legal advice" mark** — findings, report sections, lineage drawer, SME editor. Not on Login/Monitor chrome/Admin/Codex/Methodology (DDR-007 refinement).
