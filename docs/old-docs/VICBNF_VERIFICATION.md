@@ -71,7 +71,7 @@
 > **For account managers: How to show a customer exactly why each number was produced.**
 
 ### Setup
-1. Open `http://localhost:5173` and log in as `admin@visentix.com` / `123456`
+1. Open `http://localhost:5173` and log in as the local admin user (see `docs/SETUP.md` for local dev credentials; do not commit real credentials)
 2. Navigate to **Intake** in the top nav
 
 ### Step 1: Submit a notice (10 seconds)

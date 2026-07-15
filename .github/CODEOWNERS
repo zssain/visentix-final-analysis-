@@ -1,0 +1,23 @@
+# CODEOWNERS — who must approve what.
+# Replace the placeholders with real GitHub usernames.
+# With branch protection ("require review from Code Owners") this is the
+# human gate of the feedback loop: automation drafts, these people approve.
+
+# Application code → an engineer must approve.
+/app/                    @engineer-one @engineer-two
+/web/                    @engineer-one @engineer-two
+/migrations/             @engineer-one @engineer-two
+/scripts/                @engineer-one @engineer-two
+/.github/                @engineer-one @engineer-two
+
+# Specs: content truth → the expert must approve.
+/visentix-specs/                          @the-expert
+/visentix-onboarding/                     @the-expert
+
+# The most sensitive spec files: expert AND an engineer.
+/visentix-specs/01-foundation/intelligence-logic.md   @the-expert @engineer-one
+/visentix-specs/01-foundation/schema.md               @the-expert @engineer-one
+/scripts/data/hard_rules.md                           @the-expert @engineer-one
+
+# AGENTS.md hand-written sections (generated ones are script-owned anyway).
+/AGENTS.md               @the-expert @engineer-one @engineer-two

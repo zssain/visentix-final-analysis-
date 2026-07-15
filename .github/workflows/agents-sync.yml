@@ -1,0 +1,44 @@
+# agents-sync: whenever foundation specs (or feature statuses) change on main,
+# regenerate the GENERATED sections of AGENTS.md and commit the result.
+# This is what makes it impossible for AGENTS.md to drift from the specs.
+
+name: agents-sync
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "visentix-specs/01-foundation/**"
+      - "visentix-specs/02-features/**"
+      - "scripts/data/hard_rules.md"
+      - "scripts/build_agents_md.py"
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    # Prevent an infinite loop: skip when the pusher is the sync bot itself.
+    if: github.actor != 'github-actions[bot]'
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Regenerate AGENTS.md
+        run: python scripts/build_agents_md.py
+
+      - name: Commit if changed
+        run: |
+          if ! git diff --quiet AGENTS.md; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add AGENTS.md
+            git commit -m "chore: sync AGENTS.md generated sections with specs [skip ci]"
+            git push
+            echo "AGENTS.md updated."
+          else
+            echo "AGENTS.md already in sync."
+          fi
