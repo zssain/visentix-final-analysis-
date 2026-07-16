@@ -5,7 +5,7 @@ import type { ReportSection } from "../types";
 // [MOCK M-09] snapshot_id and formula_version read from content
 // real: report_snapshot.id and frozen_at from Supabase, threaded through the API response
 export function Traceability({ content }: { content: ReportSection["content"] }) {
-  const snapshotId  = (content.snapshot_id     as string | undefined) ?? "S-0000";
+  const snapshotId  = (content.snapshot_id     as string | undefined) ?? "—" /* honest absence — never a plausible-looking fake ID (Hard Rule 7) */;
   const formulaVer  = (content.formula_version as string | undefined) ?? "v1.0";
   const frozenDate  = (content.date            as string | undefined) ?? "—";
   const assessmentId= (content.assessment_id   as string | undefined) ?? "—";

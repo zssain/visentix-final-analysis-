@@ -26,7 +26,7 @@ function getAuthHeaders(): Record<string, string> {
         };
       }
     }
-  } catch {}
+  } catch { /* token decode failed — fall through to unauthenticated */ }
   throw new ApiError(401, "Not authenticated");
 }
 

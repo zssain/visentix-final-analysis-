@@ -19,7 +19,10 @@ import { fileURLToPath } from "node:url";
 import { resolve, dirname } from "node:path";
 import { describe, expect, it } from "vitest";
 
-import { trendColor } from "../lib/scoreBands";
+import {
+  trendColor, scoreBandColor, maturityBandColor, bandColor,
+  metricPolarity, maturityBand, NEUTRAL_SCORE_COLOR,
+} from "../lib/scoreBands";
 import * as quarterlyMock from "../pages/quarterly/mockData";
 import * as partnerMock from "../pages/partner/mockData";
 import * as bulkMock from "../pages/bulk/mockData";
@@ -113,6 +116,51 @@ describe("F12 AC-8 — trendColor polarity (DDR-009 + design-system §2)", () =>
   it("defaults to exposure polarity — existing callers keep their behavior", () => {
     expect(trendColor(-1)).toBe(trendColor(-1, "exposure"));
     expect(trendColor(+1)).toBe(trendColor(+1, "exposure"));
+  });
+});
+
+// ── Polarity-aware score coloring (design-system §2 v1.3) ─────
+// Color always carries the same judgement: teal good, gold middling,
+// red poor — whichever direction the metric runs.
+
+describe("polarity-aware score coloring — color agrees with meaning", () => {
+  const TEAL = "#55C7B3", GOLD = "#C8A46A", RED = "#F87171";
+
+  it("maturity scale: color always agrees with the maturity band label", () => {
+    expect(maturityBand(34.9)).toBe("Deficient");
+    expect(maturityBandColor(34.9)).toBe(RED);      // Deficient is never teal
+    expect(maturityBand(8.8)).toBe("Deficient");
+    expect(maturityBandColor(8.8)).toBe(RED);       // Transparency 8.8 is not "good"
+    expect(maturityBand(62.3)).toBe("Developing");
+    expect(maturityBandColor(62.3)).toBe(GOLD);
+    expect(maturityBand(80)).toBe("Mature");
+    expect(maturityBandColor(80)).toBe(TEAL);
+  });
+
+  it("exposure scale unchanged: high exposure red, low exposure teal", () => {
+    expect(scoreBandColor(82.2)).toBe(RED);
+    expect(scoreBandColor(50)).toBe(GOLD);
+    expect(scoreBandColor(17.1)).toBe(TEAL);
+  });
+
+  it("bandColor dispatches by polarity; unknown polarity is neutral, never a guess", () => {
+    expect(bandColor(34.9, "maturity")).toBe(RED);
+    expect(bandColor(34.9, "exposure")).toBe(TEAL);
+    expect(bandColor(34.9, undefined)).toBe(NEUTRAL_SCORE_COLOR);
+  });
+
+  it("metric polarity registry classifies the screenshot's metrics correctly", () => {
+    expect(metricPolarity("Regulatory Exposure")).toBe("exposure");
+    expect(metricPolarity("Compound Risk")).toBe("exposure");
+    expect(metricPolarity("Enforcement Correlation")).toBe("exposure");
+    expect(metricPolarity("Benchmark Deviation")).toBe("exposure");
+    expect(metricPolarity("Disclosure Maturity")).toBe("maturity");
+    expect(metricPolarity("Transparency")).toBe("maturity");
+    expect(metricPolarity("AI Transparency")).toBe("maturity");
+    expect(metricPolarity("Benchmark Percentile")).toBe("maturity");
+    expect(metricPolarity("F-010")).toBe("maturity");
+    expect(metricPolarity("F-002")).toBe("exposure");
+    expect(metricPolarity("something-unrecognized")).toBeUndefined();
   });
 });
 

@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components -- standard context pattern: provider + hook co-exported; HMR full-reload is acceptable here */
 /**
  * AuthProvider — local auth (no Supabase auth service).
  * Calls POST /auth/login on the FastAPI backend, stores the JWT in
@@ -37,7 +38,7 @@ function readLocalSession(): LocalSession | null {
   try {
     const raw = localStorage.getItem(SESSION_KEY);
     if (raw) return JSON.parse(raw) as LocalSession;
-  } catch {}
+  } catch { /* storage unavailable or corrupt — treat as absent, non-fatal */ }
   return null;
 }
 
@@ -45,7 +46,7 @@ function readLocalProfile(): AuthProfile | null {
   try {
     const raw = localStorage.getItem(PROFILE_KEY);
     if (raw) return JSON.parse(raw) as AuthProfile;
-  } catch {}
+  } catch { /* storage unavailable or corrupt — treat as absent, non-fatal */ }
   return null;
 }
 
@@ -86,16 +87,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       organizationId: data.organization_id ?? null,
     };
 
-    try { localStorage.setItem(SESSION_KEY, JSON.stringify(newSession)); } catch {}
-    try { localStorage.setItem(PROFILE_KEY, JSON.stringify(newProfile)); } catch {}
+    try { localStorage.setItem(SESSION_KEY, JSON.stringify(newSession)); } catch { /* storage unavailable or corrupt — treat as absent, non-fatal */ }
+    try { localStorage.setItem(PROFILE_KEY, JSON.stringify(newProfile)); } catch { /* storage unavailable or corrupt — treat as absent, non-fatal */ }
 
     setProfile(newProfile);
     setSession(newSession);
   }, []);
 
   const signOut = useCallback(async () => {
-    try { localStorage.removeItem(SESSION_KEY); } catch {}
-    try { localStorage.removeItem(PROFILE_KEY); } catch {}
+    try { localStorage.removeItem(SESSION_KEY); } catch { /* storage unavailable or corrupt — treat as absent, non-fatal */ }
+    try { localStorage.removeItem(PROFILE_KEY); } catch { /* storage unavailable or corrupt — treat as absent, non-fatal */ }
     setSession(null);
     setProfile(null);
   }, []);

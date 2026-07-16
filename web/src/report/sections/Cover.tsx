@@ -1,32 +1,30 @@
-import { ProvenanceRibbon } from "../../components/ProvenanceRibbon";
 import { IntelligenceMark } from "../../components/IntelligenceMark";
-import { maturityBand } from "../../lib/scoreBands";
+import { ScoreDial } from "../ScoreDial";
 import type { ReportSection } from "../types";
 
+/**
+ * Cover — editorial first page: eyebrow, Fraunces org name, meta row,
+ * score dial (Workstream B item 1), scope & limitations, mark.
+ * The provenance ribbon renders ONCE, globally, in ReportView — not here
+ * (audit 2026-07-16: the duplicate ribbon made the report open with the same
+ * snapshot ID twice).
+ */
 export function Cover({ content }: { content: ReportSection["content"] }) {
   const domain    = content.org_domain    as string | undefined;
   const industry  = content.org_industry  as string | undefined;
   const size      = content.org_size      as string | undefined;
   const geography = content.org_geography as string | undefined;
-  const snapshotId = (content.snapshot_id as string | undefined) ?? "S-0000";
-  const frozenDate = (content.date as string | undefined) ?? "—";
-  const formulaVer = (content.formula_version as string | undefined) ?? "v1.0";
-  const isDraft    = (content.is_draft as boolean | undefined) ?? false;
+  const vciScore  = content.vci_score     as number | undefined;
 
   const hasMeta = domain || industry || size || geography;
 
   return (
     <div data-testid="section-1" className="report-section cover-section">
-      {/* [MOCK M-09] Snapshot ID and date read from content — real: report_snapshot.id from API */}
-      <ProvenanceRibbon
-        snapshotId={snapshotId}
-        formulaVersion={formulaVer}
-        frozenDate={frozenDate}
-        status={isDraft ? "draft" : "approved"}
-      />
-
       {/* Gold hairline rule */}
       <div className="cover-hairline" aria-hidden="true" />
+
+      {/* Eyebrow — the report type, quiet small caps */}
+      <div className="cover-eyebrow">{(content.report_title as string) ?? "Privacy Intelligence Assessment"}</div>
 
       {/* Org name — display font */}
       <h1 className="cover-org-name">{content.organization as string}</h1>
@@ -41,24 +39,9 @@ export function Cover({ content }: { content: ReportSection["content"] }) {
         </div>
       )}
 
-      <p className="cover-title">{content.report_title as string}</p>
-
-      {/* Score + maturity band */}
-      <div className="cover-score-block">
-        <div className="cover-score-num">{(content.overall_score as number)?.toFixed(1)}</div>
-        <div className="cover-score-label">Overall Privacy Intelligence Score</div>
-        <span style={{
-          display: "inline-block",
-          marginTop: 6,
-          padding: "2px 14px",
-          borderRadius: 4,
-          fontSize: "0.82rem",
-          fontWeight: 700,
-          border: "1.5px solid var(--navy)",
-          color: "var(--navy)",
-        }}>
-          {maturityBand((content.overall_score as number) ?? 0)}
-        </span>
+      {/* Score dial — band-colored arc, maturity band, VCI (when real) */}
+      <div className="cover-dial-wrap">
+        <ScoreDial score={(content.overall_score as number) ?? 0} vci={vciScore} />
       </div>
 
       {/* Scope & limitations */}

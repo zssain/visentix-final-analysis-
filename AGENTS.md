@@ -60,7 +60,7 @@ A normalized corpus already lives in Supabase. You did not create it and you mus
 - schema.md: v1.2 (2026-07-16)
 - business-logic.md: v1.2 (2026-07-15)
 - intelligence-logic.md: v1.2 (2026-07-16)
-- design-system.md: v1.2 (2026-07-16)
+- design-system.md: v1.3 (2026-07-16)
 - Formula registry: F-001–F-014 (see intelligence-logic.md §7)
 - Score bands: see web/src/lib/scoreBands.ts (single source of truth)
 - LOW_CONFIDENCE_COHORT_N: 10
@@ -68,14 +68,14 @@ A normalized corpus already lives in Supabase. You did not create it and you mus
 
 <!-- BEGIN GENERATED: SPEC INDEX (source: visentix-specs/02-features/) -->
 ## Feature spec index
-- F01 — Notice Intake & Decomposition Explorer — shipped (mocks pending)
+- F01 — Notice Intake & Decomposition Explorer — shipped (M-01 replaced — real decomposition wired; M-02 verified-source badge unbuilt)
 - F02 — Corpus Ingestion & Source Monitoring Pipelines — partial (customer intake shipped; scheduled crawling proposed)
 - F03 — Organization Profiling, Benchmark Populations & Normalization — shipped (deterministic profiler 4.0A + normalization 4.0B)
 - F04 — Scoring, Findings & Confidence Engine — shipped
 - F05 — Report Generation (12 Sections, Snapshots, PDF) — shipped (section gaps per MVP plan Workstream B)
-- F06 — SME Workbench & Review Gate — shipped (queue actions + counter wiring pending)
-- F07 — Continuous Monitoring Dashboard (Hero) — shipped UI (all data mocked M-06–M-08)
-- F08 — Finding Codex & Methodology Pages — shipped (Codex on mock M-11)
+- F06 — SME Workbench & Review Gate — shipped (M-04 counters wired to real `/admin/training-stats`; queue actions pending)
+- F07 — Continuous Monitoring Dashboard (Hero) — partial — Dashboard ships as a real-data assessments list + stats (live API); the monitoring hero (trend sparkline, change feed, alert center) is **unbuilt** — M-06–M-08 surfaces do not exist yet
+- F08 — Finding Codex & Methodology Pages — shipped (M-11 replaced — Codex reads the real `/findings/codex` route)
 - F09 — Admin Console — shipped UI (gate mode + batch trigger simulated, M-13/M-14)
 - F10 — Auth, Roles & Multi-Tenancy — shipped (custom local JWT); hardening R1→R2
 - F11 — White-Label Portal & Intelligence APIs — shipped UI — partner portal built, all data mocked (M-19–M-22); Intelligence APIs, tenancy & metering backend proposed

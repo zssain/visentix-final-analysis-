@@ -14,85 +14,136 @@
   position: relative;
 }
 
+/* Every section is a quiet white card on the soft-white page — the report
+   reads as a bound document, not floating fragments. */
 .report-section {
-  margin-bottom: 40px;
+  background: #ffffff;
+  border: 1px solid #E4E8ED;
+  border-radius: 12px;
+  padding: 28px 32px;
+  margin-bottom: 24px;
+  box-shadow: 0 1px 3px rgba(9,35,79,0.05);
 }
 
+/* Editorial section headings — Fraunces, quiet gold underline */
 .report-section h2 {
-  font-family: var(--font-ui, 'Inter', sans-serif);
+  font-family: 'Fraunces', Georgia, serif;
   color: #09234F;
-  border-bottom: 2px solid #D9DDE2;
-  padding-bottom: 6px;
-  margin-bottom: 16px;
-  font-size: 1.1rem;
-  font-weight: 700;
-  letter-spacing: -0.01em;
+  border-bottom: 1px solid #E4E8ED;
+  padding-bottom: 10px;
+  margin-bottom: 18px;
+  font-size: 1.35rem;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  position: relative;
+}
+.report-section h2::after {
+  content: '';
+  position: absolute;
+  left: 0; bottom: -1px;
+  width: 48px; height: 2px;
+  background: linear-gradient(90deg, #C8A46A, #E8C98A);
+  border-radius: 1px;
 }
 
-/* Cover section */
-.cover-section { text-align: center; padding: 32px 0 24px; }
+/* Cover section — editorial first page */
+.cover-section {
+  text-align: center;
+  padding: 48px 32px 36px;
+}
 .cover-hairline {
-  width: 80px; height: 2px;
+  width: 72px; height: 3px;
   background: linear-gradient(90deg, #C8A46A, #E8C98A);
-  margin: 0 auto 20px;
-  border-radius: 1px;
+  margin: 0 auto 22px;
+  border-radius: 2px;
+}
+.cover-eyebrow {
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: #8a6a2b;
+  margin-bottom: 10px;
 }
 .cover-org-name {
   font-family: 'Fraunces', Georgia, serif;
-  font-size: 2.2rem;
-  font-weight: 700;
+  font-size: clamp(2.4rem, 6vw, 3.2rem);
+  font-weight: 600;
   color: #09234F;
-  letter-spacing: -0.03em;
-  margin-bottom: 8px;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  margin-bottom: 14px;
 }
 .cover-meta {
   display: flex;
-  gap: 20px;
+  gap: 8px 24px;
   justify-content: center;
   flex-wrap: wrap;
-  font-size: 0.85rem;
+  font-size: 0.84rem;
   color: #64748b;
-  margin-bottom: 10px;
+  margin-bottom: 6px;
 }
-.cover-meta b { color: #09234F; margin-right: 3px; }
-.cover-title {
-  font-size: 1rem;
-  color: #4A5568;
-  margin-bottom: 20px;
+.cover-meta b {
+  color: #8896A5;
+  margin-right: 4px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
-.cover-score-block {
-  display: inline-flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  background: rgba(9,35,79,0.03);
-  border: 1px solid #D9DDE2;
-  border-radius: 12px;
-  padding: 20px 40px;
-  margin-bottom: 20px;
+
+/* Score dial (Workstream B item 1) */
+.cover-dial-wrap { display: flex; justify-content: center; margin: 26px 0 8px; }
+.score-dial { display: inline-flex; flex-direction: column; align-items: center; }
+.score-dial svg { display: block; }
+.score-dial-value {
+  display: flex; flex-direction: column; align-items: center;
+  margin-top: -78px; /* nest the number inside the arc */
+  pointer-events: none;
 }
-.cover-score-num {
+.score-dial-num {
   font-family: 'Source Sans 3', sans-serif;
   font-variant-numeric: tabular-nums;
-  font-size: 3.5rem;
+  font-size: 3rem;
   font-weight: 700;
   color: #09234F;
   line-height: 1;
 }
-.cover-score-label {
-  font-size: 0.8rem;
+.score-dial-label {
+  font-size: 0.7rem;
   color: #8896A5;
-  font-weight: 600;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
+  margin-top: 6px;
+  max-width: 220px;
 }
+.score-dial-badges {
+  display: flex; align-items: center; gap: 10px;
+  margin-top: 14px;
+}
+.score-dial-band {
+  display: inline-block;
+  padding: 3px 16px;
+  border-radius: 4px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  border: 1.5px solid #09234F;
+  color: #09234F;
+}
+.score-dial-hint {
+  margin-top: 10px;
+  font-size: 0.72rem;
+  color: #8896A5;
+}
+
 .cover-scope-block {
   text-align: left;
-  max-width: 640px;
-  margin: 16px auto 0;
+  max-width: 620px;
+  margin: 26px auto 0;
   background: rgba(200,164,106,0.06);
   border-left: 3px solid #C8A46A;
-  padding: 12px 16px;
+  padding: 14px 18px;
   border-radius: 0 6px 6px 0;
 }
 .cover-scope-label {
@@ -137,11 +188,20 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Mobile: card padding tightens */
+@media (max-width: 640px) {
+  .report-section { padding: 20px 16px; }
+  .cover-section { padding: 32px 16px 28px; }
+}
+
 /* Print stylesheet for PDF export */
 @media print {
   .report-container { max-width: 100%; margin: 0; }
   .report-page-break { page-break-inside: avoid; }
+  .report-section { box-shadow: none; }
   .chart-container * { animation: none !important; transition: none !important; }
   nav, button, .lineage-drawer, .lineage-backdrop { display: none !important; }
-  .cover-hairline { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .cover-hairline, .report-section h2::after, .score-dial svg {
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
 }

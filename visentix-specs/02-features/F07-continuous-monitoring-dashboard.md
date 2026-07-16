@@ -1,6 +1,6 @@
 # F07 — Continuous Monitoring Dashboard (Hero)
 
-**Status:** shipped UI (all data mocked M-06–M-08) · **Release:** R1 wiring / R2 real pipelines · **Depends on:** F02, F04 (F-012/F-013), design-system.md
+**Status:** partial — Dashboard ships as a real-data assessments list + stats (live API); the monitoring hero (trend sparkline, change feed, alert center) is **unbuilt** — M-06–M-08 surfaces do not exist yet · **Release:** R1 wiring / R2 real pipelines · **Depends on:** F02, F04 (F-012/F-013), design-system.md
 
 ## Purpose
 Make the platform feel *alive* — the difference between "I got a report once" and "this watches the landscape for me." Surfaces trend (F-012), alerts (F-013), and the change feed. This is the GRC product seed and the primary evaluator-convincer.
@@ -40,4 +40,5 @@ M-06 sparkline / M-07 feed / M-08 alerts — all replaced by the three routes ab
 Route contract tests, trendColor unit tests, no_prior_history state test, feed pagination test, alert→AdvisorNote integration test.
 
 ## Changelog
+- 2026-07-16 (audit): **Status corrected — it lied in both directions.** The current Dashboard is fully real-data (assessments + stats from the live API, no mocks), but the monitoring-hero surfaces this spec describes (sparkline, change feed, alert center — M-06–M-08) are not present in the code at all. Remaining work is building those panels *and* their endpoints, not merely unmocking them. Mock-tracker rows corrected (v1.8).
 - 2026-07-16: Added Changelog section for template conformance; no behavioral change. (Mocks M-06–M-09 tracked in [`00-plan/mock-tracker.md`](../00-plan/mock-tracker.md).)

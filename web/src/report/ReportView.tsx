@@ -54,7 +54,8 @@ export function ReportView({ report }: ReportViewProps) {
 
   // Extract snapshot ID from sections if available (Cover section carries it)
   const coverContent = report.sections.find(s => s.number === 1)?.content ?? {};
-  const snapshotId   = (coverContent.snapshot_id as string | undefined) ?? "S-0000";
+  const snapshotId   = (coverContent.snapshot_id as string | undefined) ?? "—" /* honest absence — never a plausible-looking fake ID (Hard Rule 7) */;
+  const formulaVer   = coverContent.formula_version as string | undefined;
   const frozenDate   = report.generated_date ?? "—";
 
   return (
@@ -62,10 +63,12 @@ export function ReportView({ report }: ReportViewProps) {
       className={`report-container ${isDraft ? "draft-watermark-wrap" : ""}`}
       data-testid="report-view"
     >
-      {/* DDR-004 + DDR-001: Global provenance ribbon replaces yellow draft_banner */}
+      {/* DDR-004 + DDR-001: THE provenance ribbon — rendered once, here only
+          (audit 2026-07-16: Cover previously rendered a duplicate). */}
       <div style={{ marginBottom: 24 }}>
         <ProvenanceRibbon
           snapshotId={snapshotId}
+          formulaVersion={formulaVer}
           frozenDate={frozenDate}
           status={isDraft ? "draft" : "approved"}
         />

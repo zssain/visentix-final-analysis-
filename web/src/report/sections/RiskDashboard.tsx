@@ -1,8 +1,9 @@
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Cell, ResponsiveContainer } from "recharts";
 import { VciBadge } from "../VciBadge";
 import { ScoreCell } from "../../components/ScoreCell";
+import { IntelligenceMark } from "../../components/IntelligenceMark";
 import { InfoButton } from "../explain";
-import { scoreBandColor } from "../../lib/scoreBands";
+import { bandColor, metricPolarity } from "../../lib/scoreBands";
 import type { ReportSection } from "../types";
 
 const FID_TO_FKEY: Record<string, string> = {
@@ -21,7 +22,7 @@ const FORMULA_DESCS: Record<string, string> = {
 };
 
 export function RiskDashboard({ content }: { content: ReportSection["content"] }) {
-  const snapshotId   = (content.snapshot_id  as string | undefined) ?? "S-0000";
+  const snapshotId   = (content.snapshot_id  as string | undefined) ?? "—" /* honest absence — never a plausible-looking fake ID (Hard Rule 7) */;
   const frozenDate   = (content.date         as string | undefined) ?? "—";
   const cohortSize   = (content.cohort_size  as number | undefined) ?? 0;
   const cohortDate   = (content.cohort_date  as string | undefined) ?? "—";
@@ -48,16 +49,23 @@ export function RiskDashboard({ content }: { content: ReportSection["content"] }
             <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 11 }} />
             <YAxis type="category" dataKey="name" width={108} tick={{ fontSize: 12 }} />
             <Tooltip
-              formatter={(v: any) => [`${Number(v)?.toFixed(1)}`, "Score"]}
+              formatter={(v) => [`${Number(v).toFixed(1)}`, "Score"]}
               contentStyle={{ fontSize: "0.82rem", borderRadius: 6 }}
             />
             <Bar dataKey="value" isAnimationActive={false} radius={[0, 4, 4, 0]}>
               {metrics.map((m, i) => (
-                <Cell key={i} fill={scoreBandColor(m.value ?? 0)} />
+                /* Polarity-aware: maturity metrics (Overall, Disclosure,
+                   Transparency, AI) color by the maturity scale; exposure
+                   metrics (Regulatory, Compound) by the exposure scale. */
+                <Cell key={i} fill={bandColor(m.value ?? 0, metricPolarity(m.fid))} />
               ))}
             </Bar>
           </BarChart>
         </ResponsiveContainer>
+      </div>
+      <div style={{ fontSize: "0.74rem", color: "var(--text-muted)", marginTop: 4 }}>
+        Color shows standing — teal good · gold developing · red needs attention. Maturity scores read
+        higher-is-better; exposure scores lower-is-better.
       </div>
 
       {/* Score cells with lineage affordance */}
@@ -108,6 +116,7 @@ export function RiskDashboard({ content }: { content: ReportSection["content"] }
         <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontStyle: "italic" }}>
           Click any score to view its lineage
         </span>
+        <IntelligenceMark />
       </div>
     </div>
   );

@@ -1,5 +1,6 @@
 import { Fragment, useState } from "react";
 import { AdvisorNote } from "../../components/AdvisorNote";
+import { IntelligenceMark } from "../../components/IntelligenceMark";
 import { CodexTooltip } from "../../components/CodexTooltip";
 import { InfoButton } from "../explain";
 import type { ReportSection } from "../types";
@@ -27,7 +28,7 @@ function severityBadgeClass(s: string): string {
 
 export function FindingsTable({ content }: { content: ReportSection["content"] }) {
   const findings     = (content.findings    as Finding[]) ?? [];
-  const snapshotId   = (content.snapshot_id as string | undefined) ?? "S-0000";
+  const snapshotId   = (content.snapshot_id as string | undefined) ?? "—" /* honest absence — never a plausible-looking fake ID (Hard Rule 7) */;
   const frozenDate   = (content.date        as string | undefined) ?? "—";
   const cohortSize   = (content.cohort_size as number | undefined) ?? 0;
   const cohortDate   = (content.cohort_date as string | undefined) ?? "—";
@@ -121,6 +122,8 @@ export function FindingsTable({ content }: { content: ReportSection["content"] }
           })}
         </tbody>
       </table>
+      {/* DDR-007: every report section carries the mark */}
+      <div style={{ marginTop: 12 }}><IntelligenceMark /></div>
     </div>
   );
 }

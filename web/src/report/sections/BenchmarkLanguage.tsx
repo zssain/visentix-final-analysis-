@@ -1,3 +1,5 @@
+import { CodexTooltip } from "../../components/CodexTooltip";
+import { IntelligenceMark } from "../../components/IntelligenceMark";
 import type { ReportSection } from "../types";
 
 interface ExemplarEntry {
@@ -51,7 +53,8 @@ export function BenchmarkLanguage({ content }: { content: ReportSection["content
               display: "flex", alignItems: "center", gap: 10, marginBottom: 8,
             }}>
               <span className="domain-eyebrow">{domainLabel.toUpperCase()}</span>
-              {e.finding_code && <span className="code-chip">{e.finding_code}</span>}
+              {/* DDR-006: finding codes are hover/focus Codex targets */}
+              {e.finding_code && <CodexTooltip code={e.finding_code} />}
               {!hasYour && (
                 <span style={{
                   fontSize: "0.7rem", fontWeight: 600,
@@ -135,7 +138,8 @@ export function BenchmarkLanguage({ content }: { content: ReportSection["content
                 display: "flex", alignItems: "center", gap: 8,
               }}>
                 <span style={{ fontWeight: 600, color: "var(--navy)" }}>
-                  Cohort: n={e.cohort_size ?? 30} peers
+                  {/* Honest n only — never a fabricated fallback (M-12 / Hard Rule 7) */}
+                  {e.cohort_size ? `Cohort: n=${e.cohort_size} peers` : "Cohort size unavailable"}
                 </span>
                 <span style={{ fontStyle: "italic" }}>· {e.maturity_note}</span>
               </div>
@@ -143,6 +147,8 @@ export function BenchmarkLanguage({ content }: { content: ReportSection["content
           </div>
         );
       })}
+      {/* DDR-007: every report section carries the mark */}
+      <div style={{ marginTop: 4 }}><IntelligenceMark /></div>
     </div>
   );
 }

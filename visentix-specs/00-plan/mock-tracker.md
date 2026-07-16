@@ -1,6 +1,6 @@
 # MOCK TRACKER — the MVP mock-closure punch list
 
-**Version:** 1.7 · 2026-07-16
+**Version:** 1.8 · 2026-07-16
 **Authority:** this is the live, canonical tracker of every mock in the product. It replaces the `MOCK TRACKER` section of the archived `docs/old-docs/UI_SPEC.md`. `00-plan/mvp-completion-plan.md` Workstream A drives these to closure; each feature spec's Mocks section points here.
 
 **Rule (unchanged):** every mock must be replaced with real data before shipping to a real client. Never display a hardcoded score, cohort `n`, snapshot ID, or count. Status values: **Open** (still mocked) · **In progress** · **Replaced** (real data wired, verified).
@@ -9,20 +9,20 @@
 
 | ID | Feature | Screen | What's mocked | Real source | Status | Removal plan |
 |---|---|---|---|---|---|---|
-| M-01 | F01 | Intake & Decomposition Explorer | Clause extraction simulated with a static JSON fixture while the LLM classifier is offline | `POST /api/assessments` → real `disclosure_clause` rows | Open | Backend `assessments.py` exists; wire to real decomposition output, delete fixture |
-| M-02 | F01 | Intake & Decomposition Explorer | "verified source" badge always shown on URL fetch success | Real `ssrf_protected` flag in the intake response | Open | Backend already validates SSRF; frontend reads the flag |
+| M-01 | F01 | Intake & Decomposition Explorer | ~~Clause extraction simulated with a static JSON fixture~~ | `POST /api/assessments` → real `disclosure_clause` rows | **Replaced** | Verified 2026-07-16 audit: Intake posts to `/assessments/` and renders real decomposition output (sections/clauses/LLM counts); no fixture remains in `Intake.tsx` |
+| M-02 | F01 | Intake & Decomposition Explorer | "Verified source" badge **not present in the current Intake UI at all** (audit 2026-07-16 — neither mocked nor real) | Real `ssrf_protected` flag in the intake response | Open | Build the badge reading the real flag (backend already validates; register-safe wording per Hard Rule 9) |
 | M-03 | F05/F06 | Clause Comparison (BenchmarkLanguage) | Exemplar clause hardcoded as a static string | `disclosure_clause WHERE is_exemplar = true` | Open | SME must clean + approve ≥1 exemplar per demo cohort via Workbench first |
-| M-04 | F06 | SME Workbench — de-id checker | Training-label counts hardcoded 142 / 31 / 12 | `GET /api/admin/health` training_stats (or `training_label` count) | Open | Health route exists — surface stats |
+| M-04 | F06 | SME Workbench — de-id checker | ~~Training-label counts hardcoded 142 / 31 / 12~~ | `GET /admin/training-stats` | **Replaced** | Verified 2026-07-16 audit: ReviewQueue + Admin Console read the real `/admin/training-stats` route (exists in `app/routers/admin.py`); no hardcoded counts remain |
 | M-05 | F05 | Mobile Advisor view | Advisor Note prose hardcoded house-voice text | Frozen `report_snapshot` Advisor layer | Open | Render from snapshot, never regenerate |
-| M-06 | F07 | Continuous Monitoring dashboard | Sparkline is a static array of scores | F-012 trend-delta outputs (`formula_version` + `report_snapshot`) | Open | Build `GET /api/monitoring/trend?org_id` |
-| M-07 | F07 | Continuous Monitoring dashboard | Change feed is 4 hardcoded events | `monitoring_event` table, filtered by org | Open | Build `GET /api/monitoring/events?org_id` (table exists) |
-| M-08 | F07 | Continuous Monitoring dashboard | Alert-center cards are static | F-013 alert outputs + `enforcement_record` | Open | Build `GET /api/monitoring/alerts?org_id` |
+| M-06 | F07 | Continuous Monitoring dashboard | **Surface does not exist** (audit 2026-07-16: the monitoring-hero panel this row describes is not in the current Dashboard — it lists real assessments + stats only) | F-012 trend-delta outputs (`formula_version` + `report_snapshot`) | Open | Build the panel UI **and** build `GET /api/monitoring/trend?org_id` |
+| M-07 | F07 | Continuous Monitoring dashboard | **Surface does not exist** (audit 2026-07-16: the monitoring-hero panel this row describes is not in the current Dashboard — it lists real assessments + stats only) | `monitoring_event` table, filtered by org | Open | Build the panel UI **and** build `GET /api/monitoring/events?org_id` (table exists) |
+| M-08 | F07 | Continuous Monitoring dashboard | **Surface does not exist** (audit 2026-07-16: the monitoring-hero panel this row describes is not in the current Dashboard — it lists real assessments + stats only) | F-013 alert outputs + `enforcement_record` | Open | Build the panel UI **and** build `GET /api/monitoring/alerts?org_id` |
 | M-09 | F05/F07 | Report — Cover, Traceability | Provenance ribbon shows hardcoded `S-2041`, date `2026-06-19` | Real `report_snapshot.id` + `snapshot_frozen_at` | Open | Stored already; thread through report fetch |
 | M-10 | F05 | Lineage drawer | Formula plain-language descriptions hardcoded | `formula_version.description` column | Open | Populate NULL descriptions (content task, Workstream A3) |
-| M-11 | F08 | Finding Codex | Codex entries are a static JSON array | `finding_type` catalog table (real codes) | Open | Build `GET /api/codex` |
+| M-11 | F08 | Finding Codex | ~~Codex entries are a static JSON array~~ | `GET /findings/codex` over the `finding_type` catalog | **Replaced** | Verified 2026-07-16 audit: FindingCodex page and CodexTooltip both read the real `/findings/codex` route (exists in `app/routers/findings.py`) |
 | M-12 | all | All screens | Cohort size shown as `n=30` everywhere | Live `SELECT COUNT(*) FROM benchmark_membership WHERE cohort_id = …` | Open | Never display a static n; always live-query |
 | M-13 | F09 | Admin Console | Global Gate Mode simulated locally in React | `GET/POST /api/admin/gate-mode` (new `platform_setting`) | Open | Build the endpoints; UI reads/writes real state |
-| M-14 | F09 | Admin Console | Trigger Batch Assessment simulated with a delay | `POST /api/admin/trigger-assessment` | Open | Replace the `not_implemented` stub with the real batch pipeline call |
+| M-14 | F09 | Admin Console | Simulation removed (audit 2026-07-16): Console now shows an honest "available once the batch endpoint is implemented" placeholder — no fake delay | `POST /api/admin/trigger-assessment` | Open | Backend-only: implement the batch endpoint, then wire the button |
 | M-15 | F12 | Quarterly Report reader page | Publication snapshot id + cover corpus counts (orgs / industries / jurisdictions / clauses) hardcoded in `mockData.ts` | Frozen publication snapshot metadata (DIR-010) | Open | Build quarter-close freeze; read real counts (AC-5, Hard Rule 7) |
 | M-16 | F12 | Quarterly Report reader page | Five named Intelligence Indicators + QoQ deltas hardcoded | Market-average aggregates per `formula_version`, each with VCI | Open | Build indicator aggregation over the corpus |
 | M-17 | F12 | Quarterly Report reader page | Section aggregates — industry rankings, regulator activity, AI-governance trend, disclosure trends, compound patterns | Corpus aggregation from `derived_data_item` / F-012 deltas | Open | Build the aggregation layer shared with bulk analysis |
@@ -39,6 +39,7 @@
 | M-28 | F16 | Vendor Due Diligence | Vendor queue + per-vendor procurement summary, evidence-backed signals, and decision state hardcoded in `mockData.ts` | `vendor` + `vendor_review` tables over real assessment output (`risk_finding`, scores), via the vendor endpoints | Open | Build vendor intake→assessment pipeline + review persistence; wire the endpoints |
 
 ## Changelog
+- 1.8 (2026-07-16): Audit of the pre-session UI trued up the registry: M-01, M-04, M-11 → **Replaced** (real routes verified in code and backend); M-02 corrected (badge surface absent, not mocked); M-06–M-08 corrected (monitoring-hero surfaces do not exist in the current Dashboard); M-14 corrected (simulation already removed for an honest placeholder).
 - 1.7 (2026-07-16): Registered M-28 for the F16 Vendor Due Diligence workflow, built UI-only against mock vendors ahead of the vendor pipeline + persistence.
 - 1.6 (2026-07-16): Registered M-27 for the F15 Public Trust Center, built UI-only against mock trust-metrics ahead of the metrics endpoint.
 - 1.5 (2026-07-16): Registered M-26 for the F14 Trust Language Studio, built UI-only against mock patterns ahead of the authored pattern library + backend.
