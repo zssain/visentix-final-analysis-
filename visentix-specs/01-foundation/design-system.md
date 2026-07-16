@@ -1,6 +1,6 @@
 # Design System — Tokens, Furniture, DDR Summary
 
-**Version:** 1.1 · 2026-07-15 · Condenses the Brand Guide, DDRs, and UI_SPEC §0 into one authority. Design principle: **legal-and-regulator "premium" is confident stillness plus evidence everywhere.** Motion exists only to reveal evidence.
+**Version:** 1.2 · 2026-07-16 · Condenses the Brand Guide, DDRs, and UI_SPEC §0 into one authority. Design principle: **legal-and-regulator "premium" is confident stillness plus evidence everywhere.** Motion exists only to reveal evidence.
 
 ## 1. Tokens (fixed — never invent colors)
 
@@ -53,12 +53,24 @@ Responsive 375/768/1280 · visible keyboard focus · `prefers-reduced-motion` re
 |---|---|---|
 | `/assessments` | Monitor | Privacy Intelligence Monitor |
 | `/intake` | Intake | Submit a Privacy Notice |
+| `/rewrite` | Rewrite | Trust Language Studio |
+| `/vendors` | Vendors | Vendor Due Diligence |
 | `/review` | Workbench | SME Workbench |
-| `/admin` | Admin | Admin Console |
+| `/quarterly` | Quarterly | Quarterly Intelligence Report * |
+| `/crosswalk` | Crosswalk | Framework Crosswalk |
 | `/codex` | Codex | Finding Codex |
 | `/methodology` | Methodology | How Visentix Works |
+| `/trust` | Trust Center | Trust Center * |
+| `/admin` | Admin | Admin Console |
+| `/partner` | Partner | Partner Portal |
+| `/bulk` | Bulk | Bulk Analysis |
 | `/reports/:assessmentId` | — | Report reader |
 
+Nav is a grouped sidebar: **Workspace** (Monitor, Intake, Rewrite, Vendors, Workbench) · **Intelligence** (Quarterly, Crosswalk, Codex, Methodology, Trust Center) · **Administration** (Admin, Partner, Bulk). Below 900px it collapses to a hamburger drawer.
+
+\* **Recorded DDR-008 exception:** the two public *editorial* pages (`/quarterly`, `/trust`) open with a full-bleed editorial cover/hero instead of the shared PageHeader — like the report reader, they are documents, not workflow screens. Every other routed screen keeps PageHeader with eyebrow = nav label.
+
 ## Changelog
+- 1.2 (2026-07-16): Route map updated with the seven routes added by F11–F16 (audit finding: doc drift); recorded the grouped-sidebar nav structure and the DDR-008 editorial exception for `/quarterly` and `/trust`.
 - 1.1 (2026-07-15): trendColor extended with per-metric polarity flag (maturity vs exposure) per Appendix I prototype review.
 - 1.0 (2026-07-15): initial consolidation.

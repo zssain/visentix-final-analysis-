@@ -7,7 +7,7 @@
 
 | ID | Decision needed | Recommendation to unblock | Owner | Status | Governs |
 |---|---|---|---|---|---|
-| OD-01 | Framework Crosswalk copy | Approve **descriptive-only** language ("relates to CCPA §1798.120"); ship the shell now, copy later | Product | Recommended | F05 |
+| OD-01 | Framework Crosswalk copy | Approve **descriptive-only** language ("relates to CCPA §1798.120"); ship the shell now, copy later | Product | Recommended | F13 (shell shipped on mock citations), F05 |
 | OD-02 | Reader-register names | **Executive / Practitioner / Plain-language**; ship flag-gated behind a feature flag | Product | Recommended | F05 (ExecutiveSummary reader toggle) |
 | OD-03 | Advisor-hero-on-mobile default | Approve with the two specced mitigations (thumb-tap switch, full-screen lineage sheet) | Product | Recommended | F05, design-system §3 |
 | OD-04 | Real SME names in attribution | Keep house persona **"The Visentix Privacy Desk"** for MVP; revisit at first paying client | SME team | Recommended | F06, design-system DDR-003 |
