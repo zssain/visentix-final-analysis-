@@ -1,6 +1,6 @@
 # MOCK TRACKER — the MVP mock-closure punch list
 
-**Version:** 1.1 · 2026-07-16
+**Version:** 1.2 · 2026-07-16
 **Authority:** this is the live, canonical tracker of every mock in the product. It replaces the `MOCK TRACKER` section of the archived `docs/old-docs/UI_SPEC.md`. `00-plan/mvp-completion-plan.md` Workstream A drives these to closure; each feature spec's Mocks section points here.
 
 **Rule (unchanged):** every mock must be replaced with real data before shipping to a real client. Never display a hardcoded score, cohort `n`, snapshot ID, or count. Status values: **Open** (still mocked) · **In progress** · **Replaced** (real data wired, verified).
@@ -27,7 +27,12 @@
 | M-16 | F12 | Quarterly Report reader page | Five named Intelligence Indicators + QoQ deltas hardcoded | Market-average aggregates per `formula_version`, each with VCI | Open | Build indicator aggregation over the corpus |
 | M-17 | F12 | Quarterly Report reader page | Section aggregates — industry rankings, regulator activity, AI-governance trend, disclosure trends, compound patterns | Corpus aggregation from `derived_data_item` / F-012 deltas | Open | Build the aggregation layer shared with bulk analysis |
 | M-18 | F12 | Quarterly Report reader page | Benchmark Spotlight excerpts hardcoded | SME-approved + de-identified exemplars above the minimum-sample threshold (F06 pipeline) | Open | Wire to approved exemplar store; enforce suppression (AC-6) |
+| M-19 | F11 | Partner Portal | Partner contract + client workspaces (usage, status, branding flags) hardcoded in `mockData.ts` | `partner`, `client_workspace` tables + live usage, scope-isolated (DIR-005) | Open | Build tenancy + workspace CRUD; enforce partner isolation |
+| M-20 | F11 | Partner Portal | API keys + per-contract usage / rate limits | `api_key`, `usage_record` metering | Open | Build key issuance + real usage metering; enforce limits server-side |
+| M-21 | F11 | Partner Portal | Anonymized feed catalog (schema, refresh, permitted-use, VCI, suppression flag) | `feed_snapshot` aggregates with min-sample suppression (DIR-006) | Open | Build feed aggregation + server-enforced suppression |
+| M-22 | F11 | Partner Portal | Branding config + report templates | Partner branding store applied by the report template engine | Open | Persist branding; wire template engine to branded render |
 
 ## Changelog
+- 1.2 (2026-07-16): Registered M-19–M-22 for the F11 Partner Portal, built UI-only against mocks ahead of the tenancy/metering/feed backend.
 - 1.1 (2026-07-16): Registered M-15–M-18 for the F12 Quarterly Report reader page, built UI-only against mocks ahead of the aggregation backend. Every displayed figure on `/quarterly` is mocked; real sources and removal plans recorded per row.
 - 1.0 (2026-07-16): Migrated the MOCK TRACKER out of the archived `UI_SPEC.md` into the live spec system, keyed each row to its owning feature spec, and added an explicit Status column so MVP mock-closure is measurable inside the specs.

@@ -15,6 +15,7 @@ import { ReportPage }            from "./pages/ReportPage";
 import { FindingCodex }          from "./pages/FindingCodex";
 import { Methodology }           from "./pages/Methodology";
 import { QuarterlyReport }       from "./pages/quarterly/QuarterlyReport";
+import { PartnerPortal }         from "./pages/partner/PartnerPortal";
 import "./App.css";
 
 function NavLink({ to, label, children }: { to: string; label?: string; children?: React.ReactNode }) {
@@ -70,6 +71,11 @@ function AppRoutes() {
             {role === "admin" && (
               <NavLink to="/admin">
                 Admin
+              </NavLink>
+            )}
+            {role === "admin" && (
+              <NavLink to="/partner">
+                Partner
               </NavLink>
             )}
             <NavLink to="/codex">
@@ -154,6 +160,14 @@ function AppRoutes() {
           <Route path="/admin" element={
             <ProtectedRoute allowedRoles={["admin"]}>
               <AdminConsole />
+            </ProtectedRoute>
+          } />
+
+          {/* Partner Portal (F11) — no `partner` role yet (F10 tenancy dependency);
+              gated to admin for demo access until partner tenancy lands. */}
+          <Route path="/partner" element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <PartnerPortal />
             </ProtectedRoute>
           } />
 
