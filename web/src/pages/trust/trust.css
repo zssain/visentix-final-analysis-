@@ -1,0 +1,94 @@
+/* F15 — Public Trust Center styles. */
+
+.tc-hero {
+  background: linear-gradient(155deg, var(--navy) 0%, var(--navy-light) 75%, #0a2a5e 100%);
+  color: #fff;
+  border-radius: var(--radius-xl);
+  padding: 44px 40px;
+  margin-bottom: 32px;
+}
+.tc-hero-eyebrow {
+  font-size: 0.72rem; font-weight: 700; letter-spacing: 0.16em;
+  text-transform: uppercase; color: var(--gold-light);
+}
+.tc-hero h1 {
+  font-family: var(--font-display); font-weight: 600;
+  font-size: clamp(1.8rem, 4vw, 2.6rem); line-height: 1.08; letter-spacing: -0.02em;
+  margin: 10px 0 10px; max-width: 22ch;
+}
+.tc-hero p { color: rgba(247,248,250,0.82); font-size: 1rem; line-height: 1.6; max-width: 60ch; }
+
+/* Metrics strip */
+.tc-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px; margin-bottom: 36px;
+}
+.tc-metric {
+  border: 1px solid var(--border); border-radius: var(--radius-lg);
+  background: var(--bg-card); padding: 16px 18px; box-shadow: var(--shadow-sm);
+}
+.tc-metric-value {
+  font-family: var(--font-data); font-variant-numeric: tabular-nums;
+  font-size: 1.9rem; font-weight: 700; color: var(--navy); line-height: 1;
+}
+.tc-metric-label { font-size: 0.82rem; font-weight: 700; color: var(--navy); margin: 8px 0 6px; }
+.tc-metric-note { font-size: 0.74rem; color: var(--text-secondary); line-height: 1.5; }
+
+/* Sections */
+.tc-section { margin-bottom: 40px; }
+.tc-section-title {
+  font-family: var(--font-display); font-weight: 600; font-size: 1.4rem;
+  color: var(--navy); letter-spacing: -0.01em; margin-bottom: 6px;
+}
+.tc-section-lede { color: var(--text-secondary); font-size: 0.9rem; line-height: 1.65; max-width: 66ch; margin-bottom: 18px; }
+
+/* Claim: what we do / don't */
+.tc-claim {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+}
+.tc-claim-card { border-radius: var(--radius-lg); padding: 18px 20px; border: 1px solid var(--border); }
+.tc-claim-card.do   { background: rgba(85,199,179,0.08); border-color: rgba(85,199,179,0.4); }
+.tc-claim-card.dont { background: var(--soft-white); }
+.tc-claim-head { font-weight: 700; font-size: 0.9rem; color: var(--navy); margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+.tc-claim-card ul { margin: 0; padding-left: 18px; }
+.tc-claim-card li { font-size: 0.84rem; color: var(--text-secondary); line-height: 1.6; margin-bottom: 6px; }
+
+/* Commitment cards */
+.tc-commitments { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.tc-commit {
+  border: 1px solid var(--border); border-radius: var(--radius-lg);
+  background: var(--bg-card); padding: 16px 18px;
+}
+.tc-commit-title { font-weight: 700; font-size: 0.9rem; color: var(--navy); margin-bottom: 6px; }
+.tc-commit-body { font-size: 0.82rem; color: var(--text-secondary); line-height: 1.6; }
+
+/* Lineage list */
+.tc-lineage { border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
+.tc-lineage-row { display: flex; gap: 14px; padding: 12px 16px; border-bottom: 1px solid var(--border); align-items: baseline; }
+.tc-lineage-row:last-child { border-bottom: none; }
+.tc-lineage-field {
+  font-family: var(--font-data); font-size: 0.78rem; font-weight: 700; color: #fff;
+  background: var(--navy); padding: 3px 9px; border-radius: 4px; white-space: nowrap; flex-shrink: 0; min-width: 132px; text-align: center;
+}
+.tc-lineage-desc { font-size: 0.84rem; color: var(--text-secondary); line-height: 1.5; }
+
+/* Methodology links */
+.tc-links { display: flex; gap: 12px; flex-wrap: wrap; }
+.tc-link-card {
+  flex: 1; min-width: 200px; text-decoration: none;
+  border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px;
+  background: var(--bg-card); transition: border-color 120ms ease;
+}
+.tc-link-card:hover { border-color: var(--exec-blue); text-decoration: none; }
+.tc-link-title { font-weight: 700; font-size: 0.88rem; color: var(--navy); }
+.tc-link-desc { font-size: 0.78rem; color: var(--text-secondary); margin-top: 3px; line-height: 1.45; }
+
+@media (max-width: 768px) {
+  .tc-hero { padding: 32px 22px; }
+  .tc-claim, .tc-commitments { grid-template-columns: 1fr; }
+  .tc-lineage-row { flex-direction: column; gap: 6px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tc-link-card { transition: none; }
+}

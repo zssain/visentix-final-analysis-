@@ -82,6 +82,7 @@ A normalized corpus already lives in Supabase. You did not create it and you mus
 - F12 — Quarterly Intelligence Report & Bulk Analysis — shipped UI — Quarterly reader page + bulk-analysis workflow real, all data mocked (M-15–M-24); aggregation/publication + batch-pipeline backend proposed
 - F13 — Framework Crosswalk Explorer — shipped UI — explorer built, all data mocked (M-25); crosswalk backend + copy sign-off proposed
 - F14 — Notice Rewrite Prompts (Trust Language Studio) — shipped UI — studio built, all data mocked (M-26); suggestion library + backend proposed
+- F15 — Public Trust Center — shipped UI — center built, trust metrics mocked (M-27); metrics feed proposed
 <!-- END GENERATED: SPEC INDEX -->
 
 ## Stack facts

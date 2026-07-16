@@ -1,6 +1,6 @@
 # MOCK TRACKER — the MVP mock-closure punch list
 
-**Version:** 1.5 · 2026-07-16
+**Version:** 1.6 · 2026-07-16
 **Authority:** this is the live, canonical tracker of every mock in the product. It replaces the `MOCK TRACKER` section of the archived `docs/old-docs/UI_SPEC.md`. `00-plan/mvp-completion-plan.md` Workstream A drives these to closure; each feature spec's Mocks section points here.
 
 **Rule (unchanged):** every mock must be replaced with real data before shipping to a real client. Never display a hardcoded score, cohort `n`, snapshot ID, or count. Status values: **Open** (still mocked) · **In progress** · **Replaced** (real data wired, verified).
@@ -35,8 +35,10 @@
 | M-24 | F12 | Bulk Analysis | Clause-level evidence snippets per flag | `disclosure_clause` rows + finding-type classification, with VCI | Open | Link each flag to real clause evidence (AC-3) |
 | M-25 | F13 | Framework Crosswalk | Crosswalk mappings (domain/code → framework citation + note) hardcoded in `mockData.ts` | `framework_reference` table + `finding_type`, via `GET /api/crosswalk` | Open | Build mapping table + endpoint; expert signs off descriptive copy (OD-01), then swap |
 | M-26 | F14 | Trust Language Studio | Rewrite prompts (per-domain gap status, current excerpt, suggested pattern, rationale, cohort n) hardcoded in `mockData.ts` | Authored `rewrite_pattern` library + `disclosure_clause` (org clauses + `is_exemplar` patterns), via `GET /api/rewrite` | Open | Author + SME-sign-off the pattern library; wire the endpoint over real gaps + approved exemplars |
+| M-27 | F15 | Public Trust Center | Trust-metrics strip values (formulas versioned, reproducibility, lineage fields, review gate) hardcoded in `mockData.ts` | System/publication metadata (`formula_version`, frozen publication snapshot), via `GET /api/trust-metrics` | Open | Wire endpoint to real counts; omit any metric below the suppression threshold (Hard Rule 7) |
 
 ## Changelog
+- 1.6 (2026-07-16): Registered M-27 for the F15 Public Trust Center, built UI-only against mock trust-metrics ahead of the metrics endpoint.
 - 1.5 (2026-07-16): Registered M-26 for the F14 Trust Language Studio, built UI-only against mock patterns ahead of the authored pattern library + backend.
 - 1.4 (2026-07-16): Registered M-25 for the F13 Framework Crosswalk Explorer, built UI-only against mock citations ahead of the `framework_reference` backend + OD-01 copy sign-off.
 - 1.3 (2026-07-16): Registered M-23–M-24 for the F12 Bulk Analysis workflow, built UI-only against mocks ahead of the batch pipeline.
