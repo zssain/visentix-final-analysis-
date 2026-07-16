@@ -3,7 +3,9 @@
 # the guardrail implementation and its tests, glossaries, archives, internal logs.
 # Customer-reachable surfaces must NEVER be added.
 \.github/
+\.claude/
 scripts/data/
+scripts/build_agents_md\.py
 docs/old-docs/
 logs/
 AGENTS\.md

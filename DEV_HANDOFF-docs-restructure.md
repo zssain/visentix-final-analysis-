@@ -96,9 +96,9 @@ markers, CI fails and tells you to regenerate instead.** Everything outside the 
 is hand-written and edited normally.
 
 ### The hard rules (unchanged, still absolute)
-- **No legal verdicts.** Banned terms ("violation", "violates", "illegal", "unlawful",
-  "non-compliant", "breach of law", "guilty", "liable", …) never appear in customer-facing
-  text. Use exposure/likelihood/confidence language. The guardrail hard-fails the build.
+- **No legal verdicts.** The banned verdict vocabulary (single enforced list:
+  `scripts/data/banned_terms.txt`) never appears in customer-facing text. Use
+  exposure/likelihood/confidence language. The guardrail hard-fails the build.
 - **The model classifies and phrases — it never invents** a number, score, finding, or
   recommendation.
 - **Additive migrations only**; never touch existing rows or the `raw-artifacts` bucket.
