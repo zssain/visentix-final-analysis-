@@ -1,6 +1,6 @@
 # F08 — Finding Codex & Methodology Pages
 
-**Status:** shipped (Codex on mock M-11) · **Release:** R1 · **Depends on:** schema.md (`finding_type`, `formula_version`), design-system.md
+**Status:** shipped (M-11 replaced — Codex reads the real `/findings/codex` route) · **Release:** R1 · **Depends on:** schema.md (`finding_type`, `formula_version`), design-system.md
 
 ## Purpose
 **Codex** (`/codex`): the governed, browsable glossary of every finding code — source of truth for all in-report tooltips and PDF appendices; public-facing candidate. A governed code dictionary is proprietary methodology (IP-relevant).
@@ -27,4 +27,5 @@ Codex reads `finding_type` (canonical definition, exposure signal, anonymised ex
 Codex API contract test, report-code↔codex integrity test, search/empty-state vitest.
 
 ## Changelog
+- 2026-07-16 (audit): Status trued up — M-11 verified **Replaced**: FindingCodex and CodexTooltip both read the real `/findings/codex` route (`app/routers/findings.py`). Also fixed the Methodology page's hardcoded "n=30 as of 2026-06-19" line inside the honest-benchmarking copy (M-12 discipline).
 - 2026-07-16: Added Changelog section for template conformance; no behavioral change. (Mock M-11 tracked in [`00-plan/mock-tracker.md`](../00-plan/mock-tracker.md).)

@@ -5,8 +5,9 @@ import type { ReportSection } from "../types";
 
 export function CompoundRisk({ content }: { content: ReportSection["content"] }) {
   const compoundScore = (content.compound_score as number | undefined) ?? 0;
+  const vciScore      = content.vci_score as number | undefined;
   const dimensions    = (content.dimensions as { name: string; score: number; weight: number }[] | undefined) ?? [];
-  const snapshotId    = (content.snapshot_id as string | undefined) ?? "S-0000";
+  const snapshotId    = (content.snapshot_id as string | undefined) ?? "—" /* honest absence — never a plausible-looking fake ID (Hard Rule 7) */;
   const frozenDate    = (content.date        as string | undefined) ?? "—";
   const cohortSize    = (content.cohort_size as number | undefined) ?? 0;
   const cohortDate    = (content.cohort_date as string | undefined) ?? "—";
@@ -26,7 +27,9 @@ export function CompoundRisk({ content }: { content: ReportSection["content"] })
             { label: "Disclosure", type: "clause" },
             { label: "Enforcement", type: "regulator" },
           ]}
-          vci={75}
+          /* VCI comes from the payload only — never invented (Hard Rule 3/7).
+             Missing → ScoreCell's conservative 0 default, not a flattering 75. */
+          vci={vciScore}
           snapshotId={snapshotId}
           frozenDate={frozenDate}
           cohortSize={cohortSize}

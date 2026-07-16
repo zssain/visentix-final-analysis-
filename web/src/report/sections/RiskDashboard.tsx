@@ -1,6 +1,7 @@
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Cell, ResponsiveContainer } from "recharts";
 import { VciBadge } from "../VciBadge";
 import { ScoreCell } from "../../components/ScoreCell";
+import { IntelligenceMark } from "../../components/IntelligenceMark";
 import { InfoButton } from "../explain";
 import { scoreBandColor } from "../../lib/scoreBands";
 import type { ReportSection } from "../types";
@@ -21,7 +22,7 @@ const FORMULA_DESCS: Record<string, string> = {
 };
 
 export function RiskDashboard({ content }: { content: ReportSection["content"] }) {
-  const snapshotId   = (content.snapshot_id  as string | undefined) ?? "S-0000";
+  const snapshotId   = (content.snapshot_id  as string | undefined) ?? "—" /* honest absence — never a plausible-looking fake ID (Hard Rule 7) */;
   const frozenDate   = (content.date         as string | undefined) ?? "—";
   const cohortSize   = (content.cohort_size  as number | undefined) ?? 0;
   const cohortDate   = (content.cohort_date  as string | undefined) ?? "—";
@@ -48,7 +49,7 @@ export function RiskDashboard({ content }: { content: ReportSection["content"] }
             <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 11 }} />
             <YAxis type="category" dataKey="name" width={108} tick={{ fontSize: 12 }} />
             <Tooltip
-              formatter={(v: any) => [`${Number(v)?.toFixed(1)}`, "Score"]}
+              formatter={(v) => [`${Number(v).toFixed(1)}`, "Score"]}
               contentStyle={{ fontSize: "0.82rem", borderRadius: 6 }}
             />
             <Bar dataKey="value" isAnimationActive={false} radius={[0, 4, 4, 0]}>
@@ -108,6 +109,7 @@ export function RiskDashboard({ content }: { content: ReportSection["content"] }
         <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontStyle: "italic" }}>
           Click any score to view its lineage
         </span>
+        <IntelligenceMark />
       </div>
     </div>
   );

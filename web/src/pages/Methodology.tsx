@@ -140,7 +140,7 @@ export function Methodology() {
           {[
             { title: "Frozen Snapshots",  body: "Reports are frozen at publication. Pulling the same snapshot ID twice produces byte-identical output. Re-scoring creates a new versioned snapshot; history is never overwritten." },
             { title: "No Score Without Lineage",    body: "Every score stores its formula version, input references, VCI confidence, and generation timestamp. Click any score in a report to see the full lineage." },
-            { title: "Honest Benchmarking",    body: "Cohort sizes are always reported exactly (n=30 as of 2026-06-19). Low-confidence labels are attached when cohort size is small. No inflated numbers." },
+            { title: "Honest Benchmarking",    body: "Cohort sizes are always reported exactly, live-queried with their as-of date. Low-confidence labels are attached when cohort size is small. No inflated numbers." },
             { title: "Deterministic Narrative",     body: "Advisor Note prose is frozen into the snapshot. It is never regenerated at render time, eliminating LLM non-determinism from the final deliverable." },
           ].map(card => (
             <div key={card.title} className="card" style={{ padding: "16px 18px" }}>

@@ -11,16 +11,18 @@ import type { ReportPayload } from "../report/types";
 
 export function ReportPage() {
   const { assessmentId } = useParams<{ assessmentId: string }>();
+  if (!assessmentId) return null;
+  // key remount resets loading/error per assessment — no sync setState in the
+  // fetch effect needed (audit 2026-07-16, same pattern as VendorDueDiligence).
+  return <ReportLoader key={assessmentId} assessmentId={assessmentId} />;
+}
+
+function ReportLoader({ assessmentId }: { assessmentId: string }) {
   const [report, setReport] = useState<ReportPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<{ status: number; message: string } | null>(null);
 
   useEffect(() => {
-    if (!assessmentId) return;
-
-    setLoading(true);
-    setError(null);
-
     api.get(`/reports/${assessmentId}`)
       .then((data) => {
         setReport(data as ReportPayload);

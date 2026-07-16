@@ -215,7 +215,7 @@ export function AdminConsole() {
                     name="gateMode"
                     value={mode.id}
                     checked={gateMode === mode.id}
-                    onChange={() => handleGateModeChange(mode.id as any)}
+                    onChange={() => handleGateModeChange(mode.id as "strict" | "instant_draft" | "client_reviews")}
                     style={{ marginTop: 3 }}
                   />
                   <div style={{ flex: 1 }}>

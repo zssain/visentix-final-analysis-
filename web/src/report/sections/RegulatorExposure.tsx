@@ -1,4 +1,5 @@
 import { CodexTooltip } from "../../components/CodexTooltip";
+import { IntelligenceMark } from "../../components/IntelligenceMark";
 import { ScoreCell }    from "../../components/ScoreCell";
 import type { ReportSection } from "../types";
 
@@ -18,7 +19,7 @@ export function RegulatorExposure({ content }: { content: ReportSection["content
   const regulatoryScore = (content.regulatory_score as number | undefined) ?? 0;
   const tier            = (content.tier as string | undefined) ?? "—";
   const regulators      = (content.regulators as RegulatorRow[] | undefined) ?? [];
-  const snapshotId      = (content.snapshot_id as string | undefined) ?? "S-0000";
+  const snapshotId      = (content.snapshot_id as string | undefined) ?? "—" /* honest absence — never a plausible-looking fake ID (Hard Rule 7) */;
   const frozenDate      = (content.date        as string | undefined) ?? "—";
   const cohortSize      = (content.cohort_size as number | undefined) ?? 0;
   const cohortDate      = (content.cohort_date as string | undefined) ?? "—";
@@ -101,6 +102,8 @@ export function RegulatorExposure({ content }: { content: ReportSection["content
           Regulatory heatmap will appear here once regulator data is populated.
         </div>
       )}
+      {/* DDR-007: every report section carries the mark */}
+      <div style={{ marginTop: 12 }}><IntelligenceMark /></div>
     </div>
   );
 }

@@ -8,7 +8,7 @@ export function Cover({ content }: { content: ReportSection["content"] }) {
   const industry  = content.org_industry  as string | undefined;
   const size      = content.org_size      as string | undefined;
   const geography = content.org_geography as string | undefined;
-  const snapshotId = (content.snapshot_id as string | undefined) ?? "S-0000";
+  const snapshotId = (content.snapshot_id as string | undefined) ?? "—" /* honest absence — never a plausible-looking fake ID (Hard Rule 7) */;
   const frozenDate = (content.date as string | undefined) ?? "—";
   const formulaVer = (content.formula_version as string | undefined) ?? "v1.0";
   const isDraft    = (content.is_draft as boolean | undefined) ?? false;

@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components -- standard context pattern: provider + hook co-exported; HMR full-reload is acceptable here */
 /**
  * ExplainContext — provides:
  *   - Plain/Technical register toggle (React context, NOT localStorage)

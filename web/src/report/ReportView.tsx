@@ -54,7 +54,7 @@ export function ReportView({ report }: ReportViewProps) {
 
   // Extract snapshot ID from sections if available (Cover section carries it)
   const coverContent = report.sections.find(s => s.number === 1)?.content ?? {};
-  const snapshotId   = (coverContent.snapshot_id as string | undefined) ?? "S-0000";
+  const snapshotId   = (coverContent.snapshot_id as string | undefined) ?? "—" /* honest absence — never a plausible-looking fake ID (Hard Rule 7) */;
   const frozenDate   = report.generated_date ?? "—";
 
   return (

@@ -1,6 +1,6 @@
 # F01 — Notice Intake & Decomposition Explorer
 
-**Status:** shipped (mocks pending) · **Release:** R1 · **Depends on:** schema.md §2.4, intelligence-logic.md §4, design-system.md
+**Status:** shipped (M-01 replaced — real decomposition wired; M-02 verified-source badge unbuilt) · **Release:** R1 · **Depends on:** schema.md §2.4, intelligence-logic.md §4, design-system.md
 
 ## Purpose
 First customer touchpoint after submitting a privacy notice. Ingests URL / PDF (≤10MB, MIME pdf/html/text) / raw text, decomposes it into taxonomy-classified clauses, and makes **lineage visible from the first interaction** via a split-pane original-document vs extracted-clauses view.
@@ -43,4 +43,5 @@ PDF intake is currently UI-only — wire to backend parsing.
 Intake pipeline integration tests (URL/PDF/text), SSRF validation tests, classification confidence persistence test, frontend vitest for stepper states.
 
 ## Changelog
+- 2026-07-16 (audit): Status trued up — M-01 verified **Replaced** (Intake posts to real `/assessments/`, renders real decomposition output; no fixture remains); M-02 corrected: the verified-source badge is absent from the UI entirely (not mocked) and still needs building against the real flag.
 - 2026-07-16: Added Changelog section for template conformance; no behavioral change. (Mocks M-01/M-02 tracked in [`00-plan/mock-tracker.md`](../00-plan/mock-tracker.md).)

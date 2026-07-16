@@ -1,6 +1,6 @@
 # F06 — SME Workbench & Review Gate
 
-**Status:** shipped (queue actions + counter wiring pending) · **Release:** R1 · **Depends on:** F04, business-logic.md §5, design-system.md
+**Status:** shipped (M-04 counters wired to real `/admin/training-stats`; queue actions pending) · **Release:** R1 · **Depends on:** F04, business-logic.md §5, design-system.md
 
 ## Purpose
 The internal three-pane tool where human experts Confirm / Edit / Dismiss findings, author/approve Advisor Note prose, de-identify exemplars, and generate training labels — the quality gate that makes reports client-shippable and the data flywheel for model improvement.
@@ -35,4 +35,5 @@ See [`00-plan/mock-tracker.md`](../00-plan/mock-tracker.md): **M-04** (training-
 De-id regex suite (all categories + evasion cases), gate-mode enforcement tests, training-label capture tests, queue action integration tests.
 
 ## Changelog
+- 2026-07-16 (audit): Status trued up — training-label counters verified wired to the real `/admin/training-stats` route (M-04 **Replaced**); queue-action wiring remains pending.
 - 2026-07-16: Added Mocks and Changelog sections for template conformance; no behavioral change.

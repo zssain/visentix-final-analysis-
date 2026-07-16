@@ -16,9 +16,10 @@ function useCodex() {
   useEffect(() => {
     if (_codexCache) return;
     api.get("/findings/codex")
-      .then((data: any) => {
+      .then((data) => {
         const map: Record<string, CodexEntry> = {};
-        for (const e of data?.entries ?? []) map[e.code] = e;
+        const entries = (data as { entries?: CodexEntry[] } | null)?.entries ?? [];
+        for (const e of entries) map[e.code] = e;
         _codexCache = map;
         setEntries(map);
       })
