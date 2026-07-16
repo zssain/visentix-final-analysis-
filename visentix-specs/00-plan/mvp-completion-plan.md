@@ -46,7 +46,7 @@ The 11 report-section components (all files exist in `web/src/report/sections/`;
 
 Audited against the code 2026-07-16 — statuses verified, not assumed:
 
-1. **Cover.tsx** — ✅ gold hairline + provenance ribbon done; ❌ **VCI dial still missing** (shows score + maturity band only).
+1. **Cover.tsx** — ✅ done (2026-07-16): gold hairline + provenance ribbon + **score dial with band-colored arc, maturity band, and VCI badge** (`ScoreDial.tsx`); duplicate cover ribbon removed (renders once, globally).
 2. **ExecutiveSummary.tsx** — ✅ done: register toggle built as specced (renders when the payload supplies alternative registers; labels pending OD-02).
 3. **RiskDashboard.tsx** — ✅ done: ScoreCell lineage + InfoButton on every metric, "click any score" hint.
 4. **BenchmarkIntelligence.tsx** — ✅ done: CohortLabel + low-confidence warning (UI); live n still M-12 upstream. Audit also removed invented `?? 50/75` chart fallbacks.
@@ -58,7 +58,7 @@ Audited against the code 2026-07-16 — statuses verified, not assumed:
 10. **Traceability.tsx** — ✅ UI done: snapshot ID + formula version displayed; real IDs still M-09/M-10 upstream.
 11. **TrendPanel.tsx** — ✅ done: sparkline + improvement-colored delta (DDR-009) + `no_prior_history` state.
 
-Remaining WB items: **Cover VCI dial** (1) · **BenchmarkLanguage diff toggle** (8) · **Recommendations guardrail test** (9). The 2026-07-16 audit also brought every section up to DDR-007 (mark on all 12 sections + both lineage drawers) and replaced fake `S-0000` snapshot fallbacks with honest absence.
+Remaining WB items: **BenchmarkLanguage diff toggle** (8) · **Recommendations guardrail test** (9). The 2026-07-16 audit also brought every section up to DDR-007 (mark on all 12 sections + both lineage drawers) and replaced fake `S-0000` snapshot fallbacks with honest absence.
 
 **Exit gate B:** PDF export byte-identical on double pull of same snapshot; every section carries the "Intelligence, not legal advice" mark per DDR-007 placement rules; visual QA at 375/768/1280.
 

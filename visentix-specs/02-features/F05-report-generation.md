@@ -42,5 +42,6 @@ See [`00-plan/mock-tracker.md`](../00-plan/mock-tracker.md): **M-05** (mobile Ad
 Report assembly integration tests, byte-identity regression test, guardrail filter tests (incl. source-excerpt exemption and closing-matter copy), PDF/interactive parity checks, section-level vitest.
 
 ## Changelog
+- 2026-07-16: Report visual overhaul (user feedback: "reports look ugly"): duplicate provenance ribbon removed — it renders once, globally, in ReportView, now carrying the formula version; Cover rebuilt as an editorial page (eyebrow, larger Fraunces org name, refined meta row) with the Workstream-B score dial (`ScoreDial.tsx` — static SVG arc colored by the shared score band, maturity chip, VCI badge only when the payload carries a real VCI); all 12 sections now render as white cards with Fraunces headings and a gold accent rule; print styles preserved for the PDF renderer.
 - 2026-07-16: Added a Mocks section keyed to the mock-tracker (template conformance); no behavioral change.
 - 2026-07-15: Added closing matter (Next Steps page + back cover) per Appendix H prototype review; AC-5 and guardrail notes added.
