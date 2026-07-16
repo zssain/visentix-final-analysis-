@@ -1,6 +1,6 @@
 # F12 — Quarterly Intelligence Report & Bulk Analysis
 
-**Status:** shipped UI — Quarterly reader page real, all data mocked (M-15–M-18); aggregation/publication backend proposed; bulk analysis unbuilt · **Release:** R4 · **Depends on:** F02 (corpus scale), F03, F04, F11 (anonymization)
+**Status:** shipped UI — Quarterly reader page + bulk-analysis workflow real, all data mocked (M-15–M-24); aggregation/publication + batch-pipeline backend proposed · **Release:** R4 · **Depends on:** F02 (corpus scale), F03, F04, F11 (anonymization)
 
 ## Purpose
 Product 4: the redacted, industry-wide Quarterly Global Privacy Intelligence Report — top-of-funnel marketing engine and analyst/regulator credibility asset — plus the V2 bulk-analysis workflows (regulator sector scans, law-firm screens, audit prospecting) that reuse the same aggregation machinery.
@@ -40,7 +40,9 @@ Public metrics: reproducible from frozen snapshots (DIR-010), anonymized, sample
 
 States implemented on the reader page: honest cohort `n` shown on every ranking row with a low-confidence flag below `LOW_CONFIDENCE_COHORT_N`; Benchmark Spotlight filters below-threshold cohorts and renders a visible suppression notice (AC-6); per-metric polarity delta coloring (AC-8); reproducible provenance ribbon on the cover; responsive at 375/768/1280; reduced-motion honored. The regulator heatmap uses a neutral navy-intensity scale (observed-activity volume), deliberately not the red exposure scale, so shading never reads as a verdict.
 
-Not yet built: publication-snapshot freeze + reproducibility (AC-1), methodology auto-generation from real snapshot metadata (AC-4), the bulk-analysis upload → ranked-queue workflow and its persona modes (AC-3), and the landing/download/registration/subscriber flow. These remain proposed pending the aggregation backend.
+The **bulk-analysis workflow** (`/bulk`, contract-gated capability — routed to `admin` pending contract-based access) is also built as UI on mocks (M-23–M-24): persona-mode switch (regulator sector scan / plaintiff-firm screen / audit prospecting), company-list upload affordance, a risk-ranked queue where each row expands to clause-level evidence snippets carrying a finding-type code and per-flag VCI (AC-3), issue filters, honest cohort n with a low-confidence caution, sector common-gaps view in regulator mode, and CSV / evidence-package export affordances. Framed as exposure intelligence with evidence — never allegations or verdicts.
+
+Not yet built: publication-snapshot freeze + reproducibility (AC-1), methodology auto-generation from real snapshot metadata (AC-4), the **batch pipeline** behind the bulk queue (the queue is mocked, AC-3 evidence links are mock snippets), and the landing/download/registration/subscriber flow. These remain proposed pending the aggregation + batch backend.
 
 ## Mocks
 The reader page is UI-built ahead of the backend; every displayed figure is mocked and registered in [`00-plan/mock-tracker.md`](../00-plan/mock-tracker.md): **M-15** (publication snapshot + cover corpus counts), **M-16** (five Intelligence Indicators + QoQ deltas), **M-17** (section aggregates: rankings, regulator activity, AI governance, disclosure trends, compound patterns), **M-18** (Benchmark Spotlight excerpts).
@@ -51,6 +53,8 @@ The reader page is UI-built ahead of the backend; every displayed figure is mock
 | M-16 | Five named Intelligence Indicators + QoQ deltas | Market-average aggregates per `formula_version`, each with VCI | Build indicator aggregation over the corpus |
 | M-17 | Section aggregates (industry rankings, regulator activity, AI-governance trend, disclosure trends, compound patterns) | Corpus aggregation from `derived_data_item` / F-012 deltas | Build the aggregation layer shared with bulk analysis |
 | M-18 | Benchmark Spotlight excerpts | SME-approved + de-identified exemplars above the minimum-sample threshold (F06 pipeline) | Wire to approved exemplar store; enforce suppression (AC-6) |
+| M-23 | Bulk batch results — ranked company queue (exposure score, VCI, cohort n, top issues) | Batch pipeline over the aggregation layer (shared with M-17); scores from `derived_data_item` | Build the batch pipeline; rank from real scores |
+| M-24 | Clause-level evidence snippets per bulk flag | `disclosure_clause` rows + finding-type classification, with VCI | Link each flag to real clause evidence (AC-3) |
 
 ## Acceptance criteria
 - AC-1 Every published statistic reproducible from the frozen publication snapshot.
@@ -66,5 +70,6 @@ The reader page is UI-built ahead of the backend; every displayed figure is mock
 Publication freeze tests, aggregation reproducibility tests, suppression tests, batch pipeline scale test, cover-stat snapshot-equality test, outlook guardrail scan, polarity unit tests.
 
 ## Changelog
+- 2026-07-16: Bulk-analysis workflow built UI-only against mocks (engineer). Status now covers both halves; added M-23–M-24 (ranked queue + clause-level evidence) and updated Behavior & states — `/bulk` route (admin-gated, sensitive capability), persona modes, expandable evidence with per-flag VCI (AC-3), issue filters, regulator sector-gaps view, export affordances. Batch pipeline remains proposed. Files: `web/src/pages/bulk/{BulkAnalysis.tsx,mockData.ts,bulk.css}`, `/bulk` route + admin nav.
 - 2026-07-16: Reader page built UI-only against mocks (engineer). Status → "shipped UI, all data mocked"; added Behavior & states and Mocks sections; registered M-15–M-18. `trendColor` in code now implements the per-metric polarity flag design-system.md v1.1 §2 already specified (AC-8), backward-compatible with default "exposure". Aggregation/publication backend and the bulk-analysis half remain proposed. Files: `web/src/pages/quarterly/{QuarterlyReport.tsx,mockData.ts,quarterly.css}`, `web/src/lib/scoreBands.ts`, `/quarterly` route + nav.
 - 2026-07-15: Added publication section manifest from Appendix I prototype review — Intelligence Indicators panel (5 named indices), Benchmark Spotlight, Strategic Outlook (descriptive-only guardrail), real-count cover rule, metric-polarity delta coloring; AC-5–AC-8 added.

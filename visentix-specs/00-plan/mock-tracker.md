@@ -1,6 +1,6 @@
 # MOCK TRACKER — the MVP mock-closure punch list
 
-**Version:** 1.2 · 2026-07-16
+**Version:** 1.3 · 2026-07-16
 **Authority:** this is the live, canonical tracker of every mock in the product. It replaces the `MOCK TRACKER` section of the archived `docs/old-docs/UI_SPEC.md`. `00-plan/mvp-completion-plan.md` Workstream A drives these to closure; each feature spec's Mocks section points here.
 
 **Rule (unchanged):** every mock must be replaced with real data before shipping to a real client. Never display a hardcoded score, cohort `n`, snapshot ID, or count. Status values: **Open** (still mocked) · **In progress** · **Replaced** (real data wired, verified).
@@ -31,8 +31,11 @@
 | M-20 | F11 | Partner Portal | API keys + per-contract usage / rate limits | `api_key`, `usage_record` metering | Open | Build key issuance + real usage metering; enforce limits server-side |
 | M-21 | F11 | Partner Portal | Anonymized feed catalog (schema, refresh, permitted-use, VCI, suppression flag) | `feed_snapshot` aggregates with min-sample suppression (DIR-006) | Open | Build feed aggregation + server-enforced suppression |
 | M-22 | F11 | Partner Portal | Branding config + report templates | Partner branding store applied by the report template engine | Open | Persist branding; wire template engine to branded render |
+| M-23 | F12 | Bulk Analysis | Batch results — ranked company queue (exposure score, VCI, cohort n, top issues) hardcoded in `mockData.ts` | Batch pipeline over the aggregation layer (shared with M-17); scores from `derived_data_item` | Open | Build the batch pipeline; rank from real scores |
+| M-24 | F12 | Bulk Analysis | Clause-level evidence snippets per flag | `disclosure_clause` rows + finding-type classification, with VCI | Open | Link each flag to real clause evidence (AC-3) |
 
 ## Changelog
+- 1.3 (2026-07-16): Registered M-23–M-24 for the F12 Bulk Analysis workflow, built UI-only against mocks ahead of the batch pipeline.
 - 1.2 (2026-07-16): Registered M-19–M-22 for the F11 Partner Portal, built UI-only against mocks ahead of the tenancy/metering/feed backend.
 - 1.1 (2026-07-16): Registered M-15–M-18 for the F12 Quarterly Report reader page, built UI-only against mocks ahead of the aggregation backend. Every displayed figure on `/quarterly` is mocked; real sources and removal plans recorded per row.
 - 1.0 (2026-07-16): Migrated the MOCK TRACKER out of the archived `UI_SPEC.md` into the live spec system, keyed each row to its owning feature spec, and added an explicit Status column so MVP mock-closure is measurable inside the specs.

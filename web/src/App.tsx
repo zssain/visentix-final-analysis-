@@ -16,6 +16,7 @@ import { FindingCodex }          from "./pages/FindingCodex";
 import { Methodology }           from "./pages/Methodology";
 import { QuarterlyReport }       from "./pages/quarterly/QuarterlyReport";
 import { PartnerPortal }         from "./pages/partner/PartnerPortal";
+import { BulkAnalysis }          from "./pages/bulk/BulkAnalysis";
 import "./App.css";
 
 function NavLink({ to, label, children }: { to: string; label?: string; children?: React.ReactNode }) {
@@ -76,6 +77,11 @@ function AppRoutes() {
             {role === "admin" && (
               <NavLink to="/partner">
                 Partner
+              </NavLink>
+            )}
+            {role === "admin" && (
+              <NavLink to="/bulk">
+                Bulk
               </NavLink>
             )}
             <NavLink to="/codex">
@@ -168,6 +174,14 @@ function AppRoutes() {
           <Route path="/partner" element={
             <ProtectedRoute allowedRoles={["admin"]}>
               <PartnerPortal />
+            </ProtectedRoute>
+          } />
+
+          {/* Bulk Analysis (F12) — sensitive/contract-gated capability;
+              gated to admin pending contract-based access control. */}
+          <Route path="/bulk" element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <BulkAnalysis />
             </ProtectedRoute>
           } />
 
