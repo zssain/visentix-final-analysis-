@@ -2,7 +2,12 @@
  * App — uses AuthProvider context for all auth state.
  * No imperative navigate() after sign-in. All redirects are declarative.
  */
+import { useState } from "react";
 import { BrowserRouter, Link, Navigate, Route, Routes, useLocation } from "react-router-dom";
+import {
+  Activity, FilePlus2, ClipboardCheck, Newspaper, BookMarked,
+  Compass, Settings, Handshake, ScanSearch, Grid3x3, PenLine, ShieldCheck, Building2,
+} from "lucide-react";
 import { AuthProvider, useAuth } from "./auth/AuthProvider";
 import { ProtectedRoute }        from "./auth/ProtectedRoute";
 import { ExplainProvider }       from "./report/explain/ExplainContext";
@@ -14,14 +19,21 @@ import { AdminConsole }          from "./pages/admin/Console";
 import { ReportPage }            from "./pages/ReportPage";
 import { FindingCodex }          from "./pages/FindingCodex";
 import { Methodology }           from "./pages/Methodology";
+import { QuarterlyReport }       from "./pages/quarterly/QuarterlyReport";
+import { PartnerPortal }         from "./pages/partner/PartnerPortal";
+import { BulkAnalysis }          from "./pages/bulk/BulkAnalysis";
+import { FrameworkCrosswalk }    from "./pages/crosswalk/FrameworkCrosswalk";
+import { NoticeRewrite }         from "./pages/rewrite/NoticeRewrite";
+import { TrustCenter }           from "./pages/trust/TrustCenter";
+import { VendorDueDiligence }    from "./pages/vendors/VendorDueDiligence";
 import "./App.css";
 
-function NavLink({ to, label, children }: { to: string; label?: string; children?: React.ReactNode }) {
+function NavLink({ to, label, children, onClick }: { to: string; label?: string; children?: React.ReactNode; onClick?: () => void }) {
   const location = useLocation();
   // Mark as active if pathname starts with this route (except "/" which is exact)
   const active = to === "/" ? location.pathname === "/" : location.pathname.startsWith(to);
   return (
-    <Link to={to} className={`nav-link ${active ? "active" : ""}`} aria-label={label ?? undefined}>
+    <Link to={to} className={`nav-link ${active ? "active" : ""}`} aria-label={label ?? undefined} onClick={onClick}>
       {children}
     </Link>
   );
@@ -38,68 +50,98 @@ function AppRoutes() {
   const { session, profile, signOut } = useAuth();
   const role = profile?.role;
   const location = useLocation();
+  const [navOpen, setNavOpen] = useState(false);
   // Login is the only full-bleed route; everything else (including the public
   // /codex and /methodology pages) gets the standard content container.
   const fullBleed = location.pathname === "/login";
 
+  const closeNav = () => setNavOpen(false);
+
   return (
     <div className="app-layout">
       {session && (
-        <nav className="top-nav" role="navigation" aria-label="Main navigation">
-          {/* Brand */}
-          <div className="nav-brand">
+        <>
+          {/* Mobile top bar — hamburger + brand; hidden on desktop where the
+              sidebar is always visible. */}
+          <div className="mobile-topbar">
+            <button
+              className="nav-hamburger"
+              aria-label={navOpen ? "Close menu" : "Open menu"}
+              aria-expanded={navOpen}
+              onClick={() => setNavOpen(o => !o)}
+            >
+              {navOpen ? "✕" : "☰"}
+            </button>
             <img src="/wordmark logo for dark background.png" alt="Visentix" className="nav-logo" />
           </div>
-          <div className="nav-divider" aria-hidden="true" />
 
-          {/* Primary nav */}
-          {/* Nav labels match each page's title/eyebrow so "where am I" is never ambiguous */}
-          <div className="nav-links">
-            <NavLink to="/assessments">
-              Monitor
-            </NavLink>
-            <NavLink to="/intake">
-              Intake
-            </NavLink>
-            {(role === "sme" || role === "admin") && (
-              <NavLink to="/review">
-                Workbench
-              </NavLink>
-            )}
-            {role === "admin" && (
-              <NavLink to="/admin">
-                Admin
-              </NavLink>
-            )}
-            <NavLink to="/codex">
-              Codex
-            </NavLink>
-            <NavLink to="/methodology">
-              Methodology
-            </NavLink>
-          </div>
+          {/* Drawer backdrop (mobile only, when open) */}
+          {navOpen && <div className="side-backdrop" onClick={closeNav} aria-hidden="true" />}
 
-          {/* User area */}
-          <div className="nav-user">
-            <span className="nav-role">{role ?? ""}</span>
-            <button
-              onClick={signOut}
-              className="nav-signout"
-              id="nav-signout-btn"
-              aria-label="Sign out"
-            >
-              Sign Out
-            </button>
-          </div>
-        </nav>
+          {/* Sidebar nav — grouped so the growing route list stays scannable.
+              Nav labels match each page's title/eyebrow so "where am I" is never ambiguous. */}
+          <nav className={`side-nav ${navOpen ? "open" : ""}`} role="navigation" aria-label="Main navigation">
+            <div className="side-brand">
+              <img src="/wordmark logo for dark background.png" alt="Visentix" className="nav-logo" />
+            </div>
+
+            <div className="side-links">
+              <div className="side-group">
+                <div className="side-group-label">Workspace</div>
+                <NavLink to="/assessments" onClick={closeNav}><Activity size={17} aria-hidden /> Monitor</NavLink>
+                <NavLink to="/intake" onClick={closeNav}><FilePlus2 size={17} aria-hidden /> Intake</NavLink>
+                <NavLink to="/rewrite" onClick={closeNav}><PenLine size={17} aria-hidden /> Rewrite</NavLink>
+                <NavLink to="/vendors" onClick={closeNav}><Building2 size={17} aria-hidden /> Vendors</NavLink>
+                {(role === "sme" || role === "admin") && (
+                  <NavLink to="/review" onClick={closeNav}><ClipboardCheck size={17} aria-hidden /> Workbench</NavLink>
+                )}
+              </div>
+
+              <div className="side-group">
+                <div className="side-group-label">Intelligence</div>
+                <NavLink to="/quarterly" onClick={closeNav}><Newspaper size={17} aria-hidden /> Quarterly</NavLink>
+                <NavLink to="/crosswalk" onClick={closeNav}><Grid3x3 size={17} aria-hidden /> Crosswalk</NavLink>
+                <NavLink to="/codex" onClick={closeNav}><BookMarked size={17} aria-hidden /> Codex</NavLink>
+                <NavLink to="/methodology" onClick={closeNav}><Compass size={17} aria-hidden /> Methodology</NavLink>
+                <NavLink to="/trust" onClick={closeNav}><ShieldCheck size={17} aria-hidden /> Trust Center</NavLink>
+              </div>
+
+              {role === "admin" && (
+                <div className="side-group">
+                  <div className="side-group-label">Administration</div>
+                  <NavLink to="/admin" onClick={closeNav}><Settings size={17} aria-hidden /> Admin</NavLink>
+                  <NavLink to="/partner" onClick={closeNav}><Handshake size={17} aria-hidden /> Partner</NavLink>
+                  <NavLink to="/bulk" onClick={closeNav}><ScanSearch size={17} aria-hidden /> Bulk</NavLink>
+                </div>
+              )}
+            </div>
+
+            {/* User area pinned to the bottom */}
+            <div className="side-user">
+              <span className="nav-role">{role ?? ""}</span>
+              <button
+                onClick={signOut}
+                className="nav-signout"
+                id="nav-signout-btn"
+                aria-label="Sign out"
+              >
+                Sign Out
+              </button>
+            </div>
+          </nav>
+        </>
       )}
 
+      <div className="app-main">
       <div className={fullBleed ? "" : "main-content"}>
         <Routes>
           {/* Public */}
           <Route path="/login" element={<Login />} />
           <Route path="/codex"       element={<FindingCodex />} />
           <Route path="/methodology" element={<Methodology />} />
+          <Route path="/quarterly"   element={<QuarterlyReport />} />
+          <Route path="/crosswalk"   element={<FrameworkCrosswalk />} />
+          <Route path="/trust"       element={<TrustCenter />} />
           <Route path="/unauthorized" element={
             <div style={{ padding: 60, textAlign: "center" }}>
               <h2 style={{ color: "var(--red)" }}>403 — Access Denied</h2>
@@ -123,6 +165,20 @@ function AppRoutes() {
           <Route path="/assessments" element={
             <ProtectedRoute allowedRoles={["customer", "sme", "admin"]}>
               <CustomerDashboard />
+            </ProtectedRoute>
+          } />
+
+          {/* Trust Language Studio (F14) — customer trust tool */}
+          <Route path="/rewrite" element={
+            <ProtectedRoute allowedRoles={["customer", "sme", "admin"]}>
+              <NoticeRewrite />
+            </ProtectedRoute>
+          } />
+
+          {/* Vendor Due Diligence (F16) — procurement workflow */}
+          <Route path="/vendors" element={
+            <ProtectedRoute allowedRoles={["customer", "sme", "admin"]}>
+              <VendorDueDiligence />
             </ProtectedRoute>
           } />
 
@@ -152,6 +208,22 @@ function AppRoutes() {
             </ProtectedRoute>
           } />
 
+          {/* Partner Portal (F11) — no `partner` role yet (F10 tenancy dependency);
+              gated to admin for demo access until partner tenancy lands. */}
+          <Route path="/partner" element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <PartnerPortal />
+            </ProtectedRoute>
+          } />
+
+          {/* Bulk Analysis (F12) — sensitive/contract-gated capability;
+              gated to admin pending contract-based access control. */}
+          <Route path="/bulk" element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <BulkAnalysis />
+            </ProtectedRoute>
+          } />
+
           {/* Report view */}
           <Route path="/reports/:assessmentId" element={
             <ProtectedRoute allowedRoles={["customer", "sme", "admin"]}>
@@ -161,6 +233,7 @@ function AppRoutes() {
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+      </div>
       </div>
     </div>
   );

@@ -42,12 +42,26 @@ export function vciBand(score: number): string {
 }
 
 /**
- * Trend/delta coloring — by IMPROVEMENT, not direction.
- * Exposure scores read lower = better, so a falling score is teal (improving)
- * and a rising score is red (worsening). Arrows (▲/▼) still show direction;
- * color carries the judgement.
+ * Metric polarity — which direction counts as "better".
+ * - "exposure": lower is better (all F-002…F-014 exposure/risk scores). Default.
+ * - "maturity": higher is better (the quarterly Intelligence Indicators —
+ *   Disclosure Maturity, AI Transparency, Consumer Rights Clarity).
  */
-export function trendColor(delta: number): string {
+export type MetricPolarity = "exposure" | "maturity";
+
+/**
+ * Trend/delta coloring — by IMPROVEMENT, not direction (DDR-009).
+ * Exposure scores read lower = better, so a falling score is teal (improving)
+ * and a rising score is red (worsening). Maturity indices invert the mapping.
+ * Arrows (▲/▼) still show direction; color carries the judgement.
+ *
+ * The `polarity` flag is required by design-system.md §2 and F12 AC-8 so the
+ * quarterly Intelligence Indicators (maturity) and exposure scores can share
+ * one coloring rule. Defaults to "exposure" — existing single-arg callers keep
+ * their behavior unchanged.
+ */
+export function trendColor(delta: number, polarity: MetricPolarity = "exposure"): string {
   if (delta === 0) return "#8896A5"; // text-muted — no movement
-  return delta < 0 ? "#55C7B3" : "#F87171";
+  const improving = polarity === "maturity" ? delta > 0 : delta < 0;
+  return improving ? "#55C7B3" : "#F87171";
 }

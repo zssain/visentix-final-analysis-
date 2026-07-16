@@ -1,0 +1,62 @@
+name: Feedback (expert audit / customer / internal)
+description: One front door for all feedback. Takes 60 seconds. The triage agent turns this into a spec-update draft automatically.
+title: "[Feedback] "
+labels: ["feedback"]
+body:
+  - type: dropdown
+    id: source
+    attributes:
+      label: Who is this from?
+      options:
+        - Expert audit
+        - Customer / design partner
+        - Internal (engineer / dogfooding)
+        - Partner
+    validations:
+      required: true
+
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What kind of feedback is it? (best guess — triage will verify)
+      options:
+        - Something is wrong or misleading (bug in behavior or content)
+        - Guardrail concern (legal-verdict language, jargon leak, trust issue)
+        - The product should work differently (spec change)
+        - New idea / feature request
+        - Question / unclear — not sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened / what was said?
+      description: Plain language. Quote the customer or the expert verbatim where possible. Screenshots welcome.
+      placeholder: "The GC at [pilot customer] said the Recommendations section 'reads like legal advice' — specifically the line about opt-out mechanisms."
+    validations:
+      required: true
+
+  - type: textarea
+    id: where
+    attributes:
+      label: Where in the product? (if known)
+      description: Screen, report section, finding code, or URL. Leave blank if unsure — triage will locate it.
+      placeholder: "Report → Section 9 Recommendations"
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: How urgent does this feel?
+      options:
+        - Blocking — a client deliverable or the guardrail is affected
+        - Should fix soon
+        - Whenever / nice to have
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What would "right" look like? (optional)
+      placeholder: "The recommendation should describe what stronger peers disclose, not tell the reader what to do legally."

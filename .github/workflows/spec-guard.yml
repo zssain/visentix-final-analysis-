@@ -1,0 +1,87 @@
+# spec-guard: runs on every pull request. Three cheap, deterministic checks
+# that catch drift before humans spend attention:
+#   1. banned-terms  — no legal-verdict vocabulary in changed files
+#   2. spec-ref      — code PRs must name the feature spec (Fxx) they implement
+#   3. agents-fresh  — AGENTS.md generated sections match the specs
+# Make this check REQUIRED in branch protection.
+
+name: spec-guard
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+jobs:
+  guard:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: "Check 1 — banned legal-verdict terms in ADDED lines"
+        run: |
+          set -euo pipefail
+          # Term list and path allowlist are single-sourced from scripts/data/ —
+          # see scripts/data/banned_terms.txt (the same file the spec-update
+          # skill and build_agents_md.py read). Do not inline terms here.
+          TERMS=$(grep -Ev '^(#|\s*$)' scripts/data/banned_terms.txt | paste -sd'|')
+          ALLOW=$(grep -Ev '^(#|\s*$)' scripts/data/banned_terms_allowlist.txt | paste -sd'|')
+          git diff --name-only origin/${{ github.base_ref }}...HEAD > changed.txt
+          grep -Ev "^(${ALLOW})" changed.txt > scoped.txt || true
+          FAIL=0
+          while IFS= read -r f; do
+            [ -f "$f" ] || continue
+            case "$f" in
+              *.py|*.ts|*.tsx|*.md|*.json|*.html) ;;
+              *) continue ;;
+            esac
+            # Only scan lines this PR ADDS — a file that already contains the
+            # term (e.g. a quote in a spec) must not fail on an unrelated edit.
+            ADDED=$(git diff -U0 "origin/${{ github.base_ref }}...HEAD" -- "$f" | grep -E '^\+' | grep -Ev '^\+\+\+')
+            if echo "$ADDED" | grep -inE "\\b(${TERMS})\\b"; then
+              echo "::error file=$f::Banned legal-verdict term added (see AGENTS.md Hard Rule 1 / scripts/data/banned_terms.txt)."
+              FAIL=1
+            fi
+          done < scoped.txt
+          exit $FAIL
+
+      - name: "Check 2 — PR references a feature spec"
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+          BODY: ${{ github.event.pull_request.body }}
+        run: |
+          set -euo pipefail
+          git diff --name-only origin/${{ github.base_ref }}...HEAD > changed.txt
+          # Only enforce on PRs that touch application code.
+          if ! grep -qE '^(app/|web/src/|migrations/)' changed.txt; then
+            echo "No application code changed — spec reference not required."
+            exit 0
+          fi
+          if echo "$TITLE $BODY" | grep -qE '\bF[0-9]{2,3}\b'; then
+            echo "Feature spec reference found."
+          else
+            echo "::error::Code PRs must reference the feature spec they implement (e.g. 'F07: …') in the title or body. If no spec exists, write one first (visentix-specs/02-features/_TEMPLATE.md)."
+            exit 1
+          fi
+
+      - name: "Check 3 — AGENTS.md generated sections are fresh"
+        run: python scripts/build_agents_md.py --check
+
+      - name: "Check 4 — no hand edits inside GENERATED markers"
+        run: |
+          set -euo pipefail
+          # If this PR changed AGENTS.md but not any spec source, someone likely
+          # hand-edited a generated block. --check above catches content drift;
+          # this catches the workflow smell and explains the right fix.
+          git diff --name-only origin/${{ github.base_ref }}...HEAD > changed.txt
+          if grep -q '^AGENTS.md$' changed.txt && ! grep -qE '^(visentix-specs/|scripts/)' changed.txt; then
+            echo "::warning::AGENTS.md changed without any spec/script change. If you edited a GENERATED section by hand, revert and edit the source spec instead (scripts/build_agents_md.py regenerates it)."
+          fi

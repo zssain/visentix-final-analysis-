@@ -1,0 +1,15 @@
+# Banned legal-verdict terms — THE machine-readable list (AGENTS.md Hard Rule 1).
+# One case-insensitive, extended-regex term per line; CI wraps the set in \b(...)\b.
+# spec-guard's banned-term check and the spec-update skill both read this file.
+# Keep in sync with the prose in hard_rules.md (expert + engineer co-own both).
+compliant
+non-compliant
+noncompliant
+violation
+violates
+illegal
+unlawful
+breach of law
+guilty
+liable
+complies with

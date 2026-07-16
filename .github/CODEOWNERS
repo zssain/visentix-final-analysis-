@@ -1,0 +1,22 @@
+# CODEOWNERS — who on GitHub must approve a PR before it merges.
+#
+# OUR METHOD (read this before changing anything here):
+# Feedback reaches us in Microsoft Teams — from the expert, from customers, from
+# our own review sessions. We do NOT ask them to file GitHub issues. Whoever heard
+# it relays it to Claude in a repo session, and the `spec-update` skill drafts the
+# change as a PR (see AUTOMATION.md). So GitHub has only two human accounts — the
+# two of us — and this file routes every review to us. The expert is not on GitHub.
+#
+# Two gates, and BOTH must be true before a content/foundation change merges:
+#   1. Engineering gate — a GitHub review from one of us (this file).
+#   2. Content gate — the expert's approval, which happens in TEAMS. The skill hands
+#      back a plain-English summary; we paste it to the expert; they say yes/no in
+#      chat; we record that in the PR body and logs/decision-log.md
+#      ("expert approved in Teams, YYYY-MM-DD") before merging.
+# GitHub can only enforce gate 1. Gate 2 is enforced by us honouring this rule —
+# and the weekly log-audit checks foundation PRs for the recorded Teams sign-off.
+#
+# Handles below are our GitHub logins. Confirm they are exact before relying on this.
+
+# Everything: either of us can give the engineering approval.
+*   @Asad-333 @zssain

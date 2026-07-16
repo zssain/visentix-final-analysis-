@@ -1,0 +1,48 @@
+/* F13 — Framework Crosswalk Explorer styles.
+   Guardrail banner + domain chip come from furniture.css (shared). */
+
+/* Framework filter */
+.xw-filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
+.xw-filter {
+  font-size: 0.8rem; font-weight: 600; padding: 6px 14px; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--bg-card); color: var(--text-secondary);
+  cursor: pointer; font-family: inherit;
+}
+.xw-filter:hover { border-color: var(--exec-blue); }
+.xw-filter.on { background: var(--navy); color: #fff; border-color: var(--navy); }
+.xw-filter:focus-visible { outline: 2px solid var(--exec-blue); outline-offset: 2px; }
+
+/* Matrix — horizontal scroll in its own container (AC-6) */
+.xw-scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius-lg); }
+.xw-matrix { width: 100%; border-collapse: collapse; min-width: 720px; }
+.xw-matrix th, .xw-matrix td {
+  text-align: left; vertical-align: top; padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.xw-matrix thead th {
+  background: var(--soft-white);
+  font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em;
+  color: var(--navy); font-weight: 700; position: sticky; top: 0;
+}
+.xw-matrix tbody tr:last-child td { border-bottom: none; }
+.xw-domain-cell { white-space: nowrap; }
+.xw-domain-name { font-weight: 700; font-size: 0.9rem; color: var(--navy); display: flex; align-items: center; gap: 8px; }
+.xw-domain-toggle {
+  margin-top: 6px; background: none; border: none; padding: 0; cursor: pointer;
+  font: inherit; font-size: 0.74rem; color: var(--exec-blue); font-weight: 600;
+}
+.xw-domain-toggle:focus-visible { outline: 2px solid var(--exec-blue); outline-offset: 2px; }
+
+.xw-citation { margin-bottom: 10px; }
+.xw-citation:last-child { margin-bottom: 0; }
+.xw-cite-ref { font-family: var(--font-data); font-size: 0.82rem; font-weight: 700; color: var(--navy); }
+.xw-cite-note { font-size: 0.78rem; color: var(--text-secondary); line-height: 1.45; margin-top: 2px; }
+.xw-none { font-size: 0.8rem; color: var(--text-muted); font-style: italic; }
+
+/* Codes chip row (drill-down) — chips render via CodexTooltip (.code-chip) */
+.xw-code-line { display: flex; gap: 8px; align-items: baseline; margin-bottom: 6px; }
+.xw-code-line:last-child { margin-bottom: 0; }
+
+@media (max-width: 768px) {
+  .xw-matrix th, .xw-matrix td { padding: 10px; }
+}

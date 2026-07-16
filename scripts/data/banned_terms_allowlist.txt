@@ -1,0 +1,19 @@
+# Paths exempt from the banned-term scan (extended-regex prefixes, one per line).
+# Only files whose JOB is the banned vocabulary belong here: the lists themselves,
+# the guardrail implementation and its tests, glossaries, archives, internal logs.
+# Customer-reachable surfaces must NEVER be added.
+\.github/
+\.claude/
+scripts/data/
+scripts/build_agents_md\.py
+docs/old-docs/
+logs/
+AGENTS\.md
+visentix-onboarding/
+visentix-specs/01-foundation/business-logic\.md
+app/services/llm\.py
+app/services/report/explain\.py
+tests/test_guardrail\.py
+tests/test_narrative\.py
+web/src/pages/Methodology\.tsx
+web/src/test/
