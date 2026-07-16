@@ -13,6 +13,10 @@
  * Guardrail (F12): bulk outputs are EXPOSURE intelligence with evidence
  * references — never allegations or verdicts. Every flag links to clause-level
  * evidence + VCI (AC-3). Honest cohort n; descriptive framing only.
+ *
+ * NOTE (Hard Rule 3): finding codes here are illustrative placeholders pending
+ * the real `finding_type` catalog (only TRK-007 / SH-002 / RT-003 are confirmed
+ * catalog codes). Real codes arrive with the M-23/M-24 backend; SME to verify.
  */
 
 /* ── Persona modes (F12 §Bulk analysis) — contract-gated capability ──────── */

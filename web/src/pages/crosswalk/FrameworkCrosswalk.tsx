@@ -10,6 +10,7 @@
 import { Fragment, useState } from "react";
 import { PageHeader } from "../../components/PageHeader";
 import { IntelligenceMark } from "../../components/IntelligenceMark";
+import { CodexTooltip } from "../../components/CodexTooltip";
 import {
   FRAMEWORKS, DOMAINS, MAPPINGS, cellMappings, type FrameworkId,
 } from "./mockData";
@@ -27,7 +28,7 @@ export function FrameworkCrosswalk() {
   const toggleDomain = (id: string) =>
     setExpanded(prev => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(id)) next.delete(id); else next.add(id);
       return next;
     });
 
@@ -41,7 +42,7 @@ export function FrameworkCrosswalk() {
       />
 
       {/* Descriptive-only guardrail banner (AC-5) */}
-      <div className="xw-banner">
+      <div className="guardrail-banner">
         <span aria-hidden="true" style={{ fontSize: "1.1rem" }}>ⓘ</span>
         <span>
           <b>These are descriptive references, not compliance determinations.</b> A mapping means a domain or
@@ -79,7 +80,7 @@ export function FrameworkCrosswalk() {
                   <tr>
                     <td className="xw-domain-cell">
                       <span className="xw-domain-name">
-                        <span className="xw-domain-id">{d.id}</span>{d.name}
+                        <span className="domain-chip">{d.id}</span>{d.name}
                       </span>
                       <button className="xw-domain-toggle" aria-expanded={isOpen} onClick={() => toggleDomain(d.id)}>
                         {isOpen ? "Hide finding codes" : `Show ${d.codes.length} finding codes`}
@@ -115,7 +116,8 @@ export function FrameworkCrosswalk() {
                             && (activeFw === "all" || m.framework === activeFw));
                           return (
                             <div key={code} className="xw-code-line">
-                              <span className="xw-code-chip">{code}</span>
+                              {/* DDR-006: finding codes are hover/focus Codex targets */}
+                              <CodexTooltip code={code} />
                               <span style={{ flex: 1 }}>
                                 {codeMaps.length === 0 ? (
                                   <span className="xw-none">no code-specific reference{activeFw === "all" ? "" : " for this framework"}</span>

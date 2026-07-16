@@ -14,6 +14,9 @@
 import { useState } from "react";
 import { PageHeader } from "../../components/PageHeader";
 import { IntelligenceMark } from "../../components/IntelligenceMark";
+import { FlashNotice } from "../../components/FlashNotice";
+import { CodexTooltip } from "../../components/CodexTooltip";
+import { useFlash } from "../../lib/useFlash";
 import { VciBadge } from "../../report/VciBadge";
 import { scoreBandColor, vciBand, LOW_CONFIDENCE_COHORT_N } from "../../lib/scoreBands";
 import {
@@ -26,26 +29,21 @@ export function BulkAnalysis() {
   const [mode, setMode] = useState("firm");
   const [filters, setFilters] = useState<Set<string>>(new Set());
   const [expanded, setExpanded] = useState<Set<number>>(new Set([1])); // top result open
-  const [flash, setFlash] = useState<string | null>(null);
+  const [flash, mockAction] = useFlash();
 
   const toggleFilter = (f: string) =>
     setFilters(prev => {
       const next = new Set(prev);
-      next.has(f) ? next.delete(f) : next.add(f);
+      if (next.has(f)) next.delete(f); else next.add(f);
       return next;
     });
 
   const toggleRow = (rank: number) =>
     setExpanded(prev => {
       const next = new Set(prev);
-      next.has(rank) ? next.delete(rank) : next.add(rank);
+      if (next.has(rank)) next.delete(rank); else next.add(rank);
       return next;
     });
-
-  const mockAction = (msg: string) => {
-    setFlash(msg);
-    setTimeout(() => setFlash(null), 4000);
-  };
 
   const visible = filters.size === 0
     ? BATCH_RESULTS
@@ -65,13 +63,7 @@ export function BulkAnalysis() {
         }
       />
 
-      {flash && (
-        <div style={{
-          background: "rgba(0,95,163,0.08)", border: "1px solid rgba(0,95,163,0.25)",
-          color: "var(--exec-blue)", borderRadius: "var(--radius)", padding: "10px 16px",
-          fontSize: "0.84rem", marginBottom: 20,
-        }} role="status">{flash}</div>
-      )}
+      <FlashNotice message={flash} />
 
       <div className="bulk-grid">
         {/* ── Persona mode + upload ────────────────────────────────────── */}
@@ -189,7 +181,8 @@ export function BulkAnalysis() {
                     {c.evidence.map((e, idx) => (
                       <div key={idx} className="bulk-ev">
                         <div className="bulk-ev-meta">
-                          <span className="clause-chip">{e.code}</span>
+                          {/* DDR-006: every finding code is a hover/focus Codex target */}
+                          <CodexTooltip code={e.code} />
                         </div>
                         <div className="bulk-ev-snippet">
                           <div style={{ fontStyle: "normal", fontSize: "0.7rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-muted)", marginBottom: 4 }}>

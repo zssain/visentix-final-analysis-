@@ -16,6 +16,7 @@ import {
 import { Link } from "react-router-dom";
 import { ProvenanceRibbon } from "../../components/ProvenanceRibbon";
 import { IntelligenceMark } from "../../components/IntelligenceMark";
+import { CodexTooltip } from "../../components/CodexTooltip";
 import {
   trendColor, scoreBandColor, LOW_CONFIDENCE_COHORT_N, type MetricPolarity,
 } from "../../lib/scoreBands";
@@ -272,7 +273,8 @@ export function QuarterlyReport() {
             display: "flex", alignItems: "center", gap: 14, padding: "12px 0",
             borderBottom: "1px solid var(--border)",
           }}>
-            <span className="clause-chip" style={{ flexShrink: 0 }}>{p.code}</span>
+            {/* DDR-006: finding codes are hover/focus Codex targets */}
+            <span style={{ flexShrink: 0 }}><CodexTooltip code={p.code} /></span>
             <span style={{ flex: 1, fontSize: "0.88rem", color: "var(--text-secondary)", lineHeight: 1.5 }}>{p.pattern}</span>
             <span className="qr-rank-val">{p.prevalence}%</span>
           </div>
@@ -371,8 +373,13 @@ function Row({ row }: { row: (typeof REGULATOR_ACTIVITY)[number] }) {
           </div>
         );
       })}
+      {/* Observed-activity change is a COUNT, not a judgement — neutral color,
+          arrow only. Coloring it by polarity would contradict the section's own
+          "volume, not verdict" rule (audit 2026-07-16). */}
       <div className="qr-heat-rowlabel" style={{ justifyContent: "flex-end" }}>
-        <Delta value={row.activityDelta} polarity="exposure" />
+        <span className="qr-delta" style={{ color: "var(--text-muted)" }}>
+          {row.activityDelta === 0 ? "■" : row.activityDelta > 0 ? "▲" : "▼"} {Math.abs(row.activityDelta)}
+        </span>
       </div>
     </>
   );

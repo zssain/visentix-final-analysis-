@@ -6,12 +6,15 @@
  * customer's own procurement action (F16 guardrail). UI-only ahead of the
  * vendor pipeline + review persistence.
  */
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { PageHeader } from "../../components/PageHeader";
 import { IntelligenceMark } from "../../components/IntelligenceMark";
+import { FlashNotice } from "../../components/FlashNotice";
+import { CodexTooltip } from "../../components/CodexTooltip";
+import { useFlash } from "../../lib/useFlash";
 import { VciBadge } from "../../report/VciBadge";
 import { scoreBandColor, vciBand, LOW_CONFIDENCE_COHORT_N } from "../../lib/scoreBands";
-import { VENDORS, STATUS_LABEL, type VendorStatus } from "./mockData";
+import { VENDORS, STATUS_LABEL, type Vendor, type VendorStatus } from "./mockData";
 import "../../components/furniture.css";
 import "./vendors.css";
 
@@ -20,29 +23,10 @@ const STATUS_FILTERS: (VendorStatus | "all")[] = ["all", "pending", "approved", 
 export function VendorDueDiligence() {
   const [statusFilter, setStatusFilter] = useState<VendorStatus | "all">("all");
   const [selectedId, setSelectedId] = useState<string>(VENDORS[0].id);
-  const [decision, setDecision] = useState<VendorStatus>("pending");
-  const [note, setNote] = useState("");
-  const [conditions, setConditions] = useState("");
-  const [flash, setFlash] = useState<string | null>(null);
+  const [flash, showFlash] = useFlash();
 
   const selected = VENDORS.find(v => v.id === selectedId) ?? VENDORS[0];
-
-  // Re-seed the decision panel whenever a different vendor is selected.
-  useEffect(() => {
-    setDecision(selected.status);
-    setNote("");
-    setConditions(selected.conditions ?? "");
-  }, [selectedId]); // eslint-disable-line react-hooks/exhaustive-deps
-
   const visible = statusFilter === "all" ? VENDORS : VENDORS.filter(v => v.status === statusFilter);
-
-  const record = () => {
-    if (decision === "pending") { setFlash("Choose a decision before recording."); }
-    else if (!note.trim()) { setFlash("Add a note explaining the decision before recording."); }
-    else { setFlash(`Recorded your decision for ${selected.name} — persistence wired later (M-28).`); }
-    setTimeout(() => setFlash(null), 4000);
-  };
-
   const lowConf = selected.cohortN < LOW_CONFIDENCE_COHORT_N;
 
   return (
@@ -51,12 +35,10 @@ export function VendorDueDiligence() {
         eyebrow="Vendors"
         title="Vendor Due Diligence"
         description="Screen a vendor's public privacy notice, review the exposure intelligence with evidence, and record your own procurement decision."
-        actions={<button className="btn btn-primary" onClick={() => { setFlash("Add vendor — intake→assessment pipeline wired later (M-28)."); setTimeout(() => setFlash(null), 4000); }}>+ Add vendor</button>}
+        actions={<button className="btn btn-primary" onClick={() => showFlash("Add vendor — intake→assessment pipeline wired later (M-28).")}>+ Add vendor</button>}
       />
 
-      {flash && (
-        <div style={{ background: "rgba(0,95,163,0.08)", border: "1px solid rgba(0,95,163,0.25)", color: "var(--exec-blue)", borderRadius: "var(--radius)", padding: "10px 16px", fontSize: "0.84rem", marginBottom: 18 }} role="status">{flash}</div>
-      )}
+      <FlashNotice message={flash} />
 
       <div className="vd-layout">
         {/* ── Queue ─────────────────────────────────────────────────────── */}
@@ -116,7 +98,8 @@ export function VendorDueDiligence() {
           </div>
           {selected.signals.map((s, i) => (
             <div key={i} className="vd-signal">
-              <span className="clause-chip" style={{ flexShrink: 0 }}>{s.code}</span>
+              {/* DDR-006: every finding code is a hover/focus Codex target */}
+              <span style={{ flexShrink: 0 }}><CodexTooltip code={s.code} /></span>
               <span className="vd-signal-snippet">
                 <span className="vd-signal-issue">{s.issue}</span>
                 “{s.snippet}”
@@ -127,33 +110,50 @@ export function VendorDueDiligence() {
 
           <div style={{ marginTop: 14 }}><IntelligenceMark /></div>
 
-          {/* Decision panel — the customer's procurement action (AC-3, AC-4) */}
-          <div className="vd-decision">
-            <div style={{ fontWeight: 700, fontSize: "0.9rem", color: "var(--navy)", marginBottom: 4 }}>Your procurement decision</div>
-            <div className="vd-decision-note">
-              This decision is yours to record. Visentix provides exposure intelligence about this vendor's
-              disclosures — it does not approve, clear, or reject a vendor for you.
-            </div>
-            <div className="vd-actions">
-              <button className={`vd-action ${decision === "approved" ? "sel-approved" : ""}`} aria-pressed={decision === "approved"} onClick={() => setDecision("approved")}>Approve</button>
-              <button className={`vd-action ${decision === "conditional" ? "sel-conditional" : ""}`} aria-pressed={decision === "conditional"} onClick={() => setDecision("conditional")}>Approve with conditions</button>
-              <button className={`vd-action ${decision === "declined" ? "sel-declined" : ""}`} aria-pressed={decision === "declined"} onClick={() => setDecision("declined")}>Decline</button>
-            </div>
-
-            {decision === "conditional" && (
-              <>
-                <div className="vd-field-label">Conditions</div>
-                <textarea className="vd-textarea" value={conditions} onChange={e => setConditions(e.target.value)} placeholder="e.g. proceed pending the vendor publishing category-level retention periods" />
-              </>
-            )}
-
-            <div className="vd-field-label">Decision note</div>
-            <textarea className="vd-textarea" value={note} onChange={e => setNote(e.target.value)} placeholder="Why you reached this decision" />
-
-            <button className="btn btn-primary" style={{ marginTop: 12 }} onClick={record}>Record decision</button>
-          </div>
+          {/* key remount re-seeds the panel per vendor — no setState-in-effect needed */}
+          <DecisionPanel key={selected.id} vendor={selected} onFlash={showFlash} />
         </div>
       </div>
+    </div>
+  );
+}
+
+/** Decision panel — the customer's procurement action (AC-3, AC-4). */
+function DecisionPanel({ vendor, onFlash }: { vendor: Vendor; onFlash: (msg: string) => void }) {
+  const [decision, setDecision] = useState<VendorStatus>(vendor.status);
+  const [note, setNote] = useState("");
+  const [conditions, setConditions] = useState(vendor.conditions ?? "");
+
+  const record = () => {
+    if (decision === "pending") onFlash("Choose a decision before recording.");
+    else if (!note.trim()) onFlash("Add a note explaining the decision before recording.");
+    else onFlash(`Recorded your decision for ${vendor.name} — persistence wired later (M-28).`);
+  };
+
+  return (
+    <div className="vd-decision">
+      <div style={{ fontWeight: 700, fontSize: "0.9rem", color: "var(--navy)", marginBottom: 4 }}>Your procurement decision</div>
+      <div className="vd-decision-note">
+        This decision is yours to record. Visentix provides exposure intelligence about this vendor's
+        disclosures — it does not approve, clear, or reject a vendor for you.
+      </div>
+      <div className="vd-actions">
+        <button className={`vd-action ${decision === "approved" ? "sel-approved" : ""}`} aria-pressed={decision === "approved"} onClick={() => setDecision("approved")}>Approve</button>
+        <button className={`vd-action ${decision === "conditional" ? "sel-conditional" : ""}`} aria-pressed={decision === "conditional"} onClick={() => setDecision("conditional")}>Approve with conditions</button>
+        <button className={`vd-action ${decision === "declined" ? "sel-declined" : ""}`} aria-pressed={decision === "declined"} onClick={() => setDecision("declined")}>Decline</button>
+      </div>
+
+      {decision === "conditional" && (
+        <>
+          <div className="vd-field-label">Conditions</div>
+          <textarea className="vd-textarea" value={conditions} onChange={e => setConditions(e.target.value)} placeholder="e.g. proceed pending the vendor publishing category-level retention periods" />
+        </>
+      )}
+
+      <div className="vd-field-label">Decision note</div>
+      <textarea className="vd-textarea" value={note} onChange={e => setNote(e.target.value)} placeholder="Why you reached this decision" />
+
+      <button className="btn btn-primary" style={{ marginTop: 12 }} onClick={record}>Record decision</button>
     </div>
   );
 }

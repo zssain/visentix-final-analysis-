@@ -13,6 +13,10 @@
  * DESCRIPTIVE — "relates to / addresses / referenced by" only, never any
  * verdict vocabulary from the banned-term list. A unit test (F13 AC-4) scans
  * this dataset against scripts/data/banned_terms.txt.
+ *
+ * NOTE (Hard Rule 3): domain finding-code lists are illustrative placeholders
+ * pending the real `finding_type` catalog (only TRK-007 / SH-002 / RT-003 are
+ * confirmed catalog codes); the M-25 backend replaces them.
  */
 
 export const FRAMEWORKS = [

@@ -49,4 +49,5 @@ Unit: banned-term scan (AC-2) and obligation-phrase scan (AC-3) over the pattern
 - Pattern library authorship + SME sign-off process (owner: SME team) — who authors and approves the `rewrite_pattern` entries, and how they stay tied to approved exemplars. This spec ships the UI on mock patterns pending that process.
 
 ## Changelog
+- 2026-07-16 (audit): AC-2 (banned-term) and AC-3 (obligation-phrase) unit tests implemented (`guardrails.test.ts`); Copy-pattern feedback now honest (reports failure when the clipboard write fails); banner + domain chip moved to shared furniture.
 - 2026-07-16: Graduated from `03-ideas/further-ideas.md` (near-term candidate) to a feature spec and built UI-only against mocks (engineer). Studio: per-domain prompt cards (current excerpt vs. benchmark-informed pattern), rationale, honest exemplar cohort n, checklist progress, positive markers for adequate domains, descriptive-only + no-obligation guardrails, Intelligence mark. Authored pattern library + `GET /api/rewrite` remain proposed. Files: `web/src/pages/rewrite/{NoticeRewrite.tsx,mockData.ts,rewrite.css}`, `/rewrite` route + nav.

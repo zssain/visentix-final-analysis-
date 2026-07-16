@@ -48,4 +48,5 @@ Unit: banned-term scan over the crosswalk copy (AC-4); matrix completeness (8×4
 - OD-01 (Product) — sign off the descriptive-only crosswalk copy. Recommendation on record: descriptive language, ship the shell now, real citations later. This spec ships the shell UI on mock citations pending that sign-off.
 
 ## Changelog
+- 2026-07-16 (audit): AC-4 banned-term unit test implemented (`guardrails.test.ts`); drill-down codes now render via CodexTooltip (DDR-006); guardrail banner + domain chip moved to shared furniture. Mock codes flagged as placeholders pending the catalog (Hard Rule 3).
 - 2026-07-16: Graduated from `03-ideas/further-ideas.md` (near-term candidate) to a feature spec and built UI-only against mocks (engineer). Shell explorer: 8×4 matrix, framework filter, domain drill-down to Codex chips, descriptive-only banner + Intelligence mark. Copy is mock pending OD-01 sign-off; `framework_reference` table + `GET /api/crosswalk` remain proposed. Files: `web/src/pages/crosswalk/{FrameworkCrosswalk.tsx,mockData.ts,crosswalk.css}`, `/crosswalk` route + nav.

@@ -19,6 +19,10 @@
  *
  * Guardrail note: all copy here is DESCRIPTIVE-ONLY (F12 AC-7). It states
  * observed movement ("continued rising"), never predictions/forecasts/verdicts.
+ *
+ * NOTE (Hard Rule 3): compound-pattern CR-xx codes are illustrative
+ * placeholders pending the real `finding_type` catalog; the M-17 backend
+ * replaces them.
  */
 
 import type { MetricPolarity } from "../../lib/scoreBands";

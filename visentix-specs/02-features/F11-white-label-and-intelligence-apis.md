@@ -45,5 +45,6 @@ Guarantees still to be enforced by the backend (not yet real): usage-limit-reach
 Feed anonymization + suppression tests, API contract tests, branding-isolation tests, usage-metering tests.
 
 ## Changelog
+- 2026-07-16 (audit): Portal flash notices moved to the shared useFlash/FlashNotice furniture (fixes an overlapping-timer bug); no behavior or AC change.
 - 2026-07-16: Partner portal built UI-only against mocks (engineer). Status → "shipped UI, all data mocked"; added Mocks section (M-19–M-22) and rewrote Behavior & states to separate real UI from the not-yet-wired tenancy/metering/feed/API backend. Route `/partner` gated to `admin` pending the `partner` role (F10 tenancy). Files: `web/src/pages/partner/{PartnerPortal.tsx,mockData.ts,partner.css}`, `/partner` route + admin nav. Intelligence APIs + anonymized-feed backend remain proposed.
 - 2026-07-16: Added Behavior & states and Changelog sections for template conformance; no scope change (feature remains proposed).

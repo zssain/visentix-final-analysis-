@@ -45,4 +45,5 @@ Unit: banned-term scan (AC-1) and security-jargon denylist scan (AC-2) over the 
 - Which trust metrics are safe and durable to publish (owner: Product + SME) — e.g. reproducibility guarantee and formula count are safe; corpus scale must be real and may be better omitted early. This spec ships the UI on mock metrics pending that selection.
 
 ## Changelog
+- 2026-07-16 (audit): AC-1 (banned-term), AC-2 (security-jargon), and AC-3 (metric-source-note) unit tests implemented (`guardrails.test.ts`).
 - 2026-07-16: Graduated from `03-ideas/further-ideas.md` (Public Trust Center) to a feature spec and built UI-only against mocks (engineer). Public `/trust` page: four commitment sections (claims / data / methodology / traceability), a source-noted trust-metrics strip, register-appropriate security language, no-legal-verdict + honest-numbers guardrails, Intelligence mark. `GET /api/trust-metrics` remains proposed. Files: `web/src/pages/trust/{TrustCenter.tsx,mockData.ts,trust.css}`, `/trust` route + nav.

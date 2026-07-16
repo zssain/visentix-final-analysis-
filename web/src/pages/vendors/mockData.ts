@@ -13,6 +13,9 @@
  * never a Visentix-issued approval/clearance. The approve/decline decision is
  * the CUSTOMER's procurement action. All copy is scanned against the
  * banned-term list (AC-2).
+ *
+ * NOTE (Hard Rule 3): finding codes here are illustrative placeholders pending
+ * the real `finding_type` catalog; real codes arrive with the M-28 backend.
  */
 
 export type VendorStatus = "pending" | "approved" | "conditional" | "declined";

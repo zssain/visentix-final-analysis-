@@ -9,6 +9,8 @@
 import { useState } from "react";
 import { PageHeader } from "../../components/PageHeader";
 import { IntelligenceMark } from "../../components/IntelligenceMark";
+import { FlashNotice } from "../../components/FlashNotice";
+import { useFlash } from "../../lib/useFlash";
 import { LOW_CONFIDENCE_COHORT_N } from "../../lib/scoreBands";
 import { PROMPTS, type GapStatus } from "./mockData";
 import "../../components/furniture.css";
@@ -22,19 +24,25 @@ const STATUS_LABEL: Record<GapStatus, string> = {
 
 export function NoticeRewrite() {
   const [done, setDone] = useState<Set<string>>(new Set());
-  const [flash, setFlash] = useState<string | null>(null);
+  const [flash, showFlash] = useFlash();
 
   const toggleDone = (id: string) =>
     setDone(prev => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(id)) next.delete(id); else next.add(id);
       return next;
     });
 
+  // Only claim success when the copy actually succeeded — honest feedback.
   const copyPattern = (text: string) => {
-    navigator.clipboard?.writeText(text).catch(() => {});
-    setFlash("Language pattern copied — adapt it to your own voice.");
-    setTimeout(() => setFlash(null), 3500);
+    if (!navigator.clipboard) {
+      showFlash("Copying isn't available here — select the text and copy it manually.");
+      return;
+    }
+    navigator.clipboard.writeText(text).then(
+      () => showFlash("Language pattern copied — adapt it to your own voice."),
+      () => showFlash("Couldn't copy automatically — select the text and copy it manually."),
+    );
   };
 
   // "Addressed" = adequate domains + any prompt the user has checked off.
@@ -51,7 +59,7 @@ export function NoticeRewrite() {
       />
 
       {/* Guardrail banner (AC-5) */}
-      <div className="rw-banner">
+      <div className="guardrail-banner">
         <span aria-hidden="true" style={{ fontSize: "1.1rem" }}>ⓘ</span>
         <span>
           <b>Language patterns, not legal drafting.</b> Each suggestion shows how clearer notices in your peer
@@ -60,13 +68,7 @@ export function NoticeRewrite() {
         </span>
       </div>
 
-      {flash && (
-        <div style={{
-          background: "rgba(0,95,163,0.08)", border: "1px solid rgba(0,95,163,0.25)",
-          color: "var(--exec-blue)", borderRadius: "var(--radius)", padding: "10px 16px",
-          fontSize: "0.84rem", marginBottom: 18,
-        }} role="status">{flash}</div>
-      )}
+      <FlashNotice message={flash} />
 
       {/* Progress (AC-6) */}
       <div className="rw-progress">
@@ -81,7 +83,7 @@ export function NoticeRewrite() {
         return (
           <div key={p.domainId} className={`rw-card ${isAdequate ? "adequate" : ""} ${isDone ? "done" : ""}`}>
             <div className="rw-card-head">
-              <span className="rw-domain-id">{p.domainId}</span>
+              <span className="domain-chip">{p.domainId}</span>
               <span className="rw-domain-name">{p.domainName}</span>
               <span className={`rw-status ${p.status}`}>{STATUS_LABEL[p.status]}</span>
               {!isAdequate && (

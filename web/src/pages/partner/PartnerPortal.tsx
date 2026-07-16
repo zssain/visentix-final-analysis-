@@ -14,6 +14,8 @@
  */
 import { useState } from "react";
 import { PageHeader } from "../../components/PageHeader";
+import { FlashNotice } from "../../components/FlashNotice";
+import { useFlash } from "../../lib/useFlash";
 import {
   CONTRACT, WORKSPACES, BRANDING, API_KEYS, API_SURFACES,
   FEEDS, TEMPLATES,
@@ -34,13 +36,8 @@ function pct(used: number, limit: number): number {
 
 export function PartnerPortal() {
   const [selectedTemplate, setSelectedTemplate] = useState("assessment");
-  const [flash, setFlash] = useState<string | null>(null);
-
   // Mock actions — UI affordances ahead of the backend. Register intent, no state change.
-  const mockAction = (msg: string) => {
-    setFlash(msg);
-    setTimeout(() => setFlash(null), 4000);
-  };
+  const [flash, mockAction] = useFlash();
 
   const apiRatio = CONTRACT.apiCallsUsed / CONTRACT.apiCallLimit;
 
@@ -58,13 +55,7 @@ export function PartnerPortal() {
         }
       />
 
-      {flash && (
-        <div style={{
-          background: "rgba(0,95,163,0.08)", border: "1px solid rgba(0,95,163,0.25)",
-          color: "var(--exec-blue)", borderRadius: "var(--radius)", padding: "10px 16px",
-          fontSize: "0.84rem", marginBottom: 20,
-        }} role="status">{flash}</div>
-      )}
+      <FlashNotice message={flash} />
 
       <div className="pp-grid">
         {/* ── Contract & usage ─────────────────────────────────────────── */}
