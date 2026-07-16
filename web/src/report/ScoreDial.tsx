@@ -1,4 +1,4 @@
-import { scoreBandColor, maturityBand, vciBand } from "../lib/scoreBands";
+import { maturityBandColor, maturityBand, vciBand } from "../lib/scoreBands";
 import { VciBadge } from "./VciBadge";
 
 /**
@@ -28,7 +28,9 @@ function arcPath(cx: number, cy: number, r: number, deg: number) {
 export function ScoreDial({ score, vci }: ScoreDialProps) {
   const clamped = Math.max(0, Math.min(100, score));
   const sweep = (clamped / 100) * 180;
-  const color = scoreBandColor(clamped);
+  // Overall Privacy Intelligence is a MATURITY score (higher = better):
+  // color follows the maturity bands so it always agrees with the band chip.
+  const color = maturityBandColor(clamped);
 
   return (
     <div className="score-dial" data-testid="score-dial">
@@ -51,9 +53,10 @@ export function ScoreDial({ score, vci }: ScoreDialProps) {
       </div>
 
       <div className="score-dial-badges">
-        <span className="score-dial-band">{maturityBand(clamped)}</span>
-        {vci !== undefined && <VciBadge label={vciBand(vci)} guidance={`Report Confidence Index: ${vci}`} />}
+        <span className="score-dial-band" style={{ borderColor: color, color }}>{maturityBand(clamped)}</span>
+        {vci !== undefined && <VciBadge label={vciBand(vci)} guidance={`Visentix Confidence Index ${vci} — how much weight to give this figure (cohort size, source quality, classification certainty)`} />}
       </div>
+      <div className="score-dial-hint">0–100, benchmarked against the peer cohort · higher is better</div>
     </div>
   );
 }

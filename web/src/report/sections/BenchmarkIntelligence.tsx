@@ -2,7 +2,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, Cell, ResponsiveContainer } from 
 import { CohortLabel }    from "../CohortLabel";
 import { ScoreCell }      from "../../components/ScoreCell";
 import { IntelligenceMark } from "../../components/IntelligenceMark";
-import { scoreBandColor, LOW_CONFIDENCE_COHORT_N } from "../../lib/scoreBands";
+import { maturityBandColor, LOW_CONFIDENCE_COHORT_N } from "../../lib/scoreBands";
 import type { ReportSection } from "../types";
 
 export function BenchmarkIntelligence({ content }: { content: ReportSection["content"] }) {
@@ -18,7 +18,8 @@ export function BenchmarkIntelligence({ content }: { content: ReportSection["con
   const peerMedian  = content.peer_median  as number | undefined;
   const topQuartile = content.top_quartile as number | undefined;
   const data = [
-    { name: "Your Score", value: orgScore, fill: scoreBandColor(orgScore) },
+    // F-010 is a maturity score (higher = better) — maturity color scale.
+    { name: "Your Score", value: orgScore, fill: maturityBandColor(orgScore) },
     ...(peerMedian  !== undefined ? [{ name: "Peer Median",  value: peerMedian,  fill: "#D9DDE2" }] : []),
     ...(topQuartile !== undefined ? [{ name: "Top Quartile", value: topQuartile, fill: "#09234F" }] : []),
   ];

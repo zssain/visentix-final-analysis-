@@ -18,7 +18,7 @@ import { ProvenanceRibbon } from "../../components/ProvenanceRibbon";
 import { IntelligenceMark } from "../../components/IntelligenceMark";
 import { CodexTooltip } from "../../components/CodexTooltip";
 import {
-  trendColor, scoreBandColor, LOW_CONFIDENCE_COHORT_N, type MetricPolarity,
+  trendColor, bandColor, maturityBandColor, LOW_CONFIDENCE_COHORT_N, type MetricPolarity,
 } from "../../lib/scoreBands";
 import {
   PUBLICATION, INDICATORS, KEY_FINDINGS, INDUSTRY_RANKINGS,
@@ -122,7 +122,8 @@ export function QuarterlyReport() {
           {INDICATORS.map(ind => (
             <div key={ind.key} className="qr-ind-card">
               <div className="qr-ind-name">{ind.name}</div>
-              <div className="qr-ind-value" style={{ color: scoreBandColor(ind.value) }}>
+              {/* Each indicator colors by ITS OWN polarity (design-system §2 v1.3) */}
+              <div className="qr-ind-value" style={{ color: bandColor(ind.value, ind.polarity) }}>
                 {ind.value.toFixed(1)}
               </div>
               <Delta value={ind.qoqDelta} polarity={ind.polarity} />
@@ -169,7 +170,8 @@ export function QuarterlyReport() {
               <div key={r.industry} className="qr-rank-row">
                 <span className="qr-rank-industry">{r.industry}</span>
                 <span className="qr-rank-bar">
-                  <span style={{ width: `${r.dmi}%`, background: scoreBandColor(r.dmi) }} />
+                  {/* DMI is a maturity index — maturity color scale */}
+                  <span style={{ width: `${r.dmi}%`, background: maturityBandColor(r.dmi) }} />
                 </span>
                 <span className="qr-rank-val">
                   {r.dmi.toFixed(1)}
@@ -254,7 +256,9 @@ export function QuarterlyReport() {
         {DISCLOSURE_TRENDS.map(d => (
           <div key={d.domain} className="qr-rank-row" style={{ gridTemplateColumns: "1.6fr 3fr auto auto" }}>
             <span className="qr-rank-industry">{d.domain}</span>
-            <span className="qr-rank-bar"><span style={{ width: `${d.prevalence}%`, background: scoreBandColor(100 - d.prevalence) }} /></span>
+            {/* Prevalence of adequate disclosure = maturity — use the maturity
+                scale directly instead of the old 100-x inversion hack */}
+            <span className="qr-rank-bar"><span style={{ width: `${d.prevalence}%`, background: maturityBandColor(d.prevalence) }} /></span>
             <span className="qr-rank-val">{d.prevalence}%</span>
             <span className="qr-rank-val" style={{ minWidth: 64 }}><Delta value={d.qoqDelta} polarity="maturity" /></span>
           </div>

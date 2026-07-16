@@ -8,7 +8,15 @@ import { Link } from "react-router-dom";
 import { api, ApiError } from "../../lib/api";
 import { ProvenanceRibbon } from "../../components/ProvenanceRibbon";
 import { PageHeader }       from "../../components/PageHeader";
-import { scoreBandColor, maturityBand } from "../../lib/scoreBands";
+import { bandColor, maturityBandColor, maturityBand, metricPolarity, vciBand } from "../../lib/scoreBands";
+
+/** Plain-language VCI explainer — shown wherever a VCI number appears. */
+const VCI_TITLE = "Visentix Confidence Index (0–100): how much weight to give this figure — reflects cohort size, source quality, and classification certainty.";
+
+const DIRECTION_HINT: Record<string, string> = {
+  maturity: "higher is better",
+  exposure: "lower is better",
+};
 import "../../components/furniture.css";
 
 interface Assessment {
@@ -89,15 +97,24 @@ export function CustomerDashboard() {
                 <div className="micro-label">Overall Privacy Intelligence Score</div>
                 {overallScore != null ? (
                   <>
+                    {/* Maturity polarity: higher = better; color agrees with the band label
+                        ("Deficient" is never teal) — design-system §2 v1.3 */}
                     <div style={{
                       fontFamily: "var(--font-data)", fontVariantNumeric: "tabular-nums",
-                      fontSize: "3rem", fontWeight: 700, color: scoreBandColor(overallScore),
+                      fontSize: "3rem", fontWeight: 700, color: maturityBandColor(overallScore),
                       lineHeight: 1.1,
                     }}>
                       {overallScore.toFixed(1)}
                     </div>
                     <div style={{ fontSize: "0.82rem", color: "var(--text-muted)", marginTop: 4 }}>
-                      {maturityBand(overallScore)} · VCI {((stats?.overall_confidence ?? 0) * 100).toFixed(0)}
+                      <span style={{ fontWeight: 700, color: maturityBandColor(overallScore) }}>{maturityBand(overallScore)}</span>
+                      {" · "}
+                      <span title={VCI_TITLE} style={{ cursor: "help", textDecoration: "underline dotted" }}>
+                        VCI {((stats?.overall_confidence ?? 0) * 100).toFixed(0)} · {vciBand((stats?.overall_confidence ?? 0) * 100)} confidence
+                      </span>
+                    </div>
+                    <div style={{ fontSize: "0.76rem", color: "var(--text-muted)", marginTop: 4 }}>
+                      0–100, benchmarked against your peer cohort · higher is better
                     </div>
                   </>
                 ) : (
@@ -112,29 +129,51 @@ export function CustomerDashboard() {
           {/* Domain scorecards — from real data */}
           {stats && stats.domain_scores.length > 0 && (
             <div>
-              <div className="section-label" style={{ marginBottom: 10 }}>Score Breakdown</div>
+              <div className="section-label" style={{ marginBottom: 4 }}>Score Breakdown</div>
+              {/* Legend: color = judgement, per design-system §2 v1.3 */}
+              <div style={{ fontSize: "0.74rem", color: "var(--text-muted)", marginBottom: 10 }}>
+                Color shows standing — <span style={{ color: "var(--teal)", fontWeight: 700 }}>teal good</span> ·{" "}
+                <span style={{ color: "#8a6a2b", fontWeight: 700 }}>gold developing</span> ·{" "}
+                <span style={{ color: "#b91c1c", fontWeight: 700 }}>red needs attention</span>.
+                Each metric notes which direction is better.
+              </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10 }}>
-                {stats.domain_scores.map(ds => (
-                  <div key={ds.object_type} className="card" style={{ padding: "12px 16px" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                      <div>
-                        <div className="micro-label" style={{ marginBottom: 3 }}>{ds.domain}</div>
-                        <div style={{
-                          fontFamily: "var(--font-data)", fontVariantNumeric: "tabular-nums",
-                          fontSize: "1.5rem", fontWeight: 700, color: scoreBandColor(ds.score),
-                        }}>
-                          {ds.score > 0 ? ds.score.toFixed(1) : "—"}
+                {stats.domain_scores.map(ds => {
+                  const polarity = metricPolarity(ds.domain);
+                  const hasScore = ds.score > 0;
+                  const color = hasScore ? bandColor(ds.score, polarity) : "var(--text-muted)";
+                  return (
+                    <div key={ds.object_type} className="card" style={{ padding: "12px 16px" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                        <div>
+                          <div className="micro-label" style={{ marginBottom: 3 }}>
+                            {ds.domain}
+                            {polarity && (
+                              <span style={{ fontWeight: 500, textTransform: "none", letterSpacing: 0, color: "var(--text-muted)", marginLeft: 6 }}>
+                                · {DIRECTION_HINT[polarity]}
+                              </span>
+                            )}
+                          </div>
+                          <div style={{
+                            fontFamily: "var(--font-data)", fontVariantNumeric: "tabular-nums",
+                            fontSize: "1.5rem", fontWeight: 700, color,
+                          }}>
+                            {hasScore ? ds.score.toFixed(1) : "—"}
+                          </div>
+                        </div>
+                        <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", cursor: "help", textDecoration: "underline dotted", textAlign: "right" }} title={VCI_TITLE}>
+                          VCI {((ds.confidence || 0) * 100).toFixed(0)}
+                          <div style={{ fontSize: "0.66rem" }}>{vciBand((ds.confidence || 0) * 100)} confidence</div>
                         </div>
                       </div>
-                      <div style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>
-                        VCI {((ds.confidence || 0) * 100).toFixed(0)}
+                      <div style={{ height: 3, background: "var(--border)", borderRadius: 2, marginTop: 8, overflow: "hidden" }}>
+                        {hasScore && (
+                          <div style={{ height: "100%", width: `${Math.min(ds.score, 100)}%`, background: color, borderRadius: 2 }} />
+                        )}
                       </div>
                     </div>
-                    <div style={{ height: 3, background: "var(--border)", borderRadius: 2, marginTop: 8, overflow: "hidden" }}>
-                      <div style={{ height: "100%", width: `${Math.min(ds.score, 100)}%`, background: scoreBandColor(ds.score), borderRadius: 2 }} />
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}

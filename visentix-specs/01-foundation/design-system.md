@@ -1,6 +1,6 @@
 # Design System — Tokens, Furniture, DDR Summary
 
-**Version:** 1.2 · 2026-07-16 · Condenses the Brand Guide, DDRs, and UI_SPEC §0 into one authority. Design principle: **legal-and-regulator "premium" is confident stillness plus evidence everywhere.** Motion exists only to reveal evidence.
+**Version:** 1.3 · 2026-07-16 · Condenses the Brand Guide, DDRs, and UI_SPEC §0 into one authority. Design principle: **legal-and-regulator "premium" is confident stillness plus evidence everywhere.** Motion exists only to reveal evidence.
 
 ## 1. Tokens (fixed — never invent colors)
 
@@ -12,14 +12,18 @@
 | Soft White | `#F7F8FA` | Page backgrounds |
 | Warm Gray | `#D9DDE2` | Borders, dividers, removed-diff strikethrough |
 | Subtle Gold | `#C8A46A` | Provisional / draft / premium / added-diff |
-| Red | `#F87171` | Low-score exposure + worsening deltas + de-id block ONLY |
+| Red | `#F87171` | High exposure + deficient/lagging maturity + worsening deltas + de-id block ONLY (poor standing under either polarity — see §2) |
 | Emerald | `#10b981` | Live-dot only |
 
 **Typography:** Fraunces (display/serif, Advisor lede, report covers) · Inter (UI chrome) · Source Sans 3 (data/numerics, `tabular-nums` required on all figures). Marketing/site may also use Aptos/Avenir per Brand Guide.
 
 ## 2. Semantic rules (single sources of truth in code)
 
-- **Score bands** (`web/src/lib/scoreBands.ts`): ≥70 red (high exposure) · ≥45 gold (elevated) · below teal. Never redefine locally.
+- **Score coloring is polarity-aware — color always carries the same judgement.** Teal = good standing, gold = middling / needs attention, red = poor standing, for *every* score, regardless of which direction the number runs. Two canonical scales in `web/src/lib/scoreBands.ts`, never redefined locally:
+  - **Exposure scores** (higher = worse: Regulatory Exposure, Compound Risk, Enforcement Correlation, Benchmark Deviation…): ≥70 red · ≥45 gold · below teal (`scoreBandColor`).
+  - **Maturity scores** (higher = better: Overall Privacy Intelligence, Disclosure Maturity, Transparency, AI Transparency, Benchmark Percentile…): color follows the canonical VICBNF maturity bands — ≥75 teal (Mature/Leading) · ≥60 gold (Developing) · below red (Lagging/Deficient) (`maturityBandColor`). The color must always agree with the displayed band label: "Deficient" is never teal.
+  - A metric whose polarity is unknown renders **neutral navy** — never a guessed judgement. The per-metric polarity registry lives beside the scales (`metricPolarity`); Data/SME verify new entries.
+- **Direction affordance:** any surface that presents a score out of context states which direction is better (e.g. a quiet "higher is better" hint) and, for benchmarked scores, what the score is relative to (the peer cohort). VCI is never shown as a bare number — it carries its band label and a plain-language tooltip.
 - **Delta coloring — by improvement, not direction** (DDR-009, `trendColor`): exposure falling = teal, rising = red; arrows show direction, color carries judgement. `trendColor` takes a per-metric **polarity flag**: maturity-type indices (higher = better, e.g. the quarterly Intelligence Indicators) invert the mapping — rising = teal, falling = red.
 - **Diff palette:** gold = added, warm-gray strikethrough = removed, everywhere.
 - **Low-confidence cohort:** one constant `LOW_CONFIDENCE_COHORT_N` (currently 10, OD-05).
@@ -71,6 +75,7 @@ Nav is a grouped sidebar: **Workspace** (Monitor, Intake, Rewrite, Vendors, Work
 \* **Recorded DDR-008 exception:** the two public *editorial* pages (`/quarterly`, `/trust`) open with a full-bleed editorial cover/hero instead of the shared PageHeader — like the report reader, they are documents, not workflow screens. Every other routed screen keeps PageHeader with eyebrow = nav label.
 
 ## Changelog
+- 1.3 (2026-07-16): **Score coloring made polarity-aware** (user feedback: a Deficient 34.9 rendered teal while 82.2 exposure rendered red — color contradicted meaning). §2 now defines the maturity color scale from the canonical VICBNF maturity-band thresholds (≥75 teal · ≥60 gold · <60 red — color always agrees with the band label), keeps the exposure scale unchanged, adds the neutral-navy rule for unknown polarity, and requires direction/relative-to affordances + labeled VCI. §1 red-usage rule extended to deficient/lagging maturity (same judgement, other polarity). NEEDS EXPERT/DATA: verify the per-metric polarity registry (esp. Benchmark Deviation, Enforcement Correlation classed as exposure).
 - 1.2 (2026-07-16): Route map updated with the seven routes added by F11–F16 (audit finding: doc drift); recorded the grouped-sidebar nav structure and the DDR-008 editorial exception for `/quarterly` and `/trust`.
 - 1.1 (2026-07-15): trendColor extended with per-metric polarity flag (maturity vs exposure) per Appendix I prototype review.
 - 1.0 (2026-07-15): initial consolidation.

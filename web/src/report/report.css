@@ -131,6 +131,11 @@
   border: 1.5px solid #09234F;
   color: #09234F;
 }
+.score-dial-hint {
+  margin-top: 10px;
+  font-size: 0.72rem;
+  color: #8896A5;
+}
 
 .cover-scope-block {
   text-align: left;

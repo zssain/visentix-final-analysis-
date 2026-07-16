@@ -3,7 +3,7 @@ import { VciBadge } from "../VciBadge";
 import { ScoreCell } from "../../components/ScoreCell";
 import { IntelligenceMark } from "../../components/IntelligenceMark";
 import { InfoButton } from "../explain";
-import { scoreBandColor } from "../../lib/scoreBands";
+import { bandColor, metricPolarity } from "../../lib/scoreBands";
 import type { ReportSection } from "../types";
 
 const FID_TO_FKEY: Record<string, string> = {
@@ -54,11 +54,18 @@ export function RiskDashboard({ content }: { content: ReportSection["content"] }
             />
             <Bar dataKey="value" isAnimationActive={false} radius={[0, 4, 4, 0]}>
               {metrics.map((m, i) => (
-                <Cell key={i} fill={scoreBandColor(m.value ?? 0)} />
+                /* Polarity-aware: maturity metrics (Overall, Disclosure,
+                   Transparency, AI) color by the maturity scale; exposure
+                   metrics (Regulatory, Compound) by the exposure scale. */
+                <Cell key={i} fill={bandColor(m.value ?? 0, metricPolarity(m.fid))} />
               ))}
             </Bar>
           </BarChart>
         </ResponsiveContainer>
+      </div>
+      <div style={{ fontSize: "0.74rem", color: "var(--text-muted)", marginTop: 4 }}>
+        Color shows standing — teal good · gold developing · red needs attention. Maturity scores read
+        higher-is-better; exposure scores lower-is-better.
       </div>
 
       {/* Score cells with lineage affordance */}
