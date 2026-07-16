@@ -8,7 +8,7 @@
 - **Reader registers** — Executive / Practitioner / Plain-language renderings of the same snapshot, both frozen (pending OD-02). Later: per-persona default registers (law firm vs CPO vs regulator).
 - **Portfolio & remediation (GRC deepening)** — multi-brand variance maps, finding→task→owner workflow, control mapping, audit trail, monthly executive digest emails.
 - ~~**Notice rewrite prompts**~~ — **graduated to [`02-features/F14-notice-rewrite-prompts.md`](../02-features/F14-notice-rewrite-prompts.md)** (2026-07-16). Trust Language Studio shell shipped on mock patterns; authored pattern library + SME sign-off still pending.
-- **Vendor due diligence mode** — vendor intake form, risk approval workflow, procurement-facing summary.
+- ~~**Vendor due diligence mode**~~ — **graduated to [`02-features/F16-vendor-due-diligence.md`](../02-features/F16-vendor-due-diligence.md)** (2026-07-16). Intake→risk-approval→procurement-summary workflow shipped on mock vendors; vendor pipeline + persistence still pending.
 
 ## Medium-term (R4–R5)
 

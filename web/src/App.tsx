@@ -6,7 +6,7 @@ import { useState } from "react";
 import { BrowserRouter, Link, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import {
   Activity, FilePlus2, ClipboardCheck, Newspaper, BookMarked,
-  Compass, Settings, Handshake, ScanSearch, Grid3x3, PenLine, ShieldCheck,
+  Compass, Settings, Handshake, ScanSearch, Grid3x3, PenLine, ShieldCheck, Building2,
 } from "lucide-react";
 import { AuthProvider, useAuth } from "./auth/AuthProvider";
 import { ProtectedRoute }        from "./auth/ProtectedRoute";
@@ -25,6 +25,7 @@ import { BulkAnalysis }          from "./pages/bulk/BulkAnalysis";
 import { FrameworkCrosswalk }    from "./pages/crosswalk/FrameworkCrosswalk";
 import { NoticeRewrite }         from "./pages/rewrite/NoticeRewrite";
 import { TrustCenter }           from "./pages/trust/TrustCenter";
+import { VendorDueDiligence }    from "./pages/vendors/VendorDueDiligence";
 import "./App.css";
 
 function NavLink({ to, label, children, onClick }: { to: string; label?: string; children?: React.ReactNode; onClick?: () => void }) {
@@ -90,6 +91,7 @@ function AppRoutes() {
                 <NavLink to="/assessments" onClick={closeNav}><Activity size={17} aria-hidden /> Monitor</NavLink>
                 <NavLink to="/intake" onClick={closeNav}><FilePlus2 size={17} aria-hidden /> Intake</NavLink>
                 <NavLink to="/rewrite" onClick={closeNav}><PenLine size={17} aria-hidden /> Rewrite</NavLink>
+                <NavLink to="/vendors" onClick={closeNav}><Building2 size={17} aria-hidden /> Vendors</NavLink>
                 {(role === "sme" || role === "admin") && (
                   <NavLink to="/review" onClick={closeNav}><ClipboardCheck size={17} aria-hidden /> Workbench</NavLink>
                 )}
@@ -170,6 +172,13 @@ function AppRoutes() {
           <Route path="/rewrite" element={
             <ProtectedRoute allowedRoles={["customer", "sme", "admin"]}>
               <NoticeRewrite />
+            </ProtectedRoute>
+          } />
+
+          {/* Vendor Due Diligence (F16) — procurement workflow */}
+          <Route path="/vendors" element={
+            <ProtectedRoute allowedRoles={["customer", "sme", "admin"]}>
+              <VendorDueDiligence />
             </ProtectedRoute>
           } />
 
