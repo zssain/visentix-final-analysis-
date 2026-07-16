@@ -6,7 +6,7 @@ import { useState } from "react";
 import { BrowserRouter, Link, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import {
   Activity, FilePlus2, ClipboardCheck, Newspaper, BookMarked,
-  Compass, Settings, Handshake, ScanSearch,
+  Compass, Settings, Handshake, ScanSearch, Grid3x3,
 } from "lucide-react";
 import { AuthProvider, useAuth } from "./auth/AuthProvider";
 import { ProtectedRoute }        from "./auth/ProtectedRoute";
@@ -22,6 +22,7 @@ import { Methodology }           from "./pages/Methodology";
 import { QuarterlyReport }       from "./pages/quarterly/QuarterlyReport";
 import { PartnerPortal }         from "./pages/partner/PartnerPortal";
 import { BulkAnalysis }          from "./pages/bulk/BulkAnalysis";
+import { FrameworkCrosswalk }    from "./pages/crosswalk/FrameworkCrosswalk";
 import "./App.css";
 
 function NavLink({ to, label, children, onClick }: { to: string; label?: string; children?: React.ReactNode; onClick?: () => void }) {
@@ -94,6 +95,7 @@ function AppRoutes() {
               <div className="side-group">
                 <div className="side-group-label">Intelligence</div>
                 <NavLink to="/quarterly" onClick={closeNav}><Newspaper size={17} aria-hidden /> Quarterly</NavLink>
+                <NavLink to="/crosswalk" onClick={closeNav}><Grid3x3 size={17} aria-hidden /> Crosswalk</NavLink>
                 <NavLink to="/codex" onClick={closeNav}><BookMarked size={17} aria-hidden /> Codex</NavLink>
                 <NavLink to="/methodology" onClick={closeNav}><Compass size={17} aria-hidden /> Methodology</NavLink>
               </div>
@@ -132,6 +134,7 @@ function AppRoutes() {
           <Route path="/codex"       element={<FindingCodex />} />
           <Route path="/methodology" element={<Methodology />} />
           <Route path="/quarterly"   element={<QuarterlyReport />} />
+          <Route path="/crosswalk"   element={<FrameworkCrosswalk />} />
           <Route path="/unauthorized" element={
             <div style={{ padding: 60, textAlign: "center" }}>
               <h2 style={{ color: "var(--red)" }}>403 — Access Denied</h2>

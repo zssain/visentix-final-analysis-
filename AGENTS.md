@@ -80,6 +80,7 @@ A normalized corpus already lives in Supabase. You did not create it and you mus
 - F10 — Auth, Roles & Multi-Tenancy — shipped (custom local JWT); hardening R1→R2
 - F11 — White-Label Portal & Intelligence APIs — shipped UI — partner portal built, all data mocked (M-19–M-22); Intelligence APIs, tenancy & metering backend proposed
 - F12 — Quarterly Intelligence Report & Bulk Analysis — shipped UI — Quarterly reader page + bulk-analysis workflow real, all data mocked (M-15–M-24); aggregation/publication + batch-pipeline backend proposed
+- F13 — Framework Crosswalk Explorer — shipped UI — explorer built, all data mocked (M-25); crosswalk backend + copy sign-off proposed
 <!-- END GENERATED: SPEC INDEX -->
 
 ## Stack facts

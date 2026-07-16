@@ -4,7 +4,7 @@
 
 ## Near-term candidates (post-R2)
 
-- **Framework Crosswalk explorer** — 8 domains + finding codes mapped to NIST Privacy Framework / ISO 27701 / GDPR-CCPA references. Shell design approved; copy held pending OD-01 (descriptive-only language).
+- ~~**Framework Crosswalk explorer**~~ — **graduated to [`02-features/F13-framework-crosswalk-explorer.md`](../02-features/F13-framework-crosswalk-explorer.md)** (2026-07-16). Shell UI shipped on mock citations; descriptive copy still pending OD-01 sign-off.
 - **Reader registers** — Executive / Practitioner / Plain-language renderings of the same snapshot, both frozen (pending OD-02). Later: per-persona default registers (law firm vs CPO vs regulator).
 - **Portfolio & remediation (GRC deepening)** — multi-brand variance maps, finding→task→owner workflow, control mapping, audit trail, monthly executive digest emails.
 - **Notice rewrite prompts** — plain-language trust-improvement checklist for marketing/trust teams (guardrail-safe: suggestions framed as benchmark-informed language patterns, never legal drafting).
