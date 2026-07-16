@@ -6,7 +6,7 @@ import { useState } from "react";
 import { BrowserRouter, Link, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import {
   Activity, FilePlus2, ClipboardCheck, Newspaper, BookMarked,
-  Compass, Settings, Handshake, ScanSearch, Grid3x3,
+  Compass, Settings, Handshake, ScanSearch, Grid3x3, PenLine,
 } from "lucide-react";
 import { AuthProvider, useAuth } from "./auth/AuthProvider";
 import { ProtectedRoute }        from "./auth/ProtectedRoute";
@@ -23,6 +23,7 @@ import { QuarterlyReport }       from "./pages/quarterly/QuarterlyReport";
 import { PartnerPortal }         from "./pages/partner/PartnerPortal";
 import { BulkAnalysis }          from "./pages/bulk/BulkAnalysis";
 import { FrameworkCrosswalk }    from "./pages/crosswalk/FrameworkCrosswalk";
+import { NoticeRewrite }         from "./pages/rewrite/NoticeRewrite";
 import "./App.css";
 
 function NavLink({ to, label, children, onClick }: { to: string; label?: string; children?: React.ReactNode; onClick?: () => void }) {
@@ -87,6 +88,7 @@ function AppRoutes() {
                 <div className="side-group-label">Workspace</div>
                 <NavLink to="/assessments" onClick={closeNav}><Activity size={17} aria-hidden /> Monitor</NavLink>
                 <NavLink to="/intake" onClick={closeNav}><FilePlus2 size={17} aria-hidden /> Intake</NavLink>
+                <NavLink to="/rewrite" onClick={closeNav}><PenLine size={17} aria-hidden /> Rewrite</NavLink>
                 {(role === "sme" || role === "admin") && (
                   <NavLink to="/review" onClick={closeNav}><ClipboardCheck size={17} aria-hidden /> Workbench</NavLink>
                 )}
@@ -158,6 +160,13 @@ function AppRoutes() {
           <Route path="/assessments" element={
             <ProtectedRoute allowedRoles={["customer", "sme", "admin"]}>
               <CustomerDashboard />
+            </ProtectedRoute>
+          } />
+
+          {/* Trust Language Studio (F14) — customer trust tool */}
+          <Route path="/rewrite" element={
+            <ProtectedRoute allowedRoles={["customer", "sme", "admin"]}>
+              <NoticeRewrite />
             </ProtectedRoute>
           } />
 
