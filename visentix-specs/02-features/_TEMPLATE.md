@@ -24,6 +24,8 @@ Happy path, empty, loading, error, low-confidence, draft vs approved, reduced-mo
 How the banned-term filter, VCI thresholds, and lineage requirements apply here.
 
 ## Mocks (if any)
+Any mock in this feature must have a row in [`00-plan/mock-tracker.md`](../00-plan/mock-tracker.md). List the row IDs here (e.g. "M-06, M-07 — see mock-tracker") or write "none".
+
 | ID | What's mocked | Real source | Removal plan |
 
 ## Acceptance criteria
@@ -34,4 +36,7 @@ How the banned-term filter, VCI thresholds, and lineage requirements apply here.
 Unit / integration / verification tests that must be green before merge.
 
 ## Open questions
-Anything blocking, with owner.
+Anything blocking, with owner. Product/content decisions that gate the MVP go in [`00-plan/open-decisions.md`](../00-plan/open-decisions.md) (reference the OD id here).
+
+## Changelog
+- x.y (YYYY-MM-DD): what changed and why. Every substantive edit appends a dated line. (Required section — never delete it.)

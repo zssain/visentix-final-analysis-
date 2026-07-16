@@ -31,3 +31,6 @@ Extraction confidence recorded per capture; ambiguous/failed extractions routed 
 
 ## Test gate
 Change-detection unit tests (hash, diff, material-change flag); CQS gating tests; trigger-matrix integration tests; scheduler idempotency test.
+
+## Changelog
+- 2026-07-16: Added Changelog section for template conformance; no behavioral change.

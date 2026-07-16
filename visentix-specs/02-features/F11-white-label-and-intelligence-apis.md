@@ -24,5 +24,11 @@ External feeds carry data dictionary + methodology + permitted-use restrictions;
 - AC-3 API keys enforce per-contract rate/usage limits; usage visible in portal.
 - AC-4 De-id validation on every externally exposed language pattern.
 
+## Behavior & states
+F11 is **proposed** — full UI/API states are fixed at approval. Guarantees already binding: usage-limit-reached returns a clear quota error; partner / client-workspace scope isolation (a partner sees only its own workspaces, DIR-005); any feed output below minimum sample is suppressed (DIR-006); unauthorized or expired API keys are rejected. Every payload carries VCI + formula_version + lineage.
+
 ## Test gate
 Feed anonymization + suppression tests, API contract tests, branding-isolation tests, usage-metering tests.
+
+## Changelog
+- 2026-07-16: Added Behavior & states and Changelog sections for template conformance; no scope change (feature remains proposed).

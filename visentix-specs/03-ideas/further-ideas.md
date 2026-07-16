@@ -24,7 +24,7 @@
 
 - **Managed-LLM tier** — optional hosted-model path for higher-quality narratives where a customer's data-handling agreement allows; local Ollama remains the default; requires DATA_HANDLING.md revision + per-tenant model policy.
 - **Embedding upgrade path** — migration plan from MiniLM-L6 to a stronger model with full re-embedding + benchmark recalibration + version bump.
-- **Eval harness for the intelligence layer** — golden-set notices with expected clause classifications and score ranges; run on every formula/model version change (extends the 633-test discipline to model quality).
+- **Eval harness for the intelligence layer** — golden-set notices with expected clause classifications and score ranges; run on every formula/model version change (extends the test-suite discipline to model quality).
 - **Spec-agent CI** — a CI job where an AI agent checks each PR against its referenced feature spec's acceptance criteria and the foundation guardrails (banned-term scan on any string literals, hardcoded-value scan per DIR-008).
 - **Public Trust Center** — security, methodology, data-handling, and metric-traceability pages (Website Review §7); every public statistic backed by the traceability matrix.
 

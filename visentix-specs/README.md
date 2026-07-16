@@ -32,7 +32,7 @@ visentix-specs/
 1. **Foundation first.** Any AI agent working on Visentix loads `01-foundation/` into context before touching a feature. Foundation docs are authoritative; a feature spec that conflicts with foundation is a bug in the spec, fixed *before* implementation.
 2. **One feature, one spec, one branch.** Each `02-features/Fxx-*.md` is a self-contained work unit: purpose, data touched, API contracts, UI behavior, states, acceptance criteria, and test gates. The AI implements exactly the acceptance criteria — nothing more.
 3. **Specs change before code changes.** If implementation reveals the spec is wrong, the agent proposes a spec edit (PR to this repo), it's approved, then code follows. Never let code drift ahead of specs.
-4. **Test gates are part of the spec.** Every feature lists what must be green before merge (unit, integration, verification tests). This continues the existing project discipline (633-test suite, phase gates).
+4. **Test gates are part of the spec.** Every feature lists what must be green before merge (unit, integration, verification tests). This continues the existing project discipline (the full pytest + vitest suite, phase gates).
 5. **Traceability everywhere.** This mirrors the product itself: every score has lineage; every line of code has a spec ID. Commits reference feature IDs (`F04: implement VCI suppression threshold`).
 6. **Versioning.** Foundation docs carry a version header. Formula or schema changes bump the version and record the change in a changelog block at the bottom of the file — matching the platform's own `formula_version` discipline.
 
@@ -50,4 +50,4 @@ Rules for agents:
 
 ## Current product context (July 2026)
 
-The MVP (FastAPI + React/TS + Postgres/Supabase + local LLM + MiniLM embeddings) is functionally complete through Phase 11: intake → decomposition → classification → profiling → normalization → scoring (F-002–F-014) → findings → SME gate → 12-section report → monitoring surfaces. 633 tests green. Remaining work is defined in `00-plan/mvp-completion-plan.md`.
+The MVP (FastAPI + React/TS + Postgres/Supabase + local LLM + MiniLM embeddings) is functionally complete through Phase 11: intake → decomposition → classification → profiling → normalization → scoring (F-002–F-014) → findings → SME gate → 12-section report → monitoring surfaces. Full test suite green. Remaining work is defined in `00-plan/mvp-completion-plan.md`.

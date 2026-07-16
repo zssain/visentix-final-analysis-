@@ -87,3 +87,27 @@ jobs:
             HARD LIMITS: never edit files outside visentix-specs/, scripts/data/, or
             AGENTS.md (via the regeneration script only). Never merge anything.
             Never mark the PR ready-for-review — a human does that.
+
+      - name: "Enforce scope — the draft PR may only touch allowed paths"
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          # The prompt ASKS the agent to stay in its lane; this MAKES it deterministic.
+          # We inspect the PR the agent opened (by its feedback/<issue>- branch) via
+          # the API — independent of local checkout state — and fail loudly if it
+          # changed anything outside the allowlist, whatever the untrusted issue said.
+          PR=$(gh pr list --state open --json number,headRefName \
+                 --jq "[.[] | select(.headRefName | startswith(\"feedback/${{ github.event.issue.number }}-\"))][0].number")
+          if [ -z "$PR" ] || [ "$PR" = "null" ]; then
+            echo "No draft PR opened (classification was code-bug/question) — nothing to scope-check."
+            exit 0
+          fi
+          OUT=$(gh pr diff "$PR" --name-only | grep -Ev '^(visentix-specs/|scripts/data/|AGENTS\.md$)' || true)
+          if [ -n "$OUT" ]; then
+            echo "::error::Triage PR #$PR modified out-of-scope files:"; echo "$OUT"
+            gh pr close "$PR" --comment "Auto-closed: modified files outside visentix-specs/ · scripts/data/ · AGENTS.md. A human must review this feedback manually." || true
+            exit 1
+          fi
+          echo "Scope OK — PR #$PR touched only specs / scripts/data / AGENTS.md."

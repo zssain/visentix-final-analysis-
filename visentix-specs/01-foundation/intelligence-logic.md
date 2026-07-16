@@ -1,6 +1,6 @@
 # Intelligence Logic — Classification, Benchmarking, Scoring
 
-**Version:** 1.1 · 2026-07-15 · Consolidates VICBNF v2.0, the Derived Intelligence Catalog v1, and the Intelligence Engine Framework. All weights are **initial policy settings**, configurable in `formula_version` / lookup tables, subject to calibration governance — never hardcoded.
+**Version:** 1.2 · 2026-07-16 · Consolidates VICBNF v2.0, the Derived Intelligence Catalog v1, and the Intelligence Engine Framework. All weights are **initial policy settings**, configurable in `formula_version` / lookup tables, subject to calibration governance — never hardcoded.
 
 ## 1. Pipeline (Porter value chain)
 
@@ -86,6 +86,26 @@ Every LLM output records model version, prompt version, confidence, review statu
 
 Customer upload → full pipeline + snapshot. Monitored hash change → diff, classify changed clauses, rescore affected domains, alert check. New enforcement → update taxonomy/vectors, rerun F-004 for affected domains. Law change → update obligations/weights, rescore jurisdictions. Benchmark refresh (monthly) → rebuild cohorts, preserve versions. Formula update → applies to new outputs only; historical snapshots untouched. Quarter close → frozen publication snapshot.
 
-## 12. Changelog
+## 12. Derived Intelligence Rules (DIR)
+
+Governance rules for how *derived intelligence* — every `derived_data_item` object and everything rendered from it — is produced, stored, published, and displayed. These are cited across `schema.md`, F04, F05, F11, F12, and the roadmap; this section is their canonical home (the v1.0 consolidation named the DIRs but dropped their text).
+
+> ⚠️ **Reconstructed pending expert verification.** The original DIR definitions are not present anywhere in the repo. The rules below were reconstructed from how each DIR is *used* across the specs and from `AGENTS.md` Hard Rules 4 & 6, which restate the same lineage guarantees. Confirm each against the source **Derived Intelligence Catalog** before treating as final. DIR-007 and DIR-009 have no live reference and are left reserved — do not assign them meaning until the source is checked.
+
+| ID | Rule | Reconstructed from |
+|---|---|---|
+| **DIR-001** | Every derived value is materialized as a `derived_data_item` record (score + object_type + generated_at). One shared derived-intelligence object type feeds all four products — no product computes its own derived data. | schema `derived_data_item` "DIR-001…004"; roadmap "shared derived intelligence objects"; Hard Rule 4 |
+| **DIR-002** | Each derived value carries ≥1 explainability reference — input refs tracing back to source clause / regulator / benchmark population. No score without a traceable input path. | F04 AC-2 "explainability reference (DIR-002/004)"; Hard Rule 4 |
+| **DIR-003** | Each derived value stores the `formula_version_id` that produced it. A formula change writes new rows; it never edits existing ones. | schema `derived_data_item`; Hard Rule 6 |
+| **DIR-004** | Each derived value stores a VCI confidence score (+ `vci_components`). VCI travels with the value everywhere it is consumed. | F04 AC-2 "VCI … (DIR-…004)"; §8 VCI |
+| **DIR-005** | Anonymized / aggregate outputs (white-label, quarterly) live in tables physically segregated from customer-scoped values. | schema §12 note; F11 "segregated … per DIR-005" |
+| **DIR-006** | Minimum-sample suppression: no aggregate is published or exposed externally below the minimum cohort size. Small cohorts are suppressed or carry the low-confidence label — never shown as if robust. | roadmap; F11; F12 "sample-suppressed" |
+| **DIR-007** | *Reserved. No live reference in the specs and no source text in the repo — do not assign meaning until confirmed from the Derived Intelligence Catalog.* | — |
+| **DIR-008** | Presentation never recalculates. Every UI/PDF surface (and every product) consumes `derived_data_item` / the API; no screen recomputes a score or hardcodes a display number. | README; F05 "presentation never recalculates"; roadmap; Hard Rule 4 |
+| **DIR-009** | *Reserved. No live reference; no source text in the repo — confirm before use.* | — |
+| **DIR-010** | Reproducibility: every published number is reproducible from its stored snapshot + formula version + benchmark version; a frozen snapshot regenerates identically. | F12; roadmap "reproducible from stored snapshot"; Hard Rule 6 |
+
+## 13. Changelog
+- 1.2 (2026-07-16): added §12 Derived Intelligence Rules (DIR) registry — restores the DIR definitions the v1.0 consolidation named but dropped; reconstructed from usage + Hard Rules 4/6, flagged for expert verification against the source Catalog. Structural fix (spec-change): DIR refs were dangling across schema/F04/F05/F11/F12/roadmap.
 - 1.1 (2026-07-15): §4 records the shipped v2 corpus reclassification (`category_v2`, `classifier_version=qwen3-8b-local-v1`), absorbed from the archived RECLASSIFY_PLAN.md / AUDIT.md and verified against `scripts/reclassify_other.py`.
 - 1.0: consolidated from VICBNF v2.0 (all sections + Appendix A), Derived Intelligence Catalog (formula library, variables, triggers, DIRs), Intelligence Engine Framework Appendices B–F.

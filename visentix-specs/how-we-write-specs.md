@@ -12,7 +12,7 @@ Every spec moves through five stages. The stage lives in the spec's `**Status:**
 ### Stage 0 — The trigger
 Specs are born from exactly four places, and each has an entry point:
 1. **The plan** (`00-plan/`) says it's next — the normal case.
-2. **Feedback** — a `feedback` issue was triaged as spec-change; the triage agent drafts the edit.
+2. **Feedback** — something the expert or a customer said in Teams was relayed to Claude and the `spec-update` skill drafted the edit (async fallback: a `feedback` issue triaged by the workflow).
 3. **A lesson** — the weekly audit found a pattern; the ledger demands a guard.
 4. **An idea** graduated from `03-ideas/further-ideas.md` — someone decided its time has come.
 No fifth door. "We just started building it" is not a trigger; it's a process bug.
@@ -22,17 +22,20 @@ Copy `02-features/_TEMPLATE.md`. Fill every section — writing "none" or "unkno
 
 **The bar for acceptance criteria** — the heart of any spec: each AC must be *checkable by someone who didn't write the code*. "AC-3: works well on mobile" fails the bar. "AC-3: at 375px the panes stack and the lineage drawer renders as a full-screen bottom sheet" passes. If you can't phrase the AC checkably, you don't understand the feature yet — which is precisely what drafting is for discovering.
 
-### Stage 2 — The spec discussion (the one meeting we protect)
-One conversation, all three seats present (engineers + expert), 30–45 minutes, spec read *before* the meeting, never during. Each seat has a fixed job:
+### Stage 2 — The spec discussion (async, in the thread)
+Not a scheduled meeting — the expert isn't on GitHub and works remotely. The draft (or its plain-English summary) goes into the Teams thread; the two of us and the expert each answer our fixed questions there, in writing, before anyone approves. Each seat has a fixed job:
 
 - **The expert** answers: Is the content true? Does anything risk the guardrail or a hard rule? Is the language right for the audience? Would a skeptical regulator accept this framing?
-- **The engineers** answer: Is it buildable as written? What does it *actually* touch (tables, routes, other features)? What's the test gate? What's the smallest honest version?
+- **We (engineering)** answer: Is it buildable as written? What does it *actually* touch (tables, routes, other features)? What's the test gate? What's the smallest honest version?
 - **Everyone** answers: Does it contradict a foundation doc? (If yes — the foundation doc gets amended *in the same PR*, deliberately, or the feature changes. Silent contradiction is the one unforgivable outcome.)
 
-Disagreements end one of three ways, recorded in the spec: a decision (changelog entry), an **open question with an owner and a date**, or a deliberate deferral to `03-ideas/`. Meetings that end with vague nods get repeated; meetings that end with recorded outcomes don't.
+Disagreements end one of three ways, recorded in the spec: a decision (changelog entry), an **open question with an owner and a date**, or a deliberate deferral to `03-ideas/`. A thread that ends with vague nods gets re-litigated later; one that ends with a recorded outcome doesn't. If it's easier to hash out on a call, fine — but the *outcome* still lands in the spec, not just the chat.
 
-### Stage 3 — Approval
-The spec PR merges under CODEOWNERS: expert approves content, engineer approves technical feasibility (both, for foundation files). On merge, `agents-sync` regenerates AGENTS.md — approval *is* deployment of the truth.
+### Stage 3 — Approval (two gates)
+- **Content gate — Teams.** We paste the plain-English change summary into the thread; the expert replies yes / no / "change X". We record that ("expert approved in Teams, YYYY-MM-DD") in the PR body and `logs/decision-log.md`. The expert never opens GitHub.
+- **Engineering gate — GitHub.** One of us approves the PR under CODEOWNERS (both accounts route here; either suffices). We do not merge a foundation/content change until the Teams yes is recorded.
+
+The spec-guard check has already forced the regenerated AGENTS.md into the PR, so on merge the truth — specs and AGENTS.md together — deploys in one step. No separate sync.
 
 ### Stage 4 — Implementation & closure
 Engineers + AI agents build to the ACs (per `AGENTS.md`); the test gate must pass; commits carry the Fxx ID. When shipped: flip the Status, mark mocks `[REPLACED]`, close open questions or move them to the plan. A spec whose status lies is worse than no spec — the weekly audit checks for this drift.

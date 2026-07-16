@@ -17,7 +17,7 @@ Restate the feedback in one or two sentences and confirm you understood it. Note
 ### Step 2 — Classify it
 Exactly one primary class (see `references/classification.md` for the rubric and worked examples):
 - **spec-change** — the specs should say something different → proceed to Step 3.
-- **guardrail** — verdict language, jargon leak, honesty/trust concern → treat as spec-change AND flag prominently for the expert; check whether `scripts/data/hard_rules.md` or the spec-guard banned-term list also needs the edit.
+- **guardrail** — verdict language, jargon leak, honesty/trust concern → treat as spec-change AND flag prominently for the expert; check whether `scripts/data/banned_terms.txt` (the single enforced list) and its prose in `scripts/data/hard_rules.md` also need the edit.
 - **code-bug** — the specs are right; the implementation diverges → do NOT edit specs. Identify the governing feature spec (Fxx) and the violated acceptance criterion, then output a ready-to-file bug note (title + body). If asked, also file it. Stop after Step 7's summary.
 - **lesson** — something bit us and must never recur → spec-change routed through the lessons ledger (Step 5 gains a ledger row; recommend the strongest guard level: CI guard > spec > checklist).
 - **idea** — new capability, not a correction → append to `visentix-specs/03-ideas/further-ideas.md` under the right horizon; no version bump needed. Skip to Step 6.
@@ -41,7 +41,7 @@ Edit rules:
 1. If any `01-foundation/` file, feature Status line, or `scripts/data/hard_rules.md` changed: run `python scripts/build_agents_md.py`, then `python scripts/build_agents_md.py --check` to confirm AGENTS.md regenerated cleanly.
 2. Append one line to `logs/decision-log.md` (newest-first, format: `YYYY-MM-DD · who · decision · one-line why`).
 3. If class was **lesson**: append a row to `visentix-specs/04-lessons/lessons.md` (next L-### ID, guard level, Status = Open until the guard is merged/built).
-4. If class was **guardrail** and a banned term was involved: verify the term exists in `scripts/data/hard_rules.md` AND the spec-guard workflow's grep pattern; add to both if missing.
+4. If class was **guardrail** and a banned term was involved: add the term to `scripts/data/banned_terms.txt` (one per line — this is the single list spec-guard enforces) AND name it in the `hard_rules.md` prose. `build_agents_md.py` fails if the two disagree, so keep them together.
 
 ### Step 6 — Version control (if in a git repo)
 Create a branch `feedback/<short-slug>`, commit with a message referencing the affected spec IDs (e.g. `F12: descriptive-only rule for Strategic Outlook (verbal feedback, expert)`), and open a draft PR if the environment supports it. If not in a repo or the user prefers, just save the files and say so. NEVER commit to main directly; NEVER merge anything yourself.

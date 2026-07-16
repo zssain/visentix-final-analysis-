@@ -25,3 +25,6 @@ Codex reads `finding_type` (canonical definition, exposure signal, anonymised ex
 
 ## Test gate
 Codex API contract test, report-code↔codex integrity test, search/empty-state vitest.
+
+## Changelog
+- 2026-07-16: Added Changelog section for template conformance; no behavioral change. (Mock M-11 tracked in [`00-plan/mock-tracker.md`](../00-plan/mock-tracker.md).)

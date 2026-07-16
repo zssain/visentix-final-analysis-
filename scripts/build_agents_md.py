@@ -23,6 +23,12 @@ import re
 import sys
 from pathlib import Path
 
+def die(msg: str) -> None:
+    """A generated block is only trustworthy if parse failures are loud."""
+    print(f"build_agents_md: ERROR — {msg}", file=sys.stderr)
+    sys.exit(2)
+
+
 ROOT = Path(__file__).resolve().parents[1]
 AGENTS = ROOT / "AGENTS.md"
 FOUNDATION = ROOT / "visentix-specs" / "01-foundation"
@@ -38,8 +44,11 @@ MARKER = re.compile(
 def version_line(spec: Path) -> str:
     text = spec.read_text(encoding="utf-8")
     m = re.search(r"\*\*Version:\*\*\s*([^\n·]+)(?:·\s*([0-9-]+))?", text)
-    version = m.group(1).strip() if m else "unknown"
-    date = (m.group(2) or "").strip() if m else ""
+    if not m:
+        die(f"{spec.name}: no parseable '**Version:**' header. "
+            f"A generated block would silently go stale — fix the header.")
+    version = m.group(1).strip()
+    date = (m.group(2) or "").strip()
     return f"- {spec.name}: v{version}" + (f" ({date})" if date else "")
 
 
@@ -68,16 +77,40 @@ def build_spec_index() -> str:
     lines = ["## Feature spec index"]
     for spec in sorted(FEATURES.glob("F*.md")):
         text = spec.read_text(encoding="utf-8")
-        title_m = re.search(r"^#\s+(F\d+\s+—\s+.+)$", text, re.MULTILINE)
+        # Accept em-dash or hyphen between the ID and the name so a typo doesn't
+        # silently collapse the title to the filename.
+        title_m = re.search(r"^#\s+(F\d+\s*[—-]\s*.+)$", text, re.MULTILINE)
         status_m = re.search(r"\*\*Status:\*\*\s*([^·\n]+)", text)
-        title = title_m.group(1).strip() if title_m else spec.stem
-        status = status_m.group(1).strip() if status_m else "unknown"
-        lines.append(f"- {title} — {status}")
+        if not title_m:
+            die(f"{spec.name}: no '# Fxx — Title' heading found.")
+        if not status_m:
+            die(f"{spec.name}: no '**Status:**' line found.")
+        lines.append(f"- {title_m.group(1).strip()} — {status_m.group(1).strip()}")
     return "\n".join(lines)
+
+
+def check_banned_terms_consistency() -> None:
+    """banned_terms.txt is the enforced list; every term must also appear in the
+    hard-rules prose, so the two can't drift. Cheap guard, loud failure."""
+    terms_file = Path(__file__).resolve().parent / "data" / "banned_terms.txt"
+    if not (terms_file.exists() and HARD_RULES_SRC.exists()):
+        return
+    # Normalize away hyphens/spaces so "non-compliant" prose satisfies the
+    # "noncompliant" spelling variant, and multi-word terms match too.
+    norm = lambda s: re.sub(r"[^a-z0-9]", "", s.lower())
+    prose = norm(HARD_RULES_SRC.read_text(encoding="utf-8"))
+    for line in terms_file.read_text(encoding="utf-8").splitlines():
+        term = line.strip()
+        if not term or term.startswith("#"):
+            continue
+        if norm(term) not in prose:
+            die(f"banned term '{term}' is in banned_terms.txt but not named in "
+                f"hard_rules.md — keep the enforced list and the prose in sync.")
 
 
 def build_hard_rules() -> str:
     if HARD_RULES_SRC.exists():
+        check_banned_terms_consistency()
         return HARD_RULES_SRC.read_text(encoding="utf-8").strip()
     # Fall back to whatever is currently in AGENTS.md (first run bootstrap).
     return None  # signals "leave as-is"

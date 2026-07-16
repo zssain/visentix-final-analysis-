@@ -24,5 +24,18 @@ Admin role · `/admin`. No provenance ribbon (not a snapshot surface); no trust 
 - AC-2 Batch trigger runs the real pipeline; UI shows real job status (simulation code deleted).
 - AC-3 All admin routes reject non-admin JWTs.
 
+## Behavior & states
+- **Loading:** batch-job list and gate-mode state fetch with skeletons.
+- **Empty:** no assessments run yet → plain "no batch jobs" state.
+- **Error:** route or permission failure shows a plain-language error, never a stack trace.
+- **Non-admin:** a non-admin JWT is blocked/redirected (AC-3). Admin is not a snapshot surface — no provenance ribbon, no "Intelligence, not legal advice" mark (DDR-007).
+- **Gate-mode toggle:** optimistic UI reconciles to the persisted `platform_setting` value (M-13).
+
+## Mocks
+See [`00-plan/mock-tracker.md`](../00-plan/mock-tracker.md): **M-13** (Global Gate Mode simulated locally) and **M-14** (Trigger Batch Assessment simulated).
+
 ## Test gate
 Role-enforcement tests, gate-mode persistence + enforcement integration test, job lifecycle test.
+
+## Changelog
+- 2026-07-16: Added Behavior & states, Mocks, and Changelog sections for template conformance; no behavioral change.

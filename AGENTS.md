@@ -57,9 +57,9 @@ A normalized corpus already lives in Supabase. You did not create it and you mus
 
 <!-- BEGIN GENERATED: CURRENT VERSIONS (source: 01-foundation changelogs) -->
 ## Current versions
-- schema.md: v1.1 (2026-07-15)
+- schema.md: v1.2 (2026-07-16)
 - business-logic.md: v1.2 (2026-07-15)
-- intelligence-logic.md: v1.1 (2026-07-15)
+- intelligence-logic.md: v1.2 (2026-07-16)
 - design-system.md: v1.1 (2026-07-15)
 - Formula registry: F-001–F-014 (see intelligence-logic.md §7)
 - Score bands: see web/src/lib/scoreBands.ts (single source of truth)
@@ -84,7 +84,7 @@ A normalized corpus already lives in Supabase. You did not create it and you mus
 
 ## Stack facts
 
-FastAPI (Python) backend at `:8000` · React + TypeScript + Vite frontend (`web/`, `:5173`) · Postgres (Supabase-hosted) · local LLM via Ollama (hosted models only per §3) · `all-MiniLM-L6-v2` embeddings · custom ES256 JWT auth · tests: `./.venv/bin/pytest` and `npx vitest`.
+FastAPI (Python) backend at `:8000` · React + TypeScript + Vite frontend (`web/`, `:5173`) · Postgres (Supabase-hosted) · local LLM via Ollama (hosted models only per §3) · `all-MiniLM-L6-v2` embeddings · custom JWT auth (ES256 via Supabase JWKS, HS256 fallback/local — see F10) · tests: `./.venv/bin/pytest` and `npx vitest`.
 
 ## Design quick-reference
 

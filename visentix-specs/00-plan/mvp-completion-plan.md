@@ -1,15 +1,15 @@
 # MVP Completion Plan
 
-**Version:** 1.0 · 2026-07-15
-**Goal:** Take the current build (Phase 11 complete, 633 tests green) to a **client-shippable MVP**: a real customer can submit a notice, an SME can review, and a reproducible, branded, fully real-data report is delivered — with zero mock data and all open decisions resolved.
+**Version:** 1.1 · 2026-07-16
+**Goal:** Take the current build (Phase 11 complete, full test suite green) to a **client-shippable MVP**: a real customer can submit a notice, an SME can review, and a reproducible, branded, fully real-data report is delivered — with zero mock data and all open decisions resolved.
 
-**Definition of done:** MOCK TRACKER empty · all 12 report sections spec-complete · OD-01–OD-05 decided · demo runbook passes end-to-end on production deploy · first pilot report delivered.
+**Definition of done:** [`mock-tracker.md`](mock-tracker.md) all rows Replaced · all 12 report sections spec-complete · [`open-decisions.md`](open-decisions.md) OD-01–OD-05 Decided · demo runbook passes end-to-end on production deploy · first pilot report delivered.
 
 ---
 
 ## Workstream A — Mock closure (highest priority)
 
-The MOCK TRACKER (UI_SPEC.md) is the punch list. Order below is dependency-sorted: backend routes first, then frontend wiring.
+The live [`mock-tracker.md`](mock-tracker.md) (M-01–M-14) is the punch list. Order below is dependency-sorted: backend routes first, then frontend wiring.
 
 ### A1. New backend routes needed (blockers)
 | Mock | Route to build | Data source | Est. |
@@ -38,11 +38,11 @@ The MOCK TRACKER (UI_SPEC.md) is the punch list. Order below is dependency-sorte
 - Seed and SME-approve at least one de-identified exemplar per demo domain via Workbench so M-03 renders.
 - Verify the demo cohort has n ≥ `LOW_CONFIDENCE_COHORT_N` or intentionally exercise the low-confidence footer.
 
-**Exit gate A:** MOCK TRACKER rows all `[REPLACED]`; grep for hardcoded `S-2041`, `n=30`, `142 / 31 / 12` returns nothing; frontend runs with backend down shows honest error states, not stale mocks.
+**Exit gate A:** [`mock-tracker.md`](mock-tracker.md) rows all `Replaced`; grep for hardcoded `S-2041`, `n=30`, `142 / 31 / 12` returns nothing; frontend runs with backend down shows honest error states, not stale mocks.
 
 ## Workstream B — Report section gap closure
 
-From the UI_SPEC section-gap table (all files exist in `web/src/report/sections/`):
+The 11 report-section components (all files exist in `web/src/report/sections/`; gaps migrated here from the archived UI_SPEC section-gap table — F05 owns these as ACs):
 
 1. **Cover.tsx** — gold hairline rules, VCI dial, provenance ribbon.
 2. **ExecutiveSummary.tsx** — reader-register toggle (blocked by OD-02; build behind a feature flag with placeholder register names, swap labels on decision).
@@ -60,13 +60,15 @@ From the UI_SPEC section-gap table (all files exist in `web/src/report/sections/
 
 ## Workstream C — Open decisions (product, not code)
 
+Tracked in the live [`open-decisions.md`](open-decisions.md) register (OD-01–OD-05, each with a recommendation, owner, and status). All five currently sit at **Recommended** — they need sign-off, not more analysis. Decide them, then propagate per the register's close-out procedure. Summary:
+
 | ID | Decision needed | Recommendation to unblock | Owner |
 |---|---|---|---|
-| OD-01 | Framework Crosswalk copy | Approve **descriptive-only** language ("relates to CCPA §1798.120"); ship shell now, copy later | Product |
-| OD-02 | Reader register names | Recommend **Executive / Practitioner / Plain-language**; ship flag-gated | Product |
-| OD-03 | Advisor-hero-on-mobile default | Approve with the two mitigations already specced (thumb-tap switch, full-screen lineage sheet) | Product |
-| OD-04 | Real SME names in attribution | Keep house persona "The Visentix Privacy Desk" for MVP; revisit at first paying client | SME team |
-| OD-05 | Low-confidence cohort n | Recommend n=10 confirmed as `LOW_CONFIDENCE_COHORT_N`; aligns with VICBNF <20 caution band conservatively | Data |
+| OD-01 | Framework Crosswalk copy | Descriptive-only language; ship shell now | Product |
+| OD-02 | Reader register names | Executive / Practitioner / Plain-language, flag-gated | Product |
+| OD-03 | Advisor-hero-on-mobile default | Approve with the two specced mitigations | Product |
+| OD-04 | Real SME names in attribution | Keep "The Visentix Privacy Desk" for MVP | SME team |
+| OD-05 | Low-confidence cohort n | Confirm n=10 as `LOW_CONFIDENCE_COHORT_N` | Data |
 
 ## Workstream D — Hardening & launch
 
@@ -84,4 +86,8 @@ From the UI_SPEC section-gap table (all files exist in `web/src/report/sections/
 | 2 | A2 frontend wiring + B section gaps 1–6 |
 | 3 | B sections 7–11 + D hardening + pilot delivery |
 
-**Test discipline:** every workstream item adds/updates tests; suite must remain green (currently 633). New monitoring routes need contract tests; report reproducibility needs a byte-identity regression test.
+**Test discipline:** every workstream item adds/updates tests; the full suite must remain green. New monitoring routes need contract tests; report reproducibility needs a byte-identity regression test.
+
+## Changelog
+- 1.1 (2026-07-16): Repointed the MOCK TRACKER and Open Decisions references from the archived `UI_SPEC.md` to the new live registries [`mock-tracker.md`](mock-tracker.md) and [`open-decisions.md`](open-decisions.md); no scope change.
+- 1.0 (2026-07-15): Initial completion plan derived from the codebase's MOCK TRACKER and section-gap tables.

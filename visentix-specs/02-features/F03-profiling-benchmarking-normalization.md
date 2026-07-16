@@ -29,3 +29,6 @@ Cohort size < `LOW_CONFIDENCE_COHORT_N` surfaces the low-confidence footer every
 
 ## Test gate
 Profiler determinism tests; population-size ladder branch tests; normalization weight-math tests; snapshot-pinning regression test.
+
+## Changelog
+- 2026-07-16: Added Changelog section for template conformance; no behavioral change.

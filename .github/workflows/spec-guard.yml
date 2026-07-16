@@ -26,13 +26,16 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: "Check 1 — banned legal-verdict terms in changed files"
+      - name: "Check 1 — banned legal-verdict terms in ADDED lines"
         run: |
           set -euo pipefail
+          # Term list and path allowlist are single-sourced from scripts/data/ —
+          # see scripts/data/banned_terms.txt (the same file the spec-update
+          # skill and build_agents_md.py read). Do not inline terms here.
+          TERMS=$(grep -Ev '^(#|\s*$)' scripts/data/banned_terms.txt | paste -sd'|')
+          ALLOW=$(grep -Ev '^(#|\s*$)' scripts/data/banned_terms_allowlist.txt | paste -sd'|')
           git diff --name-only origin/${{ github.base_ref }}...HEAD > changed.txt
-          # Scope: files that can reach output. Exclude this workflow, the rules
-          # source, and the glossary (which documents the banned words themselves).
-          grep -Ev '^(\.github/|scripts/data/hard_rules\.md|visentix-onboarding/03-words-we-use\.md|visentix-specs/01-foundation/business-logic\.md)' changed.txt > scoped.txt || true
+          grep -Ev "^(${ALLOW})" changed.txt > scoped.txt || true
           FAIL=0
           while IFS= read -r f; do
             [ -f "$f" ] || continue
@@ -40,9 +43,11 @@ jobs:
               *.py|*.ts|*.tsx|*.md|*.json|*.html) ;;
               *) continue ;;
             esac
-            # Word-boundary match on verdict vocabulary (case-insensitive).
-            if grep -inE '\b(non-?compliant|compliant|violation detected|violation of|violates|illegal disclosure|unlawful|breach of law|guilty|liable|complies with)\b' "$f"; then
-              echo "::error file=$f::Banned legal-verdict term found (see AGENTS.md Hard Rule 1)."
+            # Only scan lines this PR ADDS — a file that already contains the
+            # term (e.g. a quote in a spec) must not fail on an unrelated edit.
+            ADDED=$(git diff -U0 "origin/${{ github.base_ref }}...HEAD" -- "$f" | grep -E '^\+' | grep -Ev '^\+\+\+')
+            if echo "$ADDED" | grep -inE "\\b(${TERMS})\\b"; then
+              echo "::error file=$f::Banned legal-verdict term added (see AGENTS.md Hard Rule 1 / scripts/data/banned_terms.txt)."
               FAIL=1
             fi
           done < scoped.txt
@@ -60,7 +65,7 @@ jobs:
             echo "No application code changed — spec reference not required."
             exit 0
           fi
-          if echo "$TITLE $BODY" | grep -qE '\bF(0?[1-9]|1[0-9])\b'; then
+          if echo "$TITLE $BODY" | grep -qE '\bF[0-9]{2,3}\b'; then
             echo "Feature spec reference found."
           else
             echo "::error::Code PRs must reference the feature spec they implement (e.g. 'F07: …') in the title or body. If no spec exists, write one first (visentix-specs/02-features/_TEMPLATE.md)."

@@ -38,3 +38,6 @@ M-06 sparkline / M-07 feed / M-08 alerts — all replaced by the three routes ab
 
 ## Test gate
 Route contract tests, trendColor unit tests, no_prior_history state test, feed pagination test, alert→AdvisorNote integration test.
+
+## Changelog
+- 2026-07-16: Added Changelog section for template conformance; no behavioral change. (Mocks M-06–M-09 tracked in [`00-plan/mock-tracker.md`](../00-plan/mock-tracker.md).)

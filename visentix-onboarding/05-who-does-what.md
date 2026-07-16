@@ -24,7 +24,7 @@ Our expert wears three hats, and it helps to name them separately:
 
 **Hat 2 — The Business-Logic Owner (in the specs).** The scoring formulas, the taxonomy, the guardrail language, the definitions in the Codex, what counts as a peer — the expert owns the *content* of all of it. Engineers implement it faithfully; they don't reinterpret it. If a formula weight should change, that's an expert decision, recorded as a new version.
 
-**Hat 3 — The Auditor (over our own work).** The expert periodically reviews what we build the way a skeptical customer or regulator would: Is this claim defensible? Did jargon leak into a customer screen? Does this generated sentence brush against a legal verdict? Is this data handling something we'd be comfortable explaining publicly? Audit feedback goes into the issue tracker like any other bug — no special ceremony, no hurt feelings.
+**Hat 3 — The Auditor (over our own work).** The expert periodically reviews what we build the way a skeptical customer or regulator would: Is this claim defensible? Did jargon leak into a customer screen? Does this generated sentence brush against a legal verdict? Is this data handling something we'd be comfortable explaining publicly? Audit feedback comes to us in Teams and we relay it to Claude like any other feedback — no special ceremony, no hurt feelings.
 
 **The expert does NOT:** write code, manage servers, or need to understand the codebase. If the expert ever *needs* to read code to do their job, we've failed — the product's review screens and these documents are supposed to be enough.
 
@@ -53,9 +53,9 @@ AI coding agents do much of the implementation, always directed by an engineer a
 5. Engineers are on call only if something breaks; they never edit findings.
 
 ### Flow 3 — The expert spots a problem in production
-1. Expert files it in plain language ("this recommendation reads like legal advice", "this cohort feels wrong for a healthcare client").
-2. Engineer triages: is it a code bug, a data problem, or a spec problem?
-3. Spec problems go back through Flow 1. Code bugs get fixed with a test so they can't return.
+1. Expert says it in Teams, in plain language ("this recommendation reads like legal advice", "this cohort feels wrong for a healthcare client").
+2. One of us relays it to Claude; the `spec-update` skill classifies it — code bug, data problem, or spec problem — and drafts the fix or the bug note.
+3. Spec problems go back through Flow 1 (expert approves the change in Teams). Code bugs get fixed with a test so they can't return.
 
 ### Flow 4 — A customer asks something nobody's sure about
 Questions about **what a score means, what we claim, or anything legal-adjacent** → expert answers. Questions about **how the system behaves technically** → engineers answer. When unsure which it is, it's the expert's call first. Sales/marketing never invents an answer about methodology — that path always runs through the expert.

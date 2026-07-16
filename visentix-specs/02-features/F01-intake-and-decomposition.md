@@ -41,3 +41,6 @@ PDF intake is currently UI-only — wire to backend parsing.
 
 ## Test gate
 Intake pipeline integration tests (URL/PDF/text), SSRF validation tests, classification confidence persistence test, frontend vitest for stepper states.
+
+## Changelog
+- 2026-07-16: Added Changelog section for template conformance; no behavioral change. (Mocks M-01/M-02 tracked in [`00-plan/mock-tracker.md`](../00-plan/mock-tracker.md).)

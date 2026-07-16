@@ -28,5 +28,11 @@ Writes: `risk_finding.sme_status`, `training_label`, `disclosure_clause.exemplar
 - AC-3 In `expert_review` mode a report cannot reach approved status with pending findings.
 - AC-4 Dismissed findings absent from the approved snapshot payload.
 
+## Mocks
+See [`00-plan/mock-tracker.md`](../00-plan/mock-tracker.md): **M-04** (training-label counts) and **M-03** (exemplar clause, shared with F05).
+
 ## Test gate
 De-id regex suite (all categories + evasion cases), gate-mode enforcement tests, training-label capture tests, queue action integration tests.
+
+## Changelog
+- 2026-07-16: Added Mocks and Changelog sections for template conformance; no behavioral change.

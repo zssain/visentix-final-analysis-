@@ -29,5 +29,16 @@ All output labels use exposure/maturity/likelihood vocabulary. No LLM in the sco
 - AC-3 VCI < 40 objects never appear in customer-facing payloads.
 - AC-4 Formula weight change via `formula_version` affects only new outputs; historical snapshots unchanged.
 
+## Behavior & states
+Engine/data states (F04 has no screen of its own; consuming feature specs own UI chrome):
+- **Happy path:** classified clauses → `derived_data_item` rows carrying score + VCI + formula_version + lineage (DIR-001…004).
+- **Empty:** no classified clauses → no derived items; downstream shows an honest "baseline established" state, never a fabricated score.
+- **Low-confidence:** VCI < 40 suppressed from customer-facing payloads; 40–59 carries the caution label (Hard Rule 5 / §8).
+- **Error:** a partial pipeline failure surfaces as a missing value with a reason — never a guessed or default score.
+- **Re-scoring:** writes new versioned rows; existing snapshots untouched (DIR-003, Hard Rule 6).
+
 ## Test gate
 The existing formula/VCI/findings suites (Phase 4 gates) plus: suppression threshold test, reproducibility snapshot test, weight-versioning isolation test.
+
+## Changelog
+- 2026-07-16: Added Behavior & states and Changelog sections for template conformance; no behavioral change.

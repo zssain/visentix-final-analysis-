@@ -35,8 +35,12 @@ Banned-term filter is a hard gate on all narrative content including Recommendat
 - AC-4 Guardrail scan of a full generated report returns zero banned terms.
 - AC-5 Closing matter (Next Steps + back cover) renders from the snapshot in both interactive and PDF outputs and passes the banned-term filter.
 
+## Mocks
+See [`00-plan/mock-tracker.md`](../00-plan/mock-tracker.md): **M-05** (mobile Advisor prose), **M-09** (provenance ribbon S-2041), **M-10** (lineage-drawer descriptions), and **M-03** (exemplar clause, shared with F06).
+
 ## Test gate
 Report assembly integration tests, byte-identity regression test, guardrail filter tests (incl. source-excerpt exemption and closing-matter copy), PDF/interactive parity checks, section-level vitest.
 
 ## Changelog
+- 2026-07-16: Added a Mocks section keyed to the mock-tracker (template conformance); no behavioral change.
 - 2026-07-15: Added closing matter (Next Steps page + back cover) per Appendix H prototype review; AC-5 and guardrail notes added.

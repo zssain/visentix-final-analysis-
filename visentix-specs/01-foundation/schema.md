@@ -1,6 +1,6 @@
 # Schema — Canonical Data Model
 
-**Version:** 1.1 · 2026-07-15 · Authority: this file supersedes prose in the source docs; physical DDL lives in migrations, but no table/field may exist that isn't described here or in a feature spec that amends this file.
+**Version:** 1.2 · 2026-07-16 · Authority: this file supersedes prose in the source docs; physical DDL lives in migrations, but no table/field may exist that isn't described here or in a feature spec that amends this file.
 **Storage:** Postgres (Supabase-hosted). Embeddings via pgvector (`all-MiniLM-L6-v2`, 384-dim). Hybrid graph/vector semantics expressed relationally for MVP.
 
 ---
@@ -66,7 +66,7 @@
 | `formula_version` | formula_id (F-001…F-014 + profile formulas), version, expression_text, description (plain English — powers lineage drawer), weights (jsonb), effective_from, approved_by | Versioned formula registry |
 | `risk_finding` | risk_id, organization_id, notice_id, related_clause_ids[], finding_code (e.g. TRK-007), domain, severity, scores (jsonb), compound_group_id, confidence_score, interpretive_variance, sme_status (pending/confirmed/edited/dismissed), snapshot_ids[] | Deterministic + reproducible |
 | `finding_type` | finding_code, domain_id, canonical_definition, exposure_signal, example_pattern, related_codes[] | The Codex source of truth |
-| `derived_data_item` | derived_data_item_id, object_type (percentile, exposure, maturity, transparency, ai_gov, compound, enforcement_corr, trend_delta, alert, vci…), score, vci, vci_components (jsonb), formula_version_id, source_snapshot_id, benchmark_population_id, generated_at | DIR-001…004; UI/PDF consume these, never recompute |
+| `derived_data_item` | derived_data_item_id, object_type (percentile, exposure, maturity, transparency, ai_gov, compound, enforcement_corr, trend_delta, alert, vci…), score, vci, vci_components (jsonb), formula_version_id, source_snapshot_id, benchmark_population_id, generated_at | DIR-001…004 (see intelligence-logic.md §12); UI/PDF consume these, never recompute (DIR-008) |
 | `explainability_reference` | explainability_id, intelligence_id, source_type, source_id, clause_id, regulator_id, benchmark_population_id, rationale | Lineage drawer contents |
 
 ### 2.8 Output & review layer
@@ -97,5 +97,6 @@ monitoring_event M─M risk_finding
 - Anonymized/aggregate outputs (white-label, quarterly) live in separate tables from customer-scoped values (DIR-005); minimum-sample suppression before publication (DIR-006).
 
 ## 5. Changelog
+- 1.2 (2026-07-16): Linked the `derived_data_item` DIR-001…004 / DIR-008 citations to their new canonical registry (intelligence-logic.md §12). No structural change — resolves previously dangling DIR references.
 - 1.1 (2026-07-15): Documented the additive v2 corpus-reclassification columns on `disclosure_clause` (`category_v2`, `nlp_confidence_v2`, `classifier_version`) — write-only, never overwrite the base `category`. Absorbed from the archived DB_GROUND_TRUTH.md / RECLASSIFY_PLAN.md; verified against `scripts/reclassify_other.py`.
 - 1.0 (2026-07-15): Initial canonical consolidation of SCHEMA.md, DB_GROUND_TRUTH.md, VICBNF §13, Data Model Framework §3, Derived Intelligence Catalog entities.

@@ -2,13 +2,13 @@
 
 **The principle:** every action leaves a trace; an AI auditor periodically reads the traces; every real lesson becomes a spec change. The goal is not logging for logging's sake — it's that **the same mistake can never surprise us twice**, because the first occurrence permanently changed the written truth we build from.
 
-This plugs into the existing feedback loop. Audits don't create a new process — they *feed the one we already have*: audit findings become `feedback` issues → triage agent drafts spec PRs → expert/engineer approve → AGENTS.md regenerates. One loop, two inlets (humans and logs).
+This plugs into the existing feedback loop. Audits don't create a new process — they *feed the one we already have*: audit findings become `feedback` issues → the `spec-update` skill drafts spec PRs → expert approves in Teams / one of us approves on GitHub → AGENTS.md ships in the same PR. One loop, two inlets (people and logs).
 
 ```
-                  humans (expert, customers, devs)
-                        │  feedback issue form
+        people (expert, customers, us) ── in Teams / a call
+                        │  relayed to Claude → spec-update skill
                         ▼
-   logs ──► [weekly log-audit agent] ──► feedback issues ──► triage ──► spec PRs
+   logs ──► [weekly log-audit agent] ──► feedback issues ──► skill ──► spec PRs
     ▲              │                                                      │
     │              └──► audit report PR (logs/audits/)                    ▼
     │                                                          lessons ledger entry
@@ -57,5 +57,5 @@ Prefer moving lessons *up* this ladder over time.
 ## 4. What this asks of each person, honestly
 
 - **Engineers:** append one line to the decision log when you make a judgment call; file an incident when something bites; keep putting Fxx IDs in commits. Total cost: minutes per week.
-- **The expert:** read the weekly audit PR (it's short) and the drafted spec PRs it spawns. Your audit hat, with the evidence pre-gathered.
+- **The expert:** we bring the weekly audit summary (it's short) and any drafted spec changes into Teams; you weigh in there. Your audit hat, with the evidence pre-gathered — no GitHub required.
 - **Nobody:** writes status reports. The audit is generated *from* the traces of real work, never as extra work.

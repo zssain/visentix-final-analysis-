@@ -46,3 +46,6 @@ _Absorbed from the archived SECURITY_MATRIX.md (2026-07-15). Roles: customer / s
 
 ## Test gate
 Existing auth/RLS suites + rate-limit test, token lifecycle tests, cross-tenant adversarial tests.
+
+## Changelog
+- 2026-07-16: Added Changelog section for template conformance; no behavioral change.
