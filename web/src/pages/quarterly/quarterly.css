@@ -1,0 +1,271 @@
+/* F12 — Quarterly Intelligence Report · editorial reader styles.
+   Design principle (design-system.md): confident stillness + evidence everywhere.
+   Motion only reveals evidence; all of it collapses under reduced-motion. */
+
+.qr {
+  --qr-max: 960px;
+  max-width: var(--qr-max);
+  margin: 0 auto;
+  color: var(--text);
+  font-family: var(--font-ui);
+}
+
+/* ── Cover ─────────────────────────────────────────────────────────────── */
+.qr-cover {
+  position: relative;
+  background: linear-gradient(155deg, var(--navy) 0%, var(--navy-light) 70%, #0a2a5e 100%);
+  color: #fff;
+  border-radius: var(--radius-xl);
+  padding: 48px 44px 40px;
+  overflow: hidden;
+}
+.qr-cover-hairline {
+  width: 64px; height: 3px;
+  background: var(--gold);
+  border-radius: 2px;
+  margin-bottom: 22px;
+}
+.qr-cover-eyebrow {
+  font-size: 0.72rem; font-weight: 700; letter-spacing: 0.16em;
+  text-transform: uppercase; color: var(--gold-light);
+}
+.qr-cover-title {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(2rem, 5vw, 3.1rem);
+  line-height: 1.04;
+  letter-spacing: -0.02em;
+  margin: 10px 0 6px;
+  max-width: 20ch;
+}
+.qr-cover-sub {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 1.05rem;
+  color: rgba(247,248,250,0.82);
+  margin-bottom: 30px;
+}
+.qr-cover-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 18px;
+  border-top: 1px solid rgba(255,255,255,0.14);
+  padding-top: 22px;
+}
+.qr-cover-stat .n {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+  font-size: 1.7rem; font-weight: 700; line-height: 1;
+  color: #fff;
+}
+.qr-cover-stat .l {
+  display: block;
+  margin-top: 6px;
+  font-size: 0.72rem; letter-spacing: 0.05em; text-transform: uppercase;
+  color: rgba(247,248,250,0.66);
+}
+.qr-cover-foot {
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 12px;
+  margin-top: 28px;
+  font-size: 0.78rem; color: rgba(247,248,250,0.6);
+}
+.qr-cover-mark {
+  font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--gold-light);
+}
+
+/* ── Section rhythm ────────────────────────────────────────────────────── */
+.qr-section { margin: 44px 0; }
+.qr-section-num {
+  font-family: var(--font-data);
+  font-size: 0.72rem; font-weight: 700; letter-spacing: 0.1em;
+  color: var(--gold); text-transform: uppercase;
+}
+.qr-section-title {
+  font-family: var(--font-display);
+  font-weight: 600; font-size: 1.5rem; letter-spacing: -0.01em;
+  color: var(--navy); margin: 4px 0 4px;
+}
+.qr-section-lede {
+  color: var(--text-secondary); font-size: 0.9rem; line-height: 1.65;
+  max-width: 68ch; margin-bottom: 20px;
+}
+
+/* ── Delta chip (color = judgement via polarity, arrow = direction) ─────── */
+.qr-delta {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700; font-size: 0.82rem;
+  display: inline-flex; align-items: center; gap: 3px;
+}
+
+/* ── Intelligence Indicators panel ─────────────────────────────────────── */
+.qr-indicators {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(168px, 1fr));
+  gap: 14px;
+}
+.qr-ind-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 16px 16px 14px;
+  box-shadow: var(--shadow-sm);
+}
+.qr-ind-name {
+  font-size: 0.76rem; font-weight: 700; color: var(--navy);
+  line-height: 1.25; min-height: 2.4em;
+}
+.qr-ind-value {
+  font-family: var(--font-data); font-variant-numeric: tabular-nums;
+  font-size: 2.1rem; font-weight: 700; color: var(--navy);
+  line-height: 1; margin: 8px 0 6px;
+}
+.qr-ind-foot {
+  display: flex; align-items: center; justify-content: space-between;
+  border-top: 1px solid var(--border); padding-top: 8px; margin-top: 10px;
+}
+.qr-ind-vci { font-size: 0.68rem; color: var(--text-muted); letter-spacing: 0.04em; }
+.qr-ind-blurb { font-size: 0.74rem; color: var(--text-secondary); line-height: 1.5; margin-top: 8px; }
+
+/* ── Six-tile findings grid ────────────────────────────────────────────── */
+.qr-tiles {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+.qr-tile {
+  background: var(--soft-white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+}
+.qr-tile-value {
+  font-family: var(--font-data); font-variant-numeric: tabular-nums;
+  font-size: 1.7rem; font-weight: 700; color: var(--navy);
+}
+.qr-tile-label { font-size: 0.78rem; color: var(--text-secondary); line-height: 1.4; margin-top: 6px; }
+.qr-tile-note  { font-size: 0.7rem;  color: var(--text-muted); line-height: 1.45; margin-top: 8px; }
+
+/* ── Ranking rows ──────────────────────────────────────────────────────── */
+.qr-rank-row {
+  display: grid;
+  grid-template-columns: 1.4fr 3fr auto auto;
+  align-items: center; gap: 14px;
+  padding: 10px 4px;
+  border-bottom: 1px solid var(--border);
+}
+.qr-rank-row:last-child { border-bottom: none; }
+.qr-rank-industry { font-size: 0.86rem; font-weight: 600; color: var(--navy); }
+.qr-rank-bar { height: 8px; border-radius: 4px; background: var(--border); overflow: hidden; }
+.qr-rank-bar > span { display: block; height: 100%; border-radius: 4px; }
+.qr-rank-val {
+  font-family: var(--font-data); font-variant-numeric: tabular-nums;
+  font-weight: 700; font-size: 0.9rem; color: var(--navy); text-align: right; min-width: 46px;
+}
+.qr-cohort {
+  font-family: var(--font-data); font-variant-numeric: tabular-nums;
+  font-size: 0.72rem; color: var(--text-muted); text-align: right; white-space: nowrap;
+}
+.qr-cohort.low { color: var(--gold); font-weight: 700; }
+
+/* ── Regulator heatmap (neutral navy-intensity = observed activity) ─────── */
+.qr-heatmap { overflow-x: auto; }
+.qr-heatmap-grid {
+  display: grid;
+  gap: 4px;
+  min-width: 560px;
+}
+.qr-heat-cell {
+  aspect-ratio: 2 / 1;
+  border-radius: 4px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-data); font-variant-numeric: tabular-nums;
+  font-size: 0.72rem; font-weight: 700;
+}
+.qr-heat-head {
+  font-size: 0.68rem; font-weight: 700; color: var(--text-secondary);
+  display: flex; align-items: flex-end; padding-bottom: 4px; line-height: 1.2;
+}
+.qr-heat-rowlabel {
+  font-size: 0.76rem; font-weight: 600; color: var(--navy);
+  display: flex; align-items: center; white-space: nowrap; padding-right: 8px;
+}
+
+/* ── Spotlight excerpts (Advisor register: Fraunces, gold rule) ─────────── */
+.qr-spotlight {
+  border-left: 3px solid var(--gold);
+  padding: 4px 0 4px 20px;
+  margin-bottom: 18px;
+}
+.qr-spotlight-domain {
+  font-size: 0.7rem; font-weight: 700; letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--gold); margin-bottom: 6px;
+}
+.qr-spotlight-text {
+  font-family: var(--font-display); font-style: italic;
+  font-size: 1rem; line-height: 1.6; color: var(--navy);
+}
+.qr-spotlight-cohort { font-size: 0.72rem; color: var(--text-muted); margin-top: 6px; }
+
+/* ── Suppression / low-confidence notice ───────────────────────────────── */
+.qr-suppress {
+  background: rgba(200,164,106,0.08);
+  border: 1px dashed var(--gold);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  font-size: 0.82rem; color: var(--text-secondary); line-height: 1.55;
+}
+
+/* ── Outlook list ──────────────────────────────────────────────────────── */
+.qr-outlook { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
+.qr-outlook li {
+  position: relative; padding-left: 22px;
+  font-size: 0.9rem; color: var(--text-secondary); line-height: 1.65;
+}
+.qr-outlook li::before {
+  content: "›"; position: absolute; left: 4px; top: -1px;
+  color: var(--gold); font-weight: 700;
+}
+
+/* ── Methodology fact grid ─────────────────────────────────────────────── */
+.qr-facts { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.qr-fact { padding: 12px 16px; border-bottom: 1px solid var(--border); }
+.qr-fact:nth-last-child(-n+2) { border-bottom: none; }
+.qr-fact-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); }
+.qr-fact-value { font-family: var(--font-data); font-size: 0.88rem; color: var(--navy); margin-top: 3px; }
+
+/* ── Back-cover CTA ────────────────────────────────────────────────────── */
+.qr-cta {
+  background: var(--navy);
+  color: #fff;
+  border-radius: var(--radius-xl);
+  padding: 36px 40px;
+  text-align: center;
+  margin-top: 44px;
+}
+.qr-cta h2 { font-family: var(--font-display); font-weight: 600; font-size: 1.6rem; margin-bottom: 8px; }
+.qr-cta p  { color: rgba(247,248,250,0.78); font-size: 0.92rem; max-width: 52ch; margin: 0 auto 20px; }
+.qr-cta .btn { background: var(--gold); color: var(--navy); font-weight: 700; }
+
+/* ── Responsive ────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .qr-cover { padding: 34px 24px 28px; }
+  .qr-cover-stats { grid-template-columns: repeat(2, 1fr); }
+  .qr-tiles { grid-template-columns: 1fr 1fr; }
+  .qr-facts { grid-template-columns: 1fr; }
+  .qr-fact:nth-last-child(-n+2) { border-bottom: 1px solid var(--border); }
+  .qr-fact:last-child { border-bottom: none; }
+}
+@media (max-width: 480px) {
+  .qr-tiles { grid-template-columns: 1fr; }
+  .qr-cover-stats { grid-template-columns: 1fr 1fr; }
+  .qr-rank-row { grid-template-columns: 1fr auto; row-gap: 6px; }
+  .qr-rank-bar { grid-column: 1 / -1; order: 3; }
+}
+
+/* Motion only reveals evidence — none is load-bearing here, so honor the setting. */
+@media (prefers-reduced-motion: reduce) {
+  .qr * { animation: none !important; transition: none !important; }
+}

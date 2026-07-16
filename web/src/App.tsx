@@ -14,6 +14,7 @@ import { AdminConsole }          from "./pages/admin/Console";
 import { ReportPage }            from "./pages/ReportPage";
 import { FindingCodex }          from "./pages/FindingCodex";
 import { Methodology }           from "./pages/Methodology";
+import { QuarterlyReport }       from "./pages/quarterly/QuarterlyReport";
 import "./App.css";
 
 function NavLink({ to, label, children }: { to: string; label?: string; children?: React.ReactNode }) {
@@ -77,6 +78,9 @@ function AppRoutes() {
             <NavLink to="/methodology">
               Methodology
             </NavLink>
+            <NavLink to="/quarterly">
+              Quarterly
+            </NavLink>
           </div>
 
           {/* User area */}
@@ -100,6 +104,7 @@ function AppRoutes() {
           <Route path="/login" element={<Login />} />
           <Route path="/codex"       element={<FindingCodex />} />
           <Route path="/methodology" element={<Methodology />} />
+          <Route path="/quarterly"   element={<QuarterlyReport />} />
           <Route path="/unauthorized" element={
             <div style={{ padding: 60, textAlign: "center" }}>
               <h2 style={{ color: "var(--red)" }}>403 — Access Denied</h2>

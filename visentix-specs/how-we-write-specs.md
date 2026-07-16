@@ -1,6 +1,6 @@
 # How We Write Specs — The Playbook
 
-**Version:** 1.0 · 2026-07-15
+**Version:** 1.1 · 2026-07-16
 **What this is:** the standing method for creating and evolving every future spec — how ideas become documents, how we discuss them with developers, and (Part 4) a record of exactly how the current plan and spec repo were made, so the method survives the people who used it.
 
 ---
@@ -43,6 +43,7 @@ Engineers + AI agents build to the ACs (per `AGENTS.md`); the test gate must pas
 ## Part 2 — Working agreements
 
 - **Small specs beat big ones.** If a spec has more than ~8 ACs, it's probably two features. Split before discussing.
+- **UI-only builds must record what happened.** Our common split is one person on UI, another on the logic/backend — so the UI frequently ships against mocks before its data is real. When that happens, the spec is the record of *reality, not intention*: set Status to `shipped UI (data mocked M-xx…)` (mirror F07/F09/F12), add a **Behavior & states** note that says plainly which parts are real UI and which data is still mocked, and register every mock in [`00-plan/mock-tracker.md`](00-plan/mock-tracker.md) with a real-source removal plan. A spec still reading `proposed` after its screen has shipped is a status that lies — the one unforgivable outcome (Part 3), and exactly what a UI-first workflow tends to produce if you don't write the change down.
 - **Foundation changes are their own event.** A weight, a table, a token, a hard rule — these get their own PR, their own changelog entry, and both approvers, even when tiny. Foundation drift is how two-person teams lose their product.
 - **One open-questions list per spec, each with an owner.** Ownerless questions are decorations.
 - **The spec is the meeting notes.** We don't keep separate meeting minutes; the spec's changelog and open-questions sections *are* the record. (One-line judgment calls that don't belong in any spec go to `logs/decision-log.md`.)
@@ -78,4 +79,5 @@ The July 2026 plan and spec repo were produced with a five-step method. It worke
 That's the method. When in doubt: read everything, split timeless from current, derive from recorded gaps, end every item in a check, and build the loop before declaring done.
 
 ## Changelog
+- 1.1 (2026-07-16): Added the "UI-only builds must record what happened" working agreement (Part 2) — when UI ships against mocks ahead of its logic, Status, Behavior & states, and the mock tracker must reflect reality. Prompted by the F12 reader-page UI-only build (engineer feedback).
 - 1.0 (2026-07-15): Initial playbook; Part 4 records the founding planning method.

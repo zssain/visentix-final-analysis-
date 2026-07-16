@@ -1,6 +1,6 @@
 # MOCK TRACKER — the MVP mock-closure punch list
 
-**Version:** 1.0 · 2026-07-16
+**Version:** 1.1 · 2026-07-16
 **Authority:** this is the live, canonical tracker of every mock in the product. It replaces the `MOCK TRACKER` section of the archived `docs/old-docs/UI_SPEC.md`. `00-plan/mvp-completion-plan.md` Workstream A drives these to closure; each feature spec's Mocks section points here.
 
 **Rule (unchanged):** every mock must be replaced with real data before shipping to a real client. Never display a hardcoded score, cohort `n`, snapshot ID, or count. Status values: **Open** (still mocked) · **In progress** · **Replaced** (real data wired, verified).
@@ -23,6 +23,11 @@
 | M-12 | all | All screens | Cohort size shown as `n=30` everywhere | Live `SELECT COUNT(*) FROM benchmark_membership WHERE cohort_id = …` | Open | Never display a static n; always live-query |
 | M-13 | F09 | Admin Console | Global Gate Mode simulated locally in React | `GET/POST /api/admin/gate-mode` (new `platform_setting`) | Open | Build the endpoints; UI reads/writes real state |
 | M-14 | F09 | Admin Console | Trigger Batch Assessment simulated with a delay | `POST /api/admin/trigger-assessment` | Open | Replace the `not_implemented` stub with the real batch pipeline call |
+| M-15 | F12 | Quarterly Report reader page | Publication snapshot id + cover corpus counts (orgs / industries / jurisdictions / clauses) hardcoded in `mockData.ts` | Frozen publication snapshot metadata (DIR-010) | Open | Build quarter-close freeze; read real counts (AC-5, Hard Rule 7) |
+| M-16 | F12 | Quarterly Report reader page | Five named Intelligence Indicators + QoQ deltas hardcoded | Market-average aggregates per `formula_version`, each with VCI | Open | Build indicator aggregation over the corpus |
+| M-17 | F12 | Quarterly Report reader page | Section aggregates — industry rankings, regulator activity, AI-governance trend, disclosure trends, compound patterns | Corpus aggregation from `derived_data_item` / F-012 deltas | Open | Build the aggregation layer shared with bulk analysis |
+| M-18 | F12 | Quarterly Report reader page | Benchmark Spotlight excerpts hardcoded | SME-approved + de-identified exemplars above the minimum-sample threshold (F06 pipeline) | Open | Wire to approved exemplar store; enforce suppression (AC-6) |
 
 ## Changelog
+- 1.1 (2026-07-16): Registered M-15–M-18 for the F12 Quarterly Report reader page, built UI-only against mocks ahead of the aggregation backend. Every displayed figure on `/quarterly` is mocked; real sources and removal plans recorded per row.
 - 1.0 (2026-07-16): Migrated the MOCK TRACKER out of the archived `UI_SPEC.md` into the live spec system, keyed each row to its owning feature spec, and added an explicit Status column so MVP mock-closure is measurable inside the specs.
