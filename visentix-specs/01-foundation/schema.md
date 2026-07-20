@@ -1,6 +1,6 @@
 # Schema — Canonical Data Model
 
-**Version:** 1.2 · 2026-07-16 · Authority: this file supersedes prose in the source docs; physical DDL lives in migrations, but no table/field may exist that isn't described here or in a feature spec that amends this file.
+**Version:** 1.3 · 2026-07-20 · Authority: this file supersedes prose in the source docs; physical DDL lives in migrations, but no table/field may exist that isn't described here or in a feature spec that amends this file.
 **Storage:** Postgres (Supabase-hosted). Embeddings via pgvector (`all-MiniLM-L6-v2`, 384-dim). Hybrid graph/vector semantics expressed relationally for MVP.
 
 ---
@@ -25,15 +25,15 @@
 ### 2.2 Source & corpus layer
 | Table | Key fields | Notes |
 |---|---|---|
-| `source_record` | source_id, source_type (notice, regulator, enforcement, litigation, ai_gov, market), tier (1–3), url, publisher, jurisdiction, capture_date, content_hash, extraction_confidence, reliability_score, version_id | Tiering + minimum metadata per VICBNF §3.2 |
+| `source_record` | source_id, source_type (notice, regulator, enforcement, litigation, ai_gov, market, **security**, **corporate_filing**, **dataset**), tier (1–3), url, publisher, jurisdiction, capture_date, content_hash, extraction_confidence, reliability_score, version_id | Tiering + minimum metadata per VICBNF §3.2. `source_type` extended in v1.3 for the ingestion architecture (F02 v2): `security` (breach reports), `corporate_filing` (SEC EDGAR etc.), `dataset` (bulk research corpora e.g. Princeton-Leuven) |
 | `source_version` | version_id, source_id, hash, captured_at, diff_summary | Created when hash changes (change detection) |
 | `corpus_quality` | source_id, extraction_conf, completeness, freshness, source_reliability, version_stability, cqs | CQS ≥ 75 required for active benchmark use |
 
 ### 2.3 Organization & profile layer
 | Table | Key fields | Notes |
 |---|---|---|
-| `organization` | organization_id, tenant_id (nullable for public peers), name, domain, industry_id, sub_industry, size_metadata, revenue_metadata, public_company_flag, jurisdiction_presence | Customers AND benchmark peers |
-| `organization_profile` | profile_id, organization_id, ic, rss, pgms, osi, dsi, ehp_tier, ehp_score, aigms, profile_version, confidence_score, generated_at | The 7-dimension VICBNF profile; versioned |
+| `organization` | organization_id, tenant_id (nullable for public peers), name, domain, industry_id, sub_industry, size_metadata, revenue_metadata, public_company_flag, jurisdiction_presence | Customers AND benchmark peers. ⚠️ **Live reconciliation (v1.3):** the live table currently uses a text column **`industry`** (plus `entity_type`, `public_private`, `size`, `geography`, `sector_tags`, `slug`). The `industry_id` / `sub_industry` / `public_company_flag` / `size_metadata` / `revenue_metadata` / `jurisdiction_presence` columns above are **authored in migration 0014 but NOT applied to live** — see §5. Alias/identifier records live in `organization_alias` (§2.9). |
+| `organization_profile` | profile_id, organization_id, ic, rss, pgms, osi, dsi, ehp_tier, ehp_score, aigms, profile_version, confidence_score, generated_at | The 7-dimension VICBNF profile; versioned. Live table name is **`organization_intelligence_profile`**. ⚠️ The tier-label columns (`rss_tier`, `pgms_tier`, `osi_tier`, `dsi_tier`, `ehp_tier`, `aigms_tier`, `industry_id`, `sub_industry`) are **authored in migration 0014 but NOT applied to live** — see §5. |
 | `industry_taxonomy` | industry_id, name, sub_industries[], benchmark_notes | Controlled taxonomy (VICBNF §4.1) |
 | `state_law_weight` | state, weight, effective_date, notes | Configurable RSS lookup (laws evolve) |
 
@@ -57,14 +57,16 @@
 ### 2.6 Benchmark layer
 | Table | Key fields | Notes |
 |---|---|---|
-| `benchmark_population` | population_id, population_key (Industry+RSS+PGMS+OSI+DSI+AIGMS+EHP tiers), dimensions (jsonb), relaxation_notes, version, built_at | Dynamic cohorts; relaxation recorded for explainability |
+| `benchmark_population` | population_id, population_key (Industry+RSS+PGMS+OSI+DSI+AIGMS+EHP tiers), dimensions (jsonb), relaxation_notes, version, built_at | Dynamic cohorts; relaxation recorded for explainability. ⚠️ **Live reconciliation (v1.3):** the live database exposes a table named **`benchmark_cluster`** (8 cols) that plays this cohort-grouping role; `benchmark_population` as named here may not be the applied name. Canonical name going forward is an **OPEN QUESTION (OD-07, engineer)** — do not assume either until decided. `benchmark_membership` (below) is live and correct. |
 | `benchmark_membership` | membership_id, population_id, organization_id, notice_id, normalization_score, benchmark_weight, inclusion_reason | Live cohort n = COUNT(*) here — never static |
 
 ### 2.7 Scoring & intelligence layer
 | Table | Key fields | Notes |
 |---|---|---|
 | `formula_version` | formula_id (F-001…F-014 + profile formulas), version, expression_text, description (plain English — powers lineage drawer), weights (jsonb), effective_from, approved_by | Versioned formula registry |
-| `risk_finding` | risk_id, organization_id, notice_id, related_clause_ids[], finding_code (e.g. TRK-007), domain, severity, scores (jsonb), compound_group_id, confidence_score, interpretive_variance, sme_status (pending/confirmed/edited/dismissed), snapshot_ids[] | Deterministic + reproducible |
+| `risk_finding` | risk_id, organization_id, notice_id, related_clause_ids[], finding_code (e.g. TRK-007), domain, severity, scores (jsonb), compound_group_id, confidence_score, interpretive_variance, sme_status (pending/confirmed/edited/dismissed), snapshot_ids[] | Deterministic + reproducible. Live also carries flat per-finding scoring columns (`regulatory_exposure_score`, `benchmark_deviation_score`, `enforcement_correlation_score`, `finding_type_code`, `formula_version_id`, `scoring_model_version`, `source_corpus_version`). |
+| `finding_clause` | finding_id, clause_id | ⚠️ **Documented in v1.3 (live truth):** M–M junction linking a `risk_finding` to the `disclosure_clause` rows it cites (normalizes `related_clause_ids[]`). Present live; was undocumented before v1.3. |
+| `finding_enforcement` | finding_id, enforcement_id, similarity | ⚠️ **Documented in v1.3 (live truth):** M–M junction linking a `risk_finding` to correlated `enforcement_record` rows (feeds F-004 lineage). Present live; was undocumented before v1.3. |
 | `finding_type` | finding_code, domain_id, canonical_definition, exposure_signal, example_pattern, related_codes[] | The Codex source of truth |
 | `derived_data_item` | derived_data_item_id, object_type (percentile, exposure, maturity, transparency, ai_gov, compound, enforcement_corr, trend_delta, alert, vci…), score, vci, vci_components (jsonb), formula_version_id, source_snapshot_id, benchmark_population_id, generated_at | DIR-001…004 (see intelligence-logic.md §12); UI/PDF consume these, never recompute (DIR-008) |
 | `explainability_reference` | explainability_id, intelligence_id, source_type, source_id, clause_id, regulator_id, benchmark_population_id, rationale | Lineage drawer contents |
@@ -77,6 +79,19 @@
 | `training_label` | label_id, risk_id, sme_user_id, action (confirmed/edited/dismissed), before_text, after_text, created_at | Captured from SME corrections |
 | `monitoring_event` | event_id, tenant_id, organization_id, trigger_type (notice_changed, score_moved, regulator_signal, cohort_rebenchmarked), prior_value, current_value, severity, snapshot_id, timestamp | Powers change feed |
 | `alert` | alert_id, tenant_id, finding/risk refs, escalation_score (F-013), severity (high/medium), status | Powers alert center |
+
+### 2.9 Ingestion, connector & external-signal layer (new in v1.3)
+
+Additive tables that back the registry-driven ingestion architecture (F02 v2). All new, all nullable-friendly; none replaces or mutates an existing corpus table.
+
+| Table | Key fields | Notes |
+|---|---|---|
+| `source_registry` | registry_id (pk), family (text: sec_edgar, hhs_ocr, ftc, cppa, state_ag, princeton_leuven, open_web), display_name, base_url, cadence (text: manual/daily/weekly/monthly), reliability_tier (int 1–3), parser_type, enabled (bool), config (jsonb), created_at | The living, configurable registry of source families a connector can crawl (F02 §Source registry). One row per source family. `cadence` mirrors the SLA cadences in business-logic §7. ⚠️ **Family-taxonomy reconciliation (OPEN QUESTION, engineer):** the `raw-artifacts` bucket already uses folders `{ag_actions, cfpb, cppa, frameworks, ftc, litigation, notices, state_laws}`; the `family` value must resolve to a storage folder. Map is not 1:1 (e.g. `state_ag`↔`ag_actions`; `cfpb`/`frameworks`/`litigation`/`notices` folders have no matching enum value yet). Reconcile before first connector run — see F02 v2. |
+| `ingestion_run` | run_id (pk), registry_id (fk → source_registry), started_at, finished_at, outcome (text: ok/partial/failed), records_seen, records_new, records_changed, records_skipped, error_summary (text), parser_version_id (fk → parser_version) | One row per connector execution; the provenance/audit trail for every pull (F02 §Run logging). ⚠️ **Live reconciliation:** `ingestion_run` **already exists** (migration 0011c) with columns `{run_id, source_name, run_type, started_at, finished_at, rows_inserted, rows_updated, status, notes}`. The fields above are **additive** — `registry_id`, `outcome`, `records_seen/new/changed/skipped`, `error_summary`, `parser_version_id` are added alongside the existing columns (`rows_inserted`≈`records_new`, `status`≈`outcome`, `source_name` retained). **No existing column is dropped or renamed.** |
+| `parser_version` | parser_version_id (pk), family, version (text), description, effective_from | Versioned parser registry so every `ingestion_run` records which parser produced it. A parser change writes a new row (never edits an old one) — lineage rule §4. |
+| `security_event` | event_id (pk), source_record_id (fk → source_record), organization_id (fk, nullable), entity_name_raw, entity_type, state, breach_date, submission_date, individuals_affected (int), breach_type, information_location, description, source_url, capture_date, extraction_confidence (real), resolution_status (text: unresolved/resolved) | Breach-report and security-incident signals (e.g. HHS OCR breach portal, state AG breach notifications). ⚠️ **RATIONALE (critical):** breach reports are **security / organization-risk signals, NOT enforcement actions**. They must **never** populate `enforcement_record` or feed **F-004 (Enforcement Correlation)** without a separate, expert-approved formula change. This physical separation is a **proposed decision, OD-06** (expert sign-off required) — see §5 and open-decisions.md. |
+| `organization_alias` | alias_id (pk), organization_id (fk → organization), alias_type (text: cik/ticker/domain/legal_name/dba), value, match_confidence (real), source_record_id (fk → source_record, nullable) , created_at | Identifier/alias resolution so external records (SEC CIK, ticker, DBA names, domains) can be matched to the right `organization` without overwriting its canonical name. Supports entity resolution during ingestion. |
+| `schema_migrations` | filename (pk), checksum, applied_at | **Migration-tracking table (new rule, §5).** No migration is considered applied unless a row exists here. Currently absent — migrations are hand-pasted with no ledger, which is the direct cause of the 0014/0017 drift documented in §5. |
 
 ## 3. Core relationships
 
@@ -96,7 +111,28 @@ monitoring_event M─M risk_finding
 - Human overrides logged with reason + timestamp (`training_label` and audit columns).
 - Anonymized/aggregate outputs (white-label, quarterly) live in separate tables from customer-scoped values (DIR-005); minimum-sample suppression before publication (DIR-006).
 
-## 5. Changelog
+## 5. Live-schema reconciliation & migration governance (new in v1.3)
+
+The build is mid-flight; the written schema had drifted from the applied database. This section records the reconciliation (source: `logs/audits/2026-07-data-layer-audit.md`, 2026-07-20) and sets the governance rule that prevents recurrence. **These are truth corrections, not proposals to change the data.**
+
+**5.1 Migration-application status (authored but NOT applied to live).** Verified via PostgREST reflection on 2026-07-20:
+
+| Migration | Table | Columns authored but absent from live | Severity |
+|---|---|---|---|
+| **0017** | `report_snapshot` | `rendered_report`, `content_hash`, `report_version`, `glossary_version`, `template_version` (only `scoring_model_version` landed) | **CRITICAL — Hard Rule 6 (immutable snapshots / byte-identical re-pull) is NOT physically backed until 0017 is applied. There is no column to freeze a rendered report into.** |
+| **0014** | `organization` | `industry_id`, `sub_industry`, `public_company_flag`, `size_metadata`, `revenue_metadata`, `jurisdiction_presence` | High — profiling reads the live text column `industry` instead (see §2.3). |
+| **0014** | `organization_intelligence_profile` | `industry_id`, `sub_industry`, `rss_tier`, `pgms_tier`, `osi_tier`, `dsi_tier`, `ehp_tier`, `aigms_tier` | High — 7-dimension tier labels have no column to persist into. |
+| **0011_local_users** | `local_users` | entire table not visible via API | Ambiguous — local JWT auth appears to run off `local_users.json`; may be unapplied or API-revoked. Needs direct-DB confirmation. |
+
+Applying migrations **0014 and 0017 to live is authorized as an explicit Phase-1 prerequisite** for the F02 v2 ingestion work (see F02 v2 → Prerequisites), pending the confirmation flagged in open-decisions.md.
+
+**5.2 Migration governance rule (new).**
+1. A `schema_migrations` table (§2.9: `filename`, `checksum`, `applied_at`) must exist and be written on every apply. **No migration is considered applied unless it has a row there.** This is the guard whose absence caused the 0014/0017 drift.
+2. **Unique sequence numbers going forward.** The current tree has duplicated numbers — two `0011` (`_live_assessment_isolation`, `_local_users`, `_reference_corpus`), two `0012` (`_finding_content`, `_versioning_metadata`), two `0013` (`_clause_taxonomy_v2`, `_enforcement_extra_cols`). New migrations must use a unique, monotonically increasing sequence number.
+3. Migrations remain **additive-only** (AGENTS.md §2): new tables, new nullable columns, new indexes. The single historical exception is `0011_live_assessment_isolation`'s `ALTER COLUMN organization_id DROP NOT NULL` (constraint-loosening, non-destructive).
+
+## 6. Changelog
+- 1.3 (2026-07-20): **Ingestion-architecture amendment.** Added §2.9 ingestion/connector/external-signal layer (`source_registry`, `ingestion_run` evolved additively, `parser_version`, `security_event`, `organization_alias`, `schema_migrations`); extended `source_record.source_type` with `security`, `corporate_filing`, `dataset`; added §5 live-schema reconciliation (0014/0017 authored-not-applied; migration-tracking rule; unique-sequence rule) and documented live truth for `benchmark_cluster` (naming OD-07), `organization.industry` vs `industry_id`, and the `finding_clause` / `finding_enforcement` junctions. `security_event`'s separation from enforcement is proposed as **OD-06** (expert). Source: engineer + `logs/audits/2026-07-data-layer-audit.md`. No existing table or column altered or dropped.
 - 1.2 (2026-07-16): Linked the `derived_data_item` DIR-001…004 / DIR-008 citations to their new canonical registry (intelligence-logic.md §12). No structural change — resolves previously dangling DIR references.
 - 1.1 (2026-07-15): Documented the additive v2 corpus-reclassification columns on `disclosure_clause` (`category_v2`, `nlp_confidence_v2`, `classifier_version`) — write-only, never overwrite the base `category`. Absorbed from the archived DB_GROUND_TRUTH.md / RECLASSIFY_PLAN.md; verified against `scripts/reclassify_other.py`.
 - 1.0 (2026-07-15): Initial canonical consolidation of SCHEMA.md, DB_GROUND_TRUTH.md, VICBNF §13, Data Model Framework §3, Derived Intelligence Catalog entities.

@@ -1,6 +1,6 @@
 # Intelligence Logic — Classification, Benchmarking, Scoring
 
-**Version:** 1.2 · 2026-07-16 · Consolidates VICBNF v2.0, the Derived Intelligence Catalog v1, and the Intelligence Engine Framework. All weights are **initial policy settings**, configurable in `formula_version` / lookup tables, subject to calibration governance — never hardcoded.
+**Version:** 1.3 · 2026-07-20 · Consolidates VICBNF v2.0, the Derived Intelligence Catalog v1, and the Intelligence Engine Framework. All weights are **initial policy settings**, configurable in `formula_version` / lookup tables, subject to calibration governance — never hardcoded.
 
 ## 1. Pipeline (Porter value chain)
 
@@ -26,7 +26,7 @@ Completeness (expected clauses present / expected), Transparency (transparent/re
 
 8 domains + other: **CR** Consumer Rights (access, delete, correct, portability, appeal, opt-out, agent) · **DC** Data Collection (PI categories, sensitive, biometric, precise location, children) · **SH** Sharing (service providers, ad networks, analytics, affiliates, data brokers) · **RT** Retention (specific period, criteria-based, undefined) · **AI** (automated decisions, profiling, human review, training data, transparency) · **SEC** (safeguards, incident/breach) · **TRK** (cookies, preference center) · **XB** (cross-border transfers). Finding codes (TRK-007, SH-002, RT-003 …) are governed in the Codex (`finding_type`).
 
-**v2 reclassification (shipped).** A second-pass classifier (`scripts/reclassify_other.py`, `classifier_version = qwen3-8b-local-v1`) re-labels legacy `category='other'` clauses into the 8 domains, writing **only** to `disclosure_clause.category_v2 / nlp_confidence_v2 / classifier_version` (never overwriting the base `category` — see schema.md §2). This reduced the "other" bucket from ~65% toward ~20% of the corpus. Downstream reads should prefer `category_v2` when present, falling back to `category`.
+**v2 reclassification (partially run; completion pending).** A second-pass classifier (`scripts/reclassify_other.py`, `classifier_version = qwen3-8b-local-v1`) re-labels legacy `category='other'` clauses into the 8 domains, writing **only** to `disclosure_clause.category_v2 / nlp_confidence_v2 / classifier_version` (never overwriting the base `category` — see schema.md §2). Downstream reads should prefer `category_v2` when present, falling back to `category`. ⚠️ **Status correction (v1.3, 2026-07-20).** An earlier version of this line claimed the reclassifier had cut the "other" bucket "from ~65% toward ~20%." The live census (`logs/audits/2026-07-data-layer-audit.md`, 2026-07-20) shows that is **not yet true**: of 6,145 clauses, only **2,391 (38.9%) have any `category_v2` value** and **3,754 rows are still `category_v2 IS NULL`**; base `category='other'` remains 3,864 (62.9%). The reclassification has **not been run to completion** — the ~20% target is an aspiration, not the current state. Do not cite the "~20%" figure until a follow-up census confirms it.
 
 ## 5. Benchmark population construction
 
@@ -106,6 +106,7 @@ Governance rules for how *derived intelligence* — every `derived_data_item` ob
 | **DIR-010** | Reproducibility: every published number is reproducible from its stored snapshot + formula version + benchmark version; a frozen snapshot regenerates identically. | F12; roadmap "reproducible from stored snapshot"; Hard Rule 6 |
 
 ## 13. Changelog
+- 1.3 (2026-07-20): **§4 status correction (truth reconciliation).** Removed the unsupported claim that the v2 reclassifier had reduced the "other" bucket to ~20%; the 2026-07-20 census shows only 38.9% of clauses have a `category_v2` value (3,754 still NULL). Restated as "partially run; completion pending" with the census numbers. No formula, weight, or taxonomy change. Source: engineer + `logs/audits/2026-07-data-layer-audit.md`.
 - 1.2 (2026-07-16): added §12 Derived Intelligence Rules (DIR) registry — restores the DIR definitions the v1.0 consolidation named but dropped; reconstructed from usage + Hard Rules 4/6, flagged for expert verification against the source Catalog. Structural fix (spec-change): DIR refs were dangling across schema/F04/F05/F11/F12/roadmap.
 - 1.1 (2026-07-15): §4 records the shipped v2 corpus reclassification (`category_v2`, `classifier_version=qwen3-8b-local-v1`), absorbed from the archived RECLASSIFY_PLAN.md / AUDIT.md and verified against `scripts/reclassify_other.py`.
 - 1.0: consolidated from VICBNF v2.0 (all sections + Appendix A), Derived Intelligence Catalog (formula library, variables, triggers, DIRs), Intelligence Engine Framework Appendices B–F.

@@ -57,9 +57,9 @@ A normalized corpus already lives in Supabase. You did not create it and you mus
 
 <!-- BEGIN GENERATED: CURRENT VERSIONS (source: 01-foundation changelogs) -->
 ## Current versions
-- schema.md: v1.2 (2026-07-16)
+- schema.md: v1.3 (2026-07-20)
 - business-logic.md: v1.2 (2026-07-15)
-- intelligence-logic.md: v1.2 (2026-07-16)
+- intelligence-logic.md: v1.3 (2026-07-20)
 - design-system.md: v1.3 (2026-07-16)
 - Formula registry: F-001–F-014 (see intelligence-logic.md §7)
 - Score bands: see web/src/lib/scoreBands.ts (single source of truth)
@@ -69,7 +69,7 @@ A normalized corpus already lives in Supabase. You did not create it and you mus
 <!-- BEGIN GENERATED: SPEC INDEX (source: visentix-specs/02-features/) -->
 ## Feature spec index
 - F01 — Notice Intake & Decomposition Explorer — shipped (M-01 replaced — real decomposition wired; M-02 verified-source badge unbuilt)
-- F02 — Corpus Ingestion & Source Monitoring Pipelines — partial (customer intake shipped; scheduled crawling proposed)
+- F02 — Corpus Ingestion & Source Monitoring Pipelines — partial — customer intake shipped; registry-driven connector framework proposed (v2)
 - F03 — Organization Profiling, Benchmark Populations & Normalization — shipped (deterministic profiler 4.0A + normalization 4.0B)
 - F04 — Scoring, Findings & Confidence Engine — shipped
 - F05 — Report Generation (12 Sections, Snapshots, PDF) — shipped (section gaps per MVP plan Workstream B)
