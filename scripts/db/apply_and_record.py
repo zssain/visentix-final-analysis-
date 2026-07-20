@@ -94,13 +94,38 @@ def plan() -> dict:
     return ledger
 
 
+def _conn_kwargs() -> tuple[dict, str]:
+    """Prefer the IPv4 session pooler (DDL-capable) when present; fall back to the
+    direct (IPv6-only) host. Parse the URL by hand and return psycopg keyword args
+    — the pooler password can contain URL-hostile characters that break urlparse
+    and libpq's own URL parser. Never returns/prints the secret."""
+    from dotenv import dotenv_values
+    cfg = dotenv_values(ROOT / ".env")
+    raw = cfg.get("DATABASE_POOLER_URL")
+    label = "pooler (IPv4 session)"
+    if not raw:
+        raw, label = cfg["DATABASE_URL"], "direct (IPv6)"
+    # postgresql://<user>:<password>@<host>:<port>/<db>?<params>
+    body = raw.split("://", 1)[1]
+    auth, hostpart = body.rsplit("@", 1)              # last @ = real separator (host has none)
+    user, password = auth.split(":", 1)               # first : = user/password split
+    hostportdb, _, params = hostpart.partition("?")
+    hostport, _, dbname = hostportdb.partition("/")
+    host, _, port = hostport.rpartition(":")
+    kw = {"host": host, "port": int(port or 5432), "user": user, "password": password,
+          "dbname": dbname or "postgres", "connect_timeout": 20, "sslmode": "require"}
+    if "sslmode=" in params:
+        kw["sslmode"] = params.split("sslmode=", 1)[1].split("&", 1)[0]
+    return kw, f"{label} host={host}"
+
+
 def run() -> int:
     import psycopg
-    from dotenv import dotenv_values
 
-    dsn = dotenv_values(ROOT / ".env")["DATABASE_URL"]
+    kw, label = _conn_kwargs()
+    print(f"connecting via {label}")
     applied, recorded = [], []
-    with psycopg.connect(dsn, connect_timeout=15, autocommit=False) as conn:
+    with psycopg.connect(autocommit=False, **kw) as conn:
         with conn.cursor() as cur:
             # STEP A — schema_migrations must exist first
             for stmt in statements("0020_schema_migrations.sql"):

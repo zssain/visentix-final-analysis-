@@ -2,13 +2,21 @@
 
 **Branch:** `F02-ingestion-foundation` (off `feedback/ingestion-arch-schema-v1.3`) · **Date:** 2026-07-21 · **Author:** engineer (AI-assisted) · **Merge:** NOT merged (as instructed)
 
+> **UPDATE 2026-07-21 (second pass) — APPLIED TO LIVE.** A DDL-capable IPv4 session pooler (`DATABASE_POOLER_URL`) was added to `.env`, so the apply that was blocked in the first pass has now run end-to-end. This report is updated throughout; the original "blocked" narrative is preserved in §1 for the record. Live-apply results: **§0**.
+
 ---
 
-## TL;DR — what was applied to live, and when
+## 0. Live apply results (2026-07-21, via IPv4 session pooler)
 
-**Nothing was applied to the live database, because the live database is not reachable for DDL from this environment.** Every migration file, the apply/record runner, the seed script, `.env.example`, and the test suite are written and verified locally; they are staged to apply in one shot the moment a working connection exists. See **§4 Apply instructions**.
+- **All four migrations applied** in order (0020 → 0017 → 0014 → 0021) in a single transaction; **24 `schema_migrations` rows recorded** (20 backfilled historical + 4 applied-now), `applied_at = 2026-07-20 22:15:47Z`.
+- **Seed:** `source_registry` seeded with 7 families (only `hhs_ocr` enabled).
+- **`tests/test_f02_ingestion_foundation.py`: 16 passed, 0 skipped** (the 9 live tests now execute for real: checksum-match, RLS-denies-anon ×5, 0017 present+writable, alias-uniqueness, seed-idempotent).
+- **`local_users` ambiguity RESOLVED (read-only):** the table **does not exist** in the database — `to_regclass('public.local_users')` is NULL. Migration 0011_local_users was **never applied** (the REST 404 was genuine absence, not revoked grants). Local JWT auth runs off `local_users.json`. Correctly excluded from backfill.
+- **`.env` fix (no secret shown):** the pooler password had **stray surrounding `[ ]` brackets** — the Supabase dashboard `:[YOUR-PASSWORD]@` placeholder was filled in but the literal brackets were kept, which broke both `urlparse` and libpq. Stripped programmatically (the value never appeared in any output). **Action for the human:** confirm `.env` is correct going forward.
 
-This is not a permission problem (the apply is authorized) — it is a network-reachability problem. Details in §1.
+## TL;DR
+
+**Applied to live and verified: 4 migrations, 24 ledger rows, 7 seed rows, 16/16 F02 tests green.** The connection uses the IPv4 session pooler; the runner parses the URL by hand and passes psycopg keyword args (the pooler password contains URL-hostile characters). Not a permission problem in the first pass — a network one (direct host is IPv6-only, no route here); resolved by the pooler. Details §1.
 
 ---
 
@@ -97,23 +105,43 @@ ae70ac6a54100f0a  backfill                0018_intake_columns.sql
 ```
 (Full 64-char checksums live in `scripts/db/apply_and_record.py --plan`.)
 
-## 6. `local_users` ambiguity (unresolved, as instructed)
+## 6. `local_users` ambiguity — RESOLVED (never applied)
 
-`0011_local_users.sql` is deliberately **not** backfilled. Via REST it is `404 PGRST205` (not in the API schema) — which is consistent with *either* "never applied" *or* "applied then API-revoked" (a password table should be hidden from the API). Direct-DB confirmation is impossible from here (§1). Left for a follow-up; it earns a ledger row only if/when genuinely applied.
+With direct catalog access via the pooler, this is now settled: **`to_regclass('public.local_users')` returns NULL — the table does not exist in the database.** Migration 0011_local_users was **never applied**; the earlier REST `404 PGRST205` was genuine absence, not API-revoked grants. Local JWT auth runs off `local_users.json` (as the audit suspected). It remains correctly **excluded from the `schema_migrations` backfill** and earns a row only if it is ever actually applied.
 
-## 7. Tests
+## 7. Tests (after live apply)
 
-- **`tests/test_f02_ingestion_foundation.py`: 7 passed, 9 skipped, 0 failed.** The 7 local tests assert real invariants now (idempotent-by-construction; manifest partitions every file; checksum = raw file sha256; STEP order; seed-row shape incl. family↔folder mapping + hhs_ocr-only-enabled + EDGAR_BULK_PATH + cppa archive note). The 9 live tests (checksum-match, RLS-denies-anon ×5, 0017-writable, alias-uniqueness, seed-idempotent) **skip with an explicit "not applied to live yet" reason** and become hard assertions the instant the migrations land.
-- **Full suite: 617 passed, 23 failed, 9 skipped.** The 23 failures are **pre-existing live-DB-drift**, not introduced here (0 failures come from any file in this change) — they are the exact set the audit documented: `test_schema_p1` stale inventory counts (`organization-30`→live 37, `disclosure_clause-3655`→live 6145, etc.), `test_embeddings` NULL-embedding (live has 2,490 NULL), `test_schema_p1` finding-type "STUB" markers (replaced by `update_findings.py`), and assorted live/state-dependent auth/explain/export/review-gate tests. "Full suite green" is not achievable in this environment independent of this work; my additions are green.
+- **`tests/test_f02_ingestion_foundation.py`: 16 passed, 0 skipped, 0 failed.** All 9 live tests now execute for real.
+- **Full suite: 624 passed, 25 failed, 0 skipped** (was 617 / 23 / 9 pre-apply). The delta reconciles exactly: **+9** (my live tests now pass instead of skip), **−2** (two profile-count tests flipped to failing, see below). **No hidden regressions** — every other test is byte-for-byte the same result.
+
+### 7a. Did the 0014/0017 apply resolve any of the 23 pre-existing drift failures?
+
+**Zero of 23 resolved.** 0014/0017 add *columns*, not *data* — none of the 23 was a missing-column failure. All 23 still fail, by cause:
+
+| # | Cause family | Failing tests | Why 0014/0017 can't fix it |
+|---|---|---|---|
+| 6 | **Stale hardcoded row-counts** (audit-flagged) | `test_schema_p1::test_preexisting_row_counts[organization-30 / privacy_notice-26 / notice_section-767 / disclosure_clause-3655 / obligation-154 / enforcement_record-172]` | Corpus grew (live: 37 / 50 / 1564 / 6145 / 273 / 649). Fix = update the tests, not the schema. |
+| 2 | **Stale stub-content assertions** | `test_schema_p1::test_finding_type_stubs`, `::test_recommendation_library_stubs` | `update_findings.py` replaced the STUB text with real content; tests still assert "STUB". |
+| 1 | **Corpus completeness** (audit-flagged) | `test_embeddings::test_disclosure_clause_no_null_embeddings` | 2,490 clauses have NULL embedding (embedder is a stub). Needs a backfill, not a migration. |
+| 14 | **App route / state behavior** (not schema) | `test_auth::test_admin_can_access_all_routes`; `test_explain` ×3; `test_export` ×6 (404s); `test_live_classify::test_classification_log_message_safe`; `test_exemplar_review::…section8…`; `test_report_assembly::…section8…`; `test_review_gate::…draft_banner…` | Live app/route/state failures unrelated to the ingestion schema. |
+
+### 7b. Two NEW failures the apply *surfaced* (net 23 → 25)
+
+`test_schema_p1::test_oip_populated` and `test_profile::test_profiles_exist_in_db` both hardcode `organization_intelligence_profile == 30`; it is now **31**. **This is the 0014 apply fixing a latent bug, not breaking one.** The profiling write path `_ensure_org_profile` ([app/services/live_scoring.py:329-353](../../app/services/live_scoring.py#L329-L353)) POSTs a profile including the 0014 columns (`industry_id`, `sub_industry`, `*_tier`) **with no error check**. Before 0014 those columns didn't exist, so PostgREST **400'd the insert and it was silently swallowed** — profiles never persisted (count frozen at 30). After 0014 the insert **succeeds**, so a live pipeline test (`test_live_pipeline`, running the real pipeline on the pre-existing "Anonymous Assessment" org) persisted the 31st profile at 22:17:42Z. Same stale-hardcoded-count family as the six row-count failures above.
+
+**Net:** 0014/0017 resolved 0 of the 23 (they were never schema-shaped), and exposed 1 real latent bug (profile persistence was failing pre-0014) whose fix tripped 2 more hardcoded-count tests. Recommended follow-ups: (a) retire/parametrize the hardcoded live-count + stub-content assertions in `test_schema_p1` / `test_profile` (they will keep drifting); (b) add an error check to `_ensure_org_profile`'s POST so a failed profile write is never silent again; (c) the live-pipeline tests write to the shared DB — worth isolating.
 
 ## 8. Surprises
 
-1. **Live DB is genuinely unreachable for DDL** — only PostgREST (read/REST) works; the direct host is IPv6-only with no route here. This is the headline: STEP B/C/D "apply to live" could not execute.
-2. **`source_record.source_id` is TEXT, not UUID** — drove the FK column types in `0021`.
-3. **Existence checks are insufficient guards** — `ingestion_run` and `report_snapshot` pre-exist, so live tests key on the *new* artifact (`source_registry` presence for 0021; `report_snapshot.report_version` for 0017), not bare table existence.
-4. **The full suite was already red** (23 live-drift failures) before this work — worth its own cleanup pass (retire/parametrize the hardcoded inventory counts).
+1. **First pass: live DB unreachable for DDL** — direct host is IPv6-only, no route here. Resolved in the second pass by the IPv4 session pooler.
+2. **The pooler password broke URL parsing** — it contains URL-hostile characters *and* had stray `[ ]` brackets from the dashboard placeholder. Fix: parse the URL by hand → psycopg kwargs, and strip the brackets in `.env` (no secret printed).
+3. **`source_record.source_id` is TEXT, not UUID** — drove the FK column types in `0021`.
+4. **Applying 0014 exposed a silently-failing write path** — `_ensure_org_profile` POSTs the 0014 columns with no error check, so pre-0014 every profile insert 400'd and was swallowed (profiles weren't persisting). Post-0014 it works — a genuine bug fix that also tripped two hardcoded `==30` count tests (§7b).
+5. **`local_users` never existed** — settled via direct catalog access; not an API-grant quirk.
+6. **The full suite was already red** (23 live-drift failures) before this work, now 25 — all stale-count / stale-stub / app-state, none from the ingestion schema.
 
 ## Needs human
-- A reachable apply path: run `apply_and_record.py` + `seed_source_registry.py` from an IPv6-capable host (or add a pooler URL / PAT to `.env`), OR paste `0020/0017/0014/0021` into the Supabase SQL editor then run the runner to record. After that, `tests/test_f02_ingestion_foundation.py` should be 16/16 green.
-- Confirm the seed's operational config values (`reliability_tier`, `cadence`, `base_url`s) — grounded in VICBNF §3.2 tiering + business-logic §7 cadences, but review-and-confirm.
-- The `local_users` status still needs a direct-DB check (§6).
+- **Confirm `.env` pooler URL** — I stripped the stray `[ ]` around the password so the apply could run; verify the stored value is correct (I never printed it).
+- **Confirm the seed's operational config values** (`reliability_tier`, `cadence`, `base_url`s) — grounded in VICBNF §3.2 tiering + business-logic §7 cadences, but review-and-confirm.
+- **Fix `_ensure_org_profile`** ([live_scoring.py:349-353](../../app/services/live_scoring.py#L349-L353)) to check the POST status — a failed profile write must not be silent (this is why profiles weren't persisting before 0014).
+- **Retire/parametrize the stale live-count + stub assertions** in `test_schema_p1` / `test_profile` — they hardcode 2026-06 inventory (30 orgs, 26 notices, "STUB" content) and will keep drifting; the ingestion apply did not cause them and cannot fix them.
