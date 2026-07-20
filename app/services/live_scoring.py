@@ -346,11 +346,23 @@ async def _ensure_org_profile(
         "profile_version": 1,
         "confidence_score": profile.confidence_score,
     }
-    await client.post(
+    resp = await client.post(
         f"{SB}/rest/v1/organization_intelligence_profile",
         headers={**headers, "Content-Type": "application/json", "Prefer": "return=minimal"},
         json=profile_payload,
     )
+    # A failed profile write must NEVER be silent (lesson L-006): this POST had
+    # no status check, so an insert that 400'd on the unapplied migration-0014
+    # columns was swallowed for weeks — profiles silently stopped persisting.
+    if resp.status_code >= 300:
+        log.error(
+            "organization_intelligence_profile insert failed for org %s: HTTP %d",
+            organization_id, resp.status_code,
+        )
+        raise RuntimeError(
+            f"organization_intelligence_profile insert failed for org "
+            f"{organization_id}: HTTP {resp.status_code}"
+        )
 
     return profile_payload
 
