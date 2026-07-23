@@ -50,17 +50,22 @@ def fetch_null_v2(limit: int) -> list[dict]:
 
 
 def update_clause_v2(clause_id: str, category_v2: str, confidence_v2: float) -> bool:
-    for attempt in range(3):
+    # Retry ALL transport-level transients (connect/read timeout, connection reset,
+    # pool timeout) — a single blip during a multi-hour run must not crash the job.
+    for attempt in range(5):
         try:
             r = httpx.patch(f"{URL}/rest/v1/disclosure_clause?clause_id=eq.{clause_id}",
                             headers={**H, "Content-Type": "application/json", "Prefer": "return=minimal"},
                             json={"category_v2": category_v2, "nlp_confidence_v2": confidence_v2,
-                                  "classifier_version": CLASSIFIER_VERSION}, timeout=15)
+                                  "classifier_version": CLASSIFIER_VERSION}, timeout=30)
             if r.status_code < 300:
                 return True
-        except (httpx.ReadTimeout, httpx.RemoteProtocolError):
-            if attempt < 2:
-                time.sleep(2 ** attempt)
+            if r.status_code < 500:          # 4xx won't fix on retry
+                return False
+        except httpx.TransportError:         # ConnectTimeout/ReadTimeout/ConnectError/PoolTimeout/…
+            pass
+        if attempt < 4:
+            time.sleep(min(2 ** attempt, 10))
     return False
 
 
@@ -79,36 +84,38 @@ async def main() -> None:
     sem = asyncio.Semaphore(args.concurrency)
     processed = 0
     dist: Counter = Counter()
+    stuck: set[str] = set()          # rows that failed to write after all retries — skip on re-fetch
     t0 = time.time()
 
     async def _one(clause: dict):
         nonlocal processed
+        cid = clause["clause_id"]
         text = clause.get("normalized_text", "")
         if len(text) < 20:
-            # too short to classify meaningfully → label 'other' so it's not stuck NULL forever
-            if not args.dry_run:
-                update_clause_v2(clause["clause_id"], "other", 0.3)
-            dist["other"] += 1
-            processed += 1
+            cat, conf = "other", 0.3   # too short to classify meaningfully
+        else:
+            async with sem:
+                cat, conf = await classify_one(llm, text)
+        if not args.dry_run and not update_clause_v2(cid, cat, conf):
+            stuck.add(cid)             # write failed even after retries — don't loop on it
             return
-        async with sem:
-            cat, conf = await classify_one(llm, text)
-        if not args.dry_run:
-            update_clause_v2(clause["clause_id"], cat, conf)
         dist[cat] += 1
         processed += 1
         if processed % 100 == 0:
             rate = processed / max(1e-6, time.time() - t0)
-            log.info("progress: %d/%d processed (%.1f/s) dist=%s",
-                     processed, before, rate, dict(dist))
+            log.info("progress: %d/%d processed (%.1f/s) dist=%s stuck=%d",
+                     processed, before, rate, dict(dist), len(stuck))
 
     while True:
         batch = fetch_null_v2(10 if args.dry_run else args.batch_size)
-        if not batch:
+        fresh = [c for c in batch if c["clause_id"] not in stuck]
+        if not fresh:
+            if batch:
+                log.warning("only stuck rows remain (%d) — stopping", len(stuck))
             break
-        await asyncio.gather(*[_one(c) for c in batch])
+        await asyncio.gather(*[_one(c) for c in fresh])
         if args.dry_run:
-            log.info("[DRY-RUN] sample of %d classified: %s", len(batch), dict(dist))
+            log.info("[DRY-RUN] sample of %d classified: %s", len(fresh), dict(dist))
             break
 
     after = 0 if args.dry_run else null_v2_count()
