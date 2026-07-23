@@ -290,6 +290,36 @@ class FakeOrgStore:
         return True
 
 
+class FakeEnforcementWriter:
+    """In-memory double for LiveEnforcementWriter (FTC/CPPA/state-AG). Records
+    enforcement rows, stored PDFs, and regulators ensured; resolves orgs from a
+    supplied map. Type-checks nothing DB-specific (enforcement_record isn't in the
+    snapshot) but mirrors the real surface."""
+
+    def __init__(self, resolve: dict | None = None):
+        self.enforcement: list[dict] = []
+        self.pdfs: list[str] = []
+        self.regulators: set[str] = set()
+        self._resolve = resolve or {}
+
+    def ensure_regulator(self):
+        self.regulators.add("_default")
+
+    def ensure_regulator_for(self, reg_id, state):
+        self.regulators.add(reg_id)
+
+    def store_pdf(self, pdf_url):
+        self.pdfs.append(pdf_url)
+        return {"source_id": f"pdf:{pdf_url}", "path": "raw-artifacts/x", "sha256": "y"}
+
+    def resolve_org(self, name):
+        return self._resolve.get(name)
+
+    def upsert_enforcement(self, row):
+        self.enforcement.append(row)
+        return True
+
+
 class TypedFakeEventWriter:
     """security_event upsert double (ON CONFLICT (event_id) DO NOTHING) that also
     type-checks each row and rejects the framework's non-column lineage field."""

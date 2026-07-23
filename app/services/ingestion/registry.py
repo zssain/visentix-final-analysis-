@@ -15,9 +15,11 @@ from app.config import settings
 from app.db import get_service_headers
 from app.services.ingestion.backend import SupabaseBackend
 from app.services.ingestion.base import Backend, Connector
+from app.services.ingestion.connectors.cppa import CPPAConnector
 from app.services.ingestion.connectors.edgar import EdgarBulkConnector
 from app.services.ingestion.connectors.ftc import FTCConnector
 from app.services.ingestion.connectors.hhs_ocr import HHSOCRConnector
+from app.services.ingestion.connectors.state_ag import StateAGConnector
 from app.services.ingestion.runner import RunResult, run
 
 log = logging.getLogger(__name__)
@@ -27,6 +29,8 @@ CONNECTORS: dict[str, type[Connector]] = {
     "hhs_ocr": HHSOCRConnector,
     "sec_edgar": EdgarBulkConnector,
     "ftc": FTCConnector,
+    "cppa": CPPAConnector,
+    "state_ag": StateAGConnector,
 }
 
 

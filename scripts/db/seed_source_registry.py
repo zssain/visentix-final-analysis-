@@ -86,6 +86,8 @@ def rows() -> list[dict]:
             "parser_type": "html",
             "enabled": False,
             "config": {"raw_artifacts_folder": "cppa",
+                       "archive_url": "https://cppa.ca.gov/announcements/",
+                       "archive_only": True,   # legacy page: one historical pass done, now skip
                        "note": "cppa.ca.gov/announcements is archive-only since 2026-01-26; "
                                "current newsroom is privacy.ca.gov/about-us/newsroom/."},
         },
@@ -96,9 +98,47 @@ def rows() -> list[dict]:
             "cadence": "weekly",
             "reliability_tier": 1,
             "parser_type": "html",
-            "enabled": False,
+            "enabled": False,   # stays disabled until the final ~16-site list is confirmed
             "config": {"raw_artifacts_folder": "ag_actions",
-                       "note": "Per-state base_url in config at connector build; breach notices -> security_event."},
+                       "note": "Config-driven: one StateAGConnector, N sites. Privacy-enforcement "
+                               "items -> enforcement_record ({STATE}-AG); rest -> source_record only.",
+                       # Engineer-confirmed 16-site list (2026-07-23). CA/TX/CT/CO URLs
+                       # verified; the rest still need per-site parser validation, so
+                       # the family stays enabled=false until each is confirmed.
+                       "sites": [
+                           {"state": "CA", "url": "https://oag.ca.gov/media/news",
+                            "parser_hint": "drupal_list", "verified": True},
+                           {"state": "TX", "url": "https://www.texasattorneygeneral.gov/news/releases",
+                            "parser_hint": "generic_list", "verified": True},
+                           {"state": "CT", "url": "https://portal.ct.gov/ag/press-releases",
+                            "parser_hint": "ct_year_subpages", "verified": True},
+                           {"state": "CO", "url": "https://coag.gov/press-releases/",
+                            "parser_hint": "wordpress_list", "verified": True},
+                           {"state": "NY", "url": "https://ag.ny.gov/press-releases",
+                            "parser_hint": "generic_list", "verified": False},
+                           {"state": "WA", "url": "https://www.atg.wa.gov/media-center/news-releases",
+                            "parser_hint": "generic_list", "verified": False},
+                           {"state": "IL", "url": "https://www.illinoisattorneygeneral.gov/news/",
+                            "parser_hint": "generic_list", "verified": False},
+                           {"state": "MA", "url": "https://www.mass.gov/orgs/office-of-the-attorney-general/news",
+                            "parser_hint": "massgov_list", "verified": False},
+                           {"state": "NJ", "url": "https://www.njoag.gov/category/press-releases/",
+                            "parser_hint": "wordpress_list", "verified": False},
+                           {"state": "VA", "url": "https://www.oag.state.va.us/media-center/news-releases",
+                            "parser_hint": "generic_list", "verified": False},
+                           {"state": "OR", "url": "https://www.doj.state.or.us/media-home/news-media-releases/",
+                            "parser_hint": "wordpress_list", "verified": False},
+                           {"state": "MN", "url": "https://www.ag.state.mn.us/Office/Communications/PressReleases.asp",
+                            "parser_hint": "legacy_asp", "verified": False},
+                           {"state": "FL", "url": "https://www.myfloridalegal.com/newsroom",
+                            "parser_hint": "generic_list", "verified": False},
+                           {"state": "NH", "url": "https://www.doj.nh.gov/news",
+                            "parser_hint": "generic_list", "verified": False},
+                           {"state": "DE", "url": "https://news.delaware.gov/tag/attorney-general/",
+                            "parser_hint": "wordpress_list", "verified": False},
+                           {"state": "MD", "url": "https://www.marylandattorneygeneral.gov/press",
+                            "parser_hint": "generic_list", "verified": False},
+                       ]},
         },
         {
             "family": "princeton_leuven",

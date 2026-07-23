@@ -31,6 +31,7 @@ class RawItem:
     natural_key: str           # stable identity for this source object within its family
     title: str = ""
     jurisdiction: str = ""
+    extraction_confidence: float | None = None   # per-item honesty (heterogeneous parses); None → connector default
 
 
 # Item outcomes
@@ -114,6 +115,7 @@ class Connector(abc.ABC):
 
     family: str = ""
     source_type: str = ""                       # source_record.source_type
+    raw_folder: str = ""                         # raw-artifacts folder override (default: family)
     parser_version: str = "v1"
     parser_description: str = ""
     default_extraction_confidence: float = 0.5
@@ -189,7 +191,9 @@ def process_item(
         return status
 
     ext = ext_for_content_type(item.content_type)
-    path = raw_artifact_path(connector.family, content_hash, ext)
+    # A family may store raw bytes under a different folder than its registry family
+    # name (schema §2 OPEN QUESTION: state_ag → ag_actions). raw_folder overrides.
+    path = raw_artifact_path(connector.raw_folder or connector.family, content_hash, ext)
     disp = backend.store_raw(path, item.data, item.content_type)
     log.info("raw %s at %s (%d bytes)", disp, path, len(item.data))
 
@@ -207,7 +211,9 @@ def process_item(
             "jurisdiction": item.jurisdiction or None,
             "sha256": content_hash,
             "storage_path": path,
-            "extraction_confidence": connector.default_extraction_confidence,
+            "extraction_confidence": (item.extraction_confidence
+                                      if item.extraction_confidence is not None
+                                      else connector.default_extraction_confidence),
             "retrieval_ts": now,
             "version_id": 1,
         })
