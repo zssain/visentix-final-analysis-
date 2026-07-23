@@ -65,6 +65,7 @@ APPLY_NOW = [
     "0017_snapshot_rendered_report.sql",  # STEP B — Hard Rule 6 physical backing
     "0014_org_profile_fields.sql",        # STEP B — profiling cols (NOT populated)
     "0021_ingestion_tables.sql",          # STEP C — five ingestion tables
+    "0022_persistence_hardening.sql",     # F06 — review/training persistence + approve_and_freeze
     "0024_source_version.sql",            # F02 — source_version (change-detection history)
     "0025_sic_industry_map.sql",          # F02 EDGAR — DRAFT SIC→industry map (expert-approval gated)
     "0026_ftc_topic_domain_map.sql",      # F02 FTC — empty topic→domain scaffold + enforcement id cols
@@ -83,12 +84,38 @@ def checksum(name: str) -> str:
 
 
 def statements(name: str) -> list[str]:
-    """Split a DDL file into executable statements (strip -- comments to EOL,
-    split on ';'). Safe for these files: pure DDL, no $$ blocks, no ';' in
-    string literals."""
+    """Split a DDL file into executable statements. Dollar-quote aware: text
+    inside $$...$$ (e.g. a PL/pgSQL function body) is preserved verbatim —
+    its semicolons and comments are NOT treated as statement boundaries.
+    Outside dollar-quotes, -- comments are stripped and ';' ends a statement."""
     raw = (MIG / name).read_text(encoding="utf-8")
-    nocomments = re.sub(r"--[^\n]*", "", raw)
-    return [s.strip() for s in nocomments.split(";") if s.strip()]
+    stmts: list[str] = []
+    buf: list[str] = []
+    i, n, in_dollar = 0, len(raw), False
+    while i < n:
+        if raw[i:i + 2] == "$$":
+            in_dollar = not in_dollar
+            buf.append("$$")
+            i += 2
+            continue
+        if not in_dollar:
+            if raw[i:i + 2] == "--":                 # line comment → skip to EOL
+                nl = raw.find("\n", i)
+                i = n if nl < 0 else nl
+                continue
+            if raw[i] == ";":
+                s = "".join(buf).strip()
+                if s:
+                    stmts.append(s)
+                buf = []
+                i += 1
+                continue
+        buf.append(raw[i])
+        i += 1
+    tail = "".join(buf).strip()
+    if tail:
+        stmts.append(tail)
+    return stmts
 
 
 def plan() -> dict:

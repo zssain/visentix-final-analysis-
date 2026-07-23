@@ -89,6 +89,7 @@ def test_apply_now_order_and_step_a_first():
         "0017_snapshot_rendered_report.sql",
         "0014_org_profile_fields.sql",
         "0021_ingestion_tables.sql",
+        "0022_persistence_hardening.sql",
         "0024_source_version.sql",
         "0025_sic_industry_map.sql",
         "0026_ftc_topic_domain_map.sql",
