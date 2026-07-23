@@ -33,11 +33,11 @@ log = get_logger(__name__)
 router = APIRouter(prefix="/assessments", tags=["assessments"])
 
 # Valid category values the LLM may return (the 8 legacy domain slugs + other)
-_LLM_TAXONOMY = [
-    "data_sharing", "tracking_cookies", "consumer_rights", "cross_border",
-    "sensitive_data", "retention", "children_teens", "ai_automated_decisions",
-    "other",
-]
+from app.services.intake.classify_v2 import (  # noqa: E402
+    CLASSIFIER_VERSION,
+    KEYWORD_FALLBACK_VERSION,
+    TAXONOMY_V2 as _LLM_TAXONOMY,   # single source of truth (shared with the reclassifier)
+)
 
 
 # ── List assessments ─────────────────────────────────────────
@@ -237,6 +237,10 @@ async def create_assessment(
             "domain_id": c.domain_id or None,
             "clause_type": c.clause_type or None,
             "transparency_score": c.transparency_score,
+            # v2 classification written at ingest (never NULL) — mirror of the reclassifier
+            "category_v2": c.category_v2,
+            "nlp_confidence_v2": c.nlp_confidence_v2,
+            "classifier_version": c.classifier_version,
         }
         for c in notice.clauses
     ]
@@ -322,13 +326,25 @@ async def _classify_clauses(notice: DecomposedNotice) -> tuple[int, int]:
                 result = await llm.classify(clause.raw_text, _LLM_TAXONOMY)
                 cat = result.get("category", "")
                 if cat in _LLM_TAXONOMY:
+                    conf = min(result.get("confidence", 0.7), 0.95)
                     clause.category = cat
-                    clause.nlp_confidence = min(result.get("confidence", 0.7), 0.95)
+                    clause.nlp_confidence = conf
+                    # write the v2 columns at ingest (mirror of the reclassifier) so a
+                    # new clause is NEVER left with a NULL category_v2.
+                    clause.category_v2 = cat
+                    clause.nlp_confidence_v2 = conf
+                    clause.classifier_version = CLASSIFIER_VERSION
                     llm_count += 1
                 else:
                     fallback_count += 1
             except Exception:
                 fallback_count += 1
+        # LLM unavailable / off-taxonomy → keep the deterministic keyword label as v2
+        # (still non-NULL, honestly attributed) so category_v2 is never NULL.
+        if clause.category_v2 is None:
+            clause.category_v2 = clause.category
+            clause.nlp_confidence_v2 = clause.nlp_confidence
+            clause.classifier_version = KEYWORD_FALLBACK_VERSION
 
     await asyncio.gather(*[_classify_one(c) for c in eligible])
     return llm_count, fallback_count

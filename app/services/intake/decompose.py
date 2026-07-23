@@ -107,6 +107,11 @@ class DecomposedClause:
     domain_id: str = ""     # CR/DC/SH/RT/AI/SEC/TRK/XB or ""
     clause_type: str = ""   # one of 30 types or ""
     transparency_score: float = 0.0
+    # v2 category (never NULL once classified) — set by the intake LLM step, mirror of
+    # the reclassifier. Defaults None so decompose()-only callers can fill it later.
+    category_v2: str | None = None
+    nlp_confidence_v2: float | None = None
+    classifier_version: str | None = None
 
 
 @dataclass
