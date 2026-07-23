@@ -5,60 +5,16 @@ deterministic. Proves idempotency, change-detection/versioning, per-item failure
 isolation, dry-run writes-nothing, and the raw-artifact path convention.
 """
 import re
-from uuid import uuid4
 
 import pytest
 
 from app.services.ingestion.base import (
-    Backend, Connector, RawItem, derive_source_id, ext_for_content_type, raw_artifact_path,
+    Connector, RawItem, derive_source_id, ext_for_content_type, raw_artifact_path,
 )
 from app.services.ingestion import runner
-
-
-# ── In-memory Backend + fake Connector ──────────────────────────────
-
-class FakeBackend(Backend):
-    def __init__(self):
-        self.source_records: dict[str, dict] = {}
-        self.source_versions: dict[str, list[dict]] = {}
-        self.raw_objects: dict[str, bytes] = {}
-        self.parser_versions: dict[tuple, str] = {}
-        self.runs: dict[str, dict] = {}
-
-    def find_source_record(self, source_id):
-        return self.source_records.get(source_id)
-
-    def latest_version_hash(self, source_id):
-        vs = self.source_versions.get(source_id) or []
-        return vs[-1]["hash"] if vs else None
-
-    def version_count(self, source_id):
-        return len(self.source_versions.get(source_id) or [])
-
-    def store_raw(self, path, data, content_type):
-        if path in self.raw_objects:
-            return "reused"                     # never overwrite
-        self.raw_objects[path] = data
-        return "created"
-
-    def create_source_record(self, row):
-        self.source_records[row["source_id"]] = row
-
-    def create_source_version(self, row):
-        self.source_versions.setdefault(row["source_id"], []).append(row)
-
-    def register_parser_version(self, family, version, description):
-        key = (family, version)
-        self.parser_versions.setdefault(key, f"pv-{family}-{version}")
-        return self.parser_versions[key]
-
-    def create_ingestion_run(self, row):
-        rid = str(uuid4())
-        self.runs[rid] = {**row}
-        return rid
-
-    def finish_ingestion_run(self, run_id, updates):
-        self.runs[run_id].update(updates)
+# Schema-typed fake: enforces live Postgres column types on every write, so a
+# type mismatch (e.g. text into INTEGER version_id) fails here, not just live.
+from tests.ingestion_fakes import TypedFakeBackend as FakeBackend
 
 
 class FakeConnector(Connector):

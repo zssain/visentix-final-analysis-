@@ -3,59 +3,24 @@ and the zero-enforcement-writes guarantee. No network, no live DB (fake backend
 + fake security_event writer)."""
 import inspect
 from pathlib import Path
-from uuid import uuid4
 
 import pytest
 
 from app.services.ingestion import runner
-from app.services.ingestion.base import Backend, RawItem
+from app.services.ingestion.base import RawItem
 from app.services.ingestion.connectors import hhs_ocr as mod
 from app.services.ingestion.connectors.hhs_ocr import (
     HHSOCRConnector, jsf_command_by_label, jsf_csv_export_command,
     jsf_form_action, jsf_viewstate,
 )
+# Schema-typed fakes (enforce live Postgres column types on writes).
+from tests.ingestion_fakes import TypedFakeBackend as FakeBackend
+from tests.ingestion_fakes import TypedFakeEventWriter as FakeEventWriter
 
 FIXDIR = Path(__file__).parent / "fixtures"
 FIXTURE = (FIXDIR / "hhs_ocr_sample.csv").read_bytes()
 HEADER = FIXTURE.decode().splitlines()[0]
 ROWS = FIXTURE.decode().splitlines()[1:]
-
-
-# ── Fakes ───────────────────────────────────────────────────────────
-
-class FakeBackend(Backend):
-    def __init__(self):
-        self.source_records, self.source_versions = {}, {}
-        self.raw_objects, self.parser_versions, self.runs = {}, {}, {}
-
-    def find_source_record(self, sid): return self.source_records.get(sid)
-    def latest_version_hash(self, sid):
-        v = self.source_versions.get(sid) or []
-        return v[-1]["hash"] if v else None
-    def version_count(self, sid): return len(self.source_versions.get(sid) or [])
-    def store_raw(self, path, data, ct):
-        if path in self.raw_objects: return "reused"
-        self.raw_objects[path] = data; return "created"
-    def create_source_record(self, row): self.source_records[row["source_id"]] = row
-    def create_source_version(self, row): self.source_versions.setdefault(row["source_id"], []).append(row)
-    def register_parser_version(self, family, version, desc):
-        self.parser_versions.setdefault((family, version), f"pv-{family}-{version}")
-        return self.parser_versions[(family, version)]
-    def create_ingestion_run(self, row):
-        rid = str(uuid4()); self.runs[rid] = dict(row); return rid
-    def finish_ingestion_run(self, rid, updates): self.runs[rid].update(updates)
-
-
-class FakeEventWriter:
-    """Mimics security_event upsert with ON CONFLICT (event_id) DO NOTHING."""
-    def __init__(self): self.rows: dict[str, dict] = {}
-    def __call__(self, rows):
-        n = 0
-        for r in rows:
-            assert "parser_version_id" not in r          # not a security_event column
-            if r["event_id"] not in self.rows:
-                self.rows[r["event_id"]] = r; n += 1
-        return n
 
 
 def _make_csv(rows: list[str]) -> bytes:
