@@ -63,6 +63,9 @@ def main(argv: list[str] | None = None) -> int:
     g.add_argument("--full", action="store_true", help="import all mapped-industry companies (no cap)")
     ap.add_argument("--industries", default=None,
                     help="comma-separated industry_ids to scope to (default: all mapped)")
+    ap.add_argument("--all-industries", action="store_true",
+                    help="alias-first mode: import EVERY roster company regardless of SIC "
+                         "(industry_id stays NULL, benchmark-irrelevant until industries approved)")
     ap.add_argument("--dry-run", action="store_true", help="fetch+parse+counts; write nothing")
     args = ap.parse_args(argv)
 
@@ -71,6 +74,8 @@ def main(argv: list[str] | None = None) -> int:
         ckwargs["limit"] = args.limit
     if args.industries:
         ckwargs["industries"] = [s.strip() for s in args.industries.split(",") if s.strip()]
+    if args.all_industries:
+        ckwargs["all_industries"] = True
 
     try:
         result, connector = run_one_by_family(

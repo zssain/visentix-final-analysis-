@@ -7,6 +7,7 @@ Never logs document text; never prints secrets.
 from __future__ import annotations
 
 import logging
+import time
 from uuid import uuid4
 
 import httpx
@@ -67,15 +68,22 @@ class SupabaseBackend(Backend):
         bucket, _, obj = path.partition("/")           # path = "raw-artifacts/..."
         url = f"{self._url}/storage/v1/object/{bucket}/{obj}"
         # x-upsert defaults to false → an existing object is NOT overwritten.
-        r = httpx.post(url, headers=self._h(**{"Content-Type": content_type or "application/octet-stream",
-                                               "x-upsert": "false"}),
-                       content=data, timeout=self._timeout)
-        if r.status_code in (200, 201):
-            return "created"
-        body = r.text or ""
-        if r.status_code == 409 or "Duplicate" in body or "already exists" in body:
-            return "reused"          # object already present — reuse, never overwrite
-        raise RuntimeError(f"raw store failed at {path}: HTTP {r.status_code}")
+        # Retry transient storage errors (observed: occasional 400/5xx blip under load)
+        # with backoff so a hiccup doesn't strand an otherwise-valid item.
+        last = ""
+        for attempt in range(3):
+            r = httpx.post(url, headers=self._h(**{"Content-Type": content_type or "application/octet-stream",
+                                                   "x-upsert": "false"}),
+                           content=data, timeout=self._timeout)
+            if r.status_code in (200, 201):
+                return "created"
+            body = r.text or ""
+            if r.status_code == 409 or "Duplicate" in body or "already exists" in body:
+                return "reused"      # object already present — reuse, never overwrite
+            last = f"HTTP {r.status_code}"
+            if attempt < 2:
+                time.sleep(2 ** attempt)
+        raise RuntimeError(f"raw store failed at {path}: {last}")
 
     # ── parser_version ──────────────────────────────────────────────
     def register_parser_version(self, family: str, version: str, description: str) -> str:

@@ -207,6 +207,25 @@ def test_industry_scope_filters_out_unmapped(tmp_path):
     assert res.new == 1
 
 
+def test_all_industries_imports_unmapped_sic(tmp_path):
+    # alias-first mode: a company whose SIC is unmapped (mining 1040) is still
+    # imported, with industry_id NULL and counted under 'unmapped'.
+    mining = dict(json.loads(FIXTURE)); mining["cik"] = "0002000000"; mining["sic"] = "1040"
+    mining["name"] = "Goldstrike Mining Corp"                # a fully distinct entity:
+    mining["tickers"] = ["GLD"]; mining["formerNames"] = []  # no shared ticker/legal_name
+    mining["website"] = ""; mining["investorWebsite"] = ""   # no shared domain
+    subs = {CIK: FIXTURE, "0002000000": json.dumps(mining).encode()}
+    roster = [{"cik_str": int(CIK), "ticker": "BHS", "title": "Beta"},
+              {"cik_str": 2000000, "ticker": "GLD", "title": "Goldstrike"}]
+    tmp = _bulk_dir(tmp_path, tickers=roster, subs=subs)
+    store = FakeOrgStore()
+    res, conn = _run(tmp, store, all_industries=True)
+    assert res.new == 2                               # both imported, incl. unmapped SIC
+    assert conn.industry_counts == {"IND-03": 1, "unmapped": 1}
+    miner = [o for o in store.orgs.values() if o["name"] == "Goldstrike Mining Corp"][0]
+    assert miner["industry"] == "unknown" and miner["industry_id"] is None
+
+
 def test_explicit_industry_subset(tmp_path):
     store = FakeOrgStore()
     # scope to financials only → the healthcare fixture is out of scope

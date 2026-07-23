@@ -271,10 +271,11 @@ class EdgarBulkConnector(Connector):
                  limit: int | None = None, industries: list[str] | None = None,
                  bulk_path: str | None = None, org_store: OrgStore | None = None,
                  sic_map: SicIndustryMap | None = None, roster: list[dict] | None = None,
-                 allow_ticker_fetch: bool = True):
+                 allow_ticker_fetch: bool = True, all_industries: bool = False):
         cfg = (registry_row or {}).get("config") or {}
         self._bulk = Path(bulk_path or cfg.get("edgar_bulk_path") or settings.edgar_bulk_path or "")
         self._limit = limit
+        self._all_industries = all_industries
         self._store = org_store or SupabaseOrgStore()
         self._sic = sic_map or SicIndustryMap.load()
         self._roster = roster                          # test-injectable; else loaded in fetch()
@@ -370,9 +371,13 @@ class EdgarBulkConnector(Connector):
                 continue
             sic = (meta.get("sic") or "").strip()
             industry_id, _ = self._sic.resolve(sic)
-            if industry_id is None or industry_id not in self._industries:
+            # alias-first mode imports EVERY roster company (industry_id stays NULL,
+            # benchmark-irrelevant until industries are expert-approved); default mode
+            # keeps only the mapped industries.
+            if not self._all_industries and (industry_id is None or industry_id not in self._industries):
                 continue                              # out of scope for this run
-            self._industry_counts[industry_id] = self._industry_counts.get(industry_id, 0) + 1
+            self._industry_counts[industry_id or "unmapped"] = \
+                self._industry_counts.get(industry_id or "unmapped", 0) + 1
             items.append(RawItem(
                 data=data, content_type="application/json",
                 source_url=f"https://data.sec.gov/submissions/CIK{cik}.json",
@@ -381,8 +386,9 @@ class EdgarBulkConnector(Connector):
                 jurisdiction="US"))
         if missing:
             log.info("edgar fetch: %d roster CIKs had no local submissions file (skipped)", missing)
+        scope = "ALL industries (alias-first)" if self._all_industries else sorted(self._industries)
         log.info("edgar fetch: %d companies in scope (industries=%s, limit=%s)",
-                 len(items), sorted(self._industries), self._limit)
+                 len(items), scope, self._limit)
         return items
 
     # ── parse: submissions metadata -> one normalized company record ──
