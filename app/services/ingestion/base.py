@@ -133,6 +133,19 @@ class Connector(abc.ABC):
     def upsert(self, records: list[dict]) -> None:
         """Persist normalized records (connector-specific target)."""
 
+    # ── Optional hooks (batch connectors override) ──────────────────
+    def record_counts(self) -> dict | None:
+        """Row-level counts a batch connector wants recorded on the
+        ingestion_run (keys: seen/new/changed/skipped[/malformed]). One CSV item
+        can carry many rows, so `records_seen` should reflect rows, not items.
+        Return None to use the runner's per-item counts."""
+        return None
+
+    def run_warnings(self) -> list[str]:
+        """Non-fatal warnings (e.g. malformed-row count) to fold into the run's
+        error_summary and mark the outcome partial."""
+        return []
+
 
 # ── The per-item lifecycle ──────────────────────────────────────────
 

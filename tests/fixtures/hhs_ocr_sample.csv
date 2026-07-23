@@ -1,0 +1,6 @@
+Name of Covered Entity,Covered Entity Type,State,Individuals Affected,Breach Submission Date,Type of Breach,Location of Breached Information,Web Description
+Acme Health System,Healthcare Provider,CA,50000,03/15/2026,Hacking/IT Incident,Network Server,Ransomware attack affected server systems.
+Beta Clinic,Healthcare Provider,NY,1200,01/05/2026,Unauthorized Access/Disclosure,Email,Phishing compromised an employee mailbox.
+Gamma Insurance Group,Health Plan,TX,300000,02/20/2026,Hacking/IT Incident,"Electronic Medical Record, Network Server",Third-party vendor breach exposed member records.
+Delta Diagnostic Labs,Business Associate,FL,7500,12/01/2025,Theft,Laptop,Stolen unencrypted laptop from a vehicle.
+Epsilon Group,Healthcare Provider,WA,unknown,notadate,Improper Disposal,Paper/Films,Row with an unparseable count and date.

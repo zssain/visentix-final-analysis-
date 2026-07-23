@@ -15,13 +15,15 @@ from app.config import settings
 from app.db import get_service_headers
 from app.services.ingestion.backend import SupabaseBackend
 from app.services.ingestion.base import Backend, Connector
+from app.services.ingestion.connectors.hhs_ocr import HHSOCRConnector
 from app.services.ingestion.runner import RunResult, run
 
 log = logging.getLogger(__name__)
 
-# family -> Connector subclass. Populated as real connectors land (tests inject
-# their fake connector here or pass one directly to run()).
-CONNECTORS: dict[str, type[Connector]] = {}
+# family -> Connector subclass.
+CONNECTORS: dict[str, type[Connector]] = {
+    "hhs_ocr": HHSOCRConnector,
+}
 
 
 def load_enabled_sources() -> list[dict]:

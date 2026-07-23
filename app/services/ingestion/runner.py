@@ -33,6 +33,8 @@ class RunResult:
     skipped: int = 0
     errors: list[dict] = field(default_factory=list)
     run_id: str | None = None
+    warnings: list[str] = field(default_factory=list)
+    malformed: int = 0
 
 
 def _fetch_with_retries(connector: Connector, max_retries: int = 3):
@@ -107,7 +109,20 @@ def run(
             errors.append({"natural_key": item.natural_key, "error": f"{type(e).__name__}: {e}"})
             log.warning("item failed key=%s: %s", item.natural_key, type(e).__name__)
 
-    outcome = OK if not errors else PARTIAL
+    # A batch connector (one CSV item → many rows) may report finer, row-level
+    # counts + warnings (e.g. malformed rows) to fold into the run record.
+    rc = connector.record_counts()
+    warns = connector.run_warnings()
+    if rc:
+        seen, new, changed, skipped = rc.get("seen", seen), rc.get("new", new), \
+            rc.get("changed", changed), rc.get("skipped", skipped)
+    malformed = (rc or {}).get("malformed", 0)
+
+    outcome = OK if (not errors and not warns) else PARTIAL
+    summary = _summarize(errors)
+    if warns:
+        summary = (summary + " | " if summary else "") + "; ".join(warns)
+
     if not dry_run:
         backend.finish_ingestion_run(run_id, {
             "finished_at": datetime.now(timezone.utc).isoformat(),
@@ -115,13 +130,14 @@ def run(
             "records_seen": seen, "records_new": new,
             "records_changed": changed, "records_skipped": skipped,
             "rows_inserted": new, "rows_updated": changed,
-            "error_summary": _summarize(errors) if errors else None,
+            "error_summary": summary or None,
         })
 
-    log.info("run done family=%s outcome=%s seen=%d new=%d changed=%d skipped=%d errors=%d",
-             connector.family, outcome, seen, new, changed, skipped, len(errors))
+    log.info("run done family=%s outcome=%s seen=%d new=%d changed=%d skipped=%d malformed=%d errors=%d",
+             connector.family, outcome, seen, new, changed, skipped, malformed, len(errors))
     return RunResult(outcome=outcome, seen=seen, new=new, changed=changed,
-                     skipped=skipped, errors=errors, run_id=run_id)
+                     skipped=skipped, errors=errors, run_id=run_id,
+                     warnings=warns, malformed=malformed)
 
 
 def _summarize(errors: list[dict]) -> str:
