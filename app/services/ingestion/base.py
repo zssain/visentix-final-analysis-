@@ -177,14 +177,16 @@ def process_item(
 
     if status == SKIPPED:
         return SKIPPED
-    if dry_run:
-        # fetch + hash + diff only — write nothing.
-        return status
 
-    # Parse FIRST (defensively) so a parse failure leaves NO partial state — the
-    # item stays un-recorded and is retried on the next run, never silently
-    # stranded with a source_record but no parsed data.
+    # Parse FIRST (defensively, read-only) so a parse failure leaves NO partial
+    # state — the item stays un-recorded and is retried next run, never stranded
+    # with a source_record but no parsed data. Parsing also lets a dry-run report
+    # real row-level counts for batch connectors.
     records = connector.parse(item)
+
+    if dry_run:
+        # fetch + hash + parse (all read-only) + diff — nothing is written.
+        return status
 
     ext = ext_for_content_type(item.content_type)
     path = raw_artifact_path(connector.family, content_hash, ext)
@@ -193,7 +195,9 @@ def process_item(
 
     now = datetime.now(timezone.utc).isoformat()
     if status == NEW:
-        version_id = f"{source_id}#1"
+        # source_record.version_id is an INTEGER version counter; source_version
+        # has its own TEXT primary key (source_id#N) for the change history.
+        sv_id = f"{source_id}#1"
         backend.create_source_record({
             "source_id": source_id,
             "family": connector.family,
@@ -205,16 +209,16 @@ def process_item(
             "storage_path": path,
             "extraction_confidence": connector.default_extraction_confidence,
             "retrieval_ts": now,
-            "version_id": version_id,
+            "version_id": 1,
         })
         backend.create_source_version({
-            "version_id": version_id, "source_id": source_id,
+            "version_id": sv_id, "source_id": source_id,
             "hash": content_hash, "captured_at": now, "diff_summary": "initial capture",
         })
     else:  # CHANGED
-        version_id = f"{source_id}#{backend.version_count(source_id) + 1}"
+        sv_id = f"{source_id}#{backend.version_count(source_id) + 1}"
         backend.create_source_version({
-            "version_id": version_id, "source_id": source_id,
+            "version_id": sv_id, "source_id": source_id,
             "hash": content_hash, "captured_at": now, "diff_summary": "content hash changed",
         })
 

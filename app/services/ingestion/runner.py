@@ -75,6 +75,7 @@ def run(
                   "run_type": "manual",
                   "status": "running",
                   "started_at": datetime.now(timezone.utc).isoformat(),
+                  "parser_version_id": parser_version_id,
               }))
 
     # Fetch (retried). A total fetch failure = failed run, recorded and returned.

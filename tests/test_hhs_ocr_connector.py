@@ -10,9 +10,13 @@ import pytest
 from app.services.ingestion import runner
 from app.services.ingestion.base import Backend, RawItem
 from app.services.ingestion.connectors import hhs_ocr as mod
-from app.services.ingestion.connectors.hhs_ocr import HHSOCRConnector
+from app.services.ingestion.connectors.hhs_ocr import (
+    HHSOCRConnector, jsf_command_by_label, jsf_csv_export_command,
+    jsf_form_action, jsf_viewstate,
+)
 
-FIXTURE = (Path(__file__).parent / "fixtures" / "hhs_ocr_sample.csv").read_bytes()
+FIXDIR = Path(__file__).parent / "fixtures"
+FIXTURE = (FIXDIR / "hhs_ocr_sample.csv").read_bytes()
 HEADER = FIXTURE.decode().splitlines()[0]
 ROWS = FIXTURE.decode().splitlines()[1:]
 
@@ -120,12 +124,13 @@ def test_changed_csv_five_new_rows():
     base = ROWS[:4]                                       # 4 well-formed
     _run(_make_csv(base), be, w)
     assert len(w.rows) == 4
+    # real export column order: Name,State,Type,Individuals,Date,BreachType,Location,BA,Desc
     extra = [
-        "New Alpha Health,Healthcare Provider,OR,900,04/01/2026,Loss,Other Portable Electronic Device,Lost drive.",
-        "New Bravo Care,Health Plan,NV,15000,04/02/2026,Hacking/IT Incident,Email,BEC incident.",
-        "New Charlie Group,Business Associate,AZ,220,04/03/2026,Theft,Desktop Computer,Office theft.",
-        "New Delta LLC,Healthcare Provider,CO,4300,04/04/2026,Unauthorized Access/Disclosure,Paper/Films,Misdirected mail.",
-        "New Echo Systems,Healthcare Clearing House,UT,88000,04/05/2026,Hacking/IT Incident,Network Server,Server intrusion.",
+        "New Alpha Health,OR,Healthcare Provider,900,04/01/2026,Loss,Other Portable Electronic Device,No,Lost drive.",
+        "New Bravo Care,NV,Health Plan,15000,04/02/2026,Hacking/IT Incident,Email,Yes,BEC incident.",
+        "New Charlie Group,AZ,Business Associate,220,04/03/2026,Theft,Desktop Computer,No,Office theft.",
+        "New Delta LLC,CO,Healthcare Provider,4300,04/04/2026,Unauthorized Access/Disclosure,Paper/Films,No,Misdirected mail.",
+        "New Echo Systems,UT,Healthcare Clearing House,88000,04/05/2026,Hacking/IT Incident,Network Server,No,Server intrusion.",
     ]
     res = _run(_make_csv(base + extra), be, w)            # 9 rows, 5 new
     assert res.new == 5
@@ -148,3 +153,35 @@ def test_zero_enforcement_record_writes():
 def test_connector_is_registered():
     from app.services.ingestion.registry import CONNECTORS
     assert CONNECTORS.get("hhs_ocr") is HHSOCRConnector
+
+
+# ── JSF token/command extraction (golden HTML fixtures) ─────────────
+
+FRONT_HTML = (FIXDIR / "hhs_ocr_front.html").read_text()
+REPORT_HTML = (FIXDIR / "hhs_ocr_report.html").read_text()
+
+
+def test_jsf_viewstate_and_command_extraction():
+    # front page: ViewState + the "View HIPAA Breach Reports" command
+    assert jsf_viewstate(FRONT_HTML) == "FRONT-VS-TOKEN-123:456"
+    assert jsf_form_action(FRONT_HTML, "ocrForm") == "/ocr/breach/breach_frontpage.jsf"
+    assert jsf_command_by_label(FRONT_HTML, "View HIPAA Breach Reports") == "ocrForm:j_idt39"
+    # report page: ViewState + the CSV export command (not Excel/PDF)
+    assert jsf_viewstate(REPORT_HTML) == "REPORT-VS-TOKEN-789:012"
+    assert jsf_form_action(REPORT_HTML, "ocrForm") == "/ocr/breach/breach_report_hip.jsf"
+    assert jsf_csv_export_command(REPORT_HTML) == "ocrForm:j_idt384"
+
+
+def test_jsf_extraction_is_loud_when_form_changes():
+    # if HHS changes the form, extraction returns None → fetch() fails loudly
+    assert jsf_viewstate("<html>no viewstate here</html>") is None
+    assert jsf_command_by_label(FRONT_HTML, "Some Removed Button") is None
+    assert jsf_csv_export_command("<a><img alt='Excel'></a>") is None
+
+
+def test_parse_loud_fail_on_changed_column_structure():
+    """A CSV whose required named columns are gone must raise, not guess."""
+    conn = HHSOCRConnector({"config": {}})
+    broken = b"Wrong,Headers,Entirely\nx,y,z\n"
+    with pytest.raises(ValueError, match="structure changed|column order"):
+        conn.parse(RawItem(broken, "text/csv", "http://x", "k"))
