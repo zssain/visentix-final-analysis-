@@ -65,6 +65,7 @@ APPLY_NOW = [
     "0017_snapshot_rendered_report.sql",  # STEP B — Hard Rule 6 physical backing
     "0014_org_profile_fields.sql",        # STEP B — profiling cols (NOT populated)
     "0021_ingestion_tables.sql",          # STEP C — five ingestion tables
+    "0024_source_version.sql",            # F02 — source_version (change-detection history)
 ]
 
 # NOT tracked: paste bundles + the ambiguous local_users migration.

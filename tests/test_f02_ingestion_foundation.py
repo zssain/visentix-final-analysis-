@@ -89,6 +89,7 @@ def test_apply_now_order_and_step_a_first():
         "0017_snapshot_rendered_report.sql",
         "0014_org_profile_fields.sql",
         "0021_ingestion_tables.sql",
+        "0024_source_version.sql",
     ]
 
 
@@ -176,14 +177,13 @@ def test_schema_migrations_rows_match_file_checksums():
     r = httpx.get(f"{URL}/rest/v1/schema_migrations?select=filename,checksum",
                   headers=SVC_H, timeout=20)
     ledger = {row["filename"]: row["checksum"] for row in r.json()}
-    # every recorded row must match the on-disk file's sha256
-    for filename, checksum in ledger.items():
-        assert (MIG / filename).exists(), f"recorded migration {filename} not on disk"
-        assert checksum == hashlib.sha256((MIG / filename).read_bytes()).hexdigest(), \
-            f"checksum drift for {filename}"
-    # the 4 applied-now migrations must be present
-    for name in runner.APPLY_NOW:
+    # Every migration THIS branch tracks must be recorded with a matching checksum.
+    # The live DB is shared across feature branches, so the ledger may also hold
+    # sibling-branch migrations whose files aren't on this branch — ignore those.
+    for name in runner.HISTORICAL_APPLIED + runner.APPLY_NOW:
         assert name in ledger, f"{name} applied but not recorded"
+        assert ledger[name] == hashlib.sha256((MIG / name).read_bytes()).hexdigest(), \
+            f"checksum drift for {name}"
 
 
 @pytest.mark.parametrize("table", INGESTION_TABLES)

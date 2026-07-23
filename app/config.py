@@ -54,6 +54,10 @@ class Settings(BaseSettings):
     # Admin
     admin_email: str = Field(default="")
 
+    # Ingestion connector framework (F02) — global politeness delay (seconds)
+    # between per-item work in a run. 0 in tests; set >0 in prod to be a good citizen.
+    ingestion_politeness_seconds: float = Field(default=0.0)
+
     @property
     def is_production(self) -> bool:
         return self.app_env == "production"
