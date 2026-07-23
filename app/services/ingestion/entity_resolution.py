@@ -88,15 +88,37 @@ class Match:
     matched_norm: str
 
 
-def resolve_events(events: Iterable[dict], index: NameIndex) -> list[Match]:
-    """Return one Match per event whose entity_name_raw resolves to a single org.
-    Pure: unmatched events are simply omitted (left for the review queue). Running
-    twice over the same inputs yields the same matches (idempotent)."""
-    matches: list[Match] = []
-    for ev in events:
-        name = ev.get("entity_name_raw")
+@dataclass
+class ResolvedMatch:
+    """Generic resolution result for any record type (security_event, enforcement_record)."""
+    record_id: str
+    organization_id: str
+    name: str
+    matched_norm: str
+
+
+def resolve_records(records: Iterable[dict], index: NameIndex, *,
+                    id_field: str, name_field: str,
+                    fallback_name_field: str | None = None) -> list[ResolvedMatch]:
+    """Resolve records whose name resolves to a single org. Reads `name_field`,
+    falling back to `fallback_name_field` when the primary is empty (e.g.
+    enforcement_record.entity_name → target_company). Pure + idempotent: unmatched
+    records are omitted; running twice over the same inputs yields the same matches."""
+    out: list[ResolvedMatch] = []
+    for r in records:
+        name = r.get(name_field) or (r.get(fallback_name_field) if fallback_name_field else None)
         org_id = index.lookup(name)
         if org_id is not None:
-            matches.append(Match(event_id=ev["event_id"], organization_id=org_id,
-                                 entity_name_raw=name, matched_norm=normalize_name(name)))
-    return matches
+            out.append(ResolvedMatch(record_id=r[id_field], organization_id=org_id,
+                                     name=name, matched_norm=normalize_name(name)))
+    return out
+
+
+def resolve_events(events: Iterable[dict], index: NameIndex) -> list[Match]:
+    """Return one Match per event whose entity_name_raw resolves to a single org.
+    Thin wrapper over resolve_records for the security_event field names (kept for
+    backward compatibility). Pure + idempotent."""
+    return [Match(event_id=m.record_id, organization_id=m.organization_id,
+                  entity_name_raw=m.name, matched_norm=m.matched_norm)
+            for m in resolve_records(events, index, id_field="event_id",
+                                     name_field="entity_name_raw")]

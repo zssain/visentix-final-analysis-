@@ -1,7 +1,7 @@
 """Entity resolution for security_event → organization: exact/normalized matching,
 ambiguity safety, no-fuzzy guarantee, idempotency. Pure functions, no DB."""
 from app.services.ingestion.entity_resolution import (
-    Match, build_name_index, normalize_name, resolve_events,
+    Match, build_name_index, normalize_name, resolve_events, resolve_records,
 )
 
 # (name, organization_id) pairs standing in for organization_alias + organization.name
@@ -87,3 +87,41 @@ def test_null_org_id_pairs_ignored():
     idx = build_name_index([("Ghost Corp", None), ("DaVita Inc.", "org-davita")])
     assert idx.lookup("Ghost Corp") is None
     assert idx.lookup("DaVita Inc.") == "org-davita"
+
+
+# ── Generic resolve_records (enforcement_record) ─────────────────────
+
+def test_resolve_records_enforcement_fields():
+    idx = build_name_index(ORG_NAMES)
+    records = [
+        {"enforcement_id": "e1", "entity_name": "DaVita Inc.", "target_company": None},
+        {"enforcement_id": "e2", "entity_name": "Insulet Corp", "target_company": "x"},
+        {"enforcement_id": "e3", "entity_name": None, "target_company": "Aflac Incorporated"},  # fallback
+        {"enforcement_id": "e4", "entity_name": "Unknown Retailer", "target_company": None},   # no match
+        {"enforcement_id": "e5", "entity_name": "Summit Health, Inc.", "target_company": None}, # ambiguous
+    ]
+    got = {m.record_id: m.organization_id for m in resolve_records(
+        records, idx, id_field="enforcement_id", name_field="entity_name",
+        fallback_name_field="target_company")}
+    assert got == {"e1": "org-davita", "e2": "org-insulet", "e3": "org-aflac"}
+    assert "e4" not in got and "e5" not in got     # no match + ambiguous both omitted
+
+
+def test_resolve_records_idempotent():
+    idx = build_name_index(ORG_NAMES)
+    recs = [{"enforcement_id": "e1", "entity_name": "DaVita Inc."}]
+    first = resolve_records(recs, idx, id_field="enforcement_id", name_field="entity_name")
+    second = resolve_records(recs, idx, id_field="enforcement_id", name_field="entity_name")
+    assert [(m.record_id, m.organization_id) for m in first] \
+        == [(m.record_id, m.organization_id) for m in second]
+    # re-running over only the still-unresolved (none) yields nothing
+    resolved = {m.record_id for m in first}
+    assert resolve_records([r for r in recs if r["enforcement_id"] not in resolved], idx,
+                           id_field="enforcement_id", name_field="entity_name") == []
+
+
+def test_resolve_events_still_backward_compatible():
+    idx = build_name_index(ORG_NAMES)
+    ms = resolve_events([{"event_id": "s1", "entity_name_raw": "DaVita Inc."}], idx)
+    assert len(ms) == 1 and isinstance(ms[0], Match)
+    assert ms[0].event_id == "s1" and ms[0].organization_id == "org-davita"
