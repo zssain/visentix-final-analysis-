@@ -91,6 +91,8 @@ def test_apply_now_order_and_step_a_first():
         "0021_ingestion_tables.sql",
         "0024_source_version.sql",
         "0025_sic_industry_map.sql",
+        "0026_ftc_topic_domain_map.sql",
+        "0027_enforcement_org_resolution.sql",
     ]
 
 

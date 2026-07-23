@@ -67,6 +67,8 @@ APPLY_NOW = [
     "0021_ingestion_tables.sql",          # STEP C — five ingestion tables
     "0024_source_version.sql",            # F02 — source_version (change-detection history)
     "0025_sic_industry_map.sql",          # F02 EDGAR — DRAFT SIC→industry map (expert-approval gated)
+    "0026_ftc_topic_domain_map.sql",      # F02 FTC — empty topic→domain scaffold + enforcement id cols
+    "0027_enforcement_org_resolution.sql",# F02 FTC — enforcement_record org resolution columns
 ]
 
 # NOT tracked: paste bundles + the ambiguous local_users migration.
