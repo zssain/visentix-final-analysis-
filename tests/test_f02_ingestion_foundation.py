@@ -94,6 +94,7 @@ def test_apply_now_order_and_step_a_first():
         "0026_ftc_topic_domain_map.sql",
         "0027_enforcement_org_resolution.sql",
         "0028_organization_origin.sql",
+        "0029_crawl_target.sql",
     ]
 
 

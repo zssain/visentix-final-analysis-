@@ -16,3 +16,7 @@ pyyaml==6.0.3
 weasyprint==69.0
 pytest==8.4.1
 ruff==0.11.13
+
+# Open-web crawler (open_web connector) — live rendering only; lazy-imported.
+# After install run: playwright install chromium
+playwright==1.49.0
