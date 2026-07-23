@@ -66,6 +66,7 @@ APPLY_NOW = [
     "0014_org_profile_fields.sql",        # STEP B — profiling cols (NOT populated)
     "0021_ingestion_tables.sql",          # STEP C — five ingestion tables
     "0024_source_version.sql",            # F02 — source_version (change-detection history)
+    "0025_sic_industry_map.sql",          # F02 EDGAR — DRAFT SIC→industry map (expert-approval gated)
 ]
 
 # NOT tracked: paste bundles + the ambiguous local_users migration.

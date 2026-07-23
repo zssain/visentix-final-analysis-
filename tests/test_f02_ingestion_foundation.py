@@ -90,6 +90,7 @@ def test_apply_now_order_and_step_a_first():
         "0014_org_profile_fields.sql",
         "0021_ingestion_tables.sql",
         "0024_source_version.sql",
+        "0025_sic_industry_map.sql",
     ]
 
 

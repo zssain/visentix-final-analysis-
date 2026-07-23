@@ -1,0 +1,37 @@
+{
+  "cik": "0001800000",
+  "entityType": "operating",
+  "sic": "8000",
+  "sicDescription": "Services-Health Services",
+  "ownerOrg": "05 Life Sciences",
+  "name": "Beta Health Systems, Inc.",
+  "tickers": ["BHS"],
+  "exchanges": ["NYSE"],
+  "ein": "271234567",
+  "lei": "",
+  "description": "",
+  "website": "https://www.BetaHealth.com/investors",
+  "investorWebsite": "https://ir.betahealth.com",
+  "category": "Large accelerated filer",
+  "fiscalYearEnd": "1231",
+  "stateOfIncorporation": "DE",
+  "stateOfIncorporationDescription": "DE",
+  "addresses": {
+    "mailing": {"street1": "100 Care Way", "city": "Boston", "stateOrCountry": "MA", "zipCode": "02110"},
+    "business": {"street1": "100 Care Way", "city": "Boston", "stateOrCountry": "MA", "zipCode": "02110"}
+  },
+  "phone": "6175551000",
+  "flags": "",
+  "formerNames": [
+    {"name": "Beta Health Corp", "from": "2010-01-04T05:00:00.000Z", "to": "2018-06-30T04:00:00.000Z"}
+  ],
+  "filings": {
+    "recent": {
+      "accessionNumber": ["0001800000-26-000010"],
+      "filingDate": ["2026-02-20"],
+      "form": ["10-K"],
+      "primaryDocument": ["bhs-20251231.htm"]
+    },
+    "files": []
+  }
+}

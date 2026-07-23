@@ -26,6 +26,10 @@ node_modules/
 *.gguf
 *.bin
 
+# SEC EDGAR bulk download (local batch-import source, ~15GB — never commit)
+/SEC EDGAR/
+edgar_bulk/
+
 # IDE
 .vscode/
 .idea/

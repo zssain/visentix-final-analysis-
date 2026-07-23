@@ -58,6 +58,10 @@ class Settings(BaseSettings):
     # between per-item work in a run. 0 in tests; set >0 in prod to be a good citizen.
     ingestion_politeness_seconds: float = Field(default=0.0)
 
+    # SEC EDGAR bulk-import root (full submissions + companyfacts already on disk).
+    # The sec_edgar connector reads LOCAL files here; it is a batch importer, not a crawler.
+    edgar_bulk_path: str = Field(default="")
+
     @property
     def is_production(self) -> bool:
         return self.app_env == "production"

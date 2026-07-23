@@ -211,6 +211,85 @@ class TypedFakeBackend(Backend):
         self.runs[rid].update(updates)
 
 
+class FakeOrgStore:
+    """In-memory OrgStore double for the sec_edgar connector. Enforces the live
+    UNIQUE(alias_type, value) and UNIQUE(slug) constraints, does additive-only
+    null enrichment, and type-checks every organization_alias write against the
+    live column snapshot (same guard the backend fakes use)."""
+
+    def __init__(self):
+        self.orgs: dict[str, dict] = {}
+        self.aliases: dict[tuple, dict] = {}          # (alias_type, value) -> row  (UNIQUE)
+        self._slugs: set[str] = set()
+        self._seq = 0
+
+    # -- deterministic id (no Math.random/uuid needed for test determinism) --
+    def _new_id(self) -> str:
+        self._seq += 1
+        return f"00000000-0000-4000-8000-{self._seq:012d}"
+
+    # -- seeding helper for tests (pre-existing orgs) --
+    def seed_org(self, **fields) -> str:
+        oid = fields.pop("organization_id", None) or self._new_id()
+        slug = fields.get("slug") or oid
+        self._slugs.add(slug)
+        self.orgs[oid] = {"organization_id": oid, "slug": slug, **fields}
+        return oid
+
+    def find_org_id_by_alias(self, alias_type: str, value: str):
+        row = self.aliases.get((alias_type, value))
+        return row["organization_id"] if row else None
+
+    def find_org_id_by_domain(self, normalized_domain: str):
+        from app.services.ingestion.connectors.edgar import normalize_domain
+        for oid, o in self.orgs.items():
+            if normalize_domain(o.get("domain")) == normalized_domain:
+                return oid
+        return None
+
+    def find_org_id_by_slug(self, slug: str):
+        for oid, o in self.orgs.items():
+            if o.get("slug") == slug:
+                return oid
+        return None
+
+    def get_org(self, org_id: str):
+        return self.orgs.get(org_id)
+
+    def create_org(self, fields: dict):
+        from app.services.ingestion.connectors.edgar import ORG_COLUMNS, slugify
+        payload = {k: v for k, v in fields.items() if k in ORG_COLUMNS}
+        base = payload.get("slug") or slugify(payload.get("name", "org"))
+        slug, n = base, 1
+        while slug in self._slugs:                     # honor UNIQUE(slug)
+            slug = f"{base}-{fields.get('_cik', n)}-{n}"; n += 1
+        payload["slug"] = slug
+        self._slugs.add(slug)
+        oid = self._new_id()
+        self.orgs[oid] = {"organization_id": oid, **payload}
+        return oid
+
+    def patch_org_nulls(self, org_id: str, fields: dict):
+        from app.services.ingestion.connectors.edgar import ENRICHABLE_COLUMNS
+        org = self.orgs[org_id]
+        filled = []
+        for k, v in fields.items():
+            if k in ENRICHABLE_COLUMNS and v is not None and org.get(k) is None:
+                org[k] = v; filled.append(k)
+        return sorted(filled)
+
+    def upsert_alias(self, row: dict) -> bool:
+        from app.services.ingestion.connectors.edgar import ALIAS_COLUMNS
+        key = (row["alias_type"], row["value"])
+        if key in self.aliases:                        # ON CONFLICT(alias_type,value) DO NOTHING
+            return False
+        stored = {k: v for k, v in row.items() if k in ALIAS_COLUMNS}
+        stored["alias_id"] = self._new_id()
+        check_row("organization_alias", stored)        # live-type guard (as PostgREST would)
+        self.aliases[key] = stored
+        return True
+
+
 class TypedFakeEventWriter:
     """security_event upsert double (ON CONFLICT (event_id) DO NOTHING) that also
     type-checks each row and rejects the framework's non-column lineage field."""

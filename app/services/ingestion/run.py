@@ -16,12 +16,23 @@ log = logging.getLogger("ingestion.run")
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="Run a source-ingestion connector by family.")
-    ap.add_argument("--family", required=True, help="source_registry family (e.g. hhs_ocr)")
+    ap.add_argument("--family", required=True, help="source_registry family (e.g. hhs_ocr, sec_edgar)")
     ap.add_argument("--dry-run", action="store_true", help="fetch + hash + diff counts; write nothing")
+    ap.add_argument("--limit", type=int, default=None,
+                    help="batch connectors (sec_edgar): cap the number of companies imported (pilot)")
+    ap.add_argument("--industries", default=None,
+                    help="sec_edgar: comma-separated industry_ids to scope to (default: all mapped)")
     args = ap.parse_args(argv)
 
+    connector_kwargs: dict = {}
+    if args.limit is not None:
+        connector_kwargs["limit"] = args.limit
+    if args.industries:
+        connector_kwargs["industries"] = [s.strip() for s in args.industries.split(",") if s.strip()]
+
     try:
-        result = run_one_by_family(args.family, dry_run=args.dry_run)
+        result = run_one_by_family(args.family, dry_run=args.dry_run,
+                                   connector_kwargs=connector_kwargs)
     except ValueError as e:
         log.error("%s", e)
         return 2

@@ -15,6 +15,7 @@ from app.config import settings
 from app.db import get_service_headers
 from app.services.ingestion.backend import SupabaseBackend
 from app.services.ingestion.base import Backend, Connector
+from app.services.ingestion.connectors.edgar import EdgarBulkConnector
 from app.services.ingestion.connectors.hhs_ocr import HHSOCRConnector
 from app.services.ingestion.runner import RunResult, run
 
@@ -23,6 +24,7 @@ log = logging.getLogger(__name__)
 # family -> Connector subclass.
 CONNECTORS: dict[str, type[Connector]] = {
     "hhs_ocr": HHSOCRConnector,
+    "sec_edgar": EdgarBulkConnector,
 }
 
 
@@ -43,8 +45,14 @@ def _registry_row(family: str) -> dict | None:
 
 
 def run_one_by_family(family: str, *, dry_run: bool = False,
-                      backend: Backend | None = None) -> RunResult:
-    """Run the connector for `family` (manual trigger)."""
+                      backend: Backend | None = None,
+                      connector_kwargs: dict | None = None,
+                      return_connector: bool = False):
+    """Run the connector for `family` (manual trigger).
+
+    `connector_kwargs` are passed to the connector constructor (e.g. sec_edgar's
+    `limit` / `industries`). With `return_connector=True` the constructed connector
+    is returned alongside the RunResult so a driver can read post-run metrics."""
     connector_cls = CONNECTORS.get(family)
     if connector_cls is None:
         raise ValueError(
@@ -57,6 +65,7 @@ def run_one_by_family(family: str, *, dry_run: bool = False,
     if not row.get("enabled"):
         log.warning("family '%s' is disabled in source_registry; running anyway (manual)", family)
 
-    connector = connector_cls(row)                       # connectors take their registry row
+    connector = connector_cls(row, **(connector_kwargs or {}))   # connectors take their registry row
     backend = backend or SupabaseBackend()
-    return run(backend, connector, registry_id=row.get("registry_id"), dry_run=dry_run)
+    result = run(backend, connector, registry_id=row.get("registry_id"), dry_run=dry_run)
+    return (result, connector) if return_connector else result

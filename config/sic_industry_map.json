@@ -1,0 +1,39 @@
+{
+  "_meta": {
+    "name": "sic_industry_map",
+    "status": "DRAFT — REQUIRES EXPERT APPROVAL",
+    "mapped_by": "draft",
+    "warning": "This is an UNAPPROVED, engineer-authored draft crosswalk from SEC SIC codes to Visentix industry_id codes (IND-xx). It is NOT applied to organization.industry_id by the sec_edgar importer. An expert must review and approve every range before this map may feed profiling (F03) or any benchmark cohorting. See db/migrations/0025_sic_industry_map.sql and the F02 EDGAR change report.",
+    "industry_id_source": "IND-xx codes per db/migrations/0014 comment; industry_taxonomy table does not yet exist live, so industry_id is a free-text code here.",
+    "range_semantics": "Each row covers the inclusive 4-digit SIC range [sic_low, sic_high]. The requested (sic_code, industry_id, mapped_by) triple is expressed as a range per row to avoid seeding thousands of single-code rows; the connector expands ranges at load time.",
+    "created": "2026-07-23"
+  },
+  "industries": {
+    "IND-01": "Retail & Consumer",
+    "IND-02": "Software & SaaS",
+    "IND-03": "Healthcare & Life Sciences",
+    "IND-04": "Financial Services",
+    "IND-05": "Education",
+    "IND-06": "Entertainment & Media"
+  },
+  "ranges": [
+    {"sic_low": "5200", "sic_high": "5999", "industry_id": "IND-01", "industry_name": "Retail & Consumer", "mapped_by": "draft", "notes": "SIC 52-59 retail trade (building materials, general merchandise, food, apparel, furniture, eating/drinking, misc retail)."},
+
+    {"sic_low": "7370", "sic_high": "7379", "industry_id": "IND-02", "industry_name": "Software & SaaS", "mapped_by": "draft", "notes": "SIC 7370-7379 computer programming, prepackaged software (7372), data processing / hosting."},
+
+    {"sic_low": "2833", "sic_high": "2836", "industry_id": "IND-03", "industry_name": "Healthcare & Life Sciences", "mapped_by": "draft", "notes": "SIC 2833-2836 pharmaceutical preparations, biological products."},
+    {"sic_low": "3826", "sic_high": "3826", "industry_id": "IND-03", "industry_name": "Healthcare & Life Sciences", "mapped_by": "draft", "notes": "SIC 3826 laboratory analytical instruments."},
+    {"sic_low": "3841", "sic_high": "3845", "industry_id": "IND-03", "industry_name": "Healthcare & Life Sciences", "mapped_by": "draft", "notes": "SIC 3841-3845 surgical/medical instruments, electromedical apparatus."},
+    {"sic_low": "8000", "sic_high": "8099", "industry_id": "IND-03", "industry_name": "Healthcare & Life Sciences", "mapped_by": "draft", "notes": "SIC 80 health services (offices/clinics, hospitals, labs, home health)."},
+
+    {"sic_low": "6000", "sic_high": "6199", "industry_id": "IND-04", "industry_name": "Financial Services", "mapped_by": "draft", "notes": "SIC 6000-6199 depository & non-depository credit institutions."},
+    {"sic_low": "6200", "sic_high": "6299", "industry_id": "IND-04", "industry_name": "Financial Services", "mapped_by": "draft", "notes": "SIC 6200-6299 security & commodity brokers, dealers, exchanges."},
+    {"sic_low": "6300", "sic_high": "6411", "industry_id": "IND-04", "industry_name": "Financial Services", "mapped_by": "draft", "notes": "SIC 6300-6411 insurance carriers, agents, brokers."},
+    {"sic_low": "6700", "sic_high": "6799", "industry_id": "IND-04", "industry_name": "Financial Services", "mapped_by": "draft", "notes": "SIC 6700-6799 holding & other investment offices (excludes 6500-6599 real estate, intentionally unmapped in this draft)."},
+
+    {"sic_low": "8200", "sic_high": "8299", "industry_id": "IND-05", "industry_name": "Education", "mapped_by": "draft", "notes": "SIC 8200-8299 educational services (schools, colleges, libraries, vocational)."},
+
+    {"sic_low": "2700", "sic_high": "2799", "industry_id": "IND-06", "industry_name": "Entertainment & Media", "mapped_by": "draft", "notes": "SIC 2700-2799 publishing (newspapers, periodicals, books) — media."},
+    {"sic_low": "7800", "sic_high": "7999", "industry_id": "IND-06", "industry_name": "Entertainment & Media", "mapped_by": "draft", "notes": "SIC 7800-7999 motion pictures, amusement & recreation services."}
+  ]
+}
