@@ -69,6 +69,7 @@ APPLY_NOW = [
     "0025_sic_industry_map.sql",          # F02 EDGAR — DRAFT SIC→industry map (expert-approval gated)
     "0026_ftc_topic_domain_map.sql",      # F02 FTC — empty topic→domain scaffold + enforcement id cols
     "0027_enforcement_org_resolution.sql",# F02 FTC — enforcement_record org resolution columns
+    "0028_organization_origin.sql",       # F02 Princeton — organization.origin provenance flag
 ]
 
 # NOT tracked: paste bundles + the ambiguous local_users migration.

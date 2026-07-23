@@ -19,6 +19,7 @@ from app.services.ingestion.connectors.cppa import CPPAConnector
 from app.services.ingestion.connectors.edgar import EdgarBulkConnector
 from app.services.ingestion.connectors.ftc import FTCConnector
 from app.services.ingestion.connectors.hhs_ocr import HHSOCRConnector
+from app.services.ingestion.connectors.princeton import PrincetonConnector
 from app.services.ingestion.connectors.state_ag import StateAGConnector
 from app.services.ingestion.runner import RunResult, run
 
@@ -31,6 +32,7 @@ CONNECTORS: dict[str, type[Connector]] = {
     "ftc": FTCConnector,
     "cppa": CPPAConnector,
     "state_ag": StateAGConnector,
+    "princeton_leuven": PrincetonConnector,
 }
 
 

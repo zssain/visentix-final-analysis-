@@ -32,6 +32,7 @@ class RawItem:
     title: str = ""
     jurisdiction: str = ""
     extraction_confidence: float | None = None   # per-item honesty (heterogeneous parses); None → connector default
+    source_record_extra: dict = field(default_factory=dict)   # extra source_record cols (dataset freshness/notes/dates)
 
 
 # Item outcomes
@@ -216,6 +217,9 @@ def process_item(
                                       else connector.default_extraction_confidence),
             "retrieval_ts": now,
             "version_id": 1,
+            # dataset connectors add truthful freshness/snapshot cols (source §2.9);
+            # merged last so a connector can also override the defaults above.
+            **(item.source_record_extra or {}),
         })
         backend.create_source_version({
             "version_id": sv_id, "source_id": source_id,

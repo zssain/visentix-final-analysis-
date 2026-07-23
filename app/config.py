@@ -62,6 +62,10 @@ class Settings(BaseSettings):
     # The sec_edgar connector reads LOCAL files here; it is a batch importer, not a crawler.
     edgar_bulk_path: str = Field(default="")
 
+    # Princeton-Leuven curated privacy-policy CSVs (per-sector), produced offline.
+    # The princeton_leuven connector reads LOCAL CSVs here (domain,category,last_updated,policy_text).
+    princeton_extract_dir: str = Field(default="")
+
     @property
     def is_production(self) -> bool:
         return self.app_env == "production"
