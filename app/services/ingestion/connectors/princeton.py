@@ -30,12 +30,25 @@ import csv
 import hashlib
 import logging
 import re
+import sys
 from datetime import date
 from pathlib import Path
+
+# Real privacy-policy fields can exceed Python's default 128 KB CSV field limit
+# (the Princeton retail export has multi-hundred-KB policy_text cells). Raise it to
+# the platform max so no row is dropped mid-parse.
+_max = sys.maxsize
+while True:
+    try:
+        csv.field_size_limit(_max)
+        break
+    except OverflowError:
+        _max = int(_max // 10)
 
 from app.config import settings
 from app.services.ingestion.base import Connector, RawItem
 from app.services.ingestion.connectors.edgar import normalize_domain, slugify
+from app.services.intake.classify_v2 import KEYWORD_FALLBACK_VERSION
 from app.services.intake.decompose import decompose
 
 log = logging.getLogger(__name__)
@@ -173,12 +186,18 @@ class PrincetonWriter:
             httpx.post(self._rest("notice_section"),
                        headers=self._h(**{"Content-Type": "application/json", "Prefer": "return=minimal"}),
                        json=section_rows, timeout=60)
+        # Set category_v2 at ingest from decompose's keyword label so a bulk-imported
+        # clause is NEVER left with a NULL category_v2 (keeps the intake invariant); the
+        # LLM reclassifier can still upgrade any it wants later.
         clause_rows = [{"clause_id": c.clause_id, "section_id": c.section_id,
                         "raw_text": c.raw_text[:5000], "normalized_text": c.normalized_text[:5000],
                         "category": c.category, "ambiguity_score": c.ambiguity_score,
                         "readability_score": c.readability_score, "nlp_confidence": c.nlp_confidence,
                         "domain_id": c.domain_id or None, "clause_type": c.clause_type or None,
-                        "transparency_score": c.transparency_score} for c in notice.clauses]
+                        "transparency_score": c.transparency_score,
+                        "category_v2": c.category or "other",
+                        "nlp_confidence_v2": c.nlp_confidence,
+                        "classifier_version": KEYWORD_FALLBACK_VERSION} for c in notice.clauses]
         if clause_rows:
             httpx.post(self._rest("disclosure_clause"),
                        headers=self._h(**{"Content-Type": "application/json", "Prefer": "return=minimal"}),
@@ -224,15 +243,27 @@ class PrincetonConnector(Connector):
             raise FileNotFoundError(
                 f"PRINCETON_EXTRACT_DIR not found: {self._dir!r}. Provide the per-sector CSVs "
                 f"(domain,category,last_updated,policy_text).")
+        per_sector: dict[str, list[dict]] = {}
         for csv_path in sorted(self._dir.glob("*.csv")):
-            with csv_path.open(newline="", encoding="utf-8") as fh:
+            with csv_path.open(newline="", encoding="utf-8", errors="replace") as fh:
                 reader = csv.DictReader(fh)
                 if not REQUIRED_COLUMNS.issubset({(c or "").strip() for c in (reader.fieldnames or [])}):
                     log.warning("skipping %s: missing required columns %s", csv_path.name, REQUIRED_COLUMNS)
                     continue
+                sector = csv_path.stem.lower()   # the per-file name IS the sector
+                bucket = per_sector.setdefault(sector, [])
                 for row in reader:
-                    out.append({k: (row.get(k) or "").strip() if k != "policy_text" else (row.get(k) or "")
-                                for k in REQUIRED_COLUMNS})
+                    r = {k: (row.get(k) or "").strip() if k != "policy_text" else (row.get(k) or "")
+                         for k in REQUIRED_COLUMNS}
+                    r["sector"] = sector          # `category` column keeps the finer compound tags
+                    bucket.append(r)
+        # Round-robin interleave across sectors so a --limit pilot samples ALL sectors,
+        # not just the alphabetically-first file.
+        buckets = list(per_sector.values())
+        for i in range(max((len(b) for b in buckets), default=0)):
+            for b in buckets:
+                if i < len(b):
+                    out.append(b[i])
         return out
 
     def fetch(self) -> list[RawItem]:
@@ -253,7 +284,9 @@ class PrincetonConnector(Connector):
                 continue
             seen.add(nk)
             snap = row.get("last_updated") or ""
-            sector = row.get("category") or ""
+            # sector = per-file name (from disk read); tests inject `category` directly.
+            sector = row.get("sector") or row.get("category") or ""
+            dataset_category = row.get("category") or ""       # dataset's finer compound tags
             self._meta[nk] = {"domain": domain, "sector": sector, "snapshot": snap,
                               "content_hash": sha, "effective_date": snapshot_date(snap)}
             items.append(RawItem(
@@ -262,7 +295,8 @@ class PrincetonConnector(Connector):
                 title=f"{DATASET_NAME} — {sector} [{snap}]", jurisdiction="US",
                 source_record_extra={
                     "notes": f"origin=princeton_leuven; dataset={DATASET_NAME}; "
-                             f"snapshot={snap}; sector={sector}; reliability_tier=2",
+                             f"snapshot={snap}; sector={sector}; category={dataset_category}; "
+                             f"reliability_tier=2",
                     "effective_date": snapshot_date(snap), "update_date": snapshot_date(snap),
                     "freshness_weight": freshness_weight(snap),   # TRUTHFUL (≈0 for 2019)
                     "completeness_weight": 1.0, "source_reliability_score": None,

@@ -67,12 +67,15 @@ def test_freshness_truthful_for_2019():
 # ── Golden-file import ───────────────────────────────────────────────
 
 def test_golden_import(tmp_path):
-    shutil.copy(FIX, tmp_path / "healthcare.csv")
+    # sector = the FILE name; two sector files, so counts split by filename (not the
+    # per-row `category` column, which holds the dataset's compound tags).
+    shutil.copy(FIX, tmp_path / "healthcare.csv")           # 5 rows → sector 'healthcare'
+    shutil.copy(FIX, tmp_path / "retail.csv")               # same 5 rows → dedupe drops them
     be = FakeBackend()
     conn = PrincetonConnector(extract_dir=str(tmp_path), writer=FakePrincetonWriter())
     res = runner.run(be, conn, politeness_seconds=0)
     assert res.outcome == "ok"
-    assert conn.metrics["notices"] == 5
+    assert conn.metrics["notices"] == 5                     # 10 rows, 5 unique (domain,sha) → dedupe
     assert conn.metrics["clauses"] > 0
     # source_record: dataset type + TRUTHFUL freshness (0 for the 2018/2019 snapshots)
     srs = list(be.source_records.values())
@@ -80,9 +83,9 @@ def test_golden_import(tmp_path):
     assert all(s["source_type"] == "dataset" for s in srs)
     assert all(s["freshness_weight"] == 0.0 for s in srs)
     assert all("reliability_tier=2" in s["notes"] for s in srs)
-    # per-sector spread
-    assert set(conn.metrics["sector_counts"]) == {"healthcare", "fintech", "retail",
-                                                  "education", "entertainment"}
+    assert all("category=" in s["notes"] for s in srs)      # dataset tag preserved in provenance
+    # sector comes from the filename; the healthcare file wins the (domain,sha) dedupe
+    assert set(conn.metrics["sector_counts"]) == {"healthcare"}
 
 
 # ── Org resolution vs benchmark-only creation ────────────────────────
