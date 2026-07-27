@@ -74,6 +74,31 @@ async def build_population(
             seen.add(oid)
             profiles.append(p)
 
+    # ── CQS gate (F03 parity, Rule 6) ──────────────────────────────
+    # The F03 demo-cohort job includes only orgs with a fresh `open_web` notice
+    # (CQS-eligible). The dynamic population must apply the SAME gate, or a live
+    # org is benchmarked against CQS-excluded stale-corpus orgs (e.g. 2019
+    # Princeton) that would never appear in a demo cohort — an inconsistency the
+    # Stage-3 rehearsal surfaced (17 of 90 members were CQS-excluded). Filter the
+    # candidate pool to CQS-eligible orgs before any similarity/expansion pass.
+    cqs_r = await client.get(
+        f"{SB}/rest/v1/privacy_notice?select=organization_id&notice_type=eq.open_web&limit=10000",
+        headers=headers,
+    )
+    cqs_eligible = {
+        n["organization_id"] for n in (cqs_r.json() if cqs_r.status_code == 200 else [])
+        if n.get("organization_id")
+    }
+    # The target org is the subject, never a peer member — always keep its own
+    # profile in the pool so it isn't counted as a CQS exclusion.
+    if cqs_eligible and target_org_id:
+        cqs_eligible.add(target_org_id)
+    # Count only PEER profiles excluded (target never contributes to the count).
+    profiles_before_cqs = sum(1 for p in profiles if p.get("organization_id") != target_org_id)
+    if cqs_eligible:
+        profiles = [p for p in profiles if p.get("organization_id") in cqs_eligible]
+    profiles_after_cqs = sum(1 for p in profiles if p.get("organization_id") != target_org_id)
+
     # Load org industry info for matching
     r2 = await client.get(
         f"{SB}/rest/v1/organization?select=organization_id,industry,name&limit=500",
@@ -210,6 +235,12 @@ async def build_population(
             "benchmark_weight": bw,
         })
 
+    # Disclose the CQS gate in the relaxations (surfaced on the cohort label):
+    # how many profiled orgs were held out for being CQS-excluded (stale corpus).
+    cqs_excluded = (profiles_before_cqs - profiles_after_cqs) if cqs_eligible else 0
+    if cqs_excluded > 0:
+        relaxations.append(f"cqs_gated_excluded_{cqs_excluded}")
+
     # Determine population version (timestamp-based)
     import time
     pop_version = int(time.time())
@@ -219,6 +250,7 @@ async def build_population(
         "members": normalized_members,
         "cohort_size": len(normalized_members),
         "relaxations": relaxations,
+        "cqs_excluded": cqs_excluded,
         "benchmark_population_version": pop_version,
         "confidence_penalty": confidence_penalty,
         "band": band,

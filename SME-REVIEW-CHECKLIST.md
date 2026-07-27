@@ -42,3 +42,15 @@ Run during the dress rehearsal (see `LAUNCH-READINESS.md` §Rehearsal). Gate mod
 - [ ] When satisfied: **approve** the assessment (`POST /review/{assessment_id}/approve`) → this calls `approve_and_freeze` (approval + immutable snapshot in one transaction) → the report flips to the **teal Reproducible ribbon** and becomes client-deliverable.
 
 > Engineering never performs this step. Until it happens, the report carries the gold **DRAFT** watermark and is not a deliverable.
+
+---
+
+## 6. Rehearsal diagnosis items (from `REHEARSAL-DIAGNOSIS.md`, 2026-07-28)
+
+Surfaced by the 1‑800‑Flowers rehearsal. The one clear bug (cohort CQS gate) is already fixed; the rest are **expert/SME judgment** (no tuning was done):
+
+- [ ] **Sanity-check `AI-004` on the rehearsal report** — it fired solely because the AI domain had thin coverage (3 clauses → maturity 45 < 70), not because of a specific defect. Confirm that reads correctly for a comprehensive notice.
+- [ ] **PGMS-100 profiling** (§1b) — the rehearsal org profiled at `pgms=100`/`Leading`, which drove percentile 100 (unchanged even against CQS-only peers). Decide whether `_ensure_org_profile` should cap/curve PGMS for a freshly-profiled org, or whether 100 is legitimate. *Profiling is expert-owned — flag only.*
+- [ ] **Finding-coverage gaps** (§2) — decide priority: (a) enforcement lineage on findings is **dead** (`pipeline.py` passes `enforcement_matches=[]`); (b) `DC-005` can't fire for ≥4-domain notices; (c) `children_teens` has no finding-type; (d) firing is dominated by clause **count**, not quality (ambiguity trigger 0.05 rarely crosses). Any threshold/rule change is expert-owned.
+- [ ] **Segmentation noise** (§3) — 49% of sections and 46% of clauses on the rehearsal notice were nav/heading/list-fragment noise, which inflates the coverage proxy and suppresses findings. Decide (SME + eng) whether to filter noise sections pre-extraction. *Decomposer is expert-owned — not changed here.*
+- [ ] **Cohort-relaxation disclosure wording** — the dynamic population now discloses the CQS hold-out on the cohort label as `cqs_gated_excluded_N`. Confirm the customer-facing wording for this token (register-safe) before delivery.

@@ -18,6 +18,7 @@ Writes: `risk_finding.sme_status`, `training_label`, `disclosure_clause.exemplar
 4. **Training labels:** every action recorded; header shows live confirmed/edited/dismissed counters (M-04 → `/api/admin/health` training_stats).
 5. **States:** clean / PII detected / redacted / queue empty ("All findings reviewed. Next batch expected [date].").
 6. Dismissed findings drop from the client report before snapshot approval.
+7. **Eager enqueue:** a completed assessment lands in the review queue the moment scoring finishes — the pipeline creates its `assessment_review` row at completion (`score_and_persist`), never lazily on first open. Under `expert_review`/STRICT this prevents an assessment being orphaned (customer blocked by the gate, yet invisible to the SME).
 
 ## API contracts
 - `GET /api/review/queue` · `POST /api/review/findings/:id/action` {confirm|edit|dismiss, edits} · `POST /api/review/exemplars/:clause_id/deidentify` · `POST /api/review/exemplars/:clause_id/approve` (server re-validates de-id — never trust client) · `GET /api/admin/health` (training_stats).
@@ -27,6 +28,7 @@ Writes: `risk_finding.sme_status`, `training_label`, `disclosure_clause.exemplar
 - AC-2 Every SME action creates a `training_label` with before/after text where edited.
 - AC-3 In `expert_review` mode a report cannot reach approved status with pending findings.
 - AC-4 Dismissed findings absent from the approved snapshot payload.
+- AC-5 A completed assessment is visible in `GET /review/queue` immediately after scoring, with no prior by-id open (eager enqueue).
 
 ## Mocks
 See [`00-plan/mock-tracker.md`](../00-plan/mock-tracker.md): **M-04** (training-label counts) and **M-03** (exemplar clause, shared with F05).
@@ -35,6 +37,7 @@ See [`00-plan/mock-tracker.md`](../00-plan/mock-tracker.md): **M-04** (training-
 De-id regex suite (all categories + evasion cases), gate-mode enforcement tests, training-label capture tests, queue action integration tests.
 
 ## Changelog
+- 2026-07-28 (engineer, Stage-3 rehearsal fix): **Eager SME enqueue.** `score_and_persist` now creates the `assessment_review` row at pipeline completion, so a completed assessment appears in `/review/queue` immediately (new Behavior 7 + AC-5) — the rehearsal found assessments orphaned under STRICT because the row was created lazily on first by-id open. Backfill `scripts/backfill_review_queue.py` (60 pre-existing completed assessments); test `tests/test_live_scoring.py::test_score_and_persist_eager_enqueues_for_sme_review`.
 - 2026-07-27: OD-04 recorded as Decided (ai_reviewed, pending human owner confirmation) — keep the "The Visentix Privacy Desk" house persona for MVP attribution. No behavioral change. Phase-1 pilot-readiness pass.
 - 2026-07-16 (audit): Status trued up — training-label counters verified wired to the real `/admin/training-stats` route (M-04 **Replaced**); queue-action wiring remains pending.
 - 2026-07-16: Added Mocks and Changelog sections for template conformance; no behavioral change.
