@@ -282,6 +282,11 @@ async def create_assessment(
         "sections": len(notice.sections),
         "clauses": len(notice.clauses),
         "content_hash": content_hash,
+        # M-02: the source was fetched from a URL that passed SSRF validation
+        # (a failed check raises above, so reaching here with a source_url means
+        # it was validated). File/text intake has no fetched source → not set.
+        "ssrf_protected": bool(source_url),
+        "source_url": source_url or None,
         "classification": {
             "llm": llm_classified,
             "keyword_fallback": keyword_fallback,

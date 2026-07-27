@@ -17,7 +17,12 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { resolve, dirname } from "node:path";
-import { describe, expect, it } from "vitest";
+import { createElement } from "react";
+import { render, cleanup } from "@testing-library/react";
+import { afterEach, describe, expect, it } from "vitest";
+
+import { Recommendations } from "../report/sections/Recommendations";
+import { RiskReduction } from "../report/sections/RiskReduction";
 
 import {
   trendColor, scoreBandColor, maturityBandColor, bandColor,
@@ -66,6 +71,45 @@ describe("banned-term filter over every UI-first mock dataset (Hard Rule 1)", ()
   for (const [name, module_] of Object.entries(MOCK_MODULES)) {
     it(`${name} contains no verdict vocabulary`, () => {
       expect(bannedTermsIn(module_)).toEqual([]);
+    });
+  }
+});
+
+// ── Report-section static copy — banned-term filter (WS4) ────
+// Renders each section with clean data, so any banned term in the output can
+// only come from the component's own hardcoded copy. Covers the two sections
+// (Recommendations, RiskReduction) whose static prose had no automated guard.
+
+describe("banned-term filter over report-section static copy (Hard Rule 1)", () => {
+  afterEach(cleanup);
+
+  const SECTIONS: Record<string, () => ReturnType<typeof createElement>> = {
+    "Recommendations.tsx": () => createElement(Recommendations, {
+      content: {
+        recommendations: [
+          { severity: "high", code: "SH-002", title: "Clarify sharing",
+            prose: "Strengthen data-sharing disclosures to reduce exposure indicators." },
+          { severity: "medium", code: "RT-003", title: "Define retention",
+            prose: "Add explicit retention periods per data category." },
+        ],
+      },
+    }),
+    "RiskReduction.tsx": () => createElement(RiskReduction, {
+      content: {
+        high_count: 2, medium_count: 1,
+        priorities: [{ code: "SH-002", domain: "data_sharing", severity: "high", score: 60 }],
+        prose: "Prioritise the highest-exposure domains first.",
+      },
+    }),
+  };
+
+  for (const [name, factory] of Object.entries(SECTIONS)) {
+    it(`${name} static copy contains no verdict vocabulary`, () => {
+      const { container } = render(factory());
+      const text = (container.textContent ?? "").toLowerCase();
+      const found = BANNED_TERMS.filter(term =>
+        new RegExp(`\\b${escapeRe(term)}\\b`, "i").test(text));
+      expect(found).toEqual([]);
     });
   }
 });

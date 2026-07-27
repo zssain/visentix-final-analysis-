@@ -149,10 +149,21 @@ export function AdvisorNote({
           </>
         ) : (
           <>
-            {/* Advisor prose */}
+            {/* Advisor prose — M-05: rendered verbatim from the frozen snapshot's
+                Advisor layer, never regenerated at render time. When the snapshot
+                carries no Advisor prose, show honest absence (no house-voice
+                filler is fabricated on the client). */}
             <div className="an-advisor-body">
-              <p className="an-advisor-lede">{advisorLede}</p>
-              <p className="an-advisor-prose">{advisorBody}</p>
+              {(advisorLede.trim() || advisorBody.trim()) ? (
+                <>
+                  {advisorLede.trim() && <p className="an-advisor-lede">{advisorLede}</p>}
+                  {advisorBody.trim() && <p className="an-advisor-prose">{advisorBody}</p>}
+                </>
+              ) : (
+                <p className="an-advisor-prose" data-testid="advisor-absent" style={{ color: "var(--text-muted)", fontStyle: "italic" }}>
+                  An advisor perspective for this finding is not part of this snapshot.
+                </p>
+              )}
 
               {/* Metric pills */}
               <div className="an-pills">

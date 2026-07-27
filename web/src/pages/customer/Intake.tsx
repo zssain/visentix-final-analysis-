@@ -27,6 +27,8 @@ interface AssessmentResult {
   sections: number;
   clauses: number;
   content_hash: string;
+  ssrf_protected?: boolean;
+  source_url?: string | null;
   classification: { llm: number; keyword_fallback: number };
   scores?: {
     overall_intelligence: number;
@@ -203,8 +205,27 @@ export function Intake() {
 
             {/* Decomposition summary */}
             <div className="card" style={{ padding: "16px 20px" }}>
-              <div style={{ fontSize: "0.7rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-muted)", marginBottom: 8 }}>
-                Decomposition
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+                <div style={{ fontSize: "0.7rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-muted)" }}>
+                  Decomposition
+                </div>
+                {/* M-02: verified-source badge — shown only when the notice was
+                    retrieved and validated from its live web address. Customer-
+                    register wording; no security jargon (Rule 9). */}
+                {result.ssrf_protected && (
+                  <span
+                    data-testid="verified-source-badge"
+                    title="This notice was retrieved and validated directly from its published web address."
+                    style={{
+                      display: "inline-flex", alignItems: "center", gap: 4,
+                      fontSize: "0.66rem", fontWeight: 700, color: "var(--teal)",
+                      background: "rgba(20,138,120,0.08)", border: "1px solid rgba(20,138,120,0.25)",
+                      padding: "1px 8px", borderRadius: 4, cursor: "help",
+                    }}
+                  >
+                    ✓ Verified source
+                  </span>
+                )}
               </div>
               <div style={{ fontSize: "0.95rem", color: "var(--text)" }}>
                 <strong>{result.sections}</strong> sections · <strong>{result.clauses}</strong> clauses · <strong>{result.classification.llm}</strong> LLM-classified

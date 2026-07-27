@@ -84,6 +84,61 @@ def _content_hash(data: dict) -> str:
     return hashlib.sha256(canonical.encode()).hexdigest()
 
 
+# domain_id (CR/DC/…) → legacy_slug used by the report's your-text lookup.
+# Sourced from config/clause_taxonomy.json — authoritative, never invented.
+_DOMAIN_ID_TO_SLUG: dict[str, str] = {}
+
+
+def _domain_id_to_slug() -> dict[str, str]:
+    global _DOMAIN_ID_TO_SLUG
+    if not _DOMAIN_ID_TO_SLUG:
+        import os
+        path = os.path.join(os.path.dirname(__file__), "..", "..", "config", "clause_taxonomy.json")
+        try:
+            with open(os.path.abspath(path), encoding="utf-8") as fh:
+                for entry in json.load(fh):
+                    did = entry.get("domain_id")
+                    slug = entry.get("legacy_slug")
+                    # First non-"other" slug per domain wins (a domain's canonical slug).
+                    if did and slug and slug != "other" and did not in _DOMAIN_ID_TO_SLUG:
+                        _DOMAIN_ID_TO_SLUG[did] = slug
+        except Exception:
+            pass
+    return _DOMAIN_ID_TO_SLUG
+
+
+def _load_exemplar_clauses() -> list[dict]:
+    """M-03: approved `disclosure_clause` exemplars, mapped to the assembly
+    exemplar shape ({domain: legacy_slug, clause_text, maturity_note, sme_cleaned}).
+
+    One exemplar per domain (first approved). Clauses with no mappable domain
+    are skipped — the section renders honest absence for those domains.
+    """
+    rows = _sb_get(
+        "disclosure_clause?select=domain_id,normalized_text,raw_text,exemplar_status"
+        "&is_exemplar=eq.true&exemplar_status=eq.approved"
+    )
+    slug_map = _domain_id_to_slug()
+    out: list[dict] = []
+    seen: set[str] = set()
+    for r in rows:
+        did = r.get("domain_id")
+        slug = slug_map.get(did or "")
+        if not slug or slug in seen:
+            continue
+        text = (r.get("normalized_text") or r.get("raw_text") or "").strip()
+        if not text:
+            continue
+        out.append({
+            "domain": slug,
+            "clause_text": text,
+            "maturity_note": "",
+            "sme_cleaned": True,  # exemplar_status=approved → de-id-passed, SME-gated
+        })
+        seen.add(slug)
+    return out
+
+
 # ── Endpoints ────────────────────────────────────────────────
 
 @router.get("/{assessment_id}")
@@ -451,7 +506,10 @@ def _assemble_from_live(assessment_id: str) -> ReportPayload:
 
     heatmap = heatmap_to_serializable(build_regulator_heatmap(regulators, clause_cats))
 
-    exemplars = _sb_get("exemplar?select=domain,clause_text,maturity_note,sme_cleaned&sme_cleaned=eq.true")
+    # M-03: best-practice exemplars come from the approved `disclosure_clause`
+    # exemplars (is_exemplar=true, exemplar_status=approved — de-id-passing).
+    # A domain with no approved exemplar simply renders honest absence.
+    exemplars = _load_exemplar_clauses()
 
     # Fetch org's best clause per domain for benchmark comparison
     org_clauses_by_domain: dict[str, str] = {}

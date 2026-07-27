@@ -57,7 +57,7 @@ A normalized corpus already lives in Supabase. You did not create it and you mus
 
 <!-- BEGIN GENERATED: CURRENT VERSIONS (source: 01-foundation changelogs) -->
 ## Current versions
-- schema.md: v1.3.2 (2026-07-27)
+- schema.md: v1.3.3 (2026-07-27)
 - business-logic.md: v1.2 (2026-07-15)
 - intelligence-logic.md: v1.4 (2026-07-27)
 - design-system.md: v1.4 (2026-07-27)
@@ -68,15 +68,15 @@ A normalized corpus already lives in Supabase. You did not create it and you mus
 
 <!-- BEGIN GENERATED: SPEC INDEX (source: visentix-specs/02-features/) -->
 ## Feature spec index
-- F01 — Notice Intake & Decomposition Explorer — shipped (M-01 replaced — real decomposition wired; M-02 verified-source badge unbuilt)
+- F01 — Notice Intake & Decomposition Explorer — shipped (M-01 + M-02 replaced — real decomposition + real verified-source badge)
 - F02 — Corpus Ingestion & Source Monitoring Pipelines — partial — customer intake shipped; registry-driven connector framework proposed (v2)
 - F03 — Organization Profiling, Benchmark Populations & Normalization — shipped (deterministic profiler 4.0A + normalization 4.0B)
 - F04 — Scoring, Findings & Confidence Engine — shipped
 - F05 — Report Generation (12 Sections, Snapshots, PDF) — shipped (section gaps per MVP plan Workstream B)
 - F06 — SME Workbench & Review Gate — shipped (M-04 counters wired to real `/admin/training-stats`; queue actions pending)
-- F07 — Continuous Monitoring Dashboard (Hero) — partial — Dashboard ships as a real-data assessments list + stats (live API); the monitoring hero (trend sparkline, change feed, alert center) is **unbuilt** — M-06–M-08 surfaces do not exist yet
+- F07 — Continuous Monitoring Dashboard (Hero) — shipped (R1) — Dashboard is real-data (assessments + stats); the monitoring hero (trend sparkline, change feed, alert center) is built and wired to live endpoints (M-06/M-07/M-08 Replaced 2026-07-27)
 - F08 — Finding Codex & Methodology Pages — shipped (M-11 replaced — Codex reads the real `/findings/codex` route)
-- F09 — Admin Console — shipped UI (gate mode + batch trigger simulated, M-13/M-14)
+- F09 — Admin Console — shipped (gate mode + batch trigger real; M-13/M-14 Replaced 2026-07-27)
 - F10 — Auth, Roles & Multi-Tenancy — shipped (custom local JWT); hardening R1→R2
 - F11 — White-Label Portal & Intelligence APIs — shipped UI — partner portal built, all data mocked (M-19–M-22); Intelligence APIs, tenancy & metering backend proposed
 - F12 — Quarterly Intelligence Report & Bulk Analysis — shipped UI — Quarterly reader page + bulk-analysis workflow real, all data mocked (M-15–M-24); aggregation/publication + batch-pipeline backend proposed
