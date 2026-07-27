@@ -100,9 +100,7 @@ function AppRoutes() {
                 {PREVIEW_SURFACES && (
                   <NavLink to="/rewrite" onClick={closeNav}><PenLine size={17} aria-hidden /> Rewrite</NavLink>
                 )}
-                {PREVIEW_SURFACES && (
-                  <NavLink to="/vendors" onClick={closeNav}><Building2 size={17} aria-hidden /> Vendors</NavLink>
-                )}
+                <NavLink to="/vendors" onClick={closeNav}><Building2 size={17} aria-hidden /> Vendors</NavLink>
                 {(role === "sme" || role === "admin") && (
                   <NavLink to="/review" onClick={closeNav}><ClipboardCheck size={17} aria-hidden /> Workbench</NavLink>
                 )}
@@ -127,12 +125,8 @@ function AppRoutes() {
                 <div className="side-group">
                   <div className="side-group-label">Administration</div>
                   <NavLink to="/admin" onClick={closeNav}><Settings size={17} aria-hidden /> Admin</NavLink>
-                  {PREVIEW_SURFACES && (
-                    <NavLink to="/partner" onClick={closeNav}><Handshake size={17} aria-hidden /> Partner</NavLink>
-                  )}
-                  {PREVIEW_SURFACES && (
-                    <NavLink to="/bulk" onClick={closeNav}><ScanSearch size={17} aria-hidden /> Bulk</NavLink>
-                  )}
+                  <NavLink to="/partner" onClick={closeNav}><Handshake size={17} aria-hidden /> Partner</NavLink>
+                  <NavLink to="/bulk" onClick={closeNav}><ScanSearch size={17} aria-hidden /> Bulk</NavLink>
                 </div>
               )}
             </div>
