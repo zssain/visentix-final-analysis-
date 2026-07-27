@@ -72,6 +72,44 @@ The CQS-only recompute is **still 100** — removing the stale members did not c
 
 ---
 
+## 4. PGMS-100 evidence trace (Task 2.4)
+
+**Hypothesis:** the PGMS signal is fed by segmentation-noise clauses. **Method:** for the rehearsal org, mapped every clause → section → the §3 noise flag, then recomputed the presence-count profile dimensions **excluding noise clauses** (labeled diagnostic; stored profile untouched). 176 clauses, **82 (46%) from noise sections**.
+
+### 4a. What feeds PGMS (and how noise enters)
+PGMS = 4 pillars, each `depth = min(clause_count_in_pillar_categories / (n_categories × 3), 1)`. The `× 3` threshold means a pillar **saturates at just 3–9 clauses**:
+
+| pillar (weight) | categories | thr | ALL n / depth | CLEAN n / depth | noise clauses |
+|---|---|---:|---|---|---:|
+| governance_infrastructure (.30) | retention, cross_border, sensitive_data | 9 | 18 / **100** | 9 / **100** | 9 |
+| operational_controls (.30) | data_sharing, tracking_cookies | 6 | 82 / **100** | 52 / **100** | 30 |
+| transparency_practices (.20) | ai_automated_decisions | 3 | 3 / **100** | 2 / **67** | 1 |
+| consumer_rights_support (.20) | consumer_rights | 3 | 24 / **100** | 16 / **100** | 8 |
+
+Only the thin **transparency** pillar changes (one of 3 AI clauses is noise → 3→2 → depth 100→67). Every other pillar stays saturated even after dropping ~half its clauses.
+
+### 4b. Labeled diagnostic — recompute excluding noise (stored scores untouched)
+| dimension | as-stored (ALL) | noise-excluded (CLEAN) | delta |
+|---|---:|---:|---:|
+| **PGMS** | 100.0 | **93.33** (still "Leading") | −6.67 |
+| **DSI** | 93.45 | **64.85** | **−28.60** |
+| **AIGMS** | 85.0 | 75.0 | −10.0 |
+| **F-005** (domains present) | 8 domains | 8 domains (**none dropped**) | 0 |
+| **F-011 percentile** (vs CQS-gated n=73) | 100.0 | **97.49** | −2.51 |
+
+### 4c. Findings
+1. **Hypothesis partially confirmed.** Noise clauses do feed the presence-count dimensions — removing them moves PGMS −6.67, **DSI −28.6** (the most corrupted), AIGMS −10. **DSI is the dimension most distorted by segmentation noise** (its `count/5` presence-confidence is padded straight to saturation by noise).
+2. **But PGMS-100 is primarily a FORMULA-saturation effect, not noise.** The pillar thresholds (`n_categories × 3` = 3–9 clauses) max out on almost any real notice; **de-noised PGMS is still 93.33 ("Leading"), percentile 97.49.** Filtering noise alone will not drop this org out of the top band — the saturation thresholds are the deeper cause.
+3. **F-005 is robust to noise** — it is domain-*presence*-based; no domain was present only via noise clauses, so it is unchanged.
+4. **Degenerate path is safe (Task 2.4.3):** `compute_pgms/compute_dsi/compute_aigms` all return **`(0.0, 0.3)`** for zero-signal input (explicit `total_clauses == 0` guard) — **no high default, no code bug.** Nothing to fix here.
+
+### 4d. Decision the expert actually needs
+The percentile-100 optic has **two independent, expert-owned causes**, both surfaced here, neither tuned:
+- **(a) Segmentation noise** inflating presence-count dimensions (DSI most). → *Approve a decomposer noise-filtering rule (spec-first): drop headings/metadata/list-fragments before clause extraction.* This materially corrects DSI and partially PGMS/AIGMS.
+- **(b) PGMS/DSI presence-count saturation thresholds** (`× 3`, `count/5`) that max on a modest notice. → *Review whether those thresholds should scale with notice depth or category quality* (a formula-calibration decision — **not** an engineering change).
+
+---
+
 ## What changed vs what's flagged
 - **Fixed (code + test):** `build_population` CQS gate (Finding 1a).
-- **Flagged for expert/SME (no change):** PGMS-100 profiling (1b); enforcement-lineage dead path, DC-005/children_teens/ambiguity coverage gaps (§2); segmentation noise (§3). Added to `SME-REVIEW-CHECKLIST.md`.
+- **Flagged for expert/SME (no change):** PGMS-100 traced to §4 (segmentation noise on presence-count dims + PGMS saturation thresholds — clean percentile still 97.49); enforcement-lineage dead path, DC-005/children_teens/ambiguity coverage gaps (§2); segmentation noise (§3). Degenerate profiling path verified safe (§4c.4). Added to `SME-REVIEW-CHECKLIST.md`.
