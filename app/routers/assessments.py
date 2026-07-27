@@ -15,6 +15,7 @@ from app.db import supabase_rest_get, supabase_rest_post
 from app.config import settings
 from app.logging import get_logger
 from app.services.intake.decompose import (
+    DECOMPOSE_VERSION,
     DecomposedNotice,
     decompose,
 )
@@ -215,6 +216,9 @@ async def create_assessment(
         "upload_filename": upload_filename,
         "upload_mime": upload_mime,
         "upload_file_hash": upload_file_hash,
+        # decompose-v2 noise filter version tag — marks this assessment as
+        # noise-filtered so older assessments (NULL) stay untouched (Rule 4).
+        "decompose_version": DECOMPOSE_VERSION,
         "ai_disclosure_presence": any(
             c.category == "ai_automated_decisions" for c in notice.clauses
         ),
@@ -276,6 +280,9 @@ async def create_assessment(
             "category_v2": c.category_v2,
             "nlp_confidence_v2": c.nlp_confidence_v2,
             "classifier_version": c.classifier_version,
+            # decompose-v2 noise filter — kept for lineage, excluded from counts.
+            "is_noise": c.is_noise,
+            "noise_reason": c.noise_reason,
         }
         for c in notice.clauses
     ]
@@ -315,7 +322,10 @@ async def create_assessment(
         "organization_id": org_id,
         "status": "scored" if scoring_summary else "decomposed",
         "sections": len(notice.sections),
-        "clauses": len(notice.clauses),
+        "clauses": len(notice.clauses),  # total extracted units (incl. flagged noise)
+        # decompose-v2: substantive vs noise split for an honest headline count.
+        "clauses_substantive": sum(1 for c in notice.clauses if not c.is_noise),
+        "clauses_noise": sum(1 for c in notice.clauses if c.is_noise),
         "content_hash": content_hash,
         # M-02: the source was fetched from a URL that passed SSRF validation
         # (a failed check raises above, so reaching here with a source_url means
@@ -350,7 +360,9 @@ async def _classify_clauses(notice: DecomposedNotice) -> tuple[int, int]:
     Returns (llm_classified_count, keyword_fallback_count).
     On any LLM-level failure, all clauses keep their keyword labels.
     """
-    eligible = [c for c in notice.clauses if len(c.raw_text) >= 20]
+    # Noise clauses are excluded from classification counts (they keep their
+    # deterministic keyword label for lineage but are never LLM-classified/counted).
+    eligible = [c for c in notice.clauses if len(c.raw_text) >= 20 and not c.is_noise]
     if not eligible:
         return 0, 0
 

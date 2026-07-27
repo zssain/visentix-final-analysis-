@@ -228,6 +228,8 @@ async def score_and_persist(
                 "findings_count": len(findings),
                 "finding_codes": [f["code"] for f in findings],
                 "clause_count": len(notice.clauses),
+                "scored_clause_count": sum(1 for c in notice.clauses if not getattr(c, "is_noise", False)),
+                "noise_clause_count": sum(1 for c in notice.clauses if getattr(c, "is_noise", False)),
                 "cohort_size": cohort_size,
                 "vci": vci,
                 "defaults_used": defaults_used,
@@ -334,7 +336,13 @@ async def _ensure_org_profile(
     org_rows = r2.json() if r2.status_code == 200 else []
     org_row = org_rows[0] if org_rows else {"organization_id": organization_id, "industry": "unknown", "size": "unknown", "geography": "US"}
 
-    clauses = [{"category": c.category, "clause_type": getattr(c, "clause_type", "")} for c in notice.clauses]
+    # decompose-v2: presence-count profile dimensions (PGMS/DSI/AIGMS) are built
+    # from SUBSTANTIVE clauses only — noise clauses are excluded so nav/heading/
+    # list-fragment text can't pad a pillar to saturation.
+    clauses = [
+        {"category": c.category, "clause_type": getattr(c, "clause_type", "")}
+        for c in notice.clauses if not getattr(c, "is_noise", False)
+    ]
     profile = compute_org_profile(org_row, clauses, profile_version=1)
 
     # Persist

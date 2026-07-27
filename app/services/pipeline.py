@@ -61,18 +61,23 @@ def score_notice(
 
     Returns a dict with all scores, findings, VCI, and snapshot data.
     """
-    # Build scoring context from decomposed notice
-    cats = Counter(c.category for c in notice.clauses)
-    domains = set(c.category for c in notice.clauses if c.category != "other")
-    avg_amb = sum(c.ambiguity_score for c in notice.clauses) / max(len(notice.clauses), 1)
-    avg_read = sum(c.readability_score for c in notice.clauses) / max(len(notice.clauses), 1)
-    avg_conf = sum(c.nlp_confidence for c in notice.clauses) / max(len(notice.clauses), 1)
+    # Build scoring context from decomposed notice.
+    # decompose-v2 noise filter: presence-count dimensions, averages, and
+    # findings are computed from SUBSTANTIVE clauses only (is_noise == False).
+    # Noise clauses stay persisted for lineage but never inflate a count.
+    clauses = [c for c in notice.clauses if not getattr(c, "is_noise", False)]
+
+    cats = Counter(c.category for c in clauses)
+    domains = set(c.category for c in clauses if c.category != "other")
+    avg_amb = sum(c.ambiguity_score for c in clauses) / max(len(clauses), 1)
+    avg_read = sum(c.readability_score for c in clauses) / max(len(clauses), 1)
+    avg_conf = sum(c.nlp_confidence for c in clauses) / max(len(clauses), 1)
 
     ctx = ScoringContext(
         organization_id=organization_id,
         notice_id=notice_id,
         clause_categories=cats,
-        total_clauses=len(notice.clauses),
+        total_clauses=len(clauses),
         avg_ambiguity=avg_amb,
         avg_readability=avg_read,
         avg_nlp_confidence=avg_conf,
@@ -126,7 +131,7 @@ def score_notice(
 
     # VCI
     vci = compute_vci(
-        nlp_confidence=avg_conf if len(notice.clauses) > 0 else 0.3,
+        nlp_confidence=avg_conf if len(clauses) > 0 else 0.3,
         benchmark_confidence=0.4 if len(peer_scores) < 50 else 0.7,
         regulatory_confidence=0.7 if f002.score > 0 else 0.3,
         enforcement_confidence=0.5,
@@ -143,7 +148,7 @@ def score_notice(
 
     # Findings
     clause_ids_by_domain = defaultdict(list)
-    for c in notice.clauses:
+    for c in clauses:
         clause_ids_by_domain[c.category].append(c.clause_id)
 
     domain_scores = {}
@@ -153,7 +158,7 @@ def score_notice(
             domain_scores[domain] = min(count * 15, 100)
 
     avg_amb_by_domain = defaultdict(list)
-    for c in notice.clauses:
+    for c in clauses:
         avg_amb_by_domain[c.category].append(c.ambiguity_score)
     avg_amb_dict = {d: sum(v)/len(v) for d, v in avg_amb_by_domain.items()}
 

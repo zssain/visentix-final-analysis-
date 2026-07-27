@@ -48,6 +48,13 @@ _AIGMS_W = _CFG["aigms_weights"]
 _AIGMS_CT_MAP = _CFG["aigms_clause_type_map"]
 _AIGMS_TIERS = _CFG["aigms_tiers"]
 _EHP_TIERS = _CFG["ehp_tiers"]
+# Presence-count saturation constants (value-identical to the former hardcoded
+# x3 / /5 / /2). Option-1 decision 2026-07-28 keeps them as-is with a documented
+# limitation; a future Option-2 calibration is a config + formula-version change.
+_PRESENCE_SAT = _CFG["presence_saturation"]
+_PGMS_SAT = _PRESENCE_SAT["pgms_clauses_per_category"]
+_DSI_SAT = _PRESENCE_SAT["dsi_clauses_per_category"]
+_AIGMS_SAT = _PRESENCE_SAT["aigms_clauses_per_factor"]
 
 
 # ── Data structures ──────────────────────────────────────────
@@ -190,7 +197,7 @@ def compute_pgms(inp: OrgProfileInput) -> tuple[float, float]:
     for pillar, weight in _PGMS_W.items():
         categories = _PGMS_CAT_MAP.get(pillar, [])
         count = sum(inp.clause_categories.get(cat, 0) for cat in categories)
-        depth = min(count / max(len(categories) * 3, 1), 1.0)
+        depth = min(count / max(len(categories) * _PGMS_SAT, 1), 1.0)
         pillar_scores[pillar] = depth * 100
 
     score = sum(
@@ -244,7 +251,7 @@ def compute_dsi(inp: OrgProfileInput) -> tuple[float, float]:
     for cat, count in inp.clause_categories.items():
         w = _DSI_CAT_W.get(cat, 0.0)
         if w > 0:
-            presence_conf = min(count / 5.0, 1.0)
+            presence_conf = min(count / _DSI_SAT, 1.0)
             raw += w * presence_conf * _DSI_CTX_MULT
 
     score = round(min(raw / sum(v for v in _DSI_CAT_W.values() if v > 0) * 100, 100), 2)
@@ -288,7 +295,7 @@ def compute_aigms(inp: OrgProfileInput) -> tuple[float, float]:
         # Also check legacy categories as fallback
         if count == 0 and factor in ("ai_use_disclosure", "automated_decision_disclosure"):
             count = inp.clause_categories.get("ai_automated_decisions", 0)
-        factor_scores[factor] = min(count / 2.0, 1.0) * 100
+        factor_scores[factor] = min(count / _AIGMS_SAT, 1.0) * 100
 
     score = sum(factor_scores.get(f, 0) * w for f, w in _AIGMS_W.items())
     score = round(min(max(score, 0), 100), 2)

@@ -41,6 +41,8 @@ interface AssessmentResult {
   source_url?: string | null;
   intake_method?: "url" | "text" | "upload";
   upload_filename?: string;
+  clauses_substantive?: number;
+  clauses_noise?: number;
   classification: { llm: number; keyword_fallback: number };
   scores?: {
     overall_intelligence: number;
@@ -325,9 +327,12 @@ export function Intake() {
                 )}
               </div>
               <div style={{ fontSize: "0.95rem", color: "var(--text)" }}>
-                <strong>{result.sections}</strong> sections · <strong>{result.clauses}</strong> clauses · <strong>{result.classification.llm}</strong> LLM-classified
+                <strong>{result.sections}</strong> sections · <strong>{result.clauses_substantive ?? result.clauses}</strong> clauses · <strong>{result.classification.llm}</strong> LLM-classified
                 {result.classification.keyword_fallback > 0 && (
                   <span style={{ color: "var(--text-muted)" }}> · {result.classification.keyword_fallback} keyword fallback</span>
+                )}
+                {result.clauses_noise != null && result.clauses_noise > 0 && (
+                  <span style={{ color: "var(--text-muted)" }}> · {result.clauses_noise} filtered as noise</span>
                 )}
               </div>
             </div>

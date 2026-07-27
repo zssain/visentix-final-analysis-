@@ -63,7 +63,7 @@ async def _reconstruct_notice(notice_id: str) -> DecomposedNotice:
             select=(
                 "clause_id,section_id,raw_text,normalized_text,category,"
                 "ambiguity_score,readability_score,nlp_confidence,domain_id,"
-                "clause_type,transparency_score,classifier_version"
+                "clause_type,transparency_score,classifier_version,is_noise,noise_reason"
             ),
             filters=f"section_id=in.({in_list})",
             limit=2000,
@@ -84,6 +84,10 @@ async def _reconstruct_notice(notice_id: str) -> DecomposedNotice:
                 clause_type=c.get("clause_type") or "",
                 transparency_score=c.get("transparency_score") or 0.0,
                 classifier_version=c.get("classifier_version"),
+                # Carry the stored noise flag so re-scoring excludes noise the
+                # same way intake does (older rows default is_noise=false).
+                is_noise=bool(c.get("is_noise")),
+                noise_reason=c.get("noise_reason"),
             ))
 
     return DecomposedNotice(sections=sections, clauses=clauses)

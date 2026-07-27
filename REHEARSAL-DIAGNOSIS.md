@@ -110,6 +110,37 @@ The percentile-100 optic has **two independent, expert-owned causes**, both surf
 
 ---
 
+## 5. Task 2.5 — decompose-v2 noise filter: labeled before/after (Phase B)
+
+**By:** implementing engineer, 2026-07-28. After expert approval (`DECISION-NEEDED.md`: Part 1 noise rule approved with the "uncertain → not noise" tie-break; Part 2 **Option 1** — keep thresholds + document). This is a **labeled diagnostic** applying the shipped `decompose-v2-noisefilter` rule to the **stored** rehearsal notice (`91a04e55…`). **Read-only — stored rehearsal rows were NOT modified** (`scripts/rehearsal_noise_diagnostic.py`).
+
+**Method:** applied the exact section predicates (`_section_structural_noise` + cross-section duplication) to the 186 stored `notice_section` rows, propagated to the 176 stored `disclosure_clause` rows, and recomputed the presence-count dimensions from substantive clauses only via `compute_org_profile` (same versioned engine).
+
+| Metric | Value |
+|---|---:|
+| Clauses (stored) | 176 |
+| **Flagged noise** | **38 (22%)** |
+| — heading_only | 19 |
+| — list_fragment | 9 |
+| — duplicate_of | 9 |
+| — metadata | 1 |
+| Substantive (scored) | 138 |
+
+| dimension | as-stored (ALL) | noise-excluded (CLEAN) | delta |
+|---|---:|---:|---:|
+| PGMS | 100.00 | 100.00 | **0.00** |
+| DSI | 93.45 | 93.45 | **0.00** |
+| AIGMS | 85.00 | 85.00 | **0.00** |
+
+**Findings:**
+1. **The approved rule flags 22%, not the 46% of the §3 heuristic** — by design. §3's blunt `chars < 120` predicate was **dropped** per the approved tie-break (filtering real disclosure text destroys scoring evidence; missed noise is bounded). What remains is only structurally-unambiguous noise: markdown/short headings, date-stamp metadata, trailing-`;`/`:` list fragments, and cross-section duplicates.
+2. **Presence-count dimensions do not move (0.00) for this notice.** The 38 removed clauses all sit in categories that stay **above their saturation threshold** after removal (e.g. `data_sharing` 68 clauses, `consumer_rights` 24 — both far past DSI's 5 and PGMS's 6/pillar), so excluding them changes no `min(count/T, 1)` term. F-005 domains and finding yield are likewise unchanged.
+3. **This strengthens the Option-1 conclusion (§4d).** With the *conservative, evidence-preserving* rule, noise is **not** what holds this org at the top band — the **saturation thresholds** are (de-noised PGMS is still 100 here; even §4b's aggressive de-noise only reached 93.33). The mechanism is verified working (unit tests: noise excluded from scoring in a non-saturated case moves PGMS), but for a genuinely comprehensive notice it is correctly inert. The saturation calibration (Option 2) remains the lever — deferred, with a decision-log revisit trigger tied to F17 golden-notice baselines.
+
+*(Contrast with §4b, which used a broader ad-hoc heuristic — including `chars < 120` — and reported PGMS −6.67 / DSI −28.60 / AIGMS −10. Those figures came from removing ~2× more clauses, some of them real short content the approved rule deliberately keeps.)*
+
+---
+
 ## What changed vs what's flagged
 - **Fixed (code + test):** `build_population` CQS gate (Finding 1a).
 - **Flagged for expert/SME (no change):** PGMS-100 traced to §4 (segmentation noise on presence-count dims + PGMS saturation thresholds — clean percentile still 97.49); enforcement-lineage dead path, DC-005/children_teens/ambiguity coverage gaps (§2); segmentation noise (§3). Degenerate profiling path verified safe (§4c.4). Added to `SME-REVIEW-CHECKLIST.md`.
