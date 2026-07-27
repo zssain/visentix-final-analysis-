@@ -255,3 +255,19 @@ def test_gate_defaults_to_strict_when_platform_setting_empty():
     with patch.object(R.httpx, "get", return_value=_Empty()):
         assert R.get_gate_mode() == GateMode.STRICT
     R._gate_mode_cache = None  # don't leak cache to other tests
+
+
+@pytest.mark.anyio
+async def test_gate_mode_route_not_shadowed_by_dynamic_id():
+    """Regression: GET /review/gate-mode must return {'mode': ...}, not be
+    swallowed by GET /review/{assessment_id} (Stage-3 routing fix)."""
+    import app.routers.review as RR
+    ctx = _auth("admin")
+    with ctx["mock"], patch.object(RR, "get_gate_mode", return_value=GateMode.STRICT):
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as c:
+            r = await c.get("/review/gate-mode", headers=ctx["headers"])
+    assert r.status_code == 200
+    body = r.json()
+    assert body == {"mode": "strict"}      # not a review object
+    assert "assessment_id" not in body
