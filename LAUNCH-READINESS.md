@@ -2,7 +2,7 @@
 
 **By:** implementing engineer. Continues [`ENGINEERING-CLOSEOUT.md`](ENGINEERING-CLOSEOUT.md). Scope: production hardening, exemplar triage, deploy prep, and a dress rehearsal that stops at the human gate. **You approve nothing client-facing; neither did I.**
 
-Branch `F02-unify-classification` — commits this stage: `0824c7d` (pilot nav), `2502bf9` (exemplar triage), `015ff8e` (auth hardening + isolation). Suites green: **backend 775 passed / 15 skipped**, **frontend 86 passed**.
+Branch `F02-unify-classification` — Stage-3 commits: `0824c7d` (pilot nav), `2502bf9` (exemplar triage), `015ff8e` (auth hardening + isolation), `81794f5` (shadowed-route fix), plus docs. Suites green: **backend 776 passed / 15 skipped**, **frontend 86 passed**. A local dress rehearsal was run to the human gate (below).
 
 ---
 
@@ -23,6 +23,42 @@ Full audit: [`RLS-AUDIT.md`](RLS-AUDIT.md).
 - **Login rate-limiting** (per-account/per-IP, honest copy) + test.
 - **Gate mode defaults to STRICT** (expert_review) — a fresh prod never shows drafts + test.
 - **`local_users.json`** untracked + ignored + removed from the Docker image.
+
+---
+
+## Local rehearsal — 2026-07-27 (labeled **rehearsal**, stopped at the gate)
+
+Ran the Workstream-E dress rehearsal against a **local** hardened stack (gate mode **STRICT**, Ollama up). **Notice:** 1‑800‑Flowers (`https://www.1800flowers.com/About-Us-Privacy-Policy`) — a real retailer in `retail-2026Q3-v2`, direct/current privacy URL, substantive notice. Submitted through real URL intake as `organization_name="1-800-Flowers (rehearsal)"`. **Nothing was approved or frozen.**
+
+**Rehearsal artifacts (live DB — clean up when done):** assessment `91a04e55-b825-46b9-924b-3ca44ff4fe5b`, org `066745ed-3a22-48bb-94e4-e3f002787bdb`, snapshot `46c49843…`. Plus a bogus `assessment_review` row `assessment_id="gate-mode"` left by the pre-fix shadowed-route smoke test — safe to delete.
+
+### Pipeline stops — all verified ✅
+| Stop | Result |
+|---|---|
+| Verified-source badge (M-02) | `ssrf_protected: true` |
+| Decomposition | 186 sections / 176 clauses |
+| Classification | **176 LLM-classified, 0 keyword fallback** (Ollama) |
+| Cohort assignment (live n, M-12) | `cohort_size: 90` (minor relaxation; dynamically built) |
+| Scores + VCI | overall **70.99**, VCI **high**, percentile 100 |
+| Report | 12 sections (admin view) |
+| **Gate (STRICT)** | owning customer → **403** "pending expert review" |
+| **Cross-tenant isolation** | other-org customer → **403** "Not permitted" (Stage-3 fix, live) |
+| approve_and_freeze | **untouched** — no `/approve`, status `draft` |
+| SME workbench (code-verified) | three panes (source+de-id / finding+Confirm·Edit·Dismiss / Advisor+Codex); **de-id lock** disables Confirm while PII unresolved |
+| PDF export | 200, valid, **byte-identical on double pull** |
+| Monitoring | trend → `baseline_established` (single assessment → honest, no fake trend); alerts → `no_alerts` |
+| Guardrail | verdict language → `GuardrailError` |
+
+> Under STRICT/expert_review the customer is **blocked entirely (403)** — stronger than a watermarked draft (the gold DRAFT watermark is the *instant_draft* behavior). The report is not client-deliverable.
+
+### Issues / observations found (for the pilot)
+1. **Handoff:** the `assessment_review` row is created **lazily** (on first open), not at intake — a fresh assessment isn't in the SME `/review/queue` until opened by id. Under STRICT this can orphan an assessment (customer blocked + not queued). *Recommend intake enqueue, or derive the queue from unapproved snapshots.*
+2. **Advisor prose absent in the draft** — correct by design (the SME **authors** the Advisor Note in the workbench; M-05 shows honest absence until then). Note for the SME: advisor notes must be written before delivery.
+3. **Low finding yield:** 1 finding (`AI-004`, high) for a 176-clause notice + percentile 100 — SME should sanity-check whether more domains should flag.
+4. **Over-segmentation:** 186 sections for 176 clauses — the decomposer created many tiny/nav sections from the live page. Data-quality note.
+5. **Cohort is dynamically built (n=90), not the retail-25 demo cohort** — because the rehearsal org is new (no retail profile). The n is honest/live, just not the demo cohort.
+
+**DEMO_RUNBOOK re-walk:** steps hold against this run (health, intake, scores, report, PDF, SME flow, monitoring, guardrail). The doc was already drift-fixed (STRICT default, live cohort n, monitoring step). Real URL intake yields large section/clause counts vs the tiny sample-text path — expected.
 
 ---
 

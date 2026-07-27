@@ -289,7 +289,19 @@ async def score_and_persist(
         result["summary"]["defaults_used"] = defaults_used
         result["summary"]["benchmark_population_version"] = pop_version
 
-        return result
+    # ── k) Eager SME enqueue (F06) ────────────────────────────
+    # A completed assessment must appear in the SME review queue IMMEDIATELY —
+    # never lazily on first open (Stage-3 rehearsal found orphaned assessments
+    # under STRICT gate). Idempotent: get_or_create_review leaves any existing
+    # in_review/approved row untouched, and only inserts a DRAFT row when none
+    # exists. Enqueue failure must never fail an otherwise-successful scoring run.
+    try:
+        from app.services.review import get_or_create_review
+        get_or_create_review(notice_id)
+    except Exception as exc:  # noqa: BLE001
+        log.warning("SME enqueue failed for notice %s: %s", notice_id[:12], exc)
+
+    return result
 
 
 # ── Helpers ──────────────────────────────────────────────────
