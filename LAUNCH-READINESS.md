@@ -14,6 +14,9 @@ Branch `F02-unify-classification` — commits this stage: `0824c7d` (pilot nav),
 ### Workstream B — exemplar triage
 16 exemplars → **9 kept** (English, de-id-passing), **7 deactivated** (reversible): 6 non-English + 1 de-id leak. Per-domain now: AI 1 · CR 2 · RT 2 · TRK 1 · DC 2 · XB 1; SH/SEC honest absence. Details + domain-fit flags: [`logs/audits/exemplar-triage-2026-07-27.md`](logs/audits/exemplar-triage-2026-07-27.md). Content sign-off is human — see [`SME-REVIEW-CHECKLIST.md`](SME-REVIEW-CHECKLIST.md) §1.
 
+### Local smoke test (post-hardening)
+Booted the backend locally and exercised the Stage-3 changes: `/health` OK; `/api/formulas` → 14; monitoring org-scoping enforced (admin w/o `org_id` → 400); login rate-limit fires. **Caught a real bug:** `GET /review/gate-mode` was shadowed by `GET /review/{assessment_id}` (registered first) — so M-13's gate-mode *read* was broken in the shipped closeout (and `/review/exemplars` too). **Fixed** (`81794f5`): catch-all registered last; verified live `{"mode":"strict"}` + regression test. Confirmed **live prod gate mode = STRICT** (no `platform_setting.gate_mode` row → safe default).
+
 ### Workstream C — auth hardening + tenant isolation
 Full audit: [`RLS-AUDIT.md`](RLS-AUDIT.md).
 - **5 cross-tenant gaps fixed** (a customer could read other orgs via `list_assessments`, `dashboard-stats`, `get_report`, `/pdf`, `explain`) + 7 regression tests. RLS verified enforced live (anon probe: 0 rows leaked).
