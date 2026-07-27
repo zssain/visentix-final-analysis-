@@ -15,7 +15,9 @@ Defenses:
 from __future__ import annotations
 
 import hashlib
+import io
 import re
+import zipfile
 from urllib.parse import urljoin
 
 import httpx
@@ -32,6 +34,9 @@ from app.services.intake.ssrf import (
 
 MAX_TEXT_LENGTH = 500_000  # 500K chars
 MAX_PDF_BYTES = 10 * 1024 * 1024  # 10 MB
+# Uploaded documents (PDF / DOCX / TXT) share one size ceiling. Matches the
+# F01 spec's ≤10 MB intake limit; NOT a separate value.
+MAX_UPLOAD_BYTES = MAX_PDF_BYTES
 MAX_REDIRECTS = 3
 MIN_POLICY_TEXT_CHARS = 300
 
@@ -40,6 +45,15 @@ ALLOWED_MIME_TYPES = {
     "text/html",
     "text/plain",
     "application/xhtml+xml",
+}
+
+# Canonical MIME per detected upload kind — recorded as honest provenance on the
+# source record. Detection is by MAGIC BYTES (below), never the client's
+# Content-Type header or the filename extension (both trivially spoofable).
+UPLOAD_MIME = {
+    "pdf": "application/pdf",
+    "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "txt": "text/plain",
 }
 
 USER_AGENT = (
@@ -267,15 +281,168 @@ def extract_from_text(raw_text: str) -> tuple[str, str]:
 
 
 def _extract_pdf_text(pdf_bytes: bytes) -> str:
-    """Extract text from PDF using PyMuPDF (no shell-outs)."""
+    """Extract text from PDF using PyMuPDF (no shell-outs).
+
+    Password-protected PDFs raise a plain-language ExtractionError (we cannot
+    read them, and saying so honestly beats a cryptic failure). Scanned PDFs
+    with no text layer return an empty string; the caller decides how to
+    surface that (OCR is a deliberate future item, not in this pass).
+    """
     import fitz  # PyMuPDF
 
     try:
         doc = fitz.open(stream=pdf_bytes, filetype="pdf")
-        pages = []
-        for page in doc:
-            pages.append(page.get_text())
-        doc.close()
-        return "\n\n".join(pages)
     except Exception as e:
-        raise ExtractionError(f"PDF extraction failed: {e}")
+        raise ExtractionError(f"Could not open the PDF (it may be corrupted): {e}")
+
+    try:
+        if doc.needs_pass:  # password-protected → text is unreadable
+            raise ExtractionError(
+                "This PDF is password-protected, so its text can't be read. "
+                "Remove the password and try again, or paste the text directly."
+            )
+        pages = [page.get_text() for page in doc]
+    finally:
+        doc.close()
+
+    return "\n\n".join(pages)
+
+
+# ── Uploaded-document intake (PDF / DOCX / TXT) ──────────────
+
+def _detect_upload_kind(data: bytes) -> str:
+    """Identify an uploaded file by MAGIC BYTES, not its extension.
+
+    Returns 'pdf' | 'docx' | 'txt'. Raises ExtractionError for anything else so
+    a renamed executable or image can never reach an extractor.
+    """
+    head = data[:2048]
+
+    # PDF — '%PDF-' signature (usually at byte 0; scan the header to tolerate a
+    # small leading BOM/whitespace some generators emit).
+    if b"%PDF-" in head[:1024]:
+        return "pdf"
+
+    # DOCX — an OOXML file is a ZIP ('PK\x03\x04'). Distinguish a Word document
+    # from an arbitrary zip by the presence of the Word body part.
+    if data[:2] == b"PK":
+        try:
+            with zipfile.ZipFile(io.BytesIO(data)) as z:
+                names = z.namelist()
+        except zipfile.BadZipFile:
+            names = []
+        if any(n == "word/document.xml" or n.startswith("word/") for n in names):
+            return "docx"
+        raise ExtractionError(
+            "This looks like a ZIP or Office file we can't read as a document. "
+            "Please upload a PDF, Word (.docx), or plain-text (.txt) file."
+        )
+
+    # TXT — no binary signature. Accept only if it has no NUL bytes (a strong
+    # binary marker) and decodes as UTF-8.
+    if b"\x00" not in head:
+        try:
+            data.decode("utf-8-sig")
+            return "txt"
+        except UnicodeDecodeError:
+            pass
+
+    raise ExtractionError(
+        "Unsupported file type. Please upload a PDF, Word (.docx), or "
+        "plain-text (.txt) file."
+    )
+
+
+def _extract_docx_text(data: bytes) -> str:
+    """Extract text from a .docx, mapping Word heading styles to markdown
+    headings so decompose()._split_sections finds sections exactly as it does
+    for URL/HTML intake — one shared decomposition path, no parallel logic.
+    """
+    try:
+        from docx import Document
+    except ImportError:  # pragma: no cover - dependency guard
+        raise ExtractionError(
+            "Word document support isn't available on the server right now. "
+            "Please paste the notice text or upload a PDF."
+        )
+
+    try:
+        doc = Document(io.BytesIO(data))
+    except Exception as e:
+        raise ExtractionError(
+            f"Could not open the Word document (it may be corrupted): {e}"
+        )
+
+    blocks: list[str] = []
+    for para in doc.paragraphs:
+        text = " ".join(para.text.split())
+        if not text:
+            continue
+        style = (para.style.name if para.style else "") or ""
+        if style == "Title" or style.startswith("Heading 1"):
+            blocks.append(f"# {text}")
+        elif style.startswith("Heading 2"):
+            blocks.append(f"## {text}")
+        elif style.startswith("Heading"):  # Heading 3+
+            blocks.append(f"### {text}")
+        else:
+            blocks.append(text)
+
+    # Many notices carry rights/retention detail in tables — keep that text.
+    for table in doc.tables:
+        for row in table.rows:
+            cells = [" ".join(c.text.split()) for c in row.cells]
+            line = " · ".join(cell for cell in cells if cell)
+            if line:
+                blocks.append(line)
+
+    return "\n\n".join(blocks)
+
+
+def extract_from_upload(data: bytes, filename: str = "") -> tuple[str, str, str, str]:
+    """Validate + extract an uploaded document. Returns (text, content_hash,
+    kind, mime) where kind ∈ {'pdf','docx','txt'} and content_hash is the hash
+    of the EXTRACTED TEXT (same semantics as URL/paste intake, so corpus
+    change-detection stays consistent).
+
+    Enforces the shared upload size limit and rejects unreadable, encrypted, or
+    zero-text files with plain-language errors (Rule 9 — no jargon). Produces the
+    same clean-text shape the other intake modes feed into decompose().
+    """
+    if not data:
+        raise ExtractionError("The uploaded file is empty.")
+    if len(data) > MAX_UPLOAD_BYTES:
+        limit_mb = MAX_UPLOAD_BYTES // (1024 * 1024)
+        raise ExtractionError(
+            f"File is too large ({len(data) / (1024 * 1024):.1f} MB). "
+            f"The maximum upload size is {limit_mb} MB."
+        )
+
+    kind = _detect_upload_kind(data)
+
+    if kind == "pdf":
+        text = _extract_pdf_text(data)
+        empty_msg = (
+            "We couldn't find any readable text in this PDF — it looks like a "
+            "scanned image rather than a text document. Upload a text-based PDF, "
+            "or paste the notice text directly."
+        )
+    elif kind == "docx":
+        text = _extract_docx_text(data)
+        empty_msg = (
+            "We couldn't find any readable text in this Word document. "
+            "Paste the notice text directly, or try a different file."
+        )
+    else:  # txt
+        text = data.decode("utf-8-sig", errors="replace")
+        empty_msg = "The uploaded text file has no readable content."
+
+    text = text.strip()
+    if not text:
+        raise ExtractionError(empty_msg)
+
+    if len(text) > MAX_TEXT_LENGTH:
+        text = text[:MAX_TEXT_LENGTH]
+
+    content_hash = hashlib.sha256(text.encode()).hexdigest()
+    return text, content_hash, kind, UPLOAD_MIME[kind]

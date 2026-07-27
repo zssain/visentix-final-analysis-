@@ -1,6 +1,7 @@
 """Assessment endpoints — intake, decompose, classify, and score privacy notices."""
 
 import asyncio
+import hashlib
 import json
 import urllib.parse
 from datetime import date
@@ -19,10 +20,9 @@ from app.services.intake.decompose import (
 )
 from app.services.intake.discover import discover_policy_url, is_direct_policy_url
 from app.services.intake.extract import (
-    ALLOWED_MIME_TYPES,
     ExtractionError,
-    extract_from_pdf,
     extract_from_text,
+    extract_from_upload,
     extract_from_url,
     looks_like_privacy_policy,
 )
@@ -85,9 +85,17 @@ async def create_assessment(
     content_hash: str | None = None
     source_url: str | None = None
     content_warning: str | None = None
+    # Intake provenance — recorded honestly on the notice. 'upload' is NEVER a
+    # verified source (that badge means a URL passed SSRF validation); an
+    # uploaded document only carries its own filename/mime/original-file hash.
+    intake_method = "text"
+    upload_filename: str | None = None
+    upload_mime: str | None = None
+    upload_file_hash: str | None = None
 
     try:
         if url:
+            intake_method = "url"
             log.info("Assessment intake: URL (text not logged)")
 
             # Discovery: if URL isn't already a policy link, try to find the real one
@@ -116,15 +124,22 @@ async def create_assessment(
                 )
 
         elif file:
-            log.info("Assessment intake: PDF upload (%s)", file.filename)
-            ct = file.content_type or ""
-            if ct not in ALLOWED_MIME_TYPES:
-                raise HTTPException(
-                    status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
-                    detail=f"Unsupported file type: {ct}. Allowed: {ALLOWED_MIME_TYPES}",
-                )
-            pdf_bytes = await file.read()
-            extracted_text, content_hash = extract_from_pdf(pdf_bytes, file.filename or "")
+            # Uploaded document (PDF / DOCX / TXT). Type is validated by MAGIC
+            # BYTES inside extract_from_upload — never the client Content-Type,
+            # which is trivially spoofed. Same downstream pipeline as paste-text.
+            raw = await file.read()
+            log.info(
+                "Assessment intake: upload (%s, %d bytes)", file.filename, len(raw)
+            )
+            extracted_text, content_hash, _kind, upload_mime = extract_from_upload(
+                raw, file.filename or ""
+            )
+            intake_method = "upload"
+            # Strip any path components a browser may include; bound the length.
+            upload_filename = (file.filename or "").rsplit("/", 1)[-1][:255] or "document"
+            # Hash of the ORIGINAL bytes (distinct from content_hash of the text)
+            # — lets identical uploaded files be recognized later.
+            upload_file_hash = hashlib.sha256(raw).hexdigest()
 
         elif text:
             log.info("Assessment intake: raw text (%d chars)", len(text))
@@ -142,17 +157,24 @@ async def create_assessment(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
     # ── 2. RESOLVE / CREATE ORG ──────────────────────────────
-    org_id = organization_id
-    if not org_id and organization_name:
-        org_id = await _find_or_create_org(organization_name)
-    if not org_id and source_url:
-        # Derive org name from the URL domain
-        from urllib.parse import urlparse
-        domain = urlparse(source_url).netloc.replace("www.", "")
-        org_name_derived = domain.split(".")[0].title()
-        org_id = await _find_or_create_org(org_name_derived)
-    if not org_id:
-        org_id = await _find_or_create_org("Anonymous Assessment")
+    # Tenancy (F10): a customer's assessment ALWAYS lands under their own
+    # organization — a client-supplied organization_id/name can never redirect a
+    # customer's notice (URL, paste, or upload) into another tenant. Admins may
+    # target a specific org / derive one from the assessed URL.
+    if user.role == "customer" and user.organization_id:
+        org_id = user.organization_id
+    else:
+        org_id = organization_id
+        if not org_id and organization_name:
+            org_id = await _find_or_create_org(organization_name)
+        if not org_id and source_url:
+            # Derive org name from the URL domain
+            from urllib.parse import urlparse
+            domain = urlparse(source_url).netloc.replace("www.", "")
+            org_name_derived = domain.split(".")[0].title()
+            org_id = await _find_or_create_org(org_name_derived)
+        if not org_id:
+            org_id = await _find_or_create_org("Anonymous Assessment")
 
     # ── 3. DECOMPOSE ─────────────────────────────────────────
     notice = decompose(extracted_text)
@@ -187,6 +209,12 @@ async def create_assessment(
         "jurisdiction_scope": ["US"],
         "storage_path": "",
         "extraction_confidence": round(mean_conf, 4),
+        # Intake provenance (migration 0033). Upload columns are NULL for
+        # url/text intake; set only for uploaded documents.
+        "intake_method": intake_method,
+        "upload_filename": upload_filename,
+        "upload_mime": upload_mime,
+        "upload_file_hash": upload_file_hash,
         "ai_disclosure_presence": any(
             c.category == "ai_automated_decisions" for c in notice.clauses
         ),
@@ -294,6 +322,9 @@ async def create_assessment(
         # it was validated). File/text intake has no fetched source → not set.
         "ssrf_protected": bool(source_url),
         "source_url": source_url or None,
+        # Intake provenance — drives the honest source badge in the UI. An
+        # 'upload' is a customer-register "uploaded document", NOT verified-source.
+        "intake_method": intake_method,
         "classification": {
             "llm": llm_classified,
             "keyword_fallback": keyword_fallback,
@@ -305,6 +336,8 @@ async def create_assessment(
         response["scoring_error"] = scoring_error
     if content_warning:
         response["content_warning"] = content_warning
+    if upload_filename:
+        response["upload_filename"] = upload_filename
 
     return response
 

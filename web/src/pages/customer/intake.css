@@ -76,6 +76,30 @@
   background: white;
 }
 
+/* Upload dropzone */
+.intake-dropzone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 160px;
+  padding: 20px;
+  border: 1.5px dashed var(--border);
+  border-radius: var(--radius);
+  background: var(--soft-white);
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 0.15s, background 0.15s;
+}
+.intake-dropzone:hover   { border-color: var(--exec-blue); }
+.intake-dropzone.dragover { border-color: var(--exec-blue); background: rgba(0,95,163,0.05); }
+.intake-dropzone.has-file { border-style: solid; border-color: var(--teal); background: white; }
+.intake-dropzone-prompt p { font-size: 0.88rem; color: var(--text-secondary); margin: 2px 0; }
+.intake-dropzone-icon { font-size: 1.8rem; color: var(--text-muted); margin-bottom: 6px; }
+.intake-dropzone-hint { font-size: 0.75rem; color: var(--text-muted); }
+.intake-dropzone-file { display: flex; flex-direction: column; gap: 4px; }
+.intake-dropzone-file strong { font-size: 0.9rem; color: var(--navy); word-break: break-all; }
+.intake-dropzone-file span { font-size: 0.75rem; color: var(--text-muted); }
+
 /* Verified source mark */
 .verified-source-mark {
   display: inline-flex;

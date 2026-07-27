@@ -99,6 +99,7 @@ def test_apply_now_order_and_step_a_first():
         "0030_config_review_support.sql",
         "0031_formula_version_description.sql",
         "0032_disclosure_clause_exemplar.sql",
+        "0033_intake_provenance.sql",
     ]
 
 

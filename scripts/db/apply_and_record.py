@@ -75,6 +75,7 @@ APPLY_NOW = [
     "0030_config_review_support.sql",     # Phase 1 — config-review support (ai_reviewed state + reviewed_by/at)
     "0031_formula_version_description.sql", # Phase 5 — formula_version.description (M-10)
     "0032_disclosure_clause_exemplar.sql",  # Phase 5 — disclosure_clause.is_exemplar/exemplar_status (M-03)
+    "0033_intake_provenance.sql",           # F01 — privacy_notice intake_method + upload provenance (upload intake mode)
 ]
 
 # NOT tracked: paste bundles + the ambiguous local_users migration.

@@ -18,7 +18,17 @@ import "./intake.css";
 import "../../components/furniture.css";
 
 type Step = "idle" | "submitting" | "done" | "error";
-type InputMode = "url" | "pdf" | "text";
+type InputMode = "url" | "text" | "upload";
+
+// Accepted upload types — validated authoritatively server-side by magic bytes;
+// this is only a friendlier client-side pre-check.
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // 10 MB — matches backend MAX_UPLOAD_BYTES
+const ACCEPT_EXT = ".pdf,.docx,.txt";
+const ACCEPT_MIME = new Set([
+  "application/pdf",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "text/plain",
+]);
 
 interface AssessmentResult {
   assessment_id: string;
@@ -29,6 +39,8 @@ interface AssessmentResult {
   content_hash: string;
   ssrf_protected?: boolean;
   source_url?: string | null;
+  intake_method?: "url" | "text" | "upload";
+  upload_filename?: string;
   classification: { llm: number; keyword_fallback: number };
   scores?: {
     overall_intelligence: number;
@@ -51,15 +63,37 @@ export function Intake() {
   const [mode, setMode]         = useState<InputMode>("url");
   const [urlVal, setUrlVal]     = useState("");
   const [textVal, setTextVal]   = useState("");
+  const [fileVal, setFileVal]   = useState<File | null>(null);
+  const [dragOver, setDragOver] = useState(false);
   const [step, setStep]         = useState<Step>("idle");
   const [result, setResult]     = useState<AssessmentResult | null>(null);
   const [errorMsg, setErrorMsg] = useState("");
 
   const isProcessing = step === "submitting";
 
+  // Friendly client-side pre-check. The server re-validates by magic bytes and
+  // is the source of truth; this just fails fast with a plain-English message.
+  const pickFile = useCallback((f: File | null) => {
+    setErrorMsg("");
+    if (!f) { setFileVal(null); return; }
+    const extOk = /\.(pdf|docx|txt)$/i.test(f.name);
+    if (!ACCEPT_MIME.has(f.type) && !extOk) {
+      setErrorMsg("That file type isn't supported. Upload a PDF, Word (.docx), or plain-text (.txt) file.");
+      setFileVal(null);
+      return;
+    }
+    if (f.size > MAX_UPLOAD_BYTES) {
+      setErrorMsg(`That file is ${(f.size / (1024 * 1024)).toFixed(1)} MB — the maximum is 10 MB.`);
+      setFileVal(null);
+      return;
+    }
+    setFileVal(f);
+  }, []);
+
   const handleSubmit = useCallback(async () => {
     if (mode === "url" && !urlVal.trim()) return;
     if (mode === "text" && !textVal.trim()) return;
+    if (mode === "upload" && !fileVal) return;
 
     setStep("submitting");
     setResult(null);
@@ -69,6 +103,7 @@ export function Intake() {
       const formData = new FormData();
       if (mode === "url") formData.append("url", urlVal);
       else if (mode === "text") formData.append("text", textVal);
+      else if (mode === "upload" && fileVal) formData.append("file", fileVal, fileVal.name);
 
       const res = await api.postForm("/assessments/", formData) as AssessmentResult;
       setResult(res);
@@ -88,14 +123,14 @@ export function Intake() {
       setStep("error");
       setErrorMsg(err instanceof Error ? err.message : "Assessment failed");
     }
-  }, [mode, urlVal, textVal, navigate]);
+  }, [mode, urlVal, textVal, fileVal, navigate]);
 
   return (
     <div>
       <PageHeader
         eyebrow="Intake"
         title="Submit a Privacy Notice"
-        description="Add a notice by URL or pasted text. Visentix extracts clauses, classifies each into a privacy domain, and scores the notice against normalized peers."
+        description="Add a notice by URL, pasted text, or an uploaded document (PDF, Word, or text). Visentix extracts clauses, classifies each into a privacy domain, and scores the notice against normalized peers."
       />
 
       <div className="intake-layout">
@@ -104,15 +139,15 @@ export function Intake() {
         <div className="intake-left-header">
           <h2>Privacy Notice</h2>
           <div className="intake-tabs" role="tablist" aria-label="Input method">
-            {(["url", "text"] as InputMode[]).map(m => (
+            {(["url", "text", "upload"] as InputMode[]).map(m => (
               <button
                 key={m}
                 className={`intake-tab ${mode === m ? "active" : ""}`}
                 role="tab"
                 aria-selected={mode === m}
-                onClick={() => setMode(m)}
+                onClick={() => { setMode(m); setErrorMsg(""); }}
               >
-                {m === "url" ? "URL" : "Paste Text"}
+                {m === "url" ? "URL" : m === "text" ? "Paste Text" : "Upload"}
               </button>
             ))}
           </div>
@@ -145,6 +180,44 @@ export function Intake() {
               />
             </div>
           )}
+          {mode === "upload" && (
+            <div className="intake-field">
+              <label htmlFor="intake-file">Notice Document</label>
+              <label
+                htmlFor="intake-file"
+                className={`intake-dropzone ${dragOver ? "dragover" : ""} ${fileVal ? "has-file" : ""}`}
+                onDragOver={e => { e.preventDefault(); if (!isProcessing) setDragOver(true); }}
+                onDragLeave={() => setDragOver(false)}
+                onDrop={e => {
+                  e.preventDefault();
+                  setDragOver(false);
+                  if (isProcessing) return;
+                  pickFile(e.dataTransfer.files?.[0] ?? null);
+                }}
+              >
+                <input
+                  id="intake-file"
+                  type="file"
+                  accept={ACCEPT_EXT}
+                  disabled={isProcessing}
+                  onChange={e => pickFile(e.target.files?.[0] ?? null)}
+                  style={{ display: "none" }}
+                />
+                {fileVal ? (
+                  <div className="intake-dropzone-file">
+                    <strong>{fileVal.name}</strong>
+                    <span>{(fileVal.size / 1024).toFixed(0)} KB · click to replace</span>
+                  </div>
+                ) : (
+                  <div className="intake-dropzone-prompt">
+                    <div className="intake-dropzone-icon">↥</div>
+                    <p><strong>Drag a file here</strong> or click to browse</p>
+                    <p className="intake-dropzone-hint">PDF, Word (.docx), or plain text — up to 10 MB</p>
+                  </div>
+                )}
+              </label>
+            </div>
+          )}
         </div>
 
         <div className="intake-actions">
@@ -157,9 +230,14 @@ export function Intake() {
           >
             {isProcessing ? "Processing…" : "Analyse Notice"}
           </button>
-          {step === "error" && (
+          {(step === "error" || errorMsg) && (
             <span style={{ fontSize: "0.82rem", color: "var(--red)" }}>
               {errorMsg || "Could not process this notice."}
+              {mode === "upload" && step === "error" && (
+                <span style={{ color: "var(--text-muted)" }}>
+                  {" "}You can also paste the text or submit the notice URL instead.
+                </span>
+              )}
             </span>
           )}
         </div>
@@ -224,6 +302,25 @@ export function Intake() {
                     }}
                   >
                     ✓ Verified source
+                  </span>
+                )}
+                {/* Uploaded document — customer-register wording. This is NOT a
+                    verified source (that badge means a URL passed validation);
+                    showing verified-source for an upload would be dishonest. */}
+                {result.intake_method === "upload" && (
+                  <span
+                    data-testid="uploaded-document-badge"
+                    title={result.upload_filename
+                      ? `Extracted from the uploaded document “${result.upload_filename}”.`
+                      : "Extracted from an uploaded document."}
+                    style={{
+                      display: "inline-flex", alignItems: "center", gap: 4,
+                      fontSize: "0.66rem", fontWeight: 700, color: "var(--text-secondary)",
+                      background: "var(--soft-white)", border: "1px solid var(--border)",
+                      padding: "1px 8px", borderRadius: 4, cursor: "help",
+                    }}
+                  >
+                    ↥ Uploaded document
                   </span>
                 )}
               </div>
