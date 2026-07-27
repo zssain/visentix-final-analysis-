@@ -13,7 +13,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app/ app/
 COPY config/ config/
-COPY local_users.json .
+# NB: local_users.json is intentionally NOT copied — demo credential hashes must
+# never be baked into a client image (RLS-AUDIT §4). Provision users in prod via
+# the DB (RLS-AUDIT §5 "C1b") or an Azure secret mount. With no users file the
+# app still boots; every /auth/login simply returns 401 until users are provisioned.
 
 EXPOSE 8000
 

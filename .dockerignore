@@ -8,5 +8,7 @@ db/
 *.pyc
 __pycache__/
 .env
+.env.*
+local_users.json
 .git/
 .github/

@@ -35,8 +35,8 @@ class AssessmentStatus(str, Enum):
 
 
 class GateMode(str, Enum):
-    STRICT = "strict"                  # Customer sees nothing until approved
-    INSTANT_DRAFT = "instant_draft"    # Customer sees draft + banner (DEFAULT)
+    STRICT = "strict"                  # Customer sees nothing until approved (== spec "expert_review")
+    INSTANT_DRAFT = "instant_draft"    # Customer sees draft + banner
     CLIENT_REVIEWS = "client_reviews"  # Client can see and comment on draft
 
 
@@ -46,7 +46,11 @@ class FindingAction(str, Enum):
     DISMISS = "dismiss"
 
 
-DEFAULT_GATE_MODE = GateMode.INSTANT_DRAFT
+# Safe-by-default: when platform_setting has no gate_mode row (fresh prod), the
+# gate is STRICT — customers see nothing until an SME approves (spec: expert_review).
+# A pilot must never default to showing drafts. STRICT is the canonical name for
+# expert_review; the enum-naming reconciliation is OD-08 (open). (Stage-3 D1/C5.)
+DEFAULT_GATE_MODE = GateMode.STRICT
 
 
 @dataclass

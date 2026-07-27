@@ -92,6 +92,11 @@ async def get_explain(
     notice_id = notice["notice_id"]
     org_id = notice["organization_id"]
 
+    # F10: a customer may only explain its own organization's assessment.
+    if user.role == "customer" and org_id != user.organization_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                            detail="Not permitted to view this assessment.")
+
     envelope = _build_envelope(type, key, notice_id, org_id)
     return envelope
 
@@ -117,6 +122,11 @@ async def get_explain_all(
     notice = notices[0]
     notice_id = notice["notice_id"]
     org_id = notice["organization_id"]
+
+    # F10: a customer may only prefetch its own organization's explains.
+    if user.role == "customer" and org_id != user.organization_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                            detail="Not permitted to view this assessment.")
 
     result = {}
 

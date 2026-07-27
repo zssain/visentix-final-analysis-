@@ -239,3 +239,19 @@ async def test_customer_sees_draft_banner_in_instant_mode():
             assert r.status_code == 200
             assert "draft_banner" in r.json()
             assert "DRAFT" in r.json()["draft_banner"]
+
+
+def test_gate_defaults_to_strict_when_platform_setting_empty():
+    """C5/D1 safety: a fresh prod (no gate_mode row) must default to STRICT
+    (expert_review) — never show drafts before SME approval."""
+    import app.services.review as R
+
+    class _Empty:
+        status_code = 200
+        def json(self):
+            return []
+
+    R._gate_mode_cache = None
+    with patch.object(R.httpx, "get", return_value=_Empty()):
+        assert R.get_gate_mode() == GateMode.STRICT
+    R._gate_mode_cache = None  # don't leak cache to other tests

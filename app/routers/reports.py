@@ -64,6 +64,34 @@ def _sb_get(path: str) -> list[dict]:
     return r.json() if r.status_code == 200 else []
 
 
+def assessment_org_id(assessment_id: str) -> str | None:
+    """Resolve the organization that owns an assessment (by notice_id, then by
+    a snapshot, then treating the id itself as an organization_id)."""
+    rows = _sb_get(f"privacy_notice?select=organization_id&notice_id=eq.{assessment_id}&limit=1")
+    if rows:
+        return rows[0].get("organization_id")
+    rows = _sb_get(f"report_snapshot?select=organization_id&notice_id=eq.{assessment_id}&limit=1")
+    if rows:
+        return rows[0].get("organization_id")
+    rows = _sb_get(f"organization?select=organization_id&organization_id=eq.{assessment_id}&limit=1")
+    return rows[0].get("organization_id") if rows else None
+
+
+def assert_customer_owns(assessment_id: str, user) -> None:
+    """F10: a customer may only reach its own organization's assessments. Raises
+    403 on any cross-tenant access. No-op for sme/admin."""
+    if user.role != "customer":
+        return
+    if not user.organization_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                            detail="No organization is associated with this account.")
+    owner = assessment_org_id(assessment_id)
+    # Unknown owner → treat as not-yours (never leak another org's data).
+    if owner != user.organization_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                            detail="Not permitted to view this assessment.")
+
+
 def _vci_band(score: float) -> tuple[str, str]:
     for lo, hi, label, guidance in _VCI_BANDS:
         if lo <= score <= hi:
@@ -149,6 +177,9 @@ async def get_report(
 ):
     """Return the report. Snapshot-first (deterministic); ?refresh=true for new version."""
     if user.role == "customer":
+        # F10: verify org ownership BEFORE the gate check — never leak another
+        # org's report even when gate mode would otherwise allow viewing.
+        assert_customer_owns(assessment_id, user)
         can_view, banner = customer_can_view(assessment_id)
         if not can_view:
             raise HTTPException(
@@ -192,6 +223,9 @@ async def get_report_pdf(
 ):
     """Render the report as PDF. Uses stored snapshot for determinism."""
     from app.services.report.renderer import render_pdf
+
+    # F10: a customer may only export its own organization's report.
+    assert_customer_owns(assessment_id, user)
 
     # Try snapshot first
     stored = _load_stored_report(assessment_id)

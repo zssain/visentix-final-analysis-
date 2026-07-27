@@ -46,13 +46,20 @@ from app.services.intake.classify_v2 import (  # noqa: E402
 async def list_assessments(
     user: AuthenticatedUser = require_role("customer", "sme", "admin"),
 ):
-    """List assessments visible to the current user."""
-    r = await supabase_rest_get(
-        "privacy_notice",
-        select="notice_id,organization_id,notice_type,effective_date,content_hash,"
-               "organization(name,domain,industry,size,geography)",
-        limit=100,
-    )
+    """List assessments visible to the current user.
+
+    F10 org isolation: a `customer` sees only its own organization's notices;
+    `sme`/`admin` see all. A customer with no organization sees nothing (never
+    the whole corpus).
+    """
+    select = ("notice_id,organization_id,notice_type,effective_date,content_hash,"
+              "organization(name,domain,industry,size,geography)")
+    filters = ""
+    if user.role == "customer":
+        if not user.organization_id:
+            return []
+        filters = f"organization_id=eq.{user.organization_id}"
+    r = await supabase_rest_get("privacy_notice", select=select, filters=filters, limit=100)
     return r.json()
 
 
