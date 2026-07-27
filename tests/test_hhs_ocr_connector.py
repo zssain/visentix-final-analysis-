@@ -1,0 +1,152 @@
+"""HHS OCR breach connector — golden-file parse, idempotency, malformed rows,
+and the zero-enforcement-writes guarantee. No network, no live DB (fake backend
++ fake security_event writer)."""
+import inspect
+from pathlib import Path
+
+import pytest
+
+from app.services.ingestion import runner
+from app.services.ingestion.base import RawItem
+from app.services.ingestion.connectors import hhs_ocr as mod
+from app.services.ingestion.connectors.hhs_ocr import (
+    HHSOCRConnector, jsf_command_by_label, jsf_csv_export_command,
+    jsf_form_action, jsf_viewstate,
+)
+# Schema-typed fakes (enforce live Postgres column types on writes).
+from tests.ingestion_fakes import TypedFakeBackend as FakeBackend
+from tests.ingestion_fakes import TypedFakeEventWriter as FakeEventWriter
+
+FIXDIR = Path(__file__).parent / "fixtures"
+FIXTURE = (FIXDIR / "hhs_ocr_sample.csv").read_bytes()
+HEADER = FIXTURE.decode().splitlines()[0]
+ROWS = FIXTURE.decode().splitlines()[1:]
+
+
+def _make_csv(rows: list[str]) -> bytes:
+    return ("\n".join([HEADER, *rows]) + "\n").encode()
+
+
+def _run(csv_bytes: bytes, backend: FakeBackend, writer: FakeEventWriter):
+    conn = HHSOCRConnector({"config": {"csv_url": "http://fixture/hhs.csv"}}, event_writer=writer)
+    conn.fetch = lambda: [RawItem(csv_bytes, "text/csv", "http://fixture/hhs.csv",
+                                  "hhs_ocr_breach_export_500plus", title="t")]
+    return runner.run(backend, conn, politeness_seconds=0)
+
+
+# ── Golden-file parse ───────────────────────────────────────────────
+
+def test_golden_file_parse():
+    be, w = FakeBackend(), FakeEventWriter()
+    res = _run(FIXTURE, be, w)
+    assert res.seen == 5 and res.new == 5 and res.malformed == 1
+    assert res.outcome == "partial"                      # malformed rows → partial
+    # AC-HHS_OCR: security_event count == records_seen
+    assert len(w.rows) == list(be.runs.values())[0]["records_seen"] == 5
+
+    by_entity = {r["entity_name_raw"]: r for r in w.rows.values()}
+    acme = by_entity["Acme Health System"]
+    assert acme["entity_type"] == "Healthcare Provider"
+    assert acme["state"] == "CA"
+    assert acme["individuals_affected"] == 50000
+    assert acme["submission_date"] == "2026-03-15"
+    assert acme["breach_type"] == "Hacking/IT Incident"
+    assert acme["information_location"] == "Network Server"
+    assert acme["extraction_confidence"] == 1.0
+    # quoted comma field parsed correctly
+    assert by_entity["Gamma Insurance Group"]["information_location"] == "Electronic Medical Record, Network Server"
+    # every row: unresolved, no org matching, lineage present
+    for r in w.rows.values():
+        assert r["organization_id"] is None
+        assert r["resolution_status"] == "unresolved"
+        assert r["source_record_id"] and r["capture_date"]
+
+
+def test_malformed_row_not_dropped():
+    be, w = FakeBackend(), FakeEventWriter()
+    res = _run(FIXTURE, be, w)
+    bad = [r for r in w.rows.values() if r["extraction_confidence"] < 1.0]
+    assert len(bad) == 1
+    assert bad[0]["description"].startswith("[MALFORMED ROW]")
+    assert "unknown" in bad[0]["description"]             # raw row preserved
+    assert bad[0]["individuals_affected"] is None
+    # counted in the run summary
+    assert "malformed" in list(be.runs.values())[0]["error_summary"].lower()
+
+
+# ── Idempotency ─────────────────────────────────────────────────────
+
+def test_idempotent_rerun_zero_new():
+    be, w = FakeBackend(), FakeEventWriter()
+    _run(FIXTURE, be, w)
+    res2 = _run(FIXTURE, be, w)                           # identical CSV
+    assert res2.new == 0                                  # framework skips unchanged item
+    assert len(w.rows) == 5                               # no new security_events
+
+
+def test_changed_csv_five_new_rows():
+    be, w = FakeBackend(), FakeEventWriter()
+    base = ROWS[:4]                                       # 4 well-formed
+    _run(_make_csv(base), be, w)
+    assert len(w.rows) == 4
+    # real export column order: Name,State,Type,Individuals,Date,BreachType,Location,BA,Desc
+    extra = [
+        "New Alpha Health,OR,Healthcare Provider,900,04/01/2026,Loss,Other Portable Electronic Device,No,Lost drive.",
+        "New Bravo Care,NV,Health Plan,15000,04/02/2026,Hacking/IT Incident,Email,Yes,BEC incident.",
+        "New Charlie Group,AZ,Business Associate,220,04/03/2026,Theft,Desktop Computer,No,Office theft.",
+        "New Delta LLC,CO,Healthcare Provider,4300,04/04/2026,Unauthorized Access/Disclosure,Paper/Films,No,Misdirected mail.",
+        "New Echo Systems,UT,Healthcare Clearing House,88000,04/05/2026,Hacking/IT Incident,Network Server,No,Server intrusion.",
+    ]
+    res = _run(_make_csv(base + extra), be, w)            # 9 rows, 5 new
+    assert res.new == 5
+    assert len(w.rows) == 9
+
+
+# ── Never touches enforcement_record ────────────────────────────────
+
+def test_zero_enforcement_record_writes():
+    # static: the connector writes to security_event and NEVER to enforcement_record
+    src = inspect.getsource(mod)
+    assert "rest/v1/enforcement_record" not in src
+    assert "rest/v1/security_event" in src
+    # behavioral: the only write sink is the security_event event_writer
+    be, w = FakeBackend(), FakeEventWriter()
+    _run(FIXTURE, be, w)
+    assert len(w.rows) == 5                               # all writes went to security_event
+
+
+def test_connector_is_registered():
+    from app.services.ingestion.registry import CONNECTORS
+    assert CONNECTORS.get("hhs_ocr") is HHSOCRConnector
+
+
+# ── JSF token/command extraction (golden HTML fixtures) ─────────────
+
+FRONT_HTML = (FIXDIR / "hhs_ocr_front.html").read_text()
+REPORT_HTML = (FIXDIR / "hhs_ocr_report.html").read_text()
+
+
+def test_jsf_viewstate_and_command_extraction():
+    # front page: ViewState + the "View HIPAA Breach Reports" command
+    assert jsf_viewstate(FRONT_HTML) == "FRONT-VS-TOKEN-123:456"
+    assert jsf_form_action(FRONT_HTML, "ocrForm") == "/ocr/breach/breach_frontpage.jsf"
+    assert jsf_command_by_label(FRONT_HTML, "View HIPAA Breach Reports") == "ocrForm:j_idt39"
+    # report page: ViewState + the CSV export command (not Excel/PDF)
+    assert jsf_viewstate(REPORT_HTML) == "REPORT-VS-TOKEN-789:012"
+    assert jsf_form_action(REPORT_HTML, "ocrForm") == "/ocr/breach/breach_report_hip.jsf"
+    assert jsf_csv_export_command(REPORT_HTML) == "ocrForm:j_idt384"
+
+
+def test_jsf_extraction_is_loud_when_form_changes():
+    # if HHS changes the form, extraction returns None → fetch() fails loudly
+    assert jsf_viewstate("<html>no viewstate here</html>") is None
+    assert jsf_command_by_label(FRONT_HTML, "Some Removed Button") is None
+    assert jsf_csv_export_command("<a><img alt='Excel'></a>") is None
+
+
+def test_parse_loud_fail_on_changed_column_structure():
+    """A CSV whose required named columns are gone must raise, not guess."""
+    conn = HHSOCRConnector({"config": {}})
+    broken = b"Wrong,Headers,Entirely\nx,y,z\n"
+    with pytest.raises(ValueError, match="structure changed|column order"):
+        conn.parse(RawItem(broken, "text/csv", "http://x", "k"))

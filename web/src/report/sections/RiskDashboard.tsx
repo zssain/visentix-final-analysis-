@@ -12,16 +12,10 @@ const FID_TO_FKEY: Record<string, string> = {
 };
 
 // Formula descriptions — static reference text (not data-bearing)
-const FORMULA_DESCS: Record<string, string> = {
-  "F-002": "Regulatory Exposure — jurisdiction importance weighted by regulator priority across each domain.",
-  "F-005": "Disclosure Maturity — required disclosure elements present versus the master checklist.",
-  "F-006": "Transparency — readability, clarity, and completeness indicators.",
-  "F-007": "AI Transparency — how specifically the notice addresses automated decision-making.",
-  "F-008": "Compound Risk — regulatory, disclosure, and enforcement dimensions combined.",
-  "F-010": "Overall Intelligence — weighted combination of all risk dimensions.",
-};
-
 export function RiskDashboard({ content }: { content: ReportSection["content"] }) {
+  // M-10: plain-English descriptions come from formula_version.description
+  // (threaded by ReportView); honest absence when unavailable.
+  const formulaDescs = (content.formula_descs as Record<string, string> | undefined) ?? {};
   const snapshotId   = (content.snapshot_id  as string | undefined) ?? "—" /* honest absence — never a plausible-looking fake ID (Hard Rule 7) */;
   const frozenDate   = (content.date         as string | undefined) ?? "—";
   const cohortSize   = (content.cohort_size  as number | undefined) ?? 0;
@@ -93,7 +87,7 @@ export function RiskDashboard({ content }: { content: ReportSection["content"] }
             <ScoreCell
               value={m.value ?? 0}
               formulaId={m.fid}
-              formulaDesc={FORMULA_DESCS[m.fid] ?? "Score computed by the Visentix formula engine."}
+              formulaDesc={formulaDescs[m.fid] ?? ""}
               inputs={[
                 { label: "Notice", type: "clause" },
                 { label: "Regulator", type: "regulator" },

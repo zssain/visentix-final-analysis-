@@ -93,6 +93,12 @@
     "other":                 0.0
   },
   "dsi_processing_context_multiplier": 1.2,
+  "presence_saturation": {
+    "__doc__": "Clause-count at which a presence-count dimension saturates. Extracted value-identical from live_profile.py (was hardcoded x3 / /5 / /2). Option-1 decision 2026-07-28: kept as-is with documented limitation; a future Option-2 calibration changes these numbers + a formula version, not code.",
+    "pgms_clauses_per_category": 3,
+    "dsi_clauses_per_category": 5,
+    "aigms_clauses_per_factor": 2
+  },
   "dsi_tiers": [
     {"label": "Low",      "min": 0,  "max": 25},
     {"label": "Moderate", "min": 26, "max": 50},

@@ -228,6 +228,8 @@ async def score_and_persist(
                 "findings_count": len(findings),
                 "finding_codes": [f["code"] for f in findings],
                 "clause_count": len(notice.clauses),
+                "scored_clause_count": sum(1 for c in notice.clauses if not getattr(c, "is_noise", False)),
+                "noise_clause_count": sum(1 for c in notice.clauses if getattr(c, "is_noise", False)),
                 "cohort_size": cohort_size,
                 "vci": vci,
                 "defaults_used": defaults_used,
@@ -289,7 +291,19 @@ async def score_and_persist(
         result["summary"]["defaults_used"] = defaults_used
         result["summary"]["benchmark_population_version"] = pop_version
 
-        return result
+    # ── k) Eager SME enqueue (F06) ────────────────────────────
+    # A completed assessment must appear in the SME review queue IMMEDIATELY —
+    # never lazily on first open (Stage-3 rehearsal found orphaned assessments
+    # under STRICT gate). Idempotent: get_or_create_review leaves any existing
+    # in_review/approved row untouched, and only inserts a DRAFT row when none
+    # exists. Enqueue failure must never fail an otherwise-successful scoring run.
+    try:
+        from app.services.review import get_or_create_review
+        get_or_create_review(notice_id)
+    except Exception as exc:  # noqa: BLE001
+        log.warning("SME enqueue failed for notice %s: %s", notice_id[:12], exc)
+
+    return result
 
 
 # ── Helpers ──────────────────────────────────────────────────
@@ -322,7 +336,13 @@ async def _ensure_org_profile(
     org_rows = r2.json() if r2.status_code == 200 else []
     org_row = org_rows[0] if org_rows else {"organization_id": organization_id, "industry": "unknown", "size": "unknown", "geography": "US"}
 
-    clauses = [{"category": c.category, "clause_type": getattr(c, "clause_type", "")} for c in notice.clauses]
+    # decompose-v2: presence-count profile dimensions (PGMS/DSI/AIGMS) are built
+    # from SUBSTANTIVE clauses only — noise clauses are excluded so nav/heading/
+    # list-fragment text can't pad a pillar to saturation.
+    clauses = [
+        {"category": c.category, "clause_type": getattr(c, "clause_type", "")}
+        for c in notice.clauses if not getattr(c, "is_noise", False)
+    ]
     profile = compute_org_profile(org_row, clauses, profile_version=1)
 
     # Persist
@@ -346,11 +366,23 @@ async def _ensure_org_profile(
         "profile_version": 1,
         "confidence_score": profile.confidence_score,
     }
-    await client.post(
+    resp = await client.post(
         f"{SB}/rest/v1/organization_intelligence_profile",
         headers={**headers, "Content-Type": "application/json", "Prefer": "return=minimal"},
         json=profile_payload,
     )
+    # A failed profile write must NEVER be silent (lesson L-006): this POST had
+    # no status check, so an insert that 400'd on the unapplied migration-0014
+    # columns was swallowed for weeks — profiles silently stopped persisting.
+    if resp.status_code >= 300:
+        log.error(
+            "organization_intelligence_profile insert failed for org %s: HTTP %d",
+            organization_id, resp.status_code,
+        )
+        raise RuntimeError(
+            f"organization_intelligence_profile insert failed for org "
+            f"{organization_id}: HTTP {resp.status_code}"
+        )
 
     return profile_payload
 

@@ -249,7 +249,9 @@ def test_confidence_penalized_for_no_notice():
 # ── Live data verification ───────────────────────────────────
 
 def test_profiles_exist_in_db():
-    """Verify 30 profiles were inserted."""
+    """Profiles exist in the DB. Live invariant — not a hardcoded 30, which
+    drifts as the live pipeline persists new org profiles (and which masked a
+    silent write bug; see lesson L-006). Fails if the table is emptied."""
     import httpx
     from dotenv import dotenv_values
     import os
@@ -260,4 +262,4 @@ def test_profiles_exist_in_db():
 
     r = httpx.get(f"{url}/rest/v1/organization_intelligence_profile?select=*&limit=0", headers=headers, timeout=15)
     count = int(r.headers.get("content-range", "*/0").split("/")[-1])
-    assert count == 30, f"Expected 30 profiles, got {count}"
+    assert count > 0, "organization_intelligence_profile is empty — profiles lost"

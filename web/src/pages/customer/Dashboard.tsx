@@ -8,6 +8,7 @@ import { Link } from "react-router-dom";
 import { api, ApiError } from "../../lib/api";
 import { ProvenanceRibbon } from "../../components/ProvenanceRibbon";
 import { PageHeader }       from "../../components/PageHeader";
+import { MonitoringHero }   from "./MonitoringHero";
 import { bandColor, maturityBandColor, maturityBand, metricPolarity, vciBand } from "../../lib/scoreBands";
 
 /** Plain-language VCI explainer — shown wherever a VCI number appears. */
@@ -89,6 +90,9 @@ export function CustomerDashboard() {
 
         {/* ── LEFT ── */}
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+
+          {/* M-06/07/08: continuous-monitoring hero (trend / feed / alerts) */}
+          <MonitoringHero />
 
           {/* Overall score */}
           <div className="card" style={{ padding: 24 }}>

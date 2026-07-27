@@ -10,6 +10,15 @@ interface TrainingStats {
   by_month: Record<string, number>;
 }
 
+interface TriggerResult {
+  run_id: string;
+  requested: number;
+  scored: number;
+  failed: number;
+  outcome: string;
+  notices: { notice_id: string; status: string; snapshot_id?: string }[];
+}
+
 export function AdminConsole() {
   const [stats, setStats] = useState<TrainingStats | null>(null);
   const [health, setHealth] = useState<Record<string, unknown> | null>(null);
@@ -17,21 +26,61 @@ export function AdminConsole() {
 
   const [gateMode, setGateMode] = useState<"strict" | "instant_draft" | "client_reviews">("instant_draft");
   const [gateModeStatus, setGateModeStatus] = useState<string | null>(null);
+  const [gateModeError, setGateModeError] = useState<string | null>(null);
+
+  // ── M-14: batch re-assessment trigger ──
+  const [batchOrg, setBatchOrg] = useState("");
+  const [batchRunning, setBatchRunning] = useState(false);
+  const [batchResult, setBatchResult] = useState<TriggerResult | null>(null);
+  const [batchError, setBatchError] = useState<string | null>(null);
 
   useEffect(() => {
     Promise.all([
       api.get("/admin/training-stats").catch(() => null),
       fetch((import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000") + "/health").then(r => r.json()).catch(() => null),
-    ]).then(([s, h]) => {
+      // M-13: read the REAL gate mode from the backend (platform_setting-backed).
+      api.get("/review/gate-mode").catch(() => null),
+    ]).then(([s, h, g]) => {
       setStats(s as TrainingStats);
       setHealth(h as Record<string, unknown>);
+      const mode = (g as { mode?: string } | null)?.mode;
+      if (mode === "strict" || mode === "instant_draft" || mode === "client_reviews") {
+        setGateMode(mode);
+      }
     }).finally(() => setLoading(false));
   }, []);
 
-  const handleGateModeChange = (mode: "strict" | "instant_draft" | "client_reviews") => {
+  // M-13: persist gate-mode changes to the real endpoint; reflect honest failure.
+  const handleGateModeChange = async (mode: "strict" | "instant_draft" | "client_reviews") => {
+    const prev = gateMode;
     setGateMode(mode);
-    setGateModeStatus(`Gate mode updated to ${mode.replace(/_/g, " ")}`);
-    setTimeout(() => setGateModeStatus(null), 4000);
+    setGateModeError(null);
+    try {
+      await api.post("/review/gate-mode", { mode });
+      setGateModeStatus(`Gate mode updated to ${mode.replace(/_/g, " ")}`);
+      setTimeout(() => setGateModeStatus(null), 4000);
+    } catch {
+      setGateMode(prev); // roll back the optimistic switch
+      setGateModeError("Could not save the gate mode. The change was not applied.");
+    }
+  };
+
+  // M-14: trigger a real batch re-assessment run.
+  const handleTriggerBatch = async () => {
+    const org = batchOrg.trim();
+    if (!org) return;
+    setBatchRunning(true);
+    setBatchError(null);
+    setBatchResult(null);
+    try {
+      const res = await api.post("/admin/trigger-assessment", { org_id: org });
+      setBatchResult(res as TriggerResult);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Batch run failed.";
+      setBatchError(msg || "Batch run failed.");
+    } finally {
+      setBatchRunning(false);
+    }
   };
 
   const rowCounts = (health?.row_counts ?? {}) as Record<string, number>;
@@ -175,6 +224,21 @@ export function AdminConsole() {
               </div>
             )}
 
+            {gateModeError && (
+              <div className="notice-box" style={{
+                marginBottom: 16, border: "1px solid var(--red)", color: "var(--red)",
+                display: "flex", alignItems: "center", justifyContent: "space-between"
+              }}>
+                <span>{gateModeError}</span>
+                <button
+                  onClick={() => setGateModeError(null)}
+                  style={{ background: "transparent", color: "inherit", fontWeight: 700, fontSize: "0.9rem", border: "none" }}
+                >
+                  ×
+                </button>
+              </div>
+            )}
+
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               {[
                 {
@@ -236,14 +300,57 @@ export function AdminConsole() {
             </div>
           </div>
 
-          {/* System Operations — batch recompute (requires backend endpoint) */}
+          {/* System Operations — M-14: real batch re-assessment trigger */}
           <div className="card" style={{ padding: 24 }}>
             <h2 style={{ fontSize: "1.1rem", fontWeight: 700, marginBottom: 4, color: "var(--navy)" }}>
               System Operations
             </h2>
             <p style={{ color: "var(--text-secondary)", fontSize: "0.8rem", marginBottom: 16 }}>
-              Bulk recompute operations will be available once the batch endpoint is implemented.
+              Re-run the scoring pipeline over every stored notice for an organization.
+              Each run writes new snapshots and returns a run identifier for the audit trail.
             </p>
+
+            <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+              <input
+                type="text"
+                value={batchOrg}
+                onChange={e => setBatchOrg(e.target.value)}
+                placeholder="Organization ID"
+                style={{
+                  flex: 1, padding: "8px 12px", fontSize: "0.82rem",
+                  border: "1px solid var(--border)", borderRadius: "var(--radius)",
+                }}
+              />
+              <button
+                onClick={handleTriggerBatch}
+                disabled={batchRunning || !batchOrg.trim()}
+                style={{
+                  padding: "8px 16px", fontSize: "0.82rem", fontWeight: 700,
+                  background: batchRunning || !batchOrg.trim() ? "var(--border)" : "var(--exec-blue)",
+                  color: "white", border: "none", borderRadius: "var(--radius)",
+                  cursor: batchRunning || !batchOrg.trim() ? "default" : "pointer",
+                }}
+              >
+                {batchRunning ? "Running…" : "Run assessment batch"}
+              </button>
+            </div>
+
+            {batchError && (
+              <div className="notice-box" style={{ border: "1px solid var(--red)", color: "var(--red)", fontSize: "0.8rem" }}>
+                {batchError}
+              </div>
+            )}
+
+            {batchResult && (
+              <div className="notice-box teal" style={{ fontSize: "0.8rem" }}>
+                <div style={{ fontWeight: 700, marginBottom: 4 }}>
+                  Run {batchResult.run_id.slice(0, 8)} — {batchResult.outcome}
+                </div>
+                <div className="tabular" style={{ color: "var(--text-secondary)" }}>
+                  {batchResult.scored} scored · {batchResult.failed} failed · {batchResult.requested} requested
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Training stats */}

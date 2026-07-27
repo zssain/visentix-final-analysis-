@@ -27,18 +27,18 @@ const BANNED_TERMS = [
 const FIXTURE: ReportPayload = {
   assessment_id: "rp-test-001",
   organization_name: "ReportTestCo",
-  generated_date: "2026-06-29",
-  cohort_size: 30,
-  cohort_date: "2026-06-29",
+  generated_date: "2026-07-20",
+  cohort_size: 25,
+  cohort_date: "2026-07-20",
   vci_label: "high",
   sections: [
     { number: 1, title: "Cover", content: {
       organization: "ReportTestCo", report_title: "Privacy Intelligence Assessment",
-      date: "2026-06-29", overall_score: 68.5, vci_label: "high", snapshot_id: "snap-rp",
+      date: "2026-07-20", overall_score: 68.5, vci_label: "high", snapshot_id: "snap-rp",
     }},
     { number: 2, title: "Executive Summary", content: {
       summary: "ReportTestCo presents an overall score of 68.5 out of 100.",
-      takeaways: ["Data sharing exposure elevated."], cohort_size: 30, cohort_date: "2026-06-29",
+      takeaways: ["Data sharing exposure elevated."], cohort_size: 25, cohort_date: "2026-07-20",
     }},
     { number: 3, title: "Risk Dashboard", content: {
       overall_intelligence: 68.5, regulatory_exposure: 42, regulatory_tier: "moderate",
@@ -46,8 +46,8 @@ const FIXTURE: ReportPayload = {
       vci_score: 62, vci_label: "high",
     }},
     { number: 4, title: "Benchmark Intelligence", content: {
-      org_score: 68.5, percentile: 74, cohort_size: 30, cohort_date: "2026-06-29",
-      cohort_label: "n=30 peers as of 2026-06-29",
+      org_score: 68.5, percentile: 74, cohort_size: 25, cohort_date: "2026-07-20",
+      cohort_label: "n=25 peers as of 2026-07-20",
     }},
     { number: 5, title: "Regulator Exposure", content: { regulatory_score: 42, tier: "moderate" }},
     { number: 6, title: "Disclosure Findings", content: {
@@ -63,7 +63,7 @@ const FIXTURE: ReportPayload = {
       recommendations: [{ severity: "high", code: "SH-002", title: "Clarify", prose: "Review sharing disclosures." }],
     }},
     { number: 10, title: "Risk Reduction Priorities", content: { high_count: 1, medium_count: 0 }},
-    { number: 11, title: "Source Traceability", content: { note: "Traceable via snapshot snap-rp. 30 peers as of 2026-06-29." }},
+    { number: 11, title: "Source Traceability", content: { note: "Traceable via snapshot snap-rp. 25 peers as of 2026-07-20." }},
     { number: 12, title: "Trend & Emerging Risk", content: { note: "Trend requires monitoring history." }},
   ],
 };
@@ -100,7 +100,7 @@ describe("ReportPage / ReportView", () => {
     renderReport(FIXTURE);
     const labels = screen.getAllByTestId("cohort-label");
     expect(labels.length).toBeGreaterThan(0);
-    expect(labels[0].textContent).toContain("30");
+    expect(labels[0].textContent).toContain("25");
     expect(labels[0].textContent).toContain("2026");
   });
 

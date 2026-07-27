@@ -1,6 +1,6 @@
 # Design System — Tokens, Furniture, DDR Summary
 
-**Version:** 1.3 · 2026-07-16 · Condenses the Brand Guide, DDRs, and UI_SPEC §0 into one authority. Design principle: **legal-and-regulator "premium" is confident stillness plus evidence everywhere.** Motion exists only to reveal evidence.
+**Version:** 1.4 · 2026-07-27 · Condenses the Brand Guide, DDRs, and UI_SPEC §0 into one authority. Design principle: **legal-and-regulator "premium" is confident stillness plus evidence everywhere.** Motion exists only to reveal evidence.
 
 ## 1. Tokens (fixed — never invent colors)
 
@@ -26,7 +26,7 @@
 - **Direction affordance:** any surface that presents a score out of context states which direction is better (e.g. a quiet "higher is better" hint) and, for benchmarked scores, what the score is relative to (the peer cohort). VCI is never shown as a bare number — it carries its band label and a plain-language tooltip.
 - **Delta coloring — by improvement, not direction** (DDR-009, `trendColor`): exposure falling = teal, rising = red; arrows show direction, color carries judgement. `trendColor` takes a per-metric **polarity flag**: maturity-type indices (higher = better, e.g. the quarterly Intelligence Indicators) invert the mapping — rising = teal, falling = red.
 - **Diff palette:** gold = added, warm-gray strikethrough = removed, everywhere.
-- **Low-confidence cohort:** one constant `LOW_CONFIDENCE_COHORT_N` (currently 10, OD-05).
+- **Low-confidence cohort:** one constant `LOW_CONFIDENCE_COHORT_N` = **10** (OD-05 Decided 2026-07-27, ai_reviewed — pending human owner confirmation).
 
 ## 3. Cross-screen furniture (required components)
 
@@ -44,7 +44,8 @@
 
 - **DDR-001:** draft state = gold watermark + gold ribbon (not yellow banner — yellow reads as error to legal readers).
 - **DDR-002:** dual-voice Analyst (Source Sans metric grid, cold, deterministic) / Advisor (Fraunces italic lede, gold left-rule, warm prose, attribution). The visual inversion *is* the message.
-- **DDR-003:** house persona "The Visentix Privacy Desk" in attribution; styled-but-empty reviewer slot awaiting SME governance.
+- **DDR-003:** house persona "The Visentix Privacy Desk" in attribution (OD-04 Decided 2026-07-27, ai_reviewed — keep for MVP, revisit at first paying client); styled-but-empty reviewer slot awaiting SME governance.
+- **Advisor-hero on mobile (OD-03 Decided 2026-07-27, ai_reviewed):** the Advisor layer may lead on mobile, with the two required mitigations already specced in §3 — a thumb-reachable Analyst/Advisor View Switch (bottom-fixed bar) and a full-screen lineage bottom sheet.
 - **Register rule:** customer-facing screens use plain language (no jargon like "SSRF"); SME Workbench may use expert jargon ("PII detected").
 
 ## 5. Quality floor (every screen)
@@ -75,6 +76,7 @@ Nav is a grouped sidebar: **Workspace** (Monitor, Intake, Rewrite, Vendors, Work
 \* **Recorded DDR-008 exception:** the two public *editorial* pages (`/quarterly`, `/trust`) open with a full-bleed editorial cover/hero instead of the shared PageHeader — like the report reader, they are documents, not workflow screens. Every other routed screen keeps PageHeader with eyebrow = nav label.
 
 ## Changelog
+- 1.4 (2026-07-27): Propagated three Phase-1 open-decision closures (all **ai_reviewed**, pending human owner confirmation): **OD-05** — `LOW_CONFIDENCE_COHORT_N = 10` confirmed (§2); **OD-04** — keep "The Visentix Privacy Desk" house persona (DDR-003); **OD-03** — advisor-hero on mobile with the two specced mitigations (§4, referencing §3 furniture). No tokens, scales, or DDR choices changed — decisions recorded against existing behavior.
 - 1.3 (2026-07-16): **Score coloring made polarity-aware** (user feedback: a Deficient 34.9 rendered teal while 82.2 exposure rendered red — color contradicted meaning). §2 now defines the maturity color scale from the canonical VICBNF maturity-band thresholds (≥75 teal · ≥60 gold · <60 red — color always agrees with the band label), keeps the exposure scale unchanged, adds the neutral-navy rule for unknown polarity, and requires direction/relative-to affordances + labeled VCI. §1 red-usage rule extended to deficient/lagging maturity (same judgement, other polarity). NEEDS EXPERT/DATA: verify the per-metric polarity registry (esp. Benchmark Deviation, Enforcement Correlation classed as exposure).
 - 1.2 (2026-07-16): Route map updated with the seven routes added by F11–F16 (audit finding: doc drift); recorded the grouped-sidebar nav structure and the DDR-008 editorial exception for `/quarterly` and `/trust`.
 - 1.1 (2026-07-15): trendColor extended with per-metric polarity flag (maturity vs exposure) per Appendix I prototype review.

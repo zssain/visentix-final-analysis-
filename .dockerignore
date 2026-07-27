@@ -1,0 +1,14 @@
+.venv/
+node_modules/
+web/
+scripts/
+tests/
+docs/
+db/
+*.pyc
+__pycache__/
+.env
+.env.*
+local_users.json
+.git/
+.github/

@@ -36,33 +36,45 @@ INDUSTRY_MAP = {
 }
 
 
-def load_peer_profiles() -> list[PeerProfile]:
-    """Load all orgs + their profiles as PeerProfile objects."""
-    r = httpx.get(
-        f"{URL}/rest/v1/organization?select=organization_id,name,industry",
-        headers=H, timeout=15,
-    )
-    orgs = {o["organization_id"]: o for o in r.json()}
+def _get_all(path: str) -> list[dict]:
+    """Paginated fetch — PostgREST caps a single response at 1000 rows, so an
+    unpaginated `organization` fetch silently dropped 25k+ orgs and capped the whole
+    benchmark job at ~40 profiled peers. Page explicitly."""
+    rows, offset, page = [], 0, 1000
+    while True:
+        r = httpx.get(f"{URL}/rest/v1/{path}",
+                      headers={**H, "Range-Unit": "items", "Range": f"{offset}-{offset + page - 1}"},
+                      timeout=60)
+        r.raise_for_status()
+        batch = r.json()
+        rows.extend(batch)
+        if len(batch) < page:
+            return rows
+        offset += page
 
-    r2 = httpx.get(
-        f"{URL}/rest/v1/organization_intelligence_profile"
-        f"?select=organization_id,rss,pgms,osi,dsi,ehp,aigms,profile_version"
-        f"&order=profile_version.desc",
-        headers=H, timeout=15,
-    )
-    # Take latest profile per org
-    seen = set()
-    profiles = {}
-    for p in r2.json():
-        oid = p["organization_id"]
-        if oid not in seen:
-            profiles[oid] = p
-            seen.add(oid)
+
+def load_peer_profiles() -> list[PeerProfile]:
+    """Load every profiled org as a PeerProfile. Profile-driven: there are only ~10^2
+    profiles vs 26k orgs, so fetch profiles first, then just those orgs by id."""
+    prof_rows = _get_all("organization_intelligence_profile"
+                         "?select=organization_id,rss,pgms,osi,dsi,ehp,aigms,profile_version"
+                         "&order=profile_version.desc")
+    # latest profile per org
+    profiles: dict[str, dict] = {}
+    for p in prof_rows:
+        profiles.setdefault(p["organization_id"], p)
+
+    org_ids = list(profiles)
+    orgs: dict[str, dict] = {}
+    for i in range(0, len(org_ids), 100):  # fetch profiled orgs in id batches
+        ids = ",".join(org_ids[i:i + 100])
+        for o in _get_all(f"organization?select=organization_id,name,industry&organization_id=in.({ids})"):
+            orgs[o["organization_id"]] = o
 
     peers = []
-    for oid, org in orgs.items():
-        p = profiles.get(oid)
-        if not p:
+    for oid, p in profiles.items():
+        org = orgs.get(oid)
+        if not org:
             continue
         peers.append(PeerProfile(
             organization_id=oid,

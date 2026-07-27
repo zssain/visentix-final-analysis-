@@ -1,10 +1,18 @@
 """Admin endpoints — system configuration and catalog management."""
 
-from fastapi import APIRouter
+from typing import Optional
+
+from fastapi import APIRouter, HTTPException, status
+from pydantic import BaseModel
 
 from app.auth import AuthenticatedUser, require_role
 
 router = APIRouter(prefix="/admin", tags=["admin"])
+
+
+class TriggerAssessmentRequest(BaseModel):
+    org_id: Optional[str] = None
+    notice_ids: Optional[list[str]] = None
 
 
 @router.get("/status")
@@ -17,10 +25,23 @@ async def admin_status(
 
 @router.post("/trigger-assessment")
 async def trigger_assessment(
+    body: TriggerAssessmentRequest,
     user: AuthenticatedUser = require_role("admin"),
 ):
-    """Trigger a new assessment run. Implemented in Phase 3."""
-    return {"detail": "not_implemented"}
+    """Run the scoring pipeline over an org's notices (or an explicit set).
+
+    Admin-gated (F09). Returns the run identifier and per-notice results.
+    """
+    from app.services.reassessment import trigger_reassessment
+
+    try:
+        return await trigger_reassessment(
+            org_id=body.org_id,
+            notice_ids=body.notice_ids,
+            triggered_by=user.email or user.user_id,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
 @router.get("/training-stats")

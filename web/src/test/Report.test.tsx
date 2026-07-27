@@ -26,19 +26,19 @@ const BANNED_TERMS = [
 const FIXTURE: ReportPayload = {
   assessment_id: "test-assess-001",
   organization_name: "TestCo",
-  generated_date: "2026-06-23",
-  cohort_size: 30,
-  cohort_date: "2026-06-23",
+  generated_date: "2026-07-18",
+  cohort_size: 23,
+  cohort_date: "2026-07-18",
   vci_label: "moderate",
   sections: [
     { number: 1, title: "Cover", content: {
       organization: "TestCo", report_title: "Privacy Intelligence Assessment",
-      date: "2026-06-23", overall_score: 62.5, vci_label: "moderate", snapshot_id: "snap-001",
+      date: "2026-07-18", overall_score: 62.5, vci_label: "moderate", snapshot_id: "snap-001",
     }},
     { number: 2, title: "Executive Summary", content: {
       summary: "TestCo presents an overall privacy intelligence score of 62.5 out of 100.",
       takeaways: ["Data sharing exposure is elevated.", "Retention periods need clarification."],
-      overall_score: 62.5, finding_count: 2, cohort_size: 30, cohort_date: "2026-06-23",
+      overall_score: 62.5, finding_count: 2, cohort_size: 23, cohort_date: "2026-07-18",
     }},
     { number: 3, title: "Risk Dashboard", content: {
       overall_intelligence: 62.5, regulatory_exposure: 45, regulatory_tier: "moderate",
@@ -46,8 +46,8 @@ const FIXTURE: ReportPayload = {
       vci_score: 58, vci_label: "moderate",
     }},
     { number: 4, title: "Benchmark Intelligence", content: {
-      org_score: 62.5, percentile: 71, cohort_size: 30, cohort_date: "2026-06-23",
-      cohort_label: "n=30 peers as of 2026-06-23", benchmark_deviation: 15,
+      org_score: 62.5, percentile: 71, cohort_size: 23, cohort_date: "2026-07-18",
+      cohort_label: "n=23 peers as of 2026-07-18", benchmark_deviation: 15,
     }},
     { number: 5, title: "Regulator Exposure", content: {
       regulatory_score: 45, tier: "moderate", heatmap: [], lineage: {},
@@ -71,7 +71,7 @@ const FIXTURE: ReportPayload = {
     }},
     { number: 10, title: "Risk Reduction Priorities", content: { high_count: 1, medium_count: 1 }},
     { number: 11, title: "Source Traceability", content: {
-      note: "All scores traceable via snapshot snap-001. Benchmarked against 30 peers as of 2026-06-23.",
+      note: "All scores traceable via snapshot snap-001. Benchmarked against 23 peers as of 2026-07-18.",
     }},
     { number: 12, title: "Trend & Emerging Risk", content: {
       note: "Per-company trend analysis requires monitoring history.",
@@ -107,7 +107,7 @@ describe("ReportView", () => {
     renderReport(FIXTURE);
     const labels = screen.getAllByTestId("cohort-label");
     expect(labels.length).toBeGreaterThan(0);
-    expect(labels[0].textContent).toContain("30");
+    expect(labels[0].textContent).toContain("23");
     expect(labels[0].textContent).toContain("2026");
   });
 

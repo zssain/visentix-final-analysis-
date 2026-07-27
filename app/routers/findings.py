@@ -95,11 +95,29 @@ async def codex(
 async def dashboard_stats(
     user: AuthenticatedUser = require_role("customer", "sme", "admin"),
 ):
-    """Real dashboard statistics — replaces all MOCK_ constants."""
+    """Real dashboard statistics — replaces all MOCK_ constants.
+
+    F10 org isolation: a `customer` sees only its own organization's stats;
+    `sme`/`admin` see the platform-wide view. A customer with no organization
+    gets empty stats — never another org's globally-latest scores.
+    """
+    if user.role == "customer" and not user.organization_id:
+        return {
+            "overall_score": None, "overall_confidence": 0, "domain_scores": [],
+            "finding_count": 0, "high_findings": 0, "medium_findings": 0,
+            "assessment_count": 0, "snapshot": {"id": None, "date": None,
+            "benchmark_population_version": None},
+            "training_stats": {"confirmed": 0, "edited": 0, "dismissed": 0},
+        }
+    # Customer → scope every query to their org; sme/admin → platform-wide.
+    org_clause = (f"&organization_id=eq.{user.organization_id}"
+                  if user.role == "customer" else "")
+
     # Overall score from latest derived_data_item
     overall_rows = _sb_get(
         "derived_data_item?select=score,confidence_score,generated_at"
         "&object_type=eq.overall_intelligence"
+        f"{org_clause}"
         "&order=generated_at.desc&limit=1"
     )
     overall_score = overall_rows[0]["score"] if overall_rows else None
@@ -121,6 +139,7 @@ async def dashboard_stats(
         rows = _sb_get(
             f"derived_data_item?select=score,confidence_score"
             f"&object_type=eq.{otype}"
+            f"{org_clause}"
             f"&order=generated_at.desc&limit=1"
         )
         domain_scores.append({
@@ -133,6 +152,7 @@ async def dashboard_stats(
     # Finding counts
     findings = _sb_get(
         "risk_finding?select=finding_type_code,severity"
+        f"{org_clause}"
         "&order=score.desc&limit=500"
     )
     high_count = sum(1 for f in findings if f.get("severity") == "high")
@@ -141,12 +161,13 @@ async def dashboard_stats(
     # Latest snapshot
     snaps = _sb_get(
         "report_snapshot?select=snapshot_id,created_at,benchmark_population_version"
+        f"{org_clause}"
         "&order=created_at.desc&limit=1"
     )
     snapshot = snaps[0] if snaps else None
 
     # Assessment count
-    notices = _sb_get("privacy_notice?select=notice_id&limit=500")
+    notices = _sb_get(f"privacy_notice?select=notice_id{org_clause}&limit=500")
 
     # Training stats
     try:

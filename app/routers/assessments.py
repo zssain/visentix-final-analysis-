@@ -1,6 +1,7 @@
 """Assessment endpoints — intake, decompose, classify, and score privacy notices."""
 
 import asyncio
+import hashlib
 import json
 import urllib.parse
 from datetime import date
@@ -14,15 +15,15 @@ from app.db import supabase_rest_get, supabase_rest_post
 from app.config import settings
 from app.logging import get_logger
 from app.services.intake.decompose import (
+    DECOMPOSE_VERSION,
     DecomposedNotice,
     decompose,
 )
 from app.services.intake.discover import discover_policy_url, is_direct_policy_url
 from app.services.intake.extract import (
-    ALLOWED_MIME_TYPES,
     ExtractionError,
-    extract_from_pdf,
     extract_from_text,
+    extract_from_upload,
     extract_from_url,
     looks_like_privacy_policy,
 )
@@ -33,11 +34,11 @@ log = get_logger(__name__)
 router = APIRouter(prefix="/assessments", tags=["assessments"])
 
 # Valid category values the LLM may return (the 8 legacy domain slugs + other)
-_LLM_TAXONOMY = [
-    "data_sharing", "tracking_cookies", "consumer_rights", "cross_border",
-    "sensitive_data", "retention", "children_teens", "ai_automated_decisions",
-    "other",
-]
+from app.services.intake.classify_v2 import (  # noqa: E402
+    CLASSIFIER_VERSION,
+    KEYWORD_FALLBACK_VERSION,
+    TAXONOMY_V2 as _LLM_TAXONOMY,   # single source of truth (shared with the reclassifier)
+)
 
 
 # ── List assessments ─────────────────────────────────────────
@@ -46,13 +47,20 @@ _LLM_TAXONOMY = [
 async def list_assessments(
     user: AuthenticatedUser = require_role("customer", "sme", "admin"),
 ):
-    """List assessments visible to the current user."""
-    r = await supabase_rest_get(
-        "privacy_notice",
-        select="notice_id,organization_id,notice_type,effective_date,content_hash,"
-               "organization(name,domain,industry,size,geography)",
-        limit=100,
-    )
+    """List assessments visible to the current user.
+
+    F10 org isolation: a `customer` sees only its own organization's notices;
+    `sme`/`admin` see all. A customer with no organization sees nothing (never
+    the whole corpus).
+    """
+    select = ("notice_id,organization_id,notice_type,effective_date,content_hash,"
+              "organization(name,domain,industry,size,geography)")
+    filters = ""
+    if user.role == "customer":
+        if not user.organization_id:
+            return []
+        filters = f"organization_id=eq.{user.organization_id}"
+    r = await supabase_rest_get("privacy_notice", select=select, filters=filters, limit=100)
     return r.json()
 
 
@@ -78,9 +86,17 @@ async def create_assessment(
     content_hash: str | None = None
     source_url: str | None = None
     content_warning: str | None = None
+    # Intake provenance — recorded honestly on the notice. 'upload' is NEVER a
+    # verified source (that badge means a URL passed SSRF validation); an
+    # uploaded document only carries its own filename/mime/original-file hash.
+    intake_method = "text"
+    upload_filename: str | None = None
+    upload_mime: str | None = None
+    upload_file_hash: str | None = None
 
     try:
         if url:
+            intake_method = "url"
             log.info("Assessment intake: URL (text not logged)")
 
             # Discovery: if URL isn't already a policy link, try to find the real one
@@ -109,15 +125,22 @@ async def create_assessment(
                 )
 
         elif file:
-            log.info("Assessment intake: PDF upload (%s)", file.filename)
-            ct = file.content_type or ""
-            if ct not in ALLOWED_MIME_TYPES:
-                raise HTTPException(
-                    status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
-                    detail=f"Unsupported file type: {ct}. Allowed: {ALLOWED_MIME_TYPES}",
-                )
-            pdf_bytes = await file.read()
-            extracted_text, content_hash = extract_from_pdf(pdf_bytes, file.filename or "")
+            # Uploaded document (PDF / DOCX / TXT). Type is validated by MAGIC
+            # BYTES inside extract_from_upload — never the client Content-Type,
+            # which is trivially spoofed. Same downstream pipeline as paste-text.
+            raw = await file.read()
+            log.info(
+                "Assessment intake: upload (%s, %d bytes)", file.filename, len(raw)
+            )
+            extracted_text, content_hash, _kind, upload_mime = extract_from_upload(
+                raw, file.filename or ""
+            )
+            intake_method = "upload"
+            # Strip any path components a browser may include; bound the length.
+            upload_filename = (file.filename or "").rsplit("/", 1)[-1][:255] or "document"
+            # Hash of the ORIGINAL bytes (distinct from content_hash of the text)
+            # — lets identical uploaded files be recognized later.
+            upload_file_hash = hashlib.sha256(raw).hexdigest()
 
         elif text:
             log.info("Assessment intake: raw text (%d chars)", len(text))
@@ -135,17 +158,24 @@ async def create_assessment(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
     # ── 2. RESOLVE / CREATE ORG ──────────────────────────────
-    org_id = organization_id
-    if not org_id and organization_name:
-        org_id = await _find_or_create_org(organization_name)
-    if not org_id and source_url:
-        # Derive org name from the URL domain
-        from urllib.parse import urlparse
-        domain = urlparse(source_url).netloc.replace("www.", "")
-        org_name_derived = domain.split(".")[0].title()
-        org_id = await _find_or_create_org(org_name_derived)
-    if not org_id:
-        org_id = await _find_or_create_org("Anonymous Assessment")
+    # Tenancy (F10): a customer's assessment ALWAYS lands under their own
+    # organization — a client-supplied organization_id/name can never redirect a
+    # customer's notice (URL, paste, or upload) into another tenant. Admins may
+    # target a specific org / derive one from the assessed URL.
+    if user.role == "customer" and user.organization_id:
+        org_id = user.organization_id
+    else:
+        org_id = organization_id
+        if not org_id and organization_name:
+            org_id = await _find_or_create_org(organization_name)
+        if not org_id and source_url:
+            # Derive org name from the URL domain
+            from urllib.parse import urlparse
+            domain = urlparse(source_url).netloc.replace("www.", "")
+            org_name_derived = domain.split(".")[0].title()
+            org_id = await _find_or_create_org(org_name_derived)
+        if not org_id:
+            org_id = await _find_or_create_org("Anonymous Assessment")
 
     # ── 3. DECOMPOSE ─────────────────────────────────────────
     notice = decompose(extracted_text)
@@ -180,6 +210,15 @@ async def create_assessment(
         "jurisdiction_scope": ["US"],
         "storage_path": "",
         "extraction_confidence": round(mean_conf, 4),
+        # Intake provenance (migration 0033). Upload columns are NULL for
+        # url/text intake; set only for uploaded documents.
+        "intake_method": intake_method,
+        "upload_filename": upload_filename,
+        "upload_mime": upload_mime,
+        "upload_file_hash": upload_file_hash,
+        # decompose-v2 noise filter version tag — marks this assessment as
+        # noise-filtered so older assessments (NULL) stay untouched (Rule 4).
+        "decompose_version": DECOMPOSE_VERSION,
         "ai_disclosure_presence": any(
             c.category == "ai_automated_decisions" for c in notice.clauses
         ),
@@ -237,6 +276,13 @@ async def create_assessment(
             "domain_id": c.domain_id or None,
             "clause_type": c.clause_type or None,
             "transparency_score": c.transparency_score,
+            # v2 classification written at ingest (never NULL) — mirror of the reclassifier
+            "category_v2": c.category_v2,
+            "nlp_confidence_v2": c.nlp_confidence_v2,
+            "classifier_version": c.classifier_version,
+            # decompose-v2 noise filter — kept for lineage, excluded from counts.
+            "is_noise": c.is_noise,
+            "noise_reason": c.noise_reason,
         }
         for c in notice.clauses
     ]
@@ -276,8 +322,19 @@ async def create_assessment(
         "organization_id": org_id,
         "status": "scored" if scoring_summary else "decomposed",
         "sections": len(notice.sections),
-        "clauses": len(notice.clauses),
+        "clauses": len(notice.clauses),  # total extracted units (incl. flagged noise)
+        # decompose-v2: substantive vs noise split for an honest headline count.
+        "clauses_substantive": sum(1 for c in notice.clauses if not c.is_noise),
+        "clauses_noise": sum(1 for c in notice.clauses if c.is_noise),
         "content_hash": content_hash,
+        # M-02: the source was fetched from a URL that passed SSRF validation
+        # (a failed check raises above, so reaching here with a source_url means
+        # it was validated). File/text intake has no fetched source → not set.
+        "ssrf_protected": bool(source_url),
+        "source_url": source_url or None,
+        # Intake provenance — drives the honest source badge in the UI. An
+        # 'upload' is a customer-register "uploaded document", NOT verified-source.
+        "intake_method": intake_method,
         "classification": {
             "llm": llm_classified,
             "keyword_fallback": keyword_fallback,
@@ -289,6 +346,8 @@ async def create_assessment(
         response["scoring_error"] = scoring_error
     if content_warning:
         response["content_warning"] = content_warning
+    if upload_filename:
+        response["upload_filename"] = upload_filename
 
     return response
 
@@ -301,7 +360,9 @@ async def _classify_clauses(notice: DecomposedNotice) -> tuple[int, int]:
     Returns (llm_classified_count, keyword_fallback_count).
     On any LLM-level failure, all clauses keep their keyword labels.
     """
-    eligible = [c for c in notice.clauses if len(c.raw_text) >= 20]
+    # Noise clauses are excluded from classification counts (they keep their
+    # deterministic keyword label for lineage but are never LLM-classified/counted).
+    eligible = [c for c in notice.clauses if len(c.raw_text) >= 20 and not c.is_noise]
     if not eligible:
         return 0, 0
 
@@ -322,13 +383,25 @@ async def _classify_clauses(notice: DecomposedNotice) -> tuple[int, int]:
                 result = await llm.classify(clause.raw_text, _LLM_TAXONOMY)
                 cat = result.get("category", "")
                 if cat in _LLM_TAXONOMY:
+                    conf = min(result.get("confidence", 0.7), 0.95)
                     clause.category = cat
-                    clause.nlp_confidence = min(result.get("confidence", 0.7), 0.95)
+                    clause.nlp_confidence = conf
+                    # write the v2 columns at ingest (mirror of the reclassifier) so a
+                    # new clause is NEVER left with a NULL category_v2.
+                    clause.category_v2 = cat
+                    clause.nlp_confidence_v2 = conf
+                    clause.classifier_version = CLASSIFIER_VERSION
                     llm_count += 1
                 else:
                     fallback_count += 1
             except Exception:
                 fallback_count += 1
+        # LLM unavailable / off-taxonomy → keep the deterministic keyword label as v2
+        # (still non-NULL, honestly attributed) so category_v2 is never NULL.
+        if clause.category_v2 is None:
+            clause.category_v2 = clause.category
+            clause.nlp_confidence_v2 = clause.nlp_confidence
+            clause.classifier_version = KEYWORD_FALLBACK_VERSION
 
     await asyncio.gather(*[_classify_one(c) for c in eligible])
     return llm_count, fallback_count

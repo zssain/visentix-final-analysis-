@@ -1,0 +1,33 @@
+{
+  "counts": {
+    "fintech": 2783
+  },
+  "csv_sizes_bytes": {
+    "fintech": 29605813
+  },
+  "spot_checks": {
+    "fintech": [
+      {
+        "domain": "natwestinternational.com",
+        "last_updated": "2009A",
+        "chars": 2712,
+        "looks_ok": true,
+        "preview": "We are committed to protecting your privacy during your visits to our website and recognise our responsibility to hold your information securely and confidentia"
+      },
+      {
+        "domain": "forexmagnates.com",
+        "last_updated": "2019A",
+        "chars": 32350,
+        "looks_ok": true,
+        "preview": "  1. FM Home   2. Terms, Cookies and Privacy Notice    Privacy:  This Privacy Policy sets out how Finance Magnates LTD uses and protects any information that yo"
+      },
+      {
+        "domain": "ironaffiliates.com",
+        "last_updated": "2017A",
+        "chars": 6919,
+        "looks_ok": true,
+        "preview": "PRIVACY  POLICY                                                                                  Privacy Policy                                          PRIVACY"
+      }
+    ]
+  }
+}

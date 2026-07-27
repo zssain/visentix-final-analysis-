@@ -1,6 +1,6 @@
 # F09 — Admin Console
 
-**Status:** shipped UI (gate mode + batch trigger simulated, M-13/M-14) · **Release:** R1 · **Depends on:** F02, F06, schema.md (`platform_setting`)
+**Status:** shipped (gate mode + batch trigger real; M-13/M-14 Replaced 2026-07-27) · **Release:** R1 · **Depends on:** F02, F06, schema.md (`platform_setting`, `ingestion_run`)
 
 ## Purpose
 Internal operations surface: platform gate-mode control, batch assessment triggering, system health, training-label stats, corpus/source oversight (grows with F02).
@@ -15,13 +15,13 @@ Admin role · `/admin`. No provenance ribbon (not a snapshot surface); no trust 
 4. (R2) Source registry management and ingest triggers (see F02).
 
 ## API contracts
-- `GET/POST /api/admin/gate-mode` (new) — POST audited.
-- `POST /api/admin/trigger-assessment` — real implementation; returns job_id; `GET /api/admin/jobs/:id`.
-- `GET /api/admin/health`.
+- `GET/POST /review/gate-mode` — **actual path** (`platform_setting`-backed, `app/services/review.py`). ⚠️ Differs from the originally-planned `/api/admin/gate-mode`: gate mode lives on the review service, not admin. POST is admin-only.
+- `POST /admin/trigger-assessment` — real batch (`app/services/reassessment.py`); returns `{run_id, requested, scored, failed, outcome, notices[]}`. The `run_id` is an `ingestion_run` row (the audit trail). There is **no** separate `GET /admin/jobs/:id`; the batch runs synchronously and returns its per-notice result set. `records-new`/`skipped` land on the `ingestion_run` row.
+- `GET /admin/training-stats`, `GET /health`.
 
 ## Acceptance criteria
-- AC-1 Gate-mode change persists across restart and is enforced by F05/F06 immediately.
-- AC-2 Batch trigger runs the real pipeline; UI shows real job status (simulation code deleted).
+- AC-1 Gate-mode change persists across restart (via `platform_setting`) and is enforced by F05/F06 immediately.
+- AC-2 Batch trigger runs the real pipeline (reconstructs each notice's decomposition from stored rows → `score_and_persist`) and returns real per-notice outcomes; the Console shows the run summary (simulation/placeholder deleted).
 - AC-3 All admin routes reject non-admin JWTs.
 
 ## Behavior & states
@@ -38,4 +38,5 @@ See [`00-plan/mock-tracker.md`](../00-plan/mock-tracker.md): **M-13** (Global Ga
 Role-enforcement tests, gate-mode persistence + enforcement integration test, job lifecycle test.
 
 ## Changelog
+- 2026-07-27 (engineering closeout): **M-13 + M-14 Replaced.** Gate mode: `Console.tsx` GETs/POSTs the real `/review/gate-mode` (optimistic + rollback on failure). Batch trigger: `POST /admin/trigger-assessment` replaced the `not_implemented` stub with a real synchronous batch over an org's stored notices (`app/services/reassessment.py`, run_id = `ingestion_run` row); Console "System Operations" button wired. API-contract + AC section trued to the actual paths/shape (gate-mode is `/review/gate-mode`, not `/api/admin/gate-mode`; no separate `/jobs/:id`). Tests in `tests/test_reassessment.py`.
 - 2026-07-16: Added Behavior & states, Mocks, and Changelog sections for template conformance; no behavioral change.

@@ -21,7 +21,7 @@ export function CompoundRisk({ content }: { content: ReportSection["content"] })
         <ScoreCell
           value={compoundScore}
           formulaId="F-008"
-          formulaDesc="Blends regulatory, disclosure, and enforcement dimensions into a single compound risk indicator."
+          formulaDesc={(content.formula_descs as Record<string, string> | undefined)?.["F-008"] ?? ""}
           inputs={[
             { label: "Regulatory", type: "regulator" },
             { label: "Disclosure", type: "clause" },

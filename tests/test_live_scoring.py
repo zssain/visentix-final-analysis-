@@ -249,3 +249,29 @@ async def test_vci_is_present_and_valid():
     assert 0 <= vci["score"] <= 100
     assert vci["label"] in ("very_high", "high", "moderate", "low", "very_low")
     assert "components" in vci
+
+
+@pytest.mark.anyio
+async def test_score_and_persist_eager_enqueues_for_sme_review():
+    """F06 regression: completing an assessment enqueues it for SME review
+    immediately (a DRAFT assessment_review row) — no by-id open required, so it
+    is visible in the queue right after scoring (Stage-3 handoff fix)."""
+    notice = _make_notice()
+    mock_client = _mock_httpx_client()
+
+    from unittest.mock import MagicMock
+    enqueue = MagicMock()
+
+    with patch("app.services.live_scoring.httpx.AsyncClient") as MockClass, \
+         patch("app.services.review.get_or_create_review", enqueue):
+        MockClass.return_value.__aenter__ = AsyncMock(return_value=mock_client)
+        MockClass.return_value.__aexit__ = AsyncMock(return_value=False)
+        with patch("app.services.benchmark.population.build_population", new_callable=AsyncMock) as mock_pop:
+            mock_pop.return_value = {
+                "population_key": "test",
+                "members": [{"organization_id": f"p{i}", "pgms": 50, "benchmark_weight": 0.8, "similarity": 0.7} for i in range(10)],
+                "cohort_size": 10, "relaxations": [], "benchmark_population_version": 1, "confidence_penalty": 0.1, "band": "broad",
+            }
+            await score_and_persist("org-test", "notice-eager-123", notice)
+
+    enqueue.assert_called_once_with("notice-eager-123")

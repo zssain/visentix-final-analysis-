@@ -6,8 +6,15 @@ import { useState } from "react";
 import { BrowserRouter, Link, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import {
   Activity, FilePlus2, ClipboardCheck, Newspaper, BookMarked,
-  Compass, Settings, Handshake, ScanSearch, Grid3x3, PenLine, ShieldCheck, Building2,
+  Compass, Settings, Grid3x3, PenLine, ShieldCheck, Handshake, ScanSearch, Building2,
 } from "lucide-react";
+
+// Pilot builds hide the post-MVP surfaces that still render mock data
+// (M-15..M-28: Quarterly, Bulk, Crosswalk, Rewrite, Trust Center, Partner,
+// Vendors). Their routes stay registered (reachable by URL for internal QA)
+// but are unlinked from the nav unless VITE_PREVIEW_SURFACES=true. Default off
+// → a pilot client only sees real-data surfaces. See ENGINEERING-CLOSEOUT §7.
+const PREVIEW_SURFACES = import.meta.env.VITE_PREVIEW_SURFACES === "true";
 import { AuthProvider, useAuth } from "./auth/AuthProvider";
 import { ProtectedRoute }        from "./auth/ProtectedRoute";
 import { ExplainProvider }       from "./report/explain/ExplainContext";
@@ -90,7 +97,9 @@ function AppRoutes() {
                 <div className="side-group-label">Workspace</div>
                 <NavLink to="/assessments" onClick={closeNav}><Activity size={17} aria-hidden /> Monitor</NavLink>
                 <NavLink to="/intake" onClick={closeNav}><FilePlus2 size={17} aria-hidden /> Intake</NavLink>
-                <NavLink to="/rewrite" onClick={closeNav}><PenLine size={17} aria-hidden /> Rewrite</NavLink>
+                {PREVIEW_SURFACES && (
+                  <NavLink to="/rewrite" onClick={closeNav}><PenLine size={17} aria-hidden /> Rewrite</NavLink>
+                )}
                 <NavLink to="/vendors" onClick={closeNav}><Building2 size={17} aria-hidden /> Vendors</NavLink>
                 {(role === "sme" || role === "admin") && (
                   <NavLink to="/review" onClick={closeNav}><ClipboardCheck size={17} aria-hidden /> Workbench</NavLink>
@@ -99,11 +108,17 @@ function AppRoutes() {
 
               <div className="side-group">
                 <div className="side-group-label">Intelligence</div>
-                <NavLink to="/quarterly" onClick={closeNav}><Newspaper size={17} aria-hidden /> Quarterly</NavLink>
-                <NavLink to="/crosswalk" onClick={closeNav}><Grid3x3 size={17} aria-hidden /> Crosswalk</NavLink>
+                {PREVIEW_SURFACES && (
+                  <NavLink to="/quarterly" onClick={closeNav}><Newspaper size={17} aria-hidden /> Quarterly</NavLink>
+                )}
+                {PREVIEW_SURFACES && (
+                  <NavLink to="/crosswalk" onClick={closeNav}><Grid3x3 size={17} aria-hidden /> Crosswalk</NavLink>
+                )}
                 <NavLink to="/codex" onClick={closeNav}><BookMarked size={17} aria-hidden /> Codex</NavLink>
                 <NavLink to="/methodology" onClick={closeNav}><Compass size={17} aria-hidden /> Methodology</NavLink>
-                <NavLink to="/trust" onClick={closeNav}><ShieldCheck size={17} aria-hidden /> Trust Center</NavLink>
+                {PREVIEW_SURFACES && (
+                  <NavLink to="/trust" onClick={closeNav}><ShieldCheck size={17} aria-hidden /> Trust Center</NavLink>
+                )}
               </div>
 
               {role === "admin" && (

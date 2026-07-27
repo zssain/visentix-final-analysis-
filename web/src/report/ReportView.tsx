@@ -5,8 +5,9 @@
  *
  * DDR-001: draft_banner replaced by ProvenanceRibbon + diagonal watermark.
  */
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import type { ReportPayload } from "./types";
+import { api } from "../lib/api";
 import { ProvenanceRibbon } from "../components/ProvenanceRibbon";
 import { useExplain } from "./explain/ExplainContext";
 import "./explain/explain.css";
@@ -45,6 +46,20 @@ export function ReportView({ report }: ReportViewProps) {
   const isDraft = !!report.draft_banner;
   const { prefetch } = useExplain();
 
+  // M-10: real plain-English formula descriptions from formula_version.description
+  // (14/14 populated). Threaded into every section so lineage drawers stop using
+  // hardcoded copy. Empty until loaded → sections fall back to honest absence.
+  const [formulaDescs, setFormulaDescs] = useState<Record<string, string>>({});
+  useEffect(() => {
+    api.get("/api/formulas").then((res: { formulas?: Record<string, { description?: string }> }) => {
+      const map: Record<string, string> = {};
+      for (const [fid, v] of Object.entries(res.formulas ?? {})) {
+        if (v?.description) map[fid] = v.description;
+      }
+      setFormulaDescs(map);
+    }).catch(() => { /* backend down → sections render honest absence */ });
+  }, []);
+
   // Prefetch all explain envelopes when the report loads
   useEffect(() => {
     if (report.assessment_id) {
@@ -52,11 +67,15 @@ export function ReportView({ report }: ReportViewProps) {
     }
   }, [report.assessment_id, prefetch]);
 
-  // Extract snapshot ID from sections if available (Cover section carries it)
+  // M-09: prefer the authoritative stored snapshot id + frozen-at threaded
+  // from the report_snapshot row; fall back to the Cover section, then honest
+  // absence — never a plausible-looking fake ID (Hard Rule 7).
   const coverContent = report.sections.find(s => s.number === 1)?.content ?? {};
-  const snapshotId   = (coverContent.snapshot_id as string | undefined) ?? "—" /* honest absence — never a plausible-looking fake ID (Hard Rule 7) */;
+  const snapshotId   = report._snapshot_id
+    ?? (coverContent.snapshot_id as string | undefined)
+    ?? "—";
   const formulaVer   = coverContent.formula_version as string | undefined;
-  const frozenDate   = report.generated_date ?? "—";
+  const frozenDate   = (report._generated_at ?? report.generated_date ?? "—").slice(0, 10) || "—";
 
   return (
     <div
@@ -80,8 +99,9 @@ export function ReportView({ report }: ReportViewProps) {
         // Thread snapshot context into every section's content
         const enrichedContent = {
           ...section.content,
-          snapshot_id:   coverContent.snapshot_id   ?? snapshotId,
+          snapshot_id:   snapshotId,
           is_draft:      isDraft,
+          formula_descs: formulaDescs,
           cohort_size:   report.cohort_size,
           cohort_date:   report.cohort_date,
           date:          report.generated_date,

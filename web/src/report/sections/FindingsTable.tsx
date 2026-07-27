@@ -107,11 +107,11 @@ export function FindingsTable({ content }: { content: ReportSection["content"] }
                         cohortPercentile={f.percentile ?? 50}
                         vci={Number(f.confidence?.replace("%", "")) || 75}
                         formulaId="F-002"
-                        formulaDesc="Multiplies jurisdiction importance by regulator priority and disclosure severity across each domain."
+                        formulaDesc={(content.formula_descs as Record<string, string> | undefined)?.["F-002"] ?? ""}
                         cohortSize={cohortSize}
                         cohortDate={cohortDate}
-                        advisorLede={f.advisor_lede ?? "This finding reflects elevated exposure in this disclosure domain relative to the assessed peer cohort."}
-                        advisorBody={f.advisor_body ?? "The organisation's notice language in this area presents a measurable exposure gap compared to the cohort benchmark. The disclosure scope and specificity fall below the 75th percentile of peer practice, indicating a maturity gap that warrants attention."}
+                        advisorLede={f.advisor_lede ?? ""}
+                        advisorBody={f.advisor_body ?? ""}
                         lineageRefs={f.lineage_refs}
                       />
                     </td>

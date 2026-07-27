@@ -15,6 +15,11 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from uuid import uuid4
 
+# Decomposer version tag. New assessments are processed by the v2 noise filter
+# (below); this marks them so old assessments — which have no version / a
+# different one — stay untouched and are never silently re-scored (Rule 4).
+DECOMPOSE_VERSION = "decompose-v2-noisefilter"
+
 # ── Load taxonomy from single source of truth ────────────────
 
 _TAXONOMY_PATH = Path(__file__).resolve().parents[3] / "config" / "clause_taxonomy.json"
@@ -91,6 +96,8 @@ class DecomposedSection:
     section_type: str
     sequence: int
     text: str
+    is_noise: bool = False
+    noise_reason: str | None = None
 
 
 @dataclass
@@ -107,6 +114,16 @@ class DecomposedClause:
     domain_id: str = ""     # CR/DC/SH/RT/AI/SEC/TRK/XB or ""
     clause_type: str = ""   # one of 30 types or ""
     transparency_score: float = 0.0
+    # v2 category (never NULL once classified) — set by the intake LLM step, mirror of
+    # the reclassifier. Defaults None so decompose()-only callers can fill it later.
+    category_v2: str | None = None
+    nlp_confidence_v2: float | None = None
+    classifier_version: str | None = None
+    # Noise filter (decompose-v2): a clause flagged is_noise is KEPT for lineage
+    # but excluded from classification counts, scoring inputs, and presence-count
+    # dimensions. noise_reason records which deterministic predicate fired.
+    is_noise: bool = False
+    noise_reason: str | None = None
 
 
 @dataclass
@@ -262,20 +279,85 @@ def compute_readability(text: str) -> float:
     return round(readability, 4)
 
 
+# ── Noise filter (decompose-v2) ──────────────────────────────
+#
+# Deterministic, explainable section-level noise detection. Uses ONLY signals
+# already available at decomposition: char length, list/link structure,
+# cross-section duplication, and section position (sequence). Approved rule
+# (DECISION-NEEDED.md Part 1). TIE-BREAK: uncertain → NOT noise — missed noise
+# is bounded, but filtering real disclosure text destroys scoring evidence. That
+# is why there is no blunt "chars < 120" predicate: an ambiguous mid-length
+# fragment (e.g. a list continuation) is kept, not filtered.
+
+_METADATA_RE = re.compile(
+    r"^\s*(last updated|effective date|version\b|©|copyright|all rights reserved)",
+    re.IGNORECASE,
+)
+_TERMINAL_PUNCT = (".", "?", "!")
+_CLAUSE_FRAGMENT_MIN_CHARS = 20  # below this a clause is a fragment (was silently dropped)
+
+
+def _section_structural_noise(text: str) -> str | None:
+    """Return a noise_reason for heading/metadata/list-fragment sections, else None.
+
+    Duplication is handled by the caller (it needs cross-section state). Order is
+    significant — the first matching predicate wins.
+    """
+    stripped = text.strip()
+    if not stripped:
+        return "heading_only"
+
+    words = stripped.split()
+    n_words = len(words)
+    ends_sentence = stripped.endswith(_TERMINAL_PUNCT)
+
+    # 1. Markdown heading.
+    if stripped.startswith("#"):
+        return "heading_only"
+    # 2. Front-matter metadata (date stamps, version/copyright lines) — before the
+    #    short-label arm so a date stamp reads as 'metadata'.
+    if _METADATA_RE.match(stripped):
+        return "metadata"
+    # 3. List fragment: a short list item split into its own section (trailing
+    #    ';' or ':' , <= 12 words, no sentence end) — before the short-label arm
+    #    so a <=6-word list item reads as 'list_fragment'. The 12-word bound
+    #    spares longer list continuations (kept as real text per the tie-break).
+    if n_words <= 12 and stripped.endswith((";", ":")) and not ends_sentence:
+        return "list_fragment"
+    # 4. Title-only / short non-sentence label.
+    if n_words <= 6 and not ends_sentence:
+        return "heading_only"
+    return None
+
+
 # ── Decomposition ────────────────────────────────────────────
 
 def decompose(text: str) -> DecomposedNotice:
     """Decompose notice text into sections and clauses.
 
     Uses the VICBNF v2 30-type taxonomy for classification. The legacy
-    `category` field is always set to the backward-compatible slug.
+    `category` field is always set to the backward-compatible slug. Applies the
+    deterministic decompose-v2 noise filter: nav/heading/metadata/list-fragment
+    sections and their clauses are flagged is_noise (kept for lineage, excluded
+    downstream from counts), never deleted.
     """
     result = DecomposedNotice()
     sections = _split_sections(text)
 
+    seen_keys: dict[str, str] = {}  # normalized section text -> first section_id
+
     for seq, (title, section_text) in enumerate(sections):
         section_id = str(uuid4())
         stype = _infer_section_type(title)
+
+        # Section-level noise: structural predicates first, then duplication.
+        sec_reason = _section_structural_noise(section_text)
+        key = " ".join(section_text.strip().lower().split())
+        if sec_reason is None and key and key in seen_keys:
+            sec_reason = f"duplicate_of:{seen_keys[key]}"
+        if key and key not in seen_keys:
+            seen_keys[key] = section_id  # first occurrence is the one kept
+        sec_is_noise = sec_reason is not None
 
         result.sections.append(DecomposedSection(
             section_id=section_id,
@@ -283,12 +365,26 @@ def decompose(text: str) -> DecomposedNotice:
             section_type=stype,
             sequence=seq,
             text=section_text,
+            is_noise=sec_is_noise,
+            noise_reason=sec_reason,
         ))
 
         paragraphs = _split_clauses(section_text)
         for para in paragraphs:
-            if len(para.strip()) < 20:
+            stripped = para.strip()
+            if not stripped:
                 continue
+
+            # Noise inheritance: a clause is noise if its section is noise, or if
+            # it is a sub-20-char fragment. These were silently DROPPED before —
+            # now kept + flagged so lineage survives (count behavior unchanged:
+            # both are excluded downstream, as the dropped ones effectively were).
+            if len(stripped) < _CLAUSE_FRAGMENT_MIN_CHARS:
+                clause_is_noise, clause_reason = True, "clause_fragment"
+            elif sec_is_noise:
+                clause_is_noise, clause_reason = True, f"section:{sec_reason}"
+            else:
+                clause_is_noise, clause_reason = False, None
 
             normalized = para.lower().strip()
             domain_id, clause_type, legacy_slug, confidence = classify_clause_v2(para)
@@ -299,7 +395,7 @@ def decompose(text: str) -> DecomposedNotice:
             result.clauses.append(DecomposedClause(
                 clause_id=str(uuid4()),
                 section_id=section_id,
-                raw_text=para.strip(),
+                raw_text=stripped,
                 normalized_text=normalized,
                 category=legacy_slug,       # backward compat for scoring
                 ambiguity_score=ambiguity,
@@ -308,6 +404,8 @@ def decompose(text: str) -> DecomposedNotice:
                 domain_id=domain_id,
                 clause_type=clause_type,
                 transparency_score=transparency,
+                is_noise=clause_is_noise,
+                noise_reason=clause_reason,
             ))
 
     return result

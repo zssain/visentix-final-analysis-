@@ -43,16 +43,6 @@ async def review_queue(
     return [asdict(r) for r in queue]
 
 
-@router.get("/{assessment_id}")
-async def review_assessment(
-    assessment_id: str,
-    user: AuthenticatedUser = require_role("sme", "admin"),
-):
-    """View an assessment's findings and review state."""
-    review = get_or_create_review(assessment_id)
-    return asdict(review)
-
-
 @router.post("/finding/{assessment_id}/{finding_id}")
 async def review_finding(
     assessment_id: str,
@@ -212,3 +202,17 @@ async def approve_exemplar(
         raise HTTPException(status_code=r.status_code, detail="Failed to approve exemplar")
 
     return {"status": "approved", "exemplar_id": exemplar_id, "sme_cleaned": True}
+
+
+# NOTE: this catch-all dynamic GET is registered LAST so it never shadows the
+# static-path routes above (/queue, /gate-mode, /exemplars). FastAPI matches in
+# registration order — a GET /{assessment_id} declared earlier would swallow
+# GET /review/gate-mode and GET /review/exemplars (Stage-3 routing fix).
+@router.get("/{assessment_id}")
+async def review_assessment(
+    assessment_id: str,
+    user: AuthenticatedUser = require_role("sme", "admin"),
+):
+    """View an assessment's findings and review state."""
+    review = get_or_create_review(assessment_id)
+    return asdict(review)

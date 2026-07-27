@@ -1,6 +1,6 @@
 # Intelligence Logic — Classification, Benchmarking, Scoring
 
-**Version:** 1.2 · 2026-07-16 · Consolidates VICBNF v2.0, the Derived Intelligence Catalog v1, and the Intelligence Engine Framework. All weights are **initial policy settings**, configurable in `formula_version` / lookup tables, subject to calibration governance — never hardcoded.
+**Version:** 1.5 · 2026-07-28 · Consolidates VICBNF v2.0, the Derived Intelligence Catalog v1, and the Intelligence Engine Framework. All weights are **initial policy settings**, configurable in `formula_version` / lookup tables, subject to calibration governance — never hardcoded.
 
 ## 1. Pipeline (Porter value chain)
 
@@ -26,7 +26,9 @@ Completeness (expected clauses present / expected), Transparency (transparent/re
 
 8 domains + other: **CR** Consumer Rights (access, delete, correct, portability, appeal, opt-out, agent) · **DC** Data Collection (PI categories, sensitive, biometric, precise location, children) · **SH** Sharing (service providers, ad networks, analytics, affiliates, data brokers) · **RT** Retention (specific period, criteria-based, undefined) · **AI** (automated decisions, profiling, human review, training data, transparency) · **SEC** (safeguards, incident/breach) · **TRK** (cookies, preference center) · **XB** (cross-border transfers). Finding codes (TRK-007, SH-002, RT-003 …) are governed in the Codex (`finding_type`).
 
-**v2 reclassification (shipped).** A second-pass classifier (`scripts/reclassify_other.py`, `classifier_version = qwen3-8b-local-v1`) re-labels legacy `category='other'` clauses into the 8 domains, writing **only** to `disclosure_clause.category_v2 / nlp_confidence_v2 / classifier_version` (never overwriting the base `category` — see schema.md §2). This reduced the "other" bucket from ~65% toward ~20% of the corpus. Downstream reads should prefer `category_v2` when present, falling back to `category`.
+**v2 reclassification (COMPLETE — 100% coverage as of 2026-07-24).** A second-pass classifier (`scripts/reclassify_other.py`, `classifier_version = qwen3-8b-local-v1`, local Qwen3-8B) labels clauses into the 8 domains + `other`, writing **only** to `disclosure_clause.category_v2 / nlp_confidence_v2 / classifier_version` (never overwriting the base `category` — see schema.md §2). The intake path now also writes `category_v2` at ingest (shared `app/services/intake/classify_v2.py`), so **new clauses are never left NULL**; the batch reclassifier drains any backlog. Downstream reads should prefer `category_v2`, falling back to `category`.
+
+⚠️ **Status update (2026-07-24) — real numbers, run to completion.** The reclassifier has now been run over the **entire** corpus. Before: **10,436 of 12,829 clauses (81.3%) had `category_v2 IS NULL`**. After: **0 NULL — every clause is classified.** The **honest `category_v2 = 'other'` share is 34.1% (4,372 / 12,829)** — materially better than the pre-run state but **well above the aspirational ~20% target**; the ~20% figure remains an aspiration, not the current state, and must not be cited. Full `category_v2` distribution (2026-07-24 live census): other 34.1% · data_sharing 29.0% · consumer_rights 12.5% · sensitive_data 6.8% · tracking_cookies 6.2% · retention 5.5% · cross_border 4.2% · ai_automated_decisions 1.0% · children_teens 0.7%. Source: `logs/audits/census-2026-07-24.md`.
 
 ## 5. Benchmark population construction
 
@@ -40,6 +42,10 @@ Population key = **Industry + RSS tier + PGMS tier + OSI tier + DSI tier + AIGMS
 | <20 | Broaden to industry cohort + confidence reduction, flag low confidence |
 
 Five corpus populations: Market Reality, Regulatory Resilience, Enforcement, Gold Standard, AI Governance. Corpus gate: **CQS ≥ 75** (Extraction 25% + Completeness 25% + Freshness 20% + Source reliability 20% + Version stability 10%).
+
+**One gate, both cohort mechanisms (F03 AC-5).** The live **dynamic population** (`build_population`) and the **demo-cohort job** (`scripts/build_cohorts.py`) must draw from the same eligible pool — a CQS-excluded org may never appear in one but not the other. **Operational note:** until per-org `corpus_quality.cqs` is fully populated, both use the freshness **proxy** "org has a fresh `open_web` privacy_notice" (a 2026 crawl) as the eligibility gate, which excludes the CQS-failing 2019 Princeton corpus. When the gate holds orgs out, the count is disclosed on the cohort label (`cqs_gated_excluded_N`). Migrating the proxy to the formal CQS ≥ 75 score is a follow-up once `corpus_quality` is populated for the live pool.
+
+**Low-confidence cohort floor (OD-05, Decided 2026-07-27 ai_reviewed):** `LOW_CONFIDENCE_COHORT_N = 10`. A cohort with n ≥ 10 but < 20 is usable **only** with the low-confidence label (per the <20 caution band above); a cohort with n < 10 must not be used. This 10-floor is conservative relative to the VICBNF <20 caution band and is the single source cited by `design-system §2` and `web/src/lib/scoreBands.ts`.
 
 ## 6. Normalization engine
 
@@ -106,6 +112,9 @@ Governance rules for how *derived intelligence* — every `derived_data_item` ob
 | **DIR-010** | Reproducibility: every published number is reproducible from its stored snapshot + formula version + benchmark version; a frozen snapshot regenerates identically. | F12; roadmap "reproducible from stored snapshot"; Hard Rule 6 |
 
 ## 13. Changelog
+- 1.5 (2026-07-28): §5 records that the **dynamic population and demo-cohort job share one CQS eligibility gate** (F03 AC-5), and the honest **operational note** that both currently use the `open_web`-notice freshness proxy (excluding the CQS-failing 2019 Princeton corpus) until per-org `corpus_quality.cqs` is populated; CQS hold-outs are disclosed on the cohort label. No weight/threshold/taxonomy change — a Rule-6 consistency fix surfaced by the Stage-3 rehearsal. Source: engineer.
+- 1.4 (2026-07-27): §5 records the **OD-05 low-confidence cohort floor** `LOW_CONFIDENCE_COHORT_N = 10` (Decided ai_reviewed, pending human owner confirmation) — no weight/threshold/taxonomy change; codifies the existing constant's home. Phase-1 pilot-readiness pass.
+- 1.3 (2026-07-20): **§4 status correction (truth reconciliation).** Removed the unsupported claim that the v2 reclassifier had reduced the "other" bucket to ~20%; the 2026-07-20 census shows only 38.9% of clauses have a `category_v2` value (3,754 still NULL). Restated as "partially run; completion pending" with the census numbers. No formula, weight, or taxonomy change. Source: engineer + `logs/audits/2026-07-data-layer-audit.md`.
 - 1.2 (2026-07-16): added §12 Derived Intelligence Rules (DIR) registry — restores the DIR definitions the v1.0 consolidation named but dropped; reconstructed from usage + Hard Rules 4/6, flagged for expert verification against the source Catalog. Structural fix (spec-change): DIR refs were dangling across schema/F04/F05/F11/F12/roadmap.
 - 1.1 (2026-07-15): §4 records the shipped v2 corpus reclassification (`category_v2`, `classifier_version=qwen3-8b-local-v1`), absorbed from the archived RECLASSIFY_PLAN.md / AUDIT.md and verified against `scripts/reclassify_other.py`.
 - 1.0: consolidated from VICBNF v2.0 (all sections + Appendix A), Derived Intelligence Catalog (formula library, variables, triggers, DIRs), Intelligence Engine Framework Appendices B–F.

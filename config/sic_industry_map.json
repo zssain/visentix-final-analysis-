@@ -1,0 +1,42 @@
+{
+  "_meta": {
+    "name": "sic_industry_map",
+    "status": "AI-REVIEWED (ai_reviewed) — pending human SME re-review before client delivery",
+    "mapped_by": "ai_reviewed",
+    "warning": "Reviewed 2026-07-27 by the interim AI reviewer (Phase 1). industry_id codes were CORRECTED to the CANONICAL 10-industry taxonomy (config/org_profile_weights.json / intelligence-logic §2); the original draft used an obsolete 6-industry numbering that collided with the canonical scheme. This map is still NOT auto-applied to organization.industry_id by the sec_edgar importer — a human SME must confirm 'ai_reviewed' → 'approved' before it feeds profiling (F03) or benchmark cohorting. See db/migrations/0025 + 0030 and logs/decision-log.md 2026-07-27.",
+    "industry_id_source": "Canonical 10-industry taxonomy IND-01..IND-10 (config/org_profile_weights.json, referenced by intelligence-logic §2 and app/services/profiling/live_profile.py). IND-00 = unmapped.",
+    "range_semantics": "Each row covers the inclusive 4-digit SIC range [sic_low, sic_high]. Ranges avoid seeding thousands of single-code rows; the connector expands ranges at load time.",
+    "created": "2026-07-23",
+    "reviewed": "2026-07-27",
+    "open_question": "OD-09 — 'Entertainment & Media' (SIC 2700-2799, 7800-7999) has NO equivalent in the canonical 10-industry taxonomy. Those two ranges are left mapped_by='draft', industry_id='IND-00' (unmapped) pending an expert decision to add a media industry or remap them."
+  },
+  "industries": {
+    "IND-00": "Unmapped",
+    "IND-01": "Retail & Consumer",
+    "IND-04": "Healthcare & Life Sciences",
+    "IND-05": "Financial Services",
+    "IND-06": "Insurance",
+    "IND-07": "Technology & SaaS",
+    "IND-09": "Education"
+  },
+  "ranges": [
+    {"sic_low": "5200", "sic_high": "5999", "industry_id": "IND-01", "industry_name": "Retail & Consumer", "mapped_by": "ai_reviewed", "notes": "SIC 52-59 retail trade. Confirmed → canonical IND-01 (retail)."},
+
+    {"sic_low": "7370", "sic_high": "7379", "industry_id": "IND-07", "industry_name": "Technology & SaaS", "mapped_by": "ai_reviewed", "notes": "SIC 7370-7379 computer programming / prepackaged software / data processing. Corrected IND-02→IND-07 (canonical technology/saas)."},
+
+    {"sic_low": "2833", "sic_high": "2836", "industry_id": "IND-04", "industry_name": "Healthcare & Life Sciences", "mapped_by": "ai_reviewed", "notes": "SIC 2833-2836 pharmaceutical & biological products. Corrected IND-03→IND-04 (canonical healthcare)."},
+    {"sic_low": "3826", "sic_high": "3826", "industry_id": "IND-04", "industry_name": "Healthcare & Life Sciences", "mapped_by": "ai_reviewed", "notes": "SIC 3826 laboratory analytical instruments. Corrected IND-03→IND-04."},
+    {"sic_low": "3841", "sic_high": "3845", "industry_id": "IND-04", "industry_name": "Healthcare & Life Sciences", "mapped_by": "ai_reviewed", "notes": "SIC 3841-3845 surgical/medical/electromedical instruments. Corrected IND-03→IND-04."},
+    {"sic_low": "8000", "sic_high": "8099", "industry_id": "IND-04", "industry_name": "Healthcare & Life Sciences", "mapped_by": "ai_reviewed", "notes": "SIC 80 health services. Corrected IND-03→IND-04."},
+
+    {"sic_low": "6000", "sic_high": "6199", "industry_id": "IND-05", "industry_name": "Financial Services", "mapped_by": "ai_reviewed", "notes": "SIC 6000-6199 credit institutions. Corrected IND-04→IND-05 (canonical financial_services)."},
+    {"sic_low": "6200", "sic_high": "6299", "industry_id": "IND-05", "industry_name": "Financial Services", "mapped_by": "ai_reviewed", "notes": "SIC 6200-6299 security & commodity brokers. Corrected IND-04→IND-05."},
+    {"sic_low": "6300", "sic_high": "6411", "industry_id": "IND-06", "industry_name": "Insurance", "mapped_by": "ai_reviewed", "notes": "SIC 6300-6411 insurance carriers/agents/brokers. Corrected IND-04→IND-06 and reclassified name: insurance is a distinct canonical industry (IND-06), not financial_services."},
+    {"sic_low": "6700", "sic_high": "6799", "industry_id": "IND-05", "industry_name": "Financial Services", "mapped_by": "ai_reviewed", "notes": "SIC 6700-6799 holding & investment offices (excludes 6500-6599 real estate, intentionally unmapped). Corrected IND-04→IND-05."},
+
+    {"sic_low": "8200", "sic_high": "8299", "industry_id": "IND-09", "industry_name": "Education", "mapped_by": "ai_reviewed", "notes": "SIC 8200-8299 educational services. Corrected IND-05→IND-09 (canonical education)."},
+
+    {"sic_low": "2700", "sic_high": "2799", "industry_id": "IND-00", "industry_name": "Entertainment & Media", "mapped_by": "draft", "notes": "SIC 2700-2799 publishing (media). NOT approved (OD-09): no canonical 10-industry equivalent; left unmapped (IND-00) pending an expert decision."},
+    {"sic_low": "7800", "sic_high": "7999", "industry_id": "IND-00", "industry_name": "Entertainment & Media", "mapped_by": "draft", "notes": "SIC 7800-7999 motion pictures, amusement & recreation. NOT approved (OD-09): no canonical 10-industry equivalent; left unmapped (IND-00) pending an expert decision."}
+  ]
+}

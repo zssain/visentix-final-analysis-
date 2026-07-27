@@ -11,8 +11,11 @@ When someone asks "why does the spec insist on X?" — the answer should be find
 | L-003 | 2026-06 | Early UI colored a falling exposure score red (improvement shown as bad news) | Delta colors keyed to direction, not meaning | DDR-009 + single `trendColor` helper in `scoreBands.ts`; rule in AGENTS.md design quick-reference | Spec + single-source constant | Closed |
 | L-004 | 2026-06 | Static `n=30` cohort sizes appeared across screens | Display values hardcoded during prototyping, never registered | MOCK TRACKER discipline (M-12) + AGENTS.md Hard Rule 7 (honest displays); spec-guard PR checks | Spec + CI habit | Closed |
 | L-005 | 2026-07 | "SSRF-Protected" badge nearly shipped to customer UI | Engineer register leaked into customer register | Register rule in design-system.md §4 + AGENTS.md Hard Rule 8 | Spec | Closed |
+| L-006 | 2026-07 | `organization_intelligence_profile` writes silently 400'd for weeks, masking unapplied migration 0014 | A REST POST in `_ensure_org_profile` had no status check, so failed inserts were swallowed (no raise, no log) | `_ensure_org_profile` now raises/logs on non-2xx + regression test `tests/test_ensure_org_profile.py` (mocked failing POST → error surfaced) | CI guard | Open (until PR merged) |
 
-<!-- Append new rows above this line. Next ID: L-006 -->
+| L-007 | 2026-07 | Permissive test double masked a type mismatch: framework wrote text into `source_record.version_id` (INTEGER) — tests green, live 400'd | In-memory fake stored any Python value without checking the real column type | Schema-typed fakes (`tests/ingestion_fakes.py`): reject writes whose type wouldn't survive Postgres; type map derived from `db/migrations` (+ live snapshot for pre-existing `source_record`), with a migration↔live drift test | CI guard | Open (until PR merged) |
+
+<!-- Append new rows above this line. Next ID: L-008 -->
 
 ## How a row gets here (the loop)
 1. Incident filed or pattern spotted by the weekly audit (`logs/audits/`).
