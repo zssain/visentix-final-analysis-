@@ -204,7 +204,10 @@ class OpenWebWriter:
     def load_targets(self, sector: str | None, limit: int | None) -> list[dict]:
         q = "crawl_target?select=*&status=in.(pending,unchanged,captured)&order=priority.asc"
         if sector:
-            q += f'&sector=eq."{sector}"'
+            # PostgREST: a plain `eq.` value must NOT be wrapped in double quotes — an
+            # over-quoted `sector=eq."fintech"` matches the literal string including the
+            # quotes and returns 0 rows, silently disabling every --sector crawl.
+            q += f"&sector=eq.{sector}"
         if limit:
             q += f"&limit={limit}"
         r = httpx.get(self._rest(q), headers=self._h(), timeout=30)

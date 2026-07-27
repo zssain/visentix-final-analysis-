@@ -218,3 +218,22 @@ def test_hash_skip_unchanged():
 def test_connector_registered():
     from app.services.ingestion.registry import CONNECTORS
     assert CONNECTORS.get("open_web") is OpenWebConnector
+
+
+def test_load_targets_sector_filter_not_over_quoted(monkeypatch):
+    """Regression: the --sector filter must build `sector=eq.retail`, NOT
+    `sector=eq."retail"`. PostgREST matches the over-quoted form against the literal
+    quoted string and returns 0 rows, silently disabling every sector-targeted crawl
+    (found 2026-07-27: `run_openweb.py --sector fintech` crawled 0 of 2789 targets)."""
+    captured = {}
+
+    class _Resp:
+        status_code = 200
+
+        def json(self):
+            return []
+
+    monkeypatch.setattr(mod.httpx, "get", lambda url, **kw: (captured.update(url=url), _Resp())[1])
+    mod.OpenWebWriter().load_targets("retail", 5)
+    assert "sector=eq.retail" in captured["url"]
+    assert 'sector=eq."retail"' not in captured["url"] and "eq.%22" not in captured["url"]

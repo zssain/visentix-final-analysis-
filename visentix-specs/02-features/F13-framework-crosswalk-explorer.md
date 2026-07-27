@@ -45,8 +45,9 @@ Read-only. Sources:
 Unit: banned-term scan over the crosswalk copy (AC-4); matrix completeness (8×4) and "no reference" rendering (AC-1). Component: framework filter (AC-2) and domain drill-down (AC-3). Visual QA at 375/768/1280 (AC-6).
 
 ## Open questions
-- OD-01 (Product) — sign off the descriptive-only crosswalk copy. Recommendation on record: descriptive language, ship the shell now, real citations later. This spec ships the shell UI on mock citations pending that sign-off.
+- OD-01 (Product) — **Decided 2026-07-27 (ai_reviewed, pending human owner Teams confirmation):** adopt **descriptive-only** crosswalk copy ("relates to CCPA §1798.120", never a compliance verdict); ship the shell now, swap real citations later. The human owner's sign-off is still required before descriptive copy is used in a client-delivered report.
 
 ## Changelog
+- 2026-07-27: OD-01 recorded as Decided (ai_reviewed) — descriptive-only crosswalk copy adopted; shell continues on mock citations pending the `framework_reference` backend and human owner confirmation. Phase-1 pilot-readiness pass.
 - 2026-07-16 (audit): AC-4 banned-term unit test implemented (`guardrails.test.ts`); drill-down codes now render via CodexTooltip (DDR-006); guardrail banner + domain chip moved to shared furniture. Mock codes flagged as placeholders pending the catalog (Hard Rule 3).
 - 2026-07-16: Graduated from `03-ideas/further-ideas.md` (near-term candidate) to a feature spec and built UI-only against mocks (engineer). Shell explorer: 8×4 matrix, framework filter, domain drill-down to Codex chips, descriptive-only banner + Intelligence mark. Copy is mock pending OD-01 sign-off; `framework_reference` table + `GET /api/crosswalk` remain proposed. Files: `web/src/pages/crosswalk/{FrameworkCrosswalk.tsx,mockData.ts,crosswalk.css}`, `/crosswalk` route + nav.

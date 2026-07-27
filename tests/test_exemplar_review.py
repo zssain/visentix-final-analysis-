@@ -4,6 +4,7 @@ import pytest
 
 from app.services.exemplar_review import (
     DeIdentificationError,
+    redact,
     validate_deidentification,
     validate_exemplar_for_approval,
 )
@@ -50,6 +51,39 @@ def test_extra_blocked_tokens():
 def test_placeholder_org_allowed():
     found = validate_deidentification("[Organization] processes your data.")
     assert found == []
+
+
+# ── Structural PII (email / URL) de-id gate (Phase 5.4) ──────
+
+def test_email_blocked():
+    found = validate_deidentification(
+        "Contact us at privacy@example.com to exercise your rights."
+    )
+    assert any(f.startswith("email:") for f in found)
+
+
+def test_url_blocked():
+    found = validate_deidentification(
+        "See our full policy at https://acme-corp.com/privacy for details."
+    )
+    assert any(f.startswith("url:") for f in found)
+
+
+def test_approve_with_email_rejected():
+    """An exemplar containing an email address must NOT be approvable — the email
+    identifies the source even after org names are stripped (F06 de-id gate)."""
+    error = validate_exemplar_for_approval(
+        "[Organization] lets you email privacy@company.com to delete your data.",
+        "High maturity — clear rights channel.",
+    )
+    assert error is not None
+    assert "identifying" in error.lower()
+
+
+def test_redact_removes_email_and_url():
+    cleaned = redact("Email privacy@x.com or visit https://x.com/privacy — PayPal policy.")
+    assert "@" not in cleaned and "http" not in cleaned and "paypal" not in cleaned.lower()
+    assert validate_deidentification(cleaned) == []
 
 
 # ── Approval validation ──────────────────────────────────────

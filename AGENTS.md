@@ -57,10 +57,10 @@ A normalized corpus already lives in Supabase. You did not create it and you mus
 
 <!-- BEGIN GENERATED: CURRENT VERSIONS (source: 01-foundation changelogs) -->
 ## Current versions
-- schema.md: v1.3 (2026-07-20)
+- schema.md: v1.3.2 (2026-07-27)
 - business-logic.md: v1.2 (2026-07-15)
-- intelligence-logic.md: v1.3 (2026-07-20)
-- design-system.md: v1.3 (2026-07-16)
+- intelligence-logic.md: v1.4 (2026-07-27)
+- design-system.md: v1.4 (2026-07-27)
 - Formula registry: F-001–F-014 (see intelligence-logic.md §7)
 - Score bands: see web/src/lib/scoreBands.ts (single source of truth)
 - LOW_CONFIDENCE_COHORT_N: 10

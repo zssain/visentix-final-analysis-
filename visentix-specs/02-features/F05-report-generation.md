@@ -16,7 +16,7 @@ Writes: `report_snapshot` (S-#### id, frozen_at, formula/benchmark versions, ful
 ## Behavior
 1. **Narrative engine:** LLM rephrases finding narratives → verification pass → banned-term filter (with source-excerpt handling) → deterministic fallback on failure. Advisor Note prose frozen into snapshot; **never regenerated at render** (M-05).
 2. **Snapshot lifecycle:** draft (gold ribbon + diagonal DRAFT watermark, `instant_draft` mode) → SME approval → approved (teal Reproducible ribbon). Provenance ribbon on every report page from real snapshot fields (M-09).
-3. **Furniture:** lineage drawer on every number, Codex tooltip on every code (PDF appends Codex appendix), "Intelligence, not legal advice" mark per DDR-007, reader-register toggle (flag-gated pending OD-02).
+3. **Furniture:** lineage drawer on every number, Codex tooltip on every code (PDF appends Codex appendix), "Intelligence, not legal advice" mark per DDR-007, reader-register toggle — **Executive / Practitioner / Plain-language**, flag-gated (OD-02 Decided 2026-07-27, ai_reviewed). The framework-crosswalk copy in the report is **descriptive-only** (OD-01 Decided 2026-07-27, ai_reviewed). On mobile the Advisor layer may lead with the two OD-03 mitigations (thumb-reachable View Switch, full-screen lineage sheet) — OD-03 Decided 2026-07-27 (ai_reviewed). All three pending human owner confirmation.
 4. **Benchmark Language:** side-by-side diff, gold=exemplar-adds / gray-strikethrough=weaker phrasing, show-differences-only toggle, honest cohort footer (live n, date, low-confidence rule).
 5. **PDF renderer:** parity with interactive view; double-pull of same snapshot is byte-identical.
 
@@ -42,6 +42,7 @@ See [`00-plan/mock-tracker.md`](../00-plan/mock-tracker.md): **M-05** (mobile Ad
 Report assembly integration tests, byte-identity regression test, guardrail filter tests (incl. source-excerpt exemption and closing-matter copy), PDF/interactive parity checks, section-level vitest.
 
 ## Changelog
+- 2026-07-27: Recorded three OD closures affecting the report (all ai_reviewed, pending human owner confirmation): **OD-02** reader-register names (Executive/Practitioner/Plain-language, flag-gated), **OD-01** descriptive-only crosswalk copy, **OD-03** advisor-hero on mobile with both mitigations. No render behavior changed. Phase-1 pilot-readiness pass.
 - 2026-07-16: Report visual overhaul (user feedback: "reports look ugly"): duplicate provenance ribbon removed — it renders once, globally, in ReportView, now carrying the formula version; Cover rebuilt as an editorial page (eyebrow, larger Fraunces org name, refined meta row) with the Workstream-B score dial (`ScoreDial.tsx` — static SVG arc colored by the shared score band, maturity chip, VCI badge only when the payload carries a real VCI); all 12 sections now render as white cards with Fraunces headings and a gold accent rule; print styles preserved for the PDF renderer.
 - 2026-07-16: Added a Mocks section keyed to the mock-tracker (template conformance); no behavioral change.
 - 2026-07-15: Added closing matter (Next Steps page + back cover) per Appendix H prototype review; AC-5 and guardrail notes added.

@@ -12,7 +12,7 @@ SME role · `/review` (nav: Workbench). Internal register: expert jargon ("PII d
 Writes: `risk_finding.sme_status`, `training_label`, `disclosure_clause.exemplar_status`, Advisor layer content into snapshot at approval. Reads: review queue (pending findings), `finding_type` (Codex reference panel), training stats.
 
 ## Behavior
-1. **Three panes:** source clause (left, with de-id flags) · auto finding + Analyst metrics (center, Confirm/Edit/Dismiss) · Advisor Note editor (right: Fraunces lede, body, "The Visentix Privacy Desk" attribution, empty reviewer slot, Codex reference).
+1. **Three panes:** source clause (left, with de-id flags) · auto finding + Analyst metrics (center, Confirm/Edit/Dismiss) · Advisor Note editor (right: Fraunces lede, body, "The Visentix Privacy Desk" attribution — house persona kept for MVP per OD-04 (Decided 2026-07-27, ai_reviewed; revisit at first paying client) — empty reviewer slot, Codex reference).
 2. **Gate modes:** `expert_review` holds report approval until queue cleared; `instant_draft` publishes draft immediately (admin-configurable, F09).
 3. **De-identification:** regex checker flags name/email/URL/custom tokens with category labels, lock icon + red underline (legitimate red use #2); approve disabled until clean; one-click replace-all-with-[REDACTED]. Blocks exemplar approval.
 4. **Training labels:** every action recorded; header shows live confirmed/edited/dismissed counters (M-04 → `/api/admin/health` training_stats).
@@ -35,5 +35,6 @@ See [`00-plan/mock-tracker.md`](../00-plan/mock-tracker.md): **M-04** (training-
 De-id regex suite (all categories + evasion cases), gate-mode enforcement tests, training-label capture tests, queue action integration tests.
 
 ## Changelog
+- 2026-07-27: OD-04 recorded as Decided (ai_reviewed, pending human owner confirmation) — keep the "The Visentix Privacy Desk" house persona for MVP attribution. No behavioral change. Phase-1 pilot-readiness pass.
 - 2026-07-16 (audit): Status trued up — training-label counters verified wired to the real `/admin/training-stats` route (M-04 **Replaced**); queue-action wiring remains pending.
 - 2026-07-16: Added Mocks and Changelog sections for template conformance; no behavioral change.

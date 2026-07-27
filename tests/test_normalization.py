@@ -179,7 +179,9 @@ def test_normalize_cohort_target_flagged():
 # ── Live data verification ───────────────────────────────────
 
 def test_benchmark_membership_has_weights():
-    """Verify all 30 rows have non-NULL normalization columns."""
+    """Every benchmark_membership row must have non-NULL normalization columns.
+    Count is a live invariant, not a hardcoded number — the population grows as
+    cohorts are (re)built (109 after the 2026-07-27 demo-cohort rebuild)."""
     import os
     import httpx
     from dotenv import dotenv_values
@@ -194,7 +196,7 @@ def test_benchmark_membership_has_weights():
         headers=headers, timeout=15,
     )
     rows = r.json()
-    assert len(rows) == 30
+    assert len(rows) >= 30, "benchmark_membership shrank below the known floor"
 
     for row in rows:
         assert row["normalization_score"] is not None, "normalization_score is NULL"

@@ -72,6 +72,9 @@ APPLY_NOW = [
     "0027_enforcement_org_resolution.sql",# F02 FTC — enforcement_record org resolution columns
     "0028_organization_origin.sql",       # F02 Princeton — organization.origin provenance flag
     "0029_crawl_target.sql",              # F02 open_web — crawl_target work-list
+    "0030_config_review_support.sql",     # Phase 1 — config-review support (ai_reviewed state + reviewed_by/at)
+    "0031_formula_version_description.sql", # Phase 5 — formula_version.description (M-10)
+    "0032_disclosure_clause_exemplar.sql",  # Phase 5 — disclosure_clause.is_exemplar/exemplar_status (M-03)
 ]
 
 # NOT tracked: paste bundles + the ambiguous local_users migration.

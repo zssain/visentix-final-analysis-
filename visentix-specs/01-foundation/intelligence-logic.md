@@ -1,6 +1,6 @@
 # Intelligence Logic — Classification, Benchmarking, Scoring
 
-**Version:** 1.3 · 2026-07-20 · Consolidates VICBNF v2.0, the Derived Intelligence Catalog v1, and the Intelligence Engine Framework. All weights are **initial policy settings**, configurable in `formula_version` / lookup tables, subject to calibration governance — never hardcoded.
+**Version:** 1.4 · 2026-07-27 · Consolidates VICBNF v2.0, the Derived Intelligence Catalog v1, and the Intelligence Engine Framework. All weights are **initial policy settings**, configurable in `formula_version` / lookup tables, subject to calibration governance — never hardcoded.
 
 ## 1. Pipeline (Porter value chain)
 
@@ -42,6 +42,8 @@ Population key = **Industry + RSS tier + PGMS tier + OSI tier + DSI tier + AIGMS
 | <20 | Broaden to industry cohort + confidence reduction, flag low confidence |
 
 Five corpus populations: Market Reality, Regulatory Resilience, Enforcement, Gold Standard, AI Governance. Corpus gate: **CQS ≥ 75** (Extraction 25% + Completeness 25% + Freshness 20% + Source reliability 20% + Version stability 10%).
+
+**Low-confidence cohort floor (OD-05, Decided 2026-07-27 ai_reviewed):** `LOW_CONFIDENCE_COHORT_N = 10`. A cohort with n ≥ 10 but < 20 is usable **only** with the low-confidence label (per the <20 caution band above); a cohort with n < 10 must not be used. This 10-floor is conservative relative to the VICBNF <20 caution band and is the single source cited by `design-system §2` and `web/src/lib/scoreBands.ts`.
 
 ## 6. Normalization engine
 
@@ -108,6 +110,7 @@ Governance rules for how *derived intelligence* — every `derived_data_item` ob
 | **DIR-010** | Reproducibility: every published number is reproducible from its stored snapshot + formula version + benchmark version; a frozen snapshot regenerates identically. | F12; roadmap "reproducible from stored snapshot"; Hard Rule 6 |
 
 ## 13. Changelog
+- 1.4 (2026-07-27): §5 records the **OD-05 low-confidence cohort floor** `LOW_CONFIDENCE_COHORT_N = 10` (Decided ai_reviewed, pending human owner confirmation) — no weight/threshold/taxonomy change; codifies the existing constant's home. Phase-1 pilot-readiness pass.
 - 1.3 (2026-07-20): **§4 status correction (truth reconciliation).** Removed the unsupported claim that the v2 reclassifier had reduced the "other" bucket to ~20%; the 2026-07-20 census shows only 38.9% of clauses have a `category_v2` value (3,754 still NULL). Restated as "partially run; completion pending" with the census numbers. No formula, weight, or taxonomy change. Source: engineer + `logs/audits/2026-07-data-layer-audit.md`.
 - 1.2 (2026-07-16): added §12 Derived Intelligence Rules (DIR) registry — restores the DIR definitions the v1.0 consolidation named but dropped; reconstructed from usage + Hard Rules 4/6, flagged for expert verification against the source Catalog. Structural fix (spec-change): DIR refs were dangling across schema/F04/F05/F11/F12/roadmap.
 - 1.1 (2026-07-15): §4 records the shipped v2 corpus reclassification (`category_v2`, `classifier_version=qwen3-8b-local-v1`), absorbed from the archived RECLASSIFY_PLAN.md / AUDIT.md and verified against `scripts/reclassify_other.py`.

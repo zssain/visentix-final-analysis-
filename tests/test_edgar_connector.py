@@ -68,9 +68,9 @@ def test_golden_file_parse():
     assert sm["filer_category"] == "Large accelerated filer"
     assert sm["state_of_incorporation"] == "DE"
     assert sm["exchanges"] == ["NYSE"]
-    # DRAFT suggestion recorded as an INPUT only
-    assert sm["sic_industry_draft"] == "IND-03"
-    assert sm["sic_industry_draft_mapped_by"] == "draft"
+    # Suggestion recorded as an INPUT only (never applied to organization.industry)
+    assert sm["sic_industry_draft"] == "IND-04"      # SIC 8000 → canonical healthcare (was draft IND-03; corrected 2026-07-27)
+    assert sm["sic_industry_draft_mapped_by"] == "draft"  # connector labels the emitted per-org suggestion 'draft' (unapplied), regardless of the map's own review state
     # aliases: cik, ticker, current + former legal_name, domain — all confidence 1.0
     by_type = {}
     for a in r["aliases"]:
@@ -87,7 +87,7 @@ def test_full_run_creates_org_and_aliases(tmp_path):
     res, conn = _run(tmp_path, store)
     assert res.outcome == "ok"
     assert res.new == 1 and res.seen == 1            # one org created
-    assert conn.industry_counts == {"IND-03": 1}
+    assert conn.industry_counts == {"IND-04": 1}     # SIC 8000 → canonical healthcare
     assert conn.metrics["aliases_inserted"] == 5     # cik+ticker+2 legal_name+domain
     org = list(store.orgs.values())[0]
     assert org["name"] == "Beta Health Systems, Inc."
@@ -203,7 +203,7 @@ def test_industry_scope_filters_out_unmapped(tmp_path):
     tmp = _bulk_dir(tmp_path, tickers=roster, subs=subs)
     store = FakeOrgStore()
     res, conn = _run(tmp, store)
-    assert conn.industry_counts == {"IND-03": 1}     # only the healthcare company
+    assert conn.industry_counts == {"IND-04": 1}     # only the healthcare company (canonical IND-04)
     assert res.new == 1
 
 
@@ -221,26 +221,31 @@ def test_all_industries_imports_unmapped_sic(tmp_path):
     store = FakeOrgStore()
     res, conn = _run(tmp, store, all_industries=True)
     assert res.new == 2                               # both imported, incl. unmapped SIC
-    assert conn.industry_counts == {"IND-03": 1, "unmapped": 1}
+    assert conn.industry_counts == {"IND-04": 1, "unmapped": 1}
     miner = [o for o in store.orgs.values() if o["name"] == "Goldstrike Mining Corp"][0]
     assert miner["industry"] == "unknown" and miner["industry_id"] is None
 
 
 def test_explicit_industry_subset(tmp_path):
     store = FakeOrgStore()
-    # scope to financials only → the healthcare fixture is out of scope
-    res, conn = _run(tmp_path, store, industries=["IND-04"])
+    # scope to financials only (canonical IND-05) → the healthcare fixture is out of scope
+    res, conn = _run(tmp_path, store, industries=["IND-05"])
     assert conn.industry_counts == {}
     assert res.new == 0
 
 
-def test_sic_map_is_draft():
+def test_sic_map_resolves_canonical():
+    # SIC ranges resolve to the CANONICAL 10-industry taxonomy after the 2026-07-27
+    # ai_reviewed correction (was an obsolete 6-industry numbering).
     m = SicIndustryMap.load()
-    assert m.resolve("8000") == ("IND-03", "Healthcare & Life Sciences")
-    assert m.resolve("5300")[0] == "IND-01"
-    assert m.resolve("7372")[0] == "IND-02"
-    assert m.resolve("6021")[0] == "IND-04"
-    assert m.resolve("9999") == (None, None)         # unmapped
+    assert m.resolve("8000") == ("IND-04", "Healthcare & Life Sciences")
+    assert m.resolve("5300")[0] == "IND-01"          # retail (unchanged)
+    assert m.resolve("7372")[0] == "IND-07"          # software/SaaS → canonical technology
+    assert m.resolve("6021")[0] == "IND-05"          # credit institution → canonical financial_services
+    assert m.resolve("6350")[0] == "IND-06"          # insurance carrier → canonical insurance
+    assert m.resolve("8250")[0] == "IND-09"          # education
+    assert m.resolve("2750") == ("IND-00", "Entertainment & Media")  # no canonical equivalent → unmapped (OD-09)
+    assert m.resolve("9999") == (None, None)         # no range match
     assert m.resolve(None) == (None, None)
 
 

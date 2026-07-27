@@ -1,0 +1,42 @@
+table,category,rows_live,what_it_holds,populated_by,status
+organization,Identity,8046,Companies (customers + benchmark peers + EDGAR filers),EDGAR import + peers + open_web/CPPA,POPULATED (only 30 have a crawlable domain)
+organization_alias,Identity,31450,cik/ticker/legal_name/domain aliases for entity resolution,EDGAR (cik/ticker/legal_name) + connectors,POPULATED (0 domain aliases — EDGAR websites blank)
+organization_intelligence_profile,Identity,31,7-dimension VICBNF profile (IC/RSS/PGMS/OSI/DSI/EHP/AIGMS),Deterministic profiler,SPARSE (31 of 8046 orgs profiled)
+profiles,Identity,3,Auth user profiles (roles),Auth bootstrap,MINIMAL
+source_registry,Ingestion,7,Configurable source-family registry (7 families),Seed,POPULATED (only hhs_ocr enabled; state_ag disabled)
+ingestion_run,Ingestion,18,One row per connector execution (audit trail),All connectors,POPULATED
+parser_version,Ingestion,6,Versioned parser registry (lineage),Connectors,POPULATED
+source_record,Ingestion,8381,Raw-source provenance (sec_edgar 8009 / ftc 42 / open_web 14 / cppa 12 / hhs 1 + legacy),All connectors,POPULATED
+source_version,Ingestion,8078,Content-hash version history for change detection,Connector framework,POPULATED
+crawl_target,Ingestion,30,Open-web crawl work-list (domain/status),seed_crawl_targets,POPULATED (30 fintech peers; 0 retail — no domains)
+privacy_notice,Notice,97,Captured privacy notices (live 57 / consumer 25 / open_web 14 / glba 1),Customer intake + open_web,THIN (needs many more via crawl/Princeton)
+notice_section,Notice,2463,Sections of decomposed notices,Intake decompose,POPULATED
+disclosure_clause,Notice,12828,Decomposed + classified clauses (semantic DNA),Intake decompose,POPULATED (category_v2 backfill IN PROGRESS)
+clause_obligation,Notice,0,Clause<->obligation matcher output (Part-B),Part-B matcher,EMPTY (not run)
+regulator,Enforcement,9,FTC/CPPA/CFPB/OCR/5 state AGs,Seed + connectors,POPULATED
+enforcement_record,Enforcement,653,Regulator enforcement actions (FTC/CPPA/AG + legacy),FTC/CPPA/StateAG + ingest_enforcement,POPULATED (30 resolved to orgs / 623 unresolved)
+litigation_event,Enforcement,14,Tier-2 litigation events,ingest_enforcement,SPARSE
+security_event,Enforcement,707,HHS OCR breach reports (org-risk signals),hhs_ocr connector,POPULATED (11 resolved / 696 unresolved)
+obligation,Enforcement,273,Regulatory obligations/requirements,ingest_state_laws,POPULATED
+benchmark_cluster,Benchmark,3,Benchmark cohort definitions,F03 job,MINIMAL
+benchmark_membership,Benchmark,30,Org<->cohort membership,F03 job,SPARSE (no industry reaches n>=20 target)
+exemplar,Benchmark,46,Best/worst clause exemplars,Curation,POPULATED
+risk_finding,Scoring,197,Scored findings per assessment,Scoring engine,POPULATED
+derived_data_item,Scoring,1417,Explainability lineage items,Scoring engine,POPULATED
+finding_type,Scoring,8,Finding Codex (finding types),Seed/Codex,MINIMAL (8 types)
+finding_clause,Scoring,356,Finding<->clause junction,Scoring,POPULATED
+finding_enforcement,Scoring,352,Finding<->enforcement junction,Scoring,POPULATED
+finding_legal_reference,Scoring,27,Finding<->legal-reference junction,Scoring,SPARSE
+recommendation_library,Scoring,8,Remediation recommendation library,Seed,MINIMAL
+formula_version,Scoring,14,Versioned scoring formulas (F-001..F-014),Seed,POPULATED
+legal_reference,Legal,68,eCFR/GDPR/state-law references,ingest_legal_refs,POPULATED
+explainability_reference,Legal,0,Explainability citation registry,—,EMPTY
+report_snapshot,Output,104,Generated report snapshots,Report generation,POPULATED (0017 versioning cols partial)
+assessment_review,Review,0,SME review records,Review gate,EMPTY (in-memory only — L-audit)
+review_queue_item,Review,0,SME review queue,Review gate,EMPTY (in-memory only)
+monitoring_event,Output,5,Change/monitoring events,Monitoring,SPARSE
+training_label,Output,0,SME correction flywheel labels,Training service,EMPTY (in-memory only — never persisted)
+platform_setting,Config,0,Platform gate-mode / settings,Admin,EMPTY
+sic_industry_map,Config,13,DRAFT SIC->industry crosswalk (expert-gated),Migration 0025 seed,POPULATED (all mapped_by=draft — expert approval pending)
+ftc_topic_domain_map,Config,0,FTC-topic->Visentix-domain crosswalk,Migration 0026 (empty scaffold),EMPTY (expert population required)
+schema_migrations,Migration,32,Applied-migration ledger,apply_and_record,POPULATED
