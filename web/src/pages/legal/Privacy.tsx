@@ -28,7 +28,9 @@ const SECTIONS: LegalSection[] = [
       "To run the analysis you request, generate reports, and let a subject-matter expert review findings before a report is delivered.",
       "To secure the service, investigate misuse, keep an audit trail, and meet our own record-keeping obligations.",
       "To operate your account and communicate with you about the service (including alert emails you or your administrator enable).",
-      "We do not use your submitted notices to train third-party AI models. Classification and scoring run on models we operate on our own infrastructure.",
+      "Automated classification and scoring are reviewed by a human expert before any report is delivered; we do not make automated decisions that produce legal effects on individuals.",
+      "To produce de-identified, aggregated statistics and benchmarks. These never identify you or your organisation and are only published for groups of 10 or more organisations.",
+      "We do not send your submitted notices to third-party AI providers, and we do not use them to train third-party models. Analysis runs on models we operate on our own infrastructure. We do use our experts' review decisions, and de-identified, aggregated patterns from analyses, to improve Visentix's own accuracy over time. Any language reused outside your account — for example in benchmarks or published statistics — is first stripped of names, contact details, and identifiers, and appears only in groups large enough that no organisation can be identified.",
     ],
   },
   {
@@ -72,7 +74,7 @@ const SECTIONS: LegalSection[] = [
   {
     heading: "Changes to this notice",
     body: [
-      "If we change this notice we will update the effective date above and, for material changes, notify account administrators. Continued use after a change means you accept the updated notice.",
+      "If we change this notice we will update the effective date above and, for material changes, notify account administrators.",
     ],
   },
   {
