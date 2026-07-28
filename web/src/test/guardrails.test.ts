@@ -28,7 +28,9 @@ import {
   trendColor, scoreBandColor, maturityBandColor, bandColor,
   metricPolarity, maturityBand, NEUTRAL_SCORE_COLOR,
 } from "../lib/scoreBands";
-import * as quarterlyMock from "../pages/quarterly/mockData";
+// quarterly (F12 M-15–M-18) mock removed — replaced by the real F21 quarterly
+// report; its published vocabulary is guarded by backend test_f21_quarterly.py
+// + the descriptive-only render.
 // partner (F11 M-19–M-22) mock removed — replaced by the real F20 partner
 // portal; its feed vocabulary is guarded by backend test_f20_partner.py.
 // bulk (F12 M-23/M-24) mock removed — replaced by the real F19 bulk-screening
@@ -56,7 +58,6 @@ function bannedTermsIn(data: unknown): string[] {
 }
 
 const MOCK_MODULES: Record<string, unknown> = {
-  "quarterly (F12, M-15–M-18)": { ...quarterlyMock },
   "crosswalk (F13, M-25)": { ...crosswalkMock },
   "rewrite (F14, M-26)": { ...rewriteMock },
   "trust (F15, M-27)": { ...trustMock },

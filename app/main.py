@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.logging import get_logger, setup_logging
-from app.routers import admin, assessments, auth, bulk, explain, feed, findings, formulas, health, monitoring, partner, reports, review
+from app.routers import admin, assessments, auth, bulk, explain, feed, findings, formulas, health, monitoring, partner, quarterly, reports, review
 from app.routers import eval as eval_router
 from app.routers import notifications
 
@@ -55,5 +55,7 @@ app.include_router(eval_router.router)
 app.include_router(notifications.router)
 app.include_router(bulk.router)
 app.include_router(partner.router)
+app.include_router(quarterly.public_router)
+app.include_router(quarterly.admin_router)
 
 log.info("Visentix MVP started (env=%s)", settings.app_env)
