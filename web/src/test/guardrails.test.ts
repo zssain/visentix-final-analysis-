@@ -36,7 +36,9 @@ import {
 // bulk (F12 M-23/M-24) mock removed — replaced by the real F19 bulk-screening
 // surface; its export vocabulary is guarded by the backend test_f19_bulk.py.
 import * as crosswalkMock from "../pages/crosswalk/mockData";
-import * as rewriteMock from "../pages/rewrite/mockData";
+// rewrite (F14 M-26) mock removed — replaced by the real F18 clause-rewrite
+// engine; its output is guarded server-side (banned-term + fabrication checks,
+// backend test_f18_rewrite.py).
 import * as trustMock from "../pages/trust/mockData";
 import * as vendorsMock from "../pages/vendors/mockData";
 
@@ -59,7 +61,6 @@ function bannedTermsIn(data: unknown): string[] {
 
 const MOCK_MODULES: Record<string, unknown> = {
   "crosswalk (F13, M-25)": { ...crosswalkMock },
-  "rewrite (F14, M-26)": { ...rewriteMock },
   "trust (F15, M-27)": { ...trustMock },
   "vendors (F16, M-28)": { ...vendorsMock },
 };
@@ -115,18 +116,11 @@ describe("banned-term filter over report-section static copy (Hard Rule 1)", () 
   }
 });
 
-// ── F14 AC-3: no obligation framing in rewrite patterns ──────
-
-describe("F14 AC-3 — rewrite patterns avoid obligation framing", () => {
-  const OBLIGATION = /\b(must|shall|required to|to comply|obligated to)\b/i;
-
-  for (const p of rewriteMock.PROMPTS) {
-    it(`${p.domainId} pattern + rationale are non-obligation`, () => {
-      expect(p.pattern).not.toMatch(OBLIGATION);
-      expect(p.rationale).not.toMatch(OBLIGATION);
-    });
-  }
-});
+// F14 AC-3 rewrite-pattern test removed with the mock — F18's real rewrite
+// output is guarded server-side (banned-term + fabrication verification;
+// backend test_f18_rewrite.py). Obligation framing can't reach the client:
+// the engine only ever returns a diff of the user's own clause vs a
+// verified rewrite or an approved exemplar.
 
 // ── F15 AC-2: no security jargon on the public Trust Center ──
 

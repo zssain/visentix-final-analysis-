@@ -73,3 +73,28 @@
 @media (max-width: 768px) {
   .rw-body { grid-template-columns: 1fr; gap: 14px; }
 }
+
+/* ── F18 real rewrite (replaces F14 mock) ───────────────────── */
+.rw-load { display: flex; gap: 10px; margin-bottom: 18px; }
+.rw-input { flex: 0 1 340px; border: 1px solid var(--border); border-radius: var(--radius); padding: 9px 12px; font: inherit; }
+.rw-grid { display: grid; grid-template-columns: 360px 1fr; gap: 18px; }
+.rw-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 18px; box-shadow: var(--shadow-sm); }
+.rw-h { font-family: var(--font-display); font-weight: 600; color: var(--navy); margin-bottom: 12px; }
+.rw-flagged-note { font-size: 0.76rem; color: var(--text-muted); font-weight: 400; }
+.rw-picker { max-height: 640px; overflow-y: auto; }
+.rw-clause { display: block; width: 100%; text-align: left; border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; margin-bottom: 8px; background: var(--bg-card); cursor: pointer; font: inherit; }
+.rw-clause:hover { border-color: var(--exec-blue); }
+.rw-clause.on { border-color: var(--exec-blue); box-shadow: 0 0 0 2px rgba(0,95,163,0.15); }
+.rw-clause.flagged { border-left: 3px solid var(--gold, #C8A46A); }
+.rw-clause-domain { display: block; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); font-weight: 700; margin-bottom: 3px; }
+.rw-clause-text { font-size: 0.82rem; color: var(--text-secondary); line-height: 1.5; }
+.rw-watermark { background: #fef9e7; border: 1px solid #f0c96b; color: #8a6d2f; font-size: 0.8rem; padding: 8px 12px; border-radius: 6px; margin-bottom: 14px; font-weight: 600; }
+.rw-diff { font-size: 0.9rem; line-height: 1.7; color: var(--text); }
+.rw-op.rw-eq { color: var(--text); }
+.rw-op.rw-add { background: rgba(200,164,106,0.28); color: #5c4718; border-radius: 3px; padding: 0 2px; }
+.rw-op.rw-del { color: var(--warm-gray-dark, #9a9186); text-decoration: line-through; }
+.rw-fallback-note { font-size: 0.82rem; color: var(--text-secondary); font-style: italic; margin-bottom: 12px; padding: 8px 12px; background: var(--soft-white); border-radius: 6px; }
+.rw-actions { display: flex; gap: 8px; margin-top: 14px; }
+.rw-legend { margin-top: 16px; font-size: 0.75rem; color: var(--text-muted); display: flex; align-items: center; gap: 8px; }
+.rw-empty { padding: 20px; text-align: center; color: var(--text-muted); font-size: 0.85rem; }
+@media (max-width: 900px) { .rw-grid { grid-template-columns: 1fr; } }

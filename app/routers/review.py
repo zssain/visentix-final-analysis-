@@ -72,9 +72,13 @@ async def approve(
     """Approve an assessment, freezing the customer-visible snapshot."""
     try:
         review = approve_assessment(assessment_id, user.user_id)
-        return asdict(review)
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    # F05: assemble + FREEZE recommendation evidence stacks at approval (once,
+    # idempotent → DIR-010 byte-identity). Never fails the approval.
+    from app.services.evidence import freeze_evidence_on_approval
+    await freeze_evidence_on_approval(assessment_id)
+    return asdict(review)
 
 
 @router.get("/gate-mode")

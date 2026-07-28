@@ -47,3 +47,4 @@ logs/embed_backfill.checkpoint.json
 
 # Live schema dumps (local insurance before migration applies) — never commit
 db/schema_dumps/
+logs/saas_crawl.log

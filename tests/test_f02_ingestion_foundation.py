@@ -107,6 +107,7 @@ def test_apply_now_order_and_step_a_first():
         "0038_f19_bulk_screening.sql",
         "0039_f20_partner_portal.sql",
         "0040_f21_quarterly.sql",
+        "0041_f05_f18_evidence_rewrite.sql",
     ]
 
 

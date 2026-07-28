@@ -50,6 +50,93 @@ async def list_assessments(
     return r.json()
 
 
+# ── F05 addendum: recommendation evidence stack (frozen at approval) ──
+
+@router.get("/{assessment_id}/findings/{finding_id}/evidence")
+async def finding_evidence(
+    assessment_id: str,
+    finding_id: str,
+    user: AuthenticatedUser = require_role("customer", "sme", "admin"),
+):
+    """The frozen evidence stack for a finding (served from the store, never
+    re-assembled at render). Org-scoped: a customer may only read its own."""
+    if user.role == "customer":
+        r = await supabase_rest_get("privacy_notice", select="organization_id",
+                                    filters=f"notice_id=eq.{assessment_id}", limit=1)
+        rows = r.json() if r.status_code == 200 else []
+        owner = rows[0]["organization_id"] if rows else None
+        if not owner or owner != user.organization_id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not your assessment.")
+    from app.services.evidence import get_evidence
+    ev = await get_evidence(assessment_id, finding_id)
+    if ev is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail="No frozen evidence for this finding (assembled at approval).")
+    return ev
+
+
+async def _assert_owns(assessment_id: str, user: AuthenticatedUser) -> None:
+    """Customer may only touch its own assessment (403 otherwise)."""
+    if user.role != "customer":
+        return
+    r = await supabase_rest_get("privacy_notice", select="organization_id",
+                                filters=f"notice_id=eq.{assessment_id}", limit=1)
+    rows = r.json() if r.status_code == 200 else []
+    owner = rows[0]["organization_id"] if rows else None
+    if not owner or owner != user.organization_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not your assessment.")
+
+
+# ── Clause list (for the rewrite picker) ─────────────────────
+
+@router.get("/{assessment_id}/clauses")
+async def list_clauses(
+    assessment_id: str,
+    user: AuthenticatedUser = require_role("customer", "sme", "admin"),
+):
+    """The assessment's substantive clauses grouped for the rewrite picker
+    (findings-flagged domains first). Org-scoped."""
+    await _assert_owns(assessment_id, user)
+    sr = await supabase_rest_get("notice_section", select="section_id",
+                                 filters=f"notice_id=eq.{assessment_id}", limit=1000)
+    section_ids = [s["section_id"] for s in (sr.json() if sr.status_code == 200 else []) if s.get("section_id")]
+    clauses: list[dict] = []
+    for i in range(0, len(section_ids), 40):
+        chunk = ",".join(f'"{s}"' for s in section_ids[i:i + 40])
+        cr = await supabase_rest_get(
+            "disclosure_clause", select="clause_id,raw_text,category,is_noise",
+            filters=f"section_id=in.({chunk})", limit=2000)
+        for c in (cr.json() if cr.status_code == 200 else []):
+            if c.get("is_noise"):
+                continue
+            clauses.append({"clause_id": c["clause_id"], "raw_text": c.get("raw_text") or "",
+                            "domain": c.get("category") or "other"})
+    # domains that have a finding surface first
+    fr = await supabase_rest_get("risk_finding", select="domain",
+                                 filters=f"notice_id=eq.{assessment_id}", limit=200)
+    flagged = {f.get("domain") for f in (fr.json() if fr.status_code == 200 else [])}
+    clauses.sort(key=lambda c: (c["domain"] not in flagged, c["domain"]))
+    return {"assessment_id": assessment_id, "flagged_domains": sorted(d for d in flagged if d), "clauses": clauses}
+
+
+# ── F18: illustrative clause rewrite (guardrailed + verified) ──
+
+@router.post("/{assessment_id}/clauses/{clause_id}/rewrite")
+async def rewrite_clause(
+    assessment_id: str,
+    clause_id: str,
+    user: AuthenticatedUser = require_role("customer", "sme", "admin"),
+):
+    """Guardrailed illustrative rewrite; falls back to an approved-exemplar
+    comparison on any guardrail/verification failure. Org-scoped (403 cross-org)."""
+    await _assert_owns(assessment_id, user)
+    from app.services.rewrite import generate_rewrite
+    try:
+        return await generate_rewrite(assessment_id, clause_id)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+
 # ── Create assessment ────────────────────────────────────────
 
 @router.post("/", status_code=status.HTTP_201_CREATED)
