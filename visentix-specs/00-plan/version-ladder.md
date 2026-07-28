@@ -16,5 +16,17 @@ match and note it here.
 | `/partner` — Partner Portal | F20 | partner tier | `partner_admin,admin` | Real; customer blocked. |
 | `/bulk` — Bulk Screening | F19 | contract tier | `admin` | Real; customer blocked. |
 
+## Governance triggers (version-gated privacy commitments)
+
+Some ladder transitions carry a privacy/legal commitment that must be re-cleared
+**before** the transition ships — not after. These are owner-owned gates.
+
+| Trigger | Commitment to re-clear | Why |
+|---|---|---|
+| Any move to **hosted / third-party inference** (the Hosted Qwen path, or any external embedding/LLM API) | **Reopen and re-approve the privacy-notice training/subprocessor clause before the switch ships.** | The published notice represents that "we do not send your submitted notices to third-party AI providers" and that analysis "runs on models we operate on our own infrastructure." A hosted model changes that representation and adds a subprocessor. Any such provider must be zero-retention / no-training (AGENTS §3), and the notice + subprocessor list must be updated and re-approved first. (Founder, 2026-07-28, privacy-notice wording review.) |
+
+Related published commitments (context, not ladder-gated): account-data retention **90 days** post-closure, usage/audit logs **12 months**; de-identified aggregated benchmarks (F21) published **only for groups of ≥10 organisations**. Recorded in `logs/decision-log.md` 2026-07-28.
+
 ## Changelog
 - 2026-07-28: Created. Recorded F18 `/rewrite` as the **v4 flagship** (sme,admin for v1). Captured the current Section-B surface gating (owner decisions). Source: owner.
+- 2026-07-28: Added **Governance triggers** section — a move to hosted/third-party models reopens the privacy-notice training/subprocessor clause before shipping. Source: owner (founder), privacy-notice wording review.
