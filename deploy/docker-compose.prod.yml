@@ -1,0 +1,123 @@
+# Visentix production stack — RunPod GPU VM.
+# Public surface: Caddy :443 ONLY. api:8000 and ollama:11434 are never published
+# to the host — they live on the internal `visentix` network. Postgres is managed
+# Supabase (off-VM, reached over TLS by DATABASE_URL); it is never run here.
+#
+#   docker compose -f deploy/docker-compose.prod.yml --env-file .env up -d
+#
+# Secrets come from .env (NOT in git). Record resolved image digests + model
+# versions into LAUNCH-READINESS-v2.md after `up`.
+
+services:
+  # ---------------------------------------------------------------------------
+  # API — FastAPI/uvicorn, built from the repo Dockerfile at the deployed tag.
+  # ---------------------------------------------------------------------------
+  api:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    image: visentix-api:${GIT_TAG:-local}
+    env_file: .env
+    environment:
+      # Inside the compose network the api talks to ollama by service name,
+      # overriding the localhost default from .env.
+      OLLAMA_BASE_URL: http://ollama:11434
+      APP_ENV: production
+      SCHEDULER_ENABLED: "true"          # F07 scheduler runs on the single prod replica
+      # sentence-transformers downloads the embedding model into this cache once.
+      HF_HOME: /hf-cache
+    volumes:
+      - hf-cache:/hf-cache               # persist the all-MiniLM-L6-v2 weights across restarts
+    depends_on:
+      ollama:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health',timeout=5).status==200 else 1)"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s                  # first boot warms the HF embedding cache
+    restart: unless-stopped
+    networks: [visentix]
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  # ---------------------------------------------------------------------------
+  # Ollama — GPU-backed local LLM. Pulls the PINNED qwen3:8b at first boot.
+  # NOTE: the EMBEDDING model (all-MiniLM-L6-v2) is NOT an Ollama model — it runs
+  # in-process in the api container via sentence-transformers (per decision-log
+  # 2026-07-28 + app/services/embeddings.py). Ollama therefore pulls the LLM only;
+  # the embedding weights are cached in the hf-cache volume above.
+  # ---------------------------------------------------------------------------
+  ollama:
+    image: ${OLLAMA_IMAGE:-ollama/ollama:latest}
+    entrypoint: ["/bin/sh", "/entrypoint-ollama.sh"]
+    environment:
+      QWEN_LOCAL_MODEL: ${QWEN_LOCAL_MODEL:-qwen3:8b}
+    volumes:
+      - ollama-models:/root/.ollama       # persist pulled models across restarts
+      - ./entrypoint-ollama.sh:/entrypoint-ollama.sh:ro
+    # GPU reservation — requires the NVIDIA container toolkit on the RunPod host.
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    healthcheck:
+      # Healthy only once the server answers AND the pinned model is present.
+      test: ["CMD-SHELL", "ollama list | grep -q qwen3 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 20                         # generous: first pull of qwen3:8b can take minutes
+      start_period: 300s
+    restart: unless-stopped
+    networks: [visentix]
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  # ---------------------------------------------------------------------------
+  # Caddy — the ONLY public service. Terminates TLS on :443 for ${DOMAIN},
+  # reverse-proxies to api:8000, and adds security headers. :80 stays open only
+  # for the ACME HTTP challenge + redirect-to-https.
+  # ---------------------------------------------------------------------------
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "80:80"      # ACME challenge + 308 redirect to https (no app traffic served here)
+      - "443:443"
+      - "443:443/udp"  # HTTP/3
+    environment:
+      DOMAIN: ${DOMAIN:?set DOMAIN in .env}
+      ACME_EMAIL: ${ACME_EMAIL:-}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data                  # persisted certs — do NOT lose (rate limits)
+      - caddy-config:/config
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+    networks: [visentix]
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+networks:
+  visentix:
+    driver: bridge
+
+volumes:
+  ollama-models:
+  hf-cache:
+  caddy-data:
+  caddy-config:

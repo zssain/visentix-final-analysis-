@@ -1,0 +1,40 @@
+# Caddy — public edge for Visentix. TLS on :443 for {$DOMAIN}, automatic certs
+# via Let's Encrypt. All app traffic is reverse-proxied to the internal api:8000.
+# Ollama and Postgres are NOT reachable through here.
+
+{
+	email {$ACME_EMAIL}
+	# Uncomment for staging certs while testing to avoid LE rate limits:
+	# acme_ca https://acme-staging-v02.api.letsencrypt.org/directory
+}
+
+{$DOMAIN} {
+	encode zstd gzip
+
+	# --- Security headers ---
+	header {
+		# HSTS: 2 years, include subdomains, preload-eligible.
+		Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		# The API is JSON-only; a strict CSP is safe here (no inline scripts served).
+		Content-Security-Policy "default-src 'none'; frame-ancestors 'none'; base-uri 'none'"
+		Permissions-Policy "geolocation=(), microphone=(), camera=()"
+		-Server
+	}
+
+	reverse_proxy api:8000 {
+		health_uri /health
+		health_interval 30s
+		health_timeout 5s
+	}
+
+	log {
+		output stdout
+		format json
+	}
+}
+
+# Any request on plain :80 (other than the ACME challenge Caddy handles itself)
+# is redirected to https by Caddy's automatic-HTTPS behavior.

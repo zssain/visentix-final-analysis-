@@ -1,0 +1,46 @@
+Visentix Privacy Notice
+Effective date: 28 July 2026
+
+Who we are
+Visentix provides privacy-intelligence analysis: we read published privacy notices and score how clearly and completely they disclose data practices, benchmarked against peers. We are the data controller for the account and usage data described below. Visentix produces intelligence and exposure signals. It does not provide legal advice and does not make compliance determinations.
+
+What we collect
+Account information: your name, email address, organisation name, and role, provided when an account is created.
+Submitted notices and files: the privacy notices, documents, and URLs you submit for analysis, and the text and scores we derive from them. Submitted documents and their analysis are stored so reports are reproducible.
+Usage logs: audit and access logs recording who did what and when (sign-ins, submissions, report views, approvals), with technical metadata such as timestamps and IP address, kept for security and troubleshooting.
+We do not use tracking cookies for advertising. We use a single first-party session token to keep you signed in.
+
+How we use it
+To run the analysis you request, generate reports, and let a subject-matter expert review findings before a report is delivered.
+To secure the service, investigate misuse, keep an audit trail, and meet our own record-keeping obligations.
+To operate your account and communicate with you about the service, including alert emails you enable.
+Automated classification and scoring are reviewed by a human expert before any report is delivered; we do not make automated decisions that produce legal effects on individuals.
+To produce de-identified, aggregated statistics and benchmarks. These never identify you or your organisation and are only published for groups of 10 or more organisations.
+We do not send your submitted notices to third-party AI providers, and we do not use them to train third-party models. Analysis runs on models we operate on our own infrastructure. We do use our experts' review decisions, and de-identified, aggregated patterns from analyses, to improve Visentix's own accuracy over time. Any language reused outside your account, for example in benchmarks or published statistics, is first stripped of names, contact details, and identifiers, and appears only in groups large enough that no organisation can be identified.
+
+Who we share it with (subprocessors)
+Supabase provides the managed database that stores account data, submitted notices, and derived scores.
+RunPod provides the GPU compute that runs the analysis models and the API.
+Cloudflare provides hosting and delivery of the web application.
+Our email provider sends transactional and alert emails when enabled.
+Each processes data only on our instructions to run the service. We do not sell your personal data and we do not share it for advertising.
+
+How long we keep it
+Account data is kept while your account is active and deleted or anonymised within 90 days of account closure unless we must keep it longer for legal or security reasons.
+Submitted notices and derived reports are kept for the life of the account so reports remain reproducible, and deleted on request or on account closure.
+Usage and audit logs are retained up to 12 months, then deleted or aggregated.
+
+Your rights
+You can ask us to access, correct, export, or delete your personal data, and to restrict or object to certain processing. Email privacy@visentix.ai and we will respond within a reasonable time.
+
+Security
+Data is encrypted in transit. Access to production data is role-based and limited; tenants are isolated so one customer cannot read another customer's data. Secrets are held in environment configuration, never in our source code.
+
+International transfers
+Our subprocessors may process data in regions outside your own. Where required, transfers rely on appropriate safeguards such as standard contractual clauses.
+
+Changes to this notice
+If we change this notice we will update the effective date and, for material changes, notify account administrators.
+
+Contact
+Questions or requests: privacy@visentix.ai.

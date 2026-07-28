@@ -85,6 +85,10 @@ A normalized corpus already lives in Supabase. You did not create it and you mus
 - F15 — Public Trust Center — shipped UI — center built, trust metrics mocked (M-27); metrics feed proposed
 - F16 — Vendor Due Diligence Mode — shipped UI — workflow built, all data mocked (M-28); vendor pipeline + persistence proposed
 - F17 — Evaluation Harness (Measurement Only) — proposed
+- F18 — Clause Rewrite (Illustrative, Guardrailed) — shipped (2026-07-28 — owner-approved build; migration 0041 live)
+- F19 — Bulk Screening Mode (regulator / law-firm / insurer journeys) — approved — in-progress (owner-approved 2026-07-28 with the three adjustments in changelog 0.2)
+- F20 — Partner Portal (Deliverable 3: white-label channel, real backend) — approved — in-progress (owner-approved 2026-07-28 with the refinements in changelog 0.2)
+- F21 — Quarterly Global Privacy Intelligence Report (Deliverable 4, v1 BASELINE) — approved — in-progress (owner-approved 2026-07-28 with authoritative S4 catalog; changelog 0.2)
 <!-- END GENERATED: SPEC INDEX -->
 
 ## Stack facts

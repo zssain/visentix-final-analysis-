@@ -41,10 +41,14 @@ describe("API client security", () => {
   it("only uses VITE_ prefixed env vars", () => {
     const combined = fs.readFileSync(path.resolve(srcDir, "lib/api.ts"), "utf-8");
 
-    // All import.meta.env references should use VITE_ prefix
+    // All import.meta.env references must be either a VITE_-prefixed var (the
+    // only custom vars Vite exposes to the client) or one of Vite's safe
+    // built-ins (DEV/PROD/MODE/SSR/BASE_URL). Anything else risks leaking a
+    // server-only secret into the bundle.
+    const VITE_BUILTINS = /^import\.meta\.env\.(VITE_\w+|DEV|PROD|MODE|SSR|BASE_URL)$/;
     const envRefs = combined.match(/import\.meta\.env\.\w+/g) || [];
     for (const ref of envRefs) {
-      expect(ref).toMatch(/import\.meta\.env\.VITE_/);
+      expect(ref).toMatch(VITE_BUILTINS);
     }
   });
 });

@@ -38,7 +38,7 @@ export function AdminConsole() {
   useEffect(() => {
     Promise.all([
       api.get("/admin/training-stats").catch(() => null),
-      fetch((import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000") + "/health").then(r => r.json()).catch(() => null),
+      fetch((import.meta.env.VITE_API_BASE_URL ?? (import.meta.env.DEV ? "http://localhost:8000" : "")) + "/health").then(r => r.json()).catch(() => null),
       // M-13: read the REAL gate mode from the backend (platform_setting-backed).
       api.get("/review/gate-mode").catch(() => null),
     ]).then(([s, h, g]) => {

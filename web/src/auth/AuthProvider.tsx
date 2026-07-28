@@ -7,7 +7,7 @@
 import { createContext, useContext, useCallback, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 
-export type UserRole = "customer" | "sme" | "admin";
+export type UserRole = "customer" | "sme" | "admin" | "partner_admin";
 
 export interface AuthProfile {
   role: UserRole;
@@ -32,7 +32,8 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 const SESSION_KEY = "visentix-auth-session";
 const PROFILE_KEY = "visentix-auth-profile";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
+// Prod builds MUST set VITE_API_BASE_URL; localhost fallback is dev-only.
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? (import.meta.env.DEV ? "http://localhost:8000" : "");
 
 function readLocalSession(): LocalSession | null {
   try {

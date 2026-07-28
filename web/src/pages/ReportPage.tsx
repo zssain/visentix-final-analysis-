@@ -95,7 +95,7 @@ function ReportLoader({ assessmentId }: { assessmentId: string }) {
           ← Back to Assessments
         </Link>
         <a
-          href={`${import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000"}/reports/${assessmentId}/pdf`}
+          href={`${import.meta.env.VITE_API_BASE_URL ?? (import.meta.env.DEV ? "http://localhost:8000" : "")}/reports/${assessmentId}/pdf`}
           className="btn btn-outline btn-sm"
           target="_blank"
           rel="noopener noreferrer"
