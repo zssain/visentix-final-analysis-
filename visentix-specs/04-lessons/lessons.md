@@ -15,7 +15,9 @@ When someone asks "why does the spec insist on X?" — the answer should be find
 
 | L-007 | 2026-07 | Permissive test double masked a type mismatch: framework wrote text into `source_record.version_id` (INTEGER) — tests green, live 400'd | In-memory fake stored any Python value without checking the real column type | Schema-typed fakes (`tests/ingestion_fakes.py`): reject writes whose type wouldn't survive Postgres; type map derived from `db/migrations` (+ live snapshot for pre-existing `source_record`), with a migration↔live drift test | CI guard | Open (until PR merged) |
 
-<!-- Append new rows above this line. Next ID: L-008 -->
+| L-008 | 2026-07 | 38 of 56 public tables shipped with RLS disabled → the Supabase anon key could read them via PostgREST (proven: organization 26,690 rows, notice_section 540,912 rows) | RLS was never a migration-governance rule; tables created without `ENABLE ROW LEVEL SECURITY` inherit Supabase's default anon/authenticated grants and are exposed through PostgREST | Migration 0042 (ENABLE RLS + REVOKE anon/authenticated on all 38, deny-by-default); schema.md §5.2 rule 4; `tests/test_rls_enabled.py` asserts rowsecurity=true on every public table; `db/migrations/_TEMPLATE.sql` checklist; anon+service keys rotated | CI guard + Spec | Open (until PR merged) |
+
+<!-- Append new rows above this line. Next ID: L-009 -->
 
 ## How a row gets here (the loop)
 1. Incident filed or pattern spotted by the weekly audit (`logs/audits/`).
