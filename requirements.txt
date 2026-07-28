@@ -18,6 +18,10 @@ weasyprint==69.0
 pytest==8.4.1
 ruff==0.11.13
 
+# F07 scheduler — in-process APScheduler with a Postgres (SQLAlchemy) job store.
+APScheduler==3.10.4
+SQLAlchemy==2.0.36
+
 # Open-web crawler (open_web connector) — live rendering only; lazy-imported.
 # After install run: playwright install chromium
 playwright==1.49.0
