@@ -125,10 +125,11 @@ async def list_clauses(
 async def rewrite_clause(
     assessment_id: str,
     clause_id: str,
-    user: AuthenticatedUser = require_role("customer", "sme", "admin"),
+    user: AuthenticatedUser = require_role("sme", "admin"),
 ):
     """Guardrailed illustrative rewrite; falls back to an approved-exemplar
-    comparison on any guardrail/verification failure. Org-scoped (403 cross-org)."""
+    comparison on any guardrail/verification failure. v1: gated to sme|admin
+    (F18 is the v4 flagship — releases with v4 entitlements, not in the pilot)."""
     await _assert_owns(assessment_id, user)
     from app.services.rewrite import generate_rewrite
     try:

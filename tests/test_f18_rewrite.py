@@ -134,18 +134,24 @@ async def test_ac4_fallback_diffs_against_exemplar():
     assert out["diff"]  # clause vs best exemplar
 
 
-# ── Endpoint org-scoping (AC-6) ──────────────────────────────
+# ── v1 gating: customer cannot reach the rewrite endpoint (F18 = v4 flagship) ──
 
 @pytest.mark.anyio
-async def test_ac6_cross_org_403():
-    async def _get(table, *, select="*", filters="", limit=1000, count=False):
-        if table == "privacy_notice":
-            return _Resp([{"organization_id": "ORG-OTHER"}])   # owned by another org
-        return _Resp([])
-    from app.routers import assessments as A
-    with patch.object(A, "supabase_rest_get", _get):
+async def test_customer_blocked_v1_gate():
+    # /rewrite is gated to sme|admin for v1 → a customer is rejected at the role
+    # check (403), never reaching the engine.
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as c:
+        r = await c.post(f"/assessments/{uuid4()}/clauses/{uuid4()}/rewrite",
+                         headers={"Authorization": f"Bearer {_token('customer', 'ORG-A')}"})
+    assert r.status_code == 403
+
+
+@pytest.mark.anyio
+async def test_sme_permitted_reaches_engine():
+    with patch.object(R, "generate_rewrite", AsyncMock(return_value={"status": "llm", "watermark_text": R.WATERMARK})):
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as c:
             r = await c.post(f"/assessments/{uuid4()}/clauses/{uuid4()}/rewrite",
-                             headers={"Authorization": f"Bearer {_token('customer', 'ORG-A')}"})
-    assert r.status_code == 403
+                             headers={"Authorization": f"Bearer {_token('sme', 'ORG-A')}"})
+    assert r.status_code == 200

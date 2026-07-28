@@ -9,7 +9,7 @@
 Offer a customer an **illustrative** rewrite of a weak clause — clearer structure, peer-informed phrasing — **without ever adding a practice, recipient, purpose, or commitment the clause didn't already make.** It is a drafting *aid*, explicitly **not legal drafting**. Every output passes **both** the banned-term guardrail **and** a fabrication-verification step; any failure falls back to a side-by-side comparison against an approved exemplar. This is the honest, safe realization of intelligence-logic §10 (LLM may rephrase; may not invent facts or render conclusions).
 
 ## Users & entry points
-Customer · `/rewrite` (replaces the current mock page). Clause picker (left) → diff/rewrite (right).
+`sme,admin` · `/rewrite` (replaces the current mock page). Clause picker (left) → diff/rewrite (right). **v1 gating:** F18 is the **v4 flagship** — for v1 it is gated away from the customer role (route + backend endpoint `sme,admin` only); it releases with v4 entitlements, not silently in the pilot (owner, 2026-07-28; see [`00-plan/version-ladder.md`](../00-plan/version-ladder.md)).
 
 ## Data (new — amends schema.md)
 `clause_rewrite(id uuid pk, assessment_id fk→privacy_notice(notice_id), clause_id fk→disclosure_clause, model_version text, prompt_version text, guardrail_passed bool, verification_passed bool, suggested_text text null (null when fallback used), fallback_used bool, diff jsonb, created_at)`.

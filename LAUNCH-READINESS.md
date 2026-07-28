@@ -10,19 +10,19 @@ Branch `F02-unify-classification` — Stage-3 commits: `0824c7d` (pilot nav), `2
 
 **Do NOT trust the `VITE_PREVIEW_SURFACES` default.** A commit **`dfb4b56` ("always show Vendors, Partner, Bulk in nav — remove PREVIEW_SURFACES gate")** de-gated preview surfaces for a demo. The flag was later re-instated (default off) for the **nav**, but **routes stay registered and URL-reachable** by design (comment in `App.tsx`: "reachable by URL for internal QA"). So nav-hiding is **not** an access control — the launch audit must verify the **route role-guards** from the built artifact.
 
-**Current route-guard state (`web/src/App.tsx`, snapshot 2026-07-28 — informational; the audit is the source of truth):**
+**Route-guard state — RE-RUN 2026-07-28 after the owner's Section-B gating decisions landed (source-level; production-build confirmation still required before deploy):**
 
-| Route | Current guard | Customer reachable by URL? | Intended? |
+| Route | Guard (now) | Customer reachable? | Section-B verdict |
 |---|---|---|---|
-| `/quarterly` | **none** | yes (public) | ✅ F21 public quarterly report — verify it serves only approved+suppressed data |
-| `/trust` | **none** | yes (public) | ✅ F15 public Trust Center — verify no security jargon / private data |
-| `/crosswalk` | **none** | **yes** | ⚠️ F13 (M-25 mock) — **non-v1, customer-reachable → FLAG** |
-| `/vendors` | `customer,sme,admin` | **yes** | ⚠️ F16 (M-28 mock) — **non-v1, customer-reachable → FLAG** |
-| `/rewrite` | `customer,sme,admin` | yes | ✅ F18 real customer feature (shipped) |
-| `/partner` | `partner_admin,admin` | no | ✅ blocked for customer |
-| `/bulk` | `admin` | no | ✅ blocked for customer |
+| `/quarterly` | none (public) | yes (public) | **public by design (data-confirmed)** — real F21; serves only approved+suppressed data |
+| `/crosswalk` | `admin` | no | **blocked** — mock → admin-only until rebuilt |
+| `/trust` | `admin` | no | **blocked** — mock → admin-only (public only when rebuilt real + owner-confirmed) |
+| `/vendors` | `admin` | no | **blocked** — mock → admin-only |
+| `/rewrite` | `sme,admin` | no | **blocked** — F18 is the v4 flagship; gated for v1 (route + endpoint) |
+| `/partner` | `partner_admin,admin` | no | **blocked** |
+| `/bulk` | `admin` | no | **blocked** |
 
-**Section-B audit requirement (blocking pre-launch):** from the **production build** (not dev), authenticated as a **customer** role, confirm every **non-v1** surface is unreachable (HTTP/route-level, not just hidden from nav). At minimum resolve the two ⚠️ flags above (`/crosswalk`, `/vendors`) — either role-gate the routes for prod or confirm they are intended v1. Public-by-design surfaces (`/quarterly`, `/trust`) must be confirmed to expose only approved/anonymized data. **Treat this table as a lead, not a guarantee** — the built artifact's behavior is authoritative.
+Every row reads **blocked** or **public by design (data-confirmed)** ✅ (source-level). Nav links re-gated to match (incl. `/vendors`, which was previously nav-visible to all roles). **Still BLOCKING:** the audit must re-confirm each verdict from the **production build** authenticated as a **customer** — the built artifact is authoritative, this table is the lead. Decisions logged in `logs/decision-log.md` (2026-07-28) + `visentix-specs/00-plan/version-ladder.md`.
 
 ---
 
