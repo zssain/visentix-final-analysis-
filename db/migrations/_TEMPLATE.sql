@@ -1,0 +1,33 @@
+-- NNNN_short_description.sql
+-- Author: <role> · Feature: <Fxx> · Date: YYYY-MM-DD
+--
+-- CHECKLIST (every migration MUST satisfy these — see schema.md §5 governance):
+--   [ ] ADDITIVE ONLY — new tables / new NULLABLE columns / new indexes. No DROP,
+--       TRUNCATE, DELETE, or destructive ALTER on existing tables (AGENTS §2).
+--   [ ] IDEMPOTENT — IF NOT EXISTS / IF EXISTS / ON CONFLICT DO NOTHING, so a
+--       re-run changes nothing. The applier splits on ';' (dollar-quote aware).
+--   [ ] 🔒 RLS ON EVERY NEW TABLE — for each CREATE TABLE add BOTH:
+--           ALTER TABLE public.<t> ENABLE ROW LEVEL SECURITY;
+--           REVOKE ALL ON public.<t> FROM anon, authenticated;
+--       Supabase exposes every public table via PostgREST to the anon key, so a
+--       table without RLS is a data leak (incident 2026-07-29, migration 0042).
+--       Deny-by-default is correct for backend/reference tables (API uses the
+--       service-role key, which bypasses RLS). A table that must be readable by
+--       a *client using the anon key* additionally needs per-org policies
+--       mirrored from the F10 pattern, each with a cross-tenant test.
+--       tests/test_rls_enabled.py fails CI-local if any public table is missing RLS.
+--   [ ] LINEAGE — new derived values carry formula_version + input refs + VCI
+--       + generated_at (Hard Rule 4); never overwrite snapshots (Hard Rule 6).
+--   [ ] Applied via scripts/db/apply_migration.py (records filename+checksum in
+--       schema_migrations). A migration counts as applied only once its ledger
+--       row exists.
+
+-- <your DDL here>
+
+-- Example skeleton for a new table:
+-- CREATE TABLE IF NOT EXISTS public.example (
+--   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+--   created_at timestamptz NOT NULL DEFAULT now()
+-- );
+-- ALTER TABLE public.example ENABLE ROW LEVEL SECURITY;
+-- REVOKE ALL ON public.example FROM anon, authenticated;

@@ -84,11 +84,13 @@ APPLY_NOW = [
     "0039_f20_partner_portal.sql",               # F20 — partner/partner_workspace/partner_api_key/feed_access_log + user_role 'partner_admin' + profiles.partner_id + report_snapshot.branding_applied
     "0040_f21_quarterly.sql",                    # F21 — quarterly_snapshot/quarterly_metric + approved-snapshot immutability trigger (DIR-010)
     "0041_f05_f18_evidence_rewrite.sql",         # F05 addendum (recommendation_evidence) + F18 (clause_rewrite)
+    "0042_enable_rls_all_public.sql",            # SECURITY — ENABLE RLS + REVOKE anon/authenticated on every public table (incident 2026-07-29)
 ]
 
-# NOT tracked: paste bundles + the ambiguous local_users migration.
+# NOT tracked: paste bundles, the ambiguous local_users migration, and the
+# authoring template (not a real migration — never applied/recorded).
 UNTRACKED = {"APPLY_0009_0010.sql", "APPLY_ALL_PHASE1.sql", "APPLY_PHASE2_AUTH.sql",
-             "0011_local_users.sql"}
+             "0011_local_users.sql", "_TEMPLATE.sql"}
 
 
 def checksum(name: str) -> str:

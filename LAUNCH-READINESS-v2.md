@@ -93,8 +93,8 @@ ships the file; still, the demo passwords must be treated as burned.
 | Credential | In git history? | Action | Rotated (date) |
 |---|---|---|---|
 | Demo account passwords (admin/sme/customer) | **yes** (`a54c598`, salted hashes) | Do not reuse; provision prod users with fresh passwords via DB (RLS-AUDIT §5 C1b). | ⟨owner⟩ |
-| `SUPABASE_SERVICE_ROLE_KEY` | no | Rotate in Supabase before launch (precaution). Update `.env`; confirm old key 401s. | ⟨owner⟩ |
-| `SUPABASE_ANON_KEY` | no (placeholder only) | Rotate with the above; update web build env. | ⟨owner⟩ |
+| `SUPABASE_SERVICE_ROLE_KEY` | no | **🔴 ROTATE NOW** — active attack surface during the RLS exposure window (incident 2026-07-29). Update `.env`; confirm old key dead. | ⟨owner — now⟩ |
+| `SUPABASE_ANON_KEY` | no (placeholder only) | **🔴 ROTATE NOW** — this key could read 38 exposed tables (organization, notice_section, …) during the window before 0042. Rotate; update the web build env. | ⟨owner — now⟩ |
 | `SUPABASE_JWT_SECRET` | no | Rotate; all existing tokens invalidate (expected). | ⟨owner⟩ |
 | DB password (`DATABASE_URL`) | no | Rotate in Supabase; update `.env` + `DATABASE_POOLER_URL`. | ⟨owner⟩ |
 | SMTP creds | no | Set fresh if alerts enabled; else leave blank (suppressed). | ⟨owner⟩ |
