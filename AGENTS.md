@@ -57,7 +57,7 @@ A normalized corpus already lives in Supabase. You did not create it and you mus
 
 <!-- BEGIN GENERATED: CURRENT VERSIONS (source: 01-foundation changelogs) -->
 ## Current versions
-- schema.md: v1.3.6 (2026-07-28)
+- schema.md: v1.3.7 (2026-07-28)
 - business-logic.md: v1.2 (2026-07-15)
 - intelligence-logic.md: v1.5 (2026-07-28)
 - design-system.md: v1.4 (2026-07-27)

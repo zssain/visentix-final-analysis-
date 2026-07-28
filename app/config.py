@@ -54,6 +54,19 @@ class Settings(BaseSettings):
     # Admin
     admin_email: str = Field(default="")
 
+    # F07 scheduler — in-process APScheduler. OFF by default so tests / import
+    # never start it; the real server sets SCHEDULER_ENABLED=true.
+    scheduler_enabled: bool = Field(default=False)
+    database_pooler_url: str = Field(default="")  # IPv4 pooler — APScheduler jobstore
+
+    # F07 alert delivery (email/webhook). No secrets hardcoded; unset = no send.
+    smtp_host: str = Field(default="")
+    smtp_port: int = Field(default=587)
+    smtp_user: str = Field(default="")
+    smtp_pass: str = Field(default="")
+    smtp_from: str = Field(default="alerts@visentix.local")
+    public_base_url: str = Field(default="https://app.visentix.local")
+
     # Ingestion connector framework (F02) — global politeness delay (seconds)
     # between per-item work in a run. 0 in tests; set >0 in prod to be a good citizen.
     ingestion_politeness_seconds: float = Field(default=0.0)

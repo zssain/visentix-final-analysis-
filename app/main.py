@@ -1,5 +1,7 @@
 """Visentix MVP — FastAPI application entry point."""
 
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -7,15 +9,27 @@ from app.config import settings
 from app.logging import get_logger, setup_logging
 from app.routers import admin, assessments, auth, explain, feed, findings, formulas, health, monitoring, reports, review
 from app.routers import eval as eval_router
+from app.routers import notifications
 
 setup_logging(level="DEBUG" if not settings.is_production else "INFO")
 log = get_logger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # F07 scheduler — no-op unless SCHEDULER_ENABLED=true, so tests never start it.
+    from app.services import scheduler
+    scheduler.start()
+    yield
+    scheduler.shutdown()
+
 
 app = FastAPI(
     title="Visentix MVP",
     version="0.2.0",
     docs_url="/docs" if not settings.is_production else None,
     redoc_url=None,
+    lifespan=lifespan,
 )
 
 app.add_middleware(
@@ -38,5 +52,6 @@ app.include_router(feed.router)
 app.include_router(monitoring.router)
 app.include_router(formulas.router)
 app.include_router(eval_router.router)
+app.include_router(notifications.router)
 
 log.info("Visentix MVP started (env=%s)", settings.app_env)

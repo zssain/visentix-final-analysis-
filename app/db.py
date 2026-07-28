@@ -63,3 +63,15 @@ async def supabase_rest_post(
 
     async with httpx.AsyncClient(timeout=15) as client:
         return await client.post(url, headers=headers, json=payload)
+
+
+async def supabase_rest_patch(table: str, filters: str, payload: dict) -> httpx.Response:
+    """PATCH (update) rows matching `filters` (raw PostgREST filter string)."""
+    headers = get_service_headers()
+    headers["Content-Type"] = "application/json"
+    headers["Prefer"] = "return=minimal"
+    async with httpx.AsyncClient(timeout=15) as client:
+        return await client.patch(
+            f"{settings.supabase_url}/rest/v1/{table}?{filters}",
+            headers=headers, json=payload,
+        )
