@@ -6,6 +6,26 @@ Branch `F02-unify-classification` — Stage-3 commits: `0824c7d` (pilot nav), `2
 
 ---
 
+## 🚩 GATING FLAG — Section B: non-v1 surface reachability (BLOCKING, verify from the PRODUCTION build)
+
+**Do NOT trust the `VITE_PREVIEW_SURFACES` default.** A commit **`dfb4b56` ("always show Vendors, Partner, Bulk in nav — remove PREVIEW_SURFACES gate")** de-gated preview surfaces for a demo. The flag was later re-instated (default off) for the **nav**, but **routes stay registered and URL-reachable** by design (comment in `App.tsx`: "reachable by URL for internal QA"). So nav-hiding is **not** an access control — the launch audit must verify the **route role-guards** from the built artifact.
+
+**Current route-guard state (`web/src/App.tsx`, snapshot 2026-07-28 — informational; the audit is the source of truth):**
+
+| Route | Current guard | Customer reachable by URL? | Intended? |
+|---|---|---|---|
+| `/quarterly` | **none** | yes (public) | ✅ F21 public quarterly report — verify it serves only approved+suppressed data |
+| `/trust` | **none** | yes (public) | ✅ F15 public Trust Center — verify no security jargon / private data |
+| `/crosswalk` | **none** | **yes** | ⚠️ F13 (M-25 mock) — **non-v1, customer-reachable → FLAG** |
+| `/vendors` | `customer,sme,admin` | **yes** | ⚠️ F16 (M-28 mock) — **non-v1, customer-reachable → FLAG** |
+| `/rewrite` | `customer,sme,admin` | yes | ✅ F18 real customer feature (shipped) |
+| `/partner` | `partner_admin,admin` | no | ✅ blocked for customer |
+| `/bulk` | `admin` | no | ✅ blocked for customer |
+
+**Section-B audit requirement (blocking pre-launch):** from the **production build** (not dev), authenticated as a **customer** role, confirm every **non-v1** surface is unreachable (HTTP/route-level, not just hidden from nav). At minimum resolve the two ⚠️ flags above (`/crosswalk`, `/vendors`) — either role-gate the routes for prod or confirm they are intended v1. Public-by-design surfaces (`/quarterly`, `/trust`) must be confirmed to expose only approved/anonymized data. **Treat this table as a lead, not a guarantee** — the built artifact's behavior is authoritative.
+
+---
+
 ## What's done (verified)
 
 ### Workstream A — git hygiene

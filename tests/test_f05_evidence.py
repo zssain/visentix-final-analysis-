@@ -138,6 +138,34 @@ async def test_freeze_idempotent():
         assert await E.freeze_evidence_on_approval("NID") == 0  # already frozen → skip
 
 
+# ── ID threading: report passes the finding CODE → resolve to UUID ──
+
+@pytest.mark.anyio
+async def test_get_evidence_resolves_code_to_finding_id():
+    """The report identifies findings by code (assembly sets finding.id=code);
+    recommendation_evidence keys on the risk_finding UUID. get_evidence must
+    resolve the code so the drawer shows the real frozen stack."""
+    calls = []
+
+    async def _get(table, *, select="*", filters="", limit=1000, count=False):
+        calls.append((table, filters))
+        if table == "recommendation_evidence" and "finding_id=eq.RET-003" in filters:
+            return _Resp([])  # no row under the CODE (UUIDs are stored)
+        if table == "risk_finding":
+            return _Resp([{"finding_id": "UUID-1"}])  # code → UUID
+        if table == "recommendation_evidence" and "finding_id=eq.UUID-1" in filters:
+            return _Resp([{"finding_id": "UUID-1", "obligation_refs": "[]", "exemplar_clause_id": None,
+                           "enforcement_refs": "[]", "absence_reason": "below_floor",
+                           "risk_reduction_delta": None, "formula_version_id": "F05-evidence_v1", "confidence": 0.0}])
+        return _Resp([])
+    with patch.object(E, "supabase_rest_get", _get):
+        ev = await E.get_evidence("NID", "RET-003")   # called with the CODE
+    assert ev is not None and ev["finding_id"] == "UUID-1"
+    assert ev["risk_reduction_delta"] is None
+    # it resolved via risk_finding, then read by the UUID
+    assert any(t == "risk_finding" for t, _ in calls)
+
+
 # ── AC-E5: cross-org evidence read → 403 ─────────────────────
 
 @pytest.mark.anyio

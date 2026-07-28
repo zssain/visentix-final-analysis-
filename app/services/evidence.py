@@ -217,17 +217,38 @@ async def freeze_evidence_on_approval(assessment_id: str) -> int:
         return 0
 
 
-async def get_evidence(assessment_id: str, finding_id: str) -> dict | None:
-    """Read the frozen stack for one finding (never re-assembles)."""
+async def _resolve_finding_id(assessment_id: str, finding_ref: str) -> str | None:
+    """The report identifies a finding by its CODE (assembly sets finding.id =
+    finding_type_code), but recommendation_evidence keys on the risk_finding
+    UUID. Resolve a code → finding_id for this assessment. A value that is
+    already a UUID falls through unchanged."""
+    fr = await supabase_rest_get(
+        "risk_finding", select="finding_id",
+        filters=f"notice_id=eq.{assessment_id}&finding_type_code=eq.{finding_ref}", limit=1)
+    rows = fr.json() if fr.status_code == 200 else []
+    return rows[0]["finding_id"] if rows else None
+
+
+async def _read_evidence_row(assessment_id: str, finding_id: str) -> dict | None:
     r = await supabase_rest_get(
         "recommendation_evidence",
         select="finding_id,obligation_refs,exemplar_clause_id,enforcement_refs,absence_reason,"
                "risk_reduction_delta,formula_version_id,confidence,generated_at",
         filters=f"assessment_id=eq.{assessment_id}&finding_id=eq.{finding_id}", limit=1)
     rows = r.json() if r.status_code == 200 else []
-    if not rows:
+    return rows[0] if rows else None
+
+
+async def get_evidence(assessment_id: str, finding_ref: str) -> dict | None:
+    """Read the frozen stack for one finding (never re-assembles). Accepts the
+    risk_finding UUID OR the finding code the report uses as the id."""
+    ev = await _read_evidence_row(assessment_id, finding_ref)      # UUID path
+    if ev is None:
+        resolved = await _resolve_finding_id(assessment_id, finding_ref)  # code → UUID
+        if resolved:
+            ev = await _read_evidence_row(assessment_id, resolved)
+    if ev is None:
         return None
-    ev = rows[0]
 
     def _j(v):
         return json.loads(v) if isinstance(v, str) else (v or [])
