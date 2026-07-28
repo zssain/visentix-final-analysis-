@@ -45,7 +45,10 @@ jobs:
             esac
             # Only scan lines this PR ADDS — a file that already contains the
             # term (e.g. a quote in a spec) must not fail on an unrelated edit.
-            ADDED=$(git diff -U0 "origin/${{ github.base_ref }}...HEAD" -- "$f" | grep -E '^\+' | grep -Ev '^\+\+\+')
+            # `|| true`: a deletion-only file has no added lines, so `grep '^\+'`
+            # exits 1 → under `set -o pipefail` + `set -e` that would abort the
+            # whole check with a misleading failure. Tolerate empty additions.
+            ADDED=$(git diff -U0 "origin/${{ github.base_ref }}...HEAD" -- "$f" | grep -E '^\+' | grep -Ev '^\+\+\+' || true)
             if echo "$ADDED" | grep -inE "\\b(${TERMS})\\b"; then
               echo "::error file=$f::Banned legal-verdict term added (see AGENTS.md Hard Rule 1 / scripts/data/banned_terms.txt)."
               FAIL=1
