@@ -1,0 +1,10 @@
+# Visentix nightly DB backup — install with:
+#   crontab -l 2>/dev/null | cat - deploy/backup.cron | crontab -
+# or drop into /etc/cron.d/visentix-backup (add a user field: replace the blank
+# after the schedule with `root`, e.g. `15 3 * * * root /opt/visentix/...`).
+#
+# 03:15 UTC nightly → RPO ≤ 24h. Logs to /var/log/visentix-backup.log.
+15 3 * * *  cd /opt/visentix && /bin/bash deploy/backup.sh >> /var/log/visentix-backup.log 2>&1
+
+# Weekly restore drill (Sunday 04:30 UTC) — proves backups are restorable (RTO).
+30 4 * * 0  cd /opt/visentix && /bin/bash deploy/restore_drill.sh >> /var/log/visentix-restore-drill.log 2>&1

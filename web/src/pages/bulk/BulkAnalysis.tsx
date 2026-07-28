@@ -288,8 +288,6 @@ function ResultsGrid({ jobId, onBack, showFlash }: { jobId: string; onBack: () =
     return () => { cancelled = true; if (pollRef.current) clearInterval(pollRef.current); };
   }, [load]);
 
-  const resultByAssessment = useMemo(() => new Map(results.map(r => [r.assessment_id, r])), [results]);
-
   const exportCsv = async () => {
     try {
       const csv = await api.getText(`/bulk/jobs/${jobId}/export.csv`);

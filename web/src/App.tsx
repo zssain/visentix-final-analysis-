@@ -33,6 +33,9 @@ import { FrameworkCrosswalk }    from "./pages/crosswalk/FrameworkCrosswalk";
 import { NoticeRewrite }         from "./pages/rewrite/NoticeRewrite";
 import { TrustCenter }           from "./pages/trust/TrustCenter";
 import { VendorDueDiligence }    from "./pages/vendors/VendorDueDiligence";
+import { Privacy }               from "./pages/legal/Privacy";
+import { Terms }                 from "./pages/legal/Terms";
+import { Footer }                from "./components/Footer";
 import "./App.css";
 
 function NavLink({ to, label, children, onClick }: { to: string; label?: string; children?: React.ReactNode; onClick?: () => void }) {
@@ -165,6 +168,9 @@ function AppRoutes() {
           <Route path="/methodology" element={<Methodology />} />
           {/* /quarterly is public by design (F21 — approved+suppressed data only). */}
           <Route path="/quarterly"   element={<QuarterlyReport />} />
+          {/* Legal — public, unauthenticated, linked from the footer. */}
+          <Route path="/privacy"     element={<Privacy />} />
+          <Route path="/terms"       element={<Terms />} />
           {/* /crosswalk (F13) + /trust (F15) are still MOCK-backed → admin-only in
               prod (Section-B gating, owner 2026-07-28). QA reaches them by role,
               never via open routes. /crosswalk stays admin-only until rebuilt. */}
@@ -272,6 +278,7 @@ function AppRoutes() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>
+      {!fullBleed && <Footer />}
       </div>
     </div>
   );

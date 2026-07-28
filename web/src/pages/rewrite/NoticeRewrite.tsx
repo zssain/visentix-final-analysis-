@@ -9,7 +9,7 @@
  * safely generated. A rewrite is never shown unless BOTH guardrail AND
  * verification passed.
  */
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { PageHeader } from "../../components/PageHeader";
 import { IntelligenceMark } from "../../components/IntelligenceMark";
 import { FlashNotice } from "../../components/FlashNotice";

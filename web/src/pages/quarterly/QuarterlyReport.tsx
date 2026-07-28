@@ -20,7 +20,7 @@ import { useAuth } from "../../auth/AuthProvider";
 import "./quarterly.css";
 import "../../components/furniture.css";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? (import.meta.env.DEV ? "http://localhost:8000" : "");
 
 interface Metric { metric_id: string; value: number | null; value_label: string | null; population_n: number; formula_citation: string; }
 interface Methodology {

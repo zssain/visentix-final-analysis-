@@ -16,7 +16,7 @@ import { api, ApiError } from "../../lib/api";
 import "../../components/furniture.css";
 import "./partner.css";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? (import.meta.env.DEV ? "http://localhost:8000" : "");
 // Same gate language customers see — no special casing (F20).
 const DRAFT_GATE_TEXT = "pending Visentix expert review";
 

@@ -2,7 +2,10 @@
  * API client — reads JWT from localStorage (local auth), handles 401/403.
  */
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
+// Prod builds MUST set VITE_API_BASE_URL. The localhost fallback is dev-only so
+// a misconfigured prod bundle never carries a localhost target (verified by the
+// grep-dist check in the deploy runbook).
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? (import.meta.env.DEV ? "http://localhost:8000" : "");
 const SESSION_KEY = "visentix-auth-session";
 
 export class ApiError extends Error {
