@@ -1,0 +1,31 @@
+{
+  "slug": "retail_strong",
+  "status": "PROPOSED \u2014 pending SME bless/swap (OQ-1)",
+  "rationale": "STRONG: names concrete rights, retention period, opt-out, security specifics.",
+  "output": {
+    "sections": 6,
+    "clauses_total": 6,
+    "clauses_substantive": 5,
+    "clauses_noise": 1,
+    "category_counts": {
+      "ai_automated_decisions": 1,
+      "consumer_rights": 2,
+      "other": 1,
+      "retention": 1
+    },
+    "domain_maturity": {
+      "ai_automated_decisions": 15,
+      "consumer_rights": 30,
+      "retention": 15
+    },
+    "domains_present": [
+      "ai_automated_decisions",
+      "consumer_rights",
+      "retention"
+    ],
+    "formula_version_set": {
+      "scoring": "F-002..F-010_v1",
+      "decompose": "decompose-v2-noisefilter"
+    }
+  }
+}

@@ -78,6 +78,7 @@ APPLY_NOW = [
     "0033_intake_provenance.sql",           # F01 — privacy_notice intake_method + upload provenance (upload intake mode)
     "0034_decompose_noise_filter.sql",      # F01 — disclosure_clause.is_noise/noise_reason + privacy_notice.decompose_version (noise filter)
     "0035_embeddings_and_obligation_match.sql",  # Embeddings backfill RPC + clause_obligation.matched_terms/model_version
+    "0036_gold_label.sql",                       # F17 — gold_label (human gold-standard labels for eval harness)
 ]
 
 # NOT tracked: paste bundles + the ambiguous local_users migration.

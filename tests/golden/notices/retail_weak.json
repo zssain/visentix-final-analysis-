@@ -1,0 +1,18 @@
+{
+  "slug": "retail_weak",
+  "status": "PROPOSED \u2014 pending SME bless/swap (OQ-1)",
+  "rationale": "WEAK: vague, few concrete rights, undefined retention, broad sharing language.",
+  "output": {
+    "sections": 1,
+    "clauses_total": 2,
+    "clauses_substantive": 0,
+    "clauses_noise": 2,
+    "category_counts": {},
+    "domain_maturity": {},
+    "domains_present": [],
+    "formula_version_set": {
+      "scoring": "F-002..F-010_v1",
+      "decompose": "decompose-v2-noisefilter"
+    }
+  }
+}

@@ -1,6 +1,6 @@
 # Schema — Canonical Data Model
 
-**Version:** 1.3.5 · 2026-07-28 · Authority: this file supersedes prose in the source docs; physical DDL lives in migrations, but no table/field may exist that isn't described here or in a feature spec that amends this file.
+**Version:** 1.3.6 · 2026-07-28 · Authority: this file supersedes prose in the source docs; physical DDL lives in migrations, but no table/field may exist that isn't described here or in a feature spec that amends this file.
 **Storage:** Postgres (Supabase-hosted). Embeddings via pgvector (`all-MiniLM-L6-v2`, 384-dim). Hybrid graph/vector semantics expressed relationally for MVP.
 
 ---
@@ -77,6 +77,7 @@
 | `assessment` | assessment_id, tenant_id, organization_id, notice_id, status (processing/ready/error), gate_mode_at_run, created_at | One run of the pipeline |
 | `report_snapshot` | snapshot_id (S-####), assessment_id, snapshot_frozen_at, formula_versions (jsonb), benchmark_versions (jsonb), payload (jsonb — all 12 sections incl. Analyst + Advisor layers), status (draft/approved), approved_by | Byte-identical re-pull guarantee |
 | `training_label` | label_id, risk_id, sme_user_id, action (confirmed/edited/dismissed), before_text, after_text, created_at | Captured from SME corrections |
+| `gold_label` | label_id (pk), clause_id (fk → disclosure_clause), `labeler` (NOT NULL), labeled_at, gold_domain (category_v2 vocabulary: 8 slugs + other), verdict (correct/incorrect/ambiguous), note, gold_set_version | **F17 eval harness (migration 0036).** Human gold-standard labels for classifier/VCI evaluation. `labeler` is NOT NULL — the harness pre-fills nothing; a label can never be written without a human. Read-only measurement input; never feeds scoring. |
 | `monitoring_event` | event_id, tenant_id, organization_id, trigger_type (notice_changed, score_moved, regulator_signal, cohort_rebenchmarked), prior_value, current_value, severity, snapshot_id, timestamp | Powers change feed |
 | `alert` | alert_id, tenant_id, finding/risk refs, escalation_score (F-013), severity (high/medium), status | Powers alert center |
 
@@ -150,6 +151,7 @@ Applying migrations **0014 and 0017 to live is authorized as an explicit Phase-1
 The `monitoring_event` and `formula_version` tables remain on the read-only-inputs list (AGENTS.md §2); this pass added no columns to them.
 
 ## 6. Changelog
+- 1.3.6 (2026-07-28): **Gold-label table for the F17 eval harness (migration 0036).** Added `gold_label` (human gold-standard clause labels; `labeler` NOT NULL so nothing is machine-pre-filled; `gold_domain` in the category_v2 vocabulary; `verdict` correct/incorrect/ambiguous). Measurement-only input — never feeds scoring. Additive/idempotent. Source: engineer (F17).
 - 1.3.5 (2026-07-28): **Decompose-v2 noise filter (F01, migration 0034).** Added `disclosure_clause.is_noise` (bool, default false) + `noise_reason` (text) and `privacy_notice.decompose_version` (text). Noise clauses are kept for lineage but excluded from classification tallies, presence-count dimensions (PGMS/DSI/AIGMS), and finding maturity. Additive/idempotent; existing rows default `is_noise=false`. Source: engineer (F01 noise filter, expert-approved `DECISION-NEEDED.md` Part 1).
 - 1.3.4 (2026-07-28): **Intake provenance on `privacy_notice` (F01 upload intake mode, migration 0033).** Added `intake_method` (url/text/upload; CHECK-constrained, NULL for legacy rows) and `upload_filename` / `upload_mime` / `upload_file_hash` (all NULL for url/text intake; set only for uploaded documents). `upload_file_hash` = sha256 of the original uploaded bytes, distinct from `source_hash` (extracted-text hash). Additive/idempotent; no existing column altered or dropped. Source: engineer (F01 upload intake mode).
 - 1.3.3 (2026-07-27): **Monitoring read-layer reconciliation (§5.4, F07 closeout).** Recorded live truth for `monitoring_event` (no `organization_id`/`tenant_id`/`snapshot_id`; `trigger_type` value `hash_change`) and the **absent** `alert` table, and that F-013 severity band thresholds are undefined. Documents how `app/routers/monitoring.py` org-scopes events (source URL ↔ org domain) and computes alerts (stored F-013 + resolved enforcement only) without inventing thresholds. No table or column altered. Source: engineer (F07 M-06/07/08).
