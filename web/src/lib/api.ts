@@ -98,4 +98,16 @@ export const api = {
     return handleResponse(res);
   },
 
+  async putForm(path: string, formData: FormData) {
+    const headers = getAuthHeaders();
+    delete headers["Content-Type"];
+    const res = await fetch(`${API_BASE}${path}`, { method: "PUT", headers, body: formData });
+    return handleResponse(res);
+  },
+
+  async del(path: string) {
+    const headers = getAuthHeaders();
+    const res = await fetch(`${API_BASE}${path}`, { method: "DELETE", headers });
+    return handleResponse(res);
+  },
 };

@@ -50,6 +50,7 @@ function RoleBasedHome() {
   const { profile } = useAuth();
   if (profile?.role === "admin") return <Navigate to="/admin" replace />;
   if (profile?.role === "sme")   return <Navigate to="/review" replace />;
+  if (profile?.role === "partner_admin") return <Navigate to="/partner" replace />;
   return <CustomerDashboard />;
 }
 
@@ -121,6 +122,12 @@ function AppRoutes() {
                 )}
               </div>
 
+              {role === "partner_admin" && (
+                <div className="side-group">
+                  <div className="side-group-label">Partner</div>
+                  <NavLink to="/partner" onClick={closeNav}><Handshake size={17} aria-hidden /> Partner Workspace</NavLink>
+                </div>
+              )}
               {role === "admin" && (
                 <div className="side-group">
                   <div className="side-group-label">Administration</div>
@@ -223,10 +230,10 @@ function AppRoutes() {
             </ProtectedRoute>
           } />
 
-          {/* Partner Portal (F11) — no `partner` role yet (F10 tenancy dependency);
-              gated to admin for demo access until partner tenancy lands. */}
+          {/* Partner Portal (F20) — real tenancy: partner_admin owns their
+              workspaces; admin retained for oversight. */}
           <Route path="/partner" element={
-            <ProtectedRoute allowedRoles={["admin"]}>
+            <ProtectedRoute allowedRoles={["partner_admin", "admin"]}>
               <PartnerPortal />
             </ProtectedRoute>
           } />
