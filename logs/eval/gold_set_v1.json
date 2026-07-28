@@ -1,0 +1,1842 @@
+{
+  "gold_set_version": "v1",
+  "target": 200,
+  "selected": 200,
+  "pool_size": 30000,
+  "note": "Stratified 8 domains \u00d7 5 \u00a78 bands \u00d7 3 sources; is_noise excluded; NO gold labels pre-filled. Under-populated cells reported, not back-filled.",
+  "per_cell_counts": {
+    "consumer_rights|very_high|fresh_2026": 6,
+    "consumer_rights|very_high|upload_rehearsal": 3,
+    "consumer_rights|very_high|legacy": 6,
+    "consumer_rights|high|fresh_2026": 0,
+    "consumer_rights|high|upload_rehearsal": 0,
+    "consumer_rights|high|legacy": 6,
+    "consumer_rights|moderate|fresh_2026": 0,
+    "consumer_rights|moderate|upload_rehearsal": 0,
+    "consumer_rights|moderate|legacy": 6,
+    "consumer_rights|low|fresh_2026": 0,
+    "consumer_rights|low|upload_rehearsal": 0,
+    "consumer_rights|low|legacy": 0,
+    "consumer_rights|very_low|fresh_2026": 0,
+    "consumer_rights|very_low|upload_rehearsal": 0,
+    "consumer_rights|very_low|legacy": 0,
+    "data_sharing|very_high|fresh_2026": 6,
+    "data_sharing|very_high|upload_rehearsal": 4,
+    "data_sharing|very_high|legacy": 6,
+    "data_sharing|high|fresh_2026": 0,
+    "data_sharing|high|upload_rehearsal": 0,
+    "data_sharing|high|legacy": 6,
+    "data_sharing|moderate|fresh_2026": 0,
+    "data_sharing|moderate|upload_rehearsal": 0,
+    "data_sharing|moderate|legacy": 6,
+    "data_sharing|low|fresh_2026": 0,
+    "data_sharing|low|upload_rehearsal": 0,
+    "data_sharing|low|legacy": 0,
+    "data_sharing|very_low|fresh_2026": 0,
+    "data_sharing|very_low|upload_rehearsal": 0,
+    "data_sharing|very_low|legacy": 0,
+    "tracking_cookies|very_high|fresh_2026": 6,
+    "tracking_cookies|very_high|upload_rehearsal": 1,
+    "tracking_cookies|very_high|legacy": 6,
+    "tracking_cookies|high|fresh_2026": 0,
+    "tracking_cookies|high|upload_rehearsal": 0,
+    "tracking_cookies|high|legacy": 6,
+    "tracking_cookies|moderate|fresh_2026": 0,
+    "tracking_cookies|moderate|upload_rehearsal": 0,
+    "tracking_cookies|moderate|legacy": 6,
+    "tracking_cookies|low|fresh_2026": 0,
+    "tracking_cookies|low|upload_rehearsal": 0,
+    "tracking_cookies|low|legacy": 0,
+    "tracking_cookies|very_low|fresh_2026": 0,
+    "tracking_cookies|very_low|upload_rehearsal": 0,
+    "tracking_cookies|very_low|legacy": 0,
+    "cross_border|very_high|fresh_2026": 6,
+    "cross_border|very_high|upload_rehearsal": 0,
+    "cross_border|very_high|legacy": 6,
+    "cross_border|high|fresh_2026": 0,
+    "cross_border|high|upload_rehearsal": 0,
+    "cross_border|high|legacy": 6,
+    "cross_border|moderate|fresh_2026": 0,
+    "cross_border|moderate|upload_rehearsal": 0,
+    "cross_border|moderate|legacy": 5,
+    "cross_border|low|fresh_2026": 0,
+    "cross_border|low|upload_rehearsal": 0,
+    "cross_border|low|legacy": 0,
+    "cross_border|very_low|fresh_2026": 0,
+    "cross_border|very_low|upload_rehearsal": 0,
+    "cross_border|very_low|legacy": 0,
+    "sensitive_data|very_high|fresh_2026": 5,
+    "sensitive_data|very_high|upload_rehearsal": 0,
+    "sensitive_data|very_high|legacy": 5,
+    "sensitive_data|high|fresh_2026": 0,
+    "sensitive_data|high|upload_rehearsal": 0,
+    "sensitive_data|high|legacy": 1,
+    "sensitive_data|moderate|fresh_2026": 0,
+    "sensitive_data|moderate|upload_rehearsal": 0,
+    "sensitive_data|moderate|legacy": 5,
+    "sensitive_data|low|fresh_2026": 0,
+    "sensitive_data|low|upload_rehearsal": 0,
+    "sensitive_data|low|legacy": 0,
+    "sensitive_data|very_low|fresh_2026": 0,
+    "sensitive_data|very_low|upload_rehearsal": 0,
+    "sensitive_data|very_low|legacy": 0,
+    "retention|very_high|fresh_2026": 5,
+    "retention|very_high|upload_rehearsal": 0,
+    "retention|very_high|legacy": 5,
+    "retention|high|fresh_2026": 0,
+    "retention|high|upload_rehearsal": 0,
+    "retention|high|legacy": 5,
+    "retention|moderate|fresh_2026": 0,
+    "retention|moderate|upload_rehearsal": 0,
+    "retention|moderate|legacy": 5,
+    "retention|low|fresh_2026": 0,
+    "retention|low|upload_rehearsal": 0,
+    "retention|low|legacy": 0,
+    "retention|very_low|fresh_2026": 0,
+    "retention|very_low|upload_rehearsal": 0,
+    "retention|very_low|legacy": 0,
+    "children_teens|very_high|fresh_2026": 2,
+    "children_teens|very_high|upload_rehearsal": 0,
+    "children_teens|very_high|legacy": 5,
+    "children_teens|high|fresh_2026": 0,
+    "children_teens|high|upload_rehearsal": 0,
+    "children_teens|high|legacy": 5,
+    "children_teens|moderate|fresh_2026": 0,
+    "children_teens|moderate|upload_rehearsal": 0,
+    "children_teens|moderate|legacy": 5,
+    "children_teens|low|fresh_2026": 0,
+    "children_teens|low|upload_rehearsal": 0,
+    "children_teens|low|legacy": 0,
+    "children_teens|very_low|fresh_2026": 0,
+    "children_teens|very_low|upload_rehearsal": 0,
+    "children_teens|very_low|legacy": 0,
+    "ai_automated_decisions|very_high|fresh_2026": 1,
+    "ai_automated_decisions|very_high|upload_rehearsal": 0,
+    "ai_automated_decisions|very_high|legacy": 5,
+    "ai_automated_decisions|high|fresh_2026": 0,
+    "ai_automated_decisions|high|upload_rehearsal": 0,
+    "ai_automated_decisions|high|legacy": 0,
+    "ai_automated_decisions|moderate|fresh_2026": 0,
+    "ai_automated_decisions|moderate|upload_rehearsal": 0,
+    "ai_automated_decisions|moderate|legacy": 5,
+    "ai_automated_decisions|low|fresh_2026": 0,
+    "ai_automated_decisions|low|upload_rehearsal": 0,
+    "ai_automated_decisions|low|legacy": 0,
+    "ai_automated_decisions|very_low|fresh_2026": 0,
+    "ai_automated_decisions|very_low|upload_rehearsal": 0,
+    "ai_automated_decisions|very_low|legacy": 0,
+    "other|very_high|fresh_2026": 5,
+    "other|very_high|upload_rehearsal": 3,
+    "other|very_high|legacy": 5,
+    "other|high|fresh_2026": 5,
+    "other|high|upload_rehearsal": 0,
+    "other|high|legacy": 5,
+    "other|moderate|fresh_2026": 0,
+    "other|moderate|upload_rehearsal": 0,
+    "other|moderate|legacy": 5,
+    "other|low|fresh_2026": 0,
+    "other|low|upload_rehearsal": 0,
+    "other|low|legacy": 5,
+    "other|very_low|fresh_2026": 0,
+    "other|very_low|upload_rehearsal": 0,
+    "other|very_low|legacy": 0
+  },
+  "empty_cells": [
+    "ai_automated_decisions|high|fresh_2026",
+    "ai_automated_decisions|high|legacy",
+    "ai_automated_decisions|high|upload_rehearsal",
+    "ai_automated_decisions|low|fresh_2026",
+    "ai_automated_decisions|low|legacy",
+    "ai_automated_decisions|low|upload_rehearsal",
+    "ai_automated_decisions|moderate|fresh_2026",
+    "ai_automated_decisions|moderate|upload_rehearsal",
+    "ai_automated_decisions|very_high|upload_rehearsal",
+    "ai_automated_decisions|very_low|fresh_2026",
+    "ai_automated_decisions|very_low|legacy",
+    "ai_automated_decisions|very_low|upload_rehearsal",
+    "children_teens|high|fresh_2026",
+    "children_teens|high|upload_rehearsal",
+    "children_teens|low|fresh_2026",
+    "children_teens|low|legacy",
+    "children_teens|low|upload_rehearsal",
+    "children_teens|moderate|fresh_2026",
+    "children_teens|moderate|upload_rehearsal",
+    "children_teens|very_high|upload_rehearsal",
+    "children_teens|very_low|fresh_2026",
+    "children_teens|very_low|legacy",
+    "children_teens|very_low|upload_rehearsal",
+    "consumer_rights|high|fresh_2026",
+    "consumer_rights|high|upload_rehearsal",
+    "consumer_rights|low|fresh_2026",
+    "consumer_rights|low|legacy",
+    "consumer_rights|low|upload_rehearsal",
+    "consumer_rights|moderate|fresh_2026",
+    "consumer_rights|moderate|upload_rehearsal",
+    "consumer_rights|very_low|fresh_2026",
+    "consumer_rights|very_low|legacy",
+    "consumer_rights|very_low|upload_rehearsal",
+    "cross_border|high|fresh_2026",
+    "cross_border|high|upload_rehearsal",
+    "cross_border|low|fresh_2026",
+    "cross_border|low|legacy",
+    "cross_border|low|upload_rehearsal",
+    "cross_border|moderate|fresh_2026",
+    "cross_border|moderate|upload_rehearsal",
+    "cross_border|very_high|upload_rehearsal",
+    "cross_border|very_low|fresh_2026",
+    "cross_border|very_low|legacy",
+    "cross_border|very_low|upload_rehearsal",
+    "data_sharing|high|fresh_2026",
+    "data_sharing|high|upload_rehearsal",
+    "data_sharing|low|fresh_2026",
+    "data_sharing|low|legacy",
+    "data_sharing|low|upload_rehearsal",
+    "data_sharing|moderate|fresh_2026",
+    "data_sharing|moderate|upload_rehearsal",
+    "data_sharing|very_low|fresh_2026",
+    "data_sharing|very_low|legacy",
+    "data_sharing|very_low|upload_rehearsal",
+    "other|high|upload_rehearsal",
+    "other|low|fresh_2026",
+    "other|low|upload_rehearsal",
+    "other|moderate|fresh_2026",
+    "other|moderate|upload_rehearsal",
+    "other|very_low|fresh_2026",
+    "other|very_low|legacy",
+    "other|very_low|upload_rehearsal",
+    "retention|high|fresh_2026",
+    "retention|high|upload_rehearsal",
+    "retention|low|fresh_2026",
+    "retention|low|legacy",
+    "retention|low|upload_rehearsal",
+    "retention|moderate|fresh_2026",
+    "retention|moderate|upload_rehearsal",
+    "retention|very_high|upload_rehearsal",
+    "retention|very_low|fresh_2026",
+    "retention|very_low|legacy",
+    "retention|very_low|upload_rehearsal",
+    "sensitive_data|high|fresh_2026",
+    "sensitive_data|high|upload_rehearsal",
+    "sensitive_data|low|fresh_2026",
+    "sensitive_data|low|legacy",
+    "sensitive_data|low|upload_rehearsal",
+    "sensitive_data|moderate|fresh_2026",
+    "sensitive_data|moderate|upload_rehearsal",
+    "sensitive_data|very_high|upload_rehearsal",
+    "sensitive_data|very_low|fresh_2026",
+    "sensitive_data|very_low|legacy",
+    "sensitive_data|very_low|upload_rehearsal",
+    "tracking_cookies|high|fresh_2026",
+    "tracking_cookies|high|upload_rehearsal",
+    "tracking_cookies|low|fresh_2026",
+    "tracking_cookies|low|legacy",
+    "tracking_cookies|low|upload_rehearsal",
+    "tracking_cookies|moderate|fresh_2026",
+    "tracking_cookies|moderate|upload_rehearsal",
+    "tracking_cookies|very_low|fresh_2026",
+    "tracking_cookies|very_low|legacy",
+    "tracking_cookies|very_low|upload_rehearsal"
+  ],
+  "clauses": [
+    {
+      "clause_id": "da231d69-e452-4d3e-b17c-b04f8d31fb76",
+      "category_v2": "consumer_rights",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "fresh_2026",
+      "band": "very_high",
+      "raw_text": "10. US Consumer Privacy Notice"
+    },
+    {
+      "clause_id": "723fd828-4605-4600-9819-2152814c6ae4",
+      "category_v2": "consumer_rights",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "upload_rehearsal",
+      "band": "very_high",
+      "raw_text": "Additionally:\nResidents of Colorado, Connecticut, Delaware, Indiana, Iowa, Kentucky Maryland, Minnesota, Montana, Nebraska, New Hampshire, New Jersey, Oregon, Rhode Island, Tennessee, Texas, and Virginia who believe we have not taken a required action on your request to exercise "
+    },
+    {
+      "clause_id": "a777467a-31ad-49d0-8323-24892f8193b0",
+      "category_v2": "consumer_rights",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "legacy",
+      "band": "very_high",
+      "raw_text": "If you have questions regarding this Policy or our handling of your personal data, please contact our Privacy Office, which you can reach at privacy@ra.rockwell.com or by writing to:"
+    },
+    {
+      "clause_id": "42f8a861-7e86-4169-b1dc-b85247ab6379",
+      "category_v2": "consumer_rights",
+      "nlp_confidence_v2": 0.8,
+      "source_group": "legacy",
+      "band": "high",
+      "raw_text": "However, we provide you the opportunity to exercise an opt-out choice if you do not want to receive other types of communication from us, such as emails or updates from us regarding new services and products offered on the Sites. For e-mails, the opt-out choice may be exercised b"
+    },
+    {
+      "clause_id": "8edb529d-5008-491c-8519-5530bacff8ad",
+      "category_v2": "consumer_rights",
+      "nlp_confidence_v2": 0.7,
+      "source_group": "legacy",
+      "band": "moderate",
+      "raw_text": "Opt-Out  \nIf at any time you no longer wish to receive emails from CouponCactus.com you can unsubscribe by clicking the link at the bottom of the email or by contacting us directly at CustomerService@CouponCactus.com. We are not responsible for removing your personally identifiab"
+    },
+    {
+      "clause_id": "c36c7ed3-96c5-46c4-8dc7-9030d85c22bf",
+      "category_v2": "data_sharing",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "fresh_2026",
+      "band": "very_high",
+      "raw_text": "The types of personal information we collect and share depend on the product or service you, or the app developer you are connecting to, use. This information can include: Social Security number and account balances Account transactions and transaction history Income and employme"
+    },
+    {
+      "clause_id": "4d0a756a-0945-4a2a-983f-cd91ade87289",
+      "category_v2": "data_sharing",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "upload_rehearsal",
+      "band": "very_high",
+      "raw_text": "Affiliates, Advertising companies"
+    },
+    {
+      "clause_id": "04b3467b-4391-4ba7-ad43-025625973ea9",
+      "category_v2": "data_sharing",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "legacy",
+      "band": "very_high",
+      "raw_text": "- Account management, services and transactions: to deliver services to you or carry out transactions you have requested, including personalized interactions, providing information on Honeywell Services you have purchased or otherwise use, registering purchased products, processi"
+    },
+    {
+      "clause_id": "10c89306-542b-47d8-a32c-35f34abc3de9",
+      "category_v2": "data_sharing",
+      "nlp_confidence_v2": 0.8,
+      "source_group": "legacy",
+      "band": "high",
+      "raw_text": "Analytics Partners:\u00a0We may share your information with third parties who use the information solely for analytical purposes."
+    },
+    {
+      "clause_id": "cdae86e6-2ed6-48bc-85dc-f863c9085187",
+      "category_v2": "data_sharing",
+      "nlp_confidence_v2": 0.6,
+      "source_group": "legacy",
+      "band": "moderate",
+      "raw_text": "advertisers and advertising networks that require the data to select and send relevant adverts to you;"
+    },
+    {
+      "clause_id": "fdc18c21-0071-4416-bd10-ee98a0ed8138",
+      "category_v2": "tracking_cookies",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "fresh_2026",
+      "band": "very_high",
+      "raw_text": "We kunnen de cookies (of vergelijkbare technologie\u00ebn) die we gebruiken van tijd tot tijd bijwerken of wijzigen. De meest recente versie van dit Beleid wordt op onze website https://plaid.com/legal geplaatst en als we wijzigingen aanbrengen zullen we de ingangsdatum bovenaan het B"
+    },
+    {
+      "clause_id": "fffd3c15-305e-412a-a609-40f5932f6a72",
+      "category_v2": "tracking_cookies",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "upload_rehearsal",
+      "band": "very_high",
+      "raw_text": "We may also work with third parties that collect data about your use of the Website and other sites or apps over time for non-advertising purposes, subject to their privacy policies. We use third party analytics such as Google Analytics to gather and analyze aggregated anonymous "
+    },
+    {
+      "clause_id": "1ecc72da-1831-4c3c-8d6d-7ed96a5af65e",
+      "category_v2": "tracking_cookies",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "legacy",
+      "band": "very_high",
+      "raw_text": "Inferred location information . We may look up your IP address to determine your general location."
+    },
+    {
+      "clause_id": "a4cba21c-68b8-4b4a-8523-413be5995fab",
+      "category_v2": "tracking_cookies",
+      "nlp_confidence_v2": 0.8,
+      "source_group": "legacy",
+      "band": "high",
+      "raw_text": "In the event that we use third party advertising companies to serve ads on our behalf, these companies may employ cookies and action tags (also known as single pixel gift or web beacons) to measure advertising effectiveness. Any information that these third parties collect via co"
+    },
+    {
+      "clause_id": "4dc9ba7a-c01f-4ba7-b8c5-f128ad10ce57",
+      "category_v2": "tracking_cookies",
+      "nlp_confidence_v2": 0.6,
+      "source_group": "legacy",
+      "band": "moderate",
+      "raw_text": "* Google AdSense & DoubleClick Cookie"
+    },
+    {
+      "clause_id": "3472e000-2005-45b7-84f0-f4a56886f7bc",
+      "category_v2": "cross_border",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "fresh_2026",
+      "band": "very_high",
+      "raw_text": "If Modulr transfers the Introduced Client's information to a third party in a country outside of the European Economic Area Modulr will ensure that the third party agrees to apply the same levels of protection that Modulr is legally obliged to have in place when Modulr processes "
+    },
+    {
+      "clause_id": "bd25d3dd-99d3-48e3-bf83-6403d4a04912",
+      "category_v2": "cross_border",
+      "nlp_confidence_v2": 0.9,
+      "source_group": "legacy",
+      "band": "very_high",
+      "raw_text": "Data transfers out of the EEA  \nFFCPAs and other organisations we share data with for these purposes may send personal information to countries outside the European Economic Area (\u2018EEA\u2019). When they do, there will be a contract in place to make sure the recipient protects the data"
+    },
+    {
+      "clause_id": "23449278-cd8c-4052-9b9f-b04cfdf46b46",
+      "category_v2": "cross_border",
+      "nlp_confidence_v2": 0.8,
+      "source_group": "legacy",
+      "band": "high",
+      "raw_text": "We may transfer personal data that we collect from you to third party data processors located in countries that are outside of the European Economic Area and to other Marks & Spencer group companies in connection with the above purposes.\u00a0 Please be aware that countries which are "
+    },
+    {
+      "clause_id": "e1047768-489e-4507-9f80-64d69b1dcd5a",
+      "category_v2": "cross_border",
+      "nlp_confidence_v2": 0.6,
+      "source_group": "legacy",
+      "band": "moderate",
+      "raw_text": "Your consent to this Privacy Policy followed by your submission of such information represents your agreement to that transfer."
+    },
+    {
+      "clause_id": "a1d7aa4e-6768-478b-8b88-1ebce926acc0",
+      "category_v2": "sensitive_data",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "fresh_2026",
+      "band": "very_high",
+      "raw_text": "Preference and Relationship Information"
+    },
+    {
+      "clause_id": "8d16afcb-c536-45ea-ba8e-9d44c7c23c58",
+      "category_v2": "sensitive_data",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "legacy",
+      "band": "very_high",
+      "raw_text": "Untuk mengelakkan keraguan, perenggan ini tidak, dan tidak bertujuan untuk, membatalkan sifat sulit mana-mana dasar, prosedur, atau rekod dalaman Honeywell yang berkaitan dengan pemprosesan data biometrik atau data peribadi lain yang berkaitan dengan pekerja, kontraktor atau peke"
+    },
+    {
+      "clause_id": "6a34e0ed-402b-4d7c-adda-872e352792b3",
+      "category_v2": "sensitive_data",
+      "nlp_confidence_v2": 0.8,
+      "source_group": "legacy",
+      "band": "high",
+      "raw_text": "Biometric information   \nData elements in this category include facial recognition data, voiceprint, fingerprint and a mathematical representation of your biometric identifier, such as the template maintained for comparison.    \nDemographic Information and Preferences   \nData ele"
+    },
+    {
+      "clause_id": "b01c79c4-1e20-40b3-bdd8-f0ae9558e88e",
+      "category_v2": "sensitive_data",
+      "nlp_confidence_v2": 0.6,
+      "source_group": "legacy",
+      "band": "moderate",
+      "raw_text": "### Presence Health's Notice of Privacy Practices"
+    },
+    {
+      "clause_id": "dfad81e4-6dfd-478f-8169-a5e96fcd212b",
+      "category_v2": "retention",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "fresh_2026",
+      "band": "very_high",
+      "raw_text": "Retention and Storage"
+    },
+    {
+      "clause_id": "acef5b2c-1c9c-4aa7-b880-498aec64a988",
+      "category_v2": "retention",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "legacy",
+      "band": "very_high",
+      "raw_text": "The criteria used to determine our retention period is as follows:"
+    },
+    {
+      "clause_id": "1bc81683-e897-4c5f-b80f-229413fc9342",
+      "category_v2": "retention",
+      "nlp_confidence_v2": 0.8,
+      "source_group": "legacy",
+      "band": "high",
+      "raw_text": "We will only keep your personal data for as long as we need to in order to fulfil the relevant purpose(s) it was collected for, as set out above in this privacy policy and for as long as we are required to keep it by law. We retain copies of our customer contracts in order to ena"
+    },
+    {
+      "clause_id": "750bb614-89ce-42cb-977f-8dfdf288c215",
+      "category_v2": "retention",
+      "nlp_confidence_v2": 0.7,
+      "source_group": "legacy",
+      "band": "moderate",
+      "raw_text": "please note that you can also withdraw your consent at any time by communicating with our privacy officer as provided above. We will respond to your request for access within 30 days."
+    },
+    {
+      "clause_id": "2418f2e9-17f2-4f6c-94a8-91349ce59c4f",
+      "category_v2": "children_teens",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "fresh_2026",
+      "band": "very_high",
+      "raw_text": "CHILDREN'S PERSONAL INFORMATION"
+    },
+    {
+      "clause_id": "508e5fb7-fb91-4378-947c-eb3dcfa34290",
+      "category_v2": "children_teens",
+      "nlp_confidence_v2": 0.9,
+      "source_group": "legacy",
+      "band": "very_high",
+      "raw_text": "* This Site is not directed to children under the age of thirteen and we do NOT knowingly collect personally identifiable information from children under the age of thirteen as part of the Site. We screen users who wish to provide personal information in order to prevent users un"
+    },
+    {
+      "clause_id": "2de5fe77-3281-40e8-b87f-1cd845864d41",
+      "category_v2": "children_teens",
+      "nlp_confidence_v2": 0.8,
+      "source_group": "legacy",
+      "band": "high",
+      "raw_text": "We are in compliance with the requirements of COPPA (Childrens Online Privacy Protection Act), our policy is located at ."
+    },
+    {
+      "clause_id": "4a6de9a9-f953-4a5f-90f2-0d96699307c0",
+      "category_v2": "children_teens",
+      "nlp_confidence_v2": 0.6,
+      "source_group": "legacy",
+      "band": "moderate",
+      "raw_text": "If we decide to change our privacy policy, we will post those changes on this page. Policy changes will apply only to information collected after the date of the change. This policy was last modified on August 6, 2003."
+    },
+    {
+      "clause_id": "32ef75fd-66c6-47f9-a6b1-df19bc617fcc",
+      "category_v2": "ai_automated_decisions",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "fresh_2026",
+      "band": "very_high",
+      "raw_text": "Plaid does not use your personal data for automated individual decision making (including profiling)."
+    },
+    {
+      "clause_id": "b8d3277c-a4d9-48e1-9526-d2c017d84688",
+      "category_v2": "ai_automated_decisions",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "legacy",
+      "band": "very_high",
+      "raw_text": "Select the link to jump to a specific section:\nWe collect information you provide when you use, or apply to use, our Services or otherwise engage or communicate with us, such as:\nWe also collect certain information about you automatically when you use our Services, such as:\nWe al"
+    },
+    {
+      "clause_id": "6e99d760-cc57-4e49-b803-c37f67ac34b9",
+      "category_v2": "ai_automated_decisions",
+      "nlp_confidence_v2": 0.6,
+      "source_group": "legacy",
+      "band": "moderate",
+      "raw_text": "mainpersonaldatawecollect"
+    },
+    {
+      "clause_id": "4c9c477d-f59b-485f-8763-8afd59958cd5",
+      "category_v2": "other",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "fresh_2026",
+      "band": "very_high",
+      "raw_text": "(a) indien u deze Overeenkomst herhaaldelijk schendt en de betreffende aangelegenheid niet tijdig naar tevredenheid van Plaid oplost, en"
+    },
+    {
+      "clause_id": "2d8b760c-e8ba-4b91-9dcc-7a51ff59220a",
+      "category_v2": "other",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "upload_rehearsal",
+      "band": "very_high",
+      "raw_text": "The 1-800-FLOWERS.COM\u00ae family of brands recognizes and respects the importance of maintaining the privacy of our customers, registered members (Members), gift recipients, business contacts and other users (each of which may be referred to, individually and where applicable, as \"y"
+    },
+    {
+      "clause_id": "6eed904b-cb5e-4de1-b8fc-6b0ad6d37aa1",
+      "category_v2": "other",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "legacy",
+      "band": "very_high",
+      "raw_text": "Processing.The Brazilian General Data Protection Law (\u201cLGPD\u201d) requires a legal basis for our use of personal information. Our basis varies depending on the specific purpose for which we use personal information. We use personal information for the following legal bases:"
+    },
+    {
+      "clause_id": "58fc51b0-8d35-412e-b985-b6e8ef0d80b3",
+      "category_v2": "other",
+      "nlp_confidence_v2": 0.8,
+      "source_group": "fresh_2026",
+      "band": "high",
+      "raw_text": "Berufliche Informationen"
+    },
+    {
+      "clause_id": "9e4adde3-2205-40c7-9161-326235340c7e",
+      "category_v2": "other",
+      "nlp_confidence_v2": 0.8,
+      "source_group": "legacy",
+      "band": "high",
+      "raw_text": "Apple takes the security of your personal information very seriously. Apple online services such as the Apple Online Store and iTunes Store protect your personal information during transit using encryption such as Transport Layer Security (TLS). When your personal data is stored "
+    },
+    {
+      "clause_id": "0e20589d-5234-4ead-86a4-b44e612cdade",
+      "category_v2": "other",
+      "nlp_confidence_v2": 0.7,
+      "source_group": "legacy",
+      "band": "moderate",
+      "raw_text": "Access to your personal data is password-protected, and sensitive data (such as payment card information) is secured and tokenised to ensure it is protected."
+    },
+    {
+      "clause_id": "d091f066-79be-4c3a-8820-3cb67a9c228a",
+      "category_v2": "other",
+      "nlp_confidence_v2": 0.5,
+      "source_group": "legacy",
+      "band": "low",
+      "raw_text": "whenever you are asked to fill in a form on the website, look for the box that you can click to indicate that you do not want the information to be used by anybody for direct marketing purposes"
+    },
+    {
+      "clause_id": "cef57204-522e-4d55-8eae-7d5130f9fc0c",
+      "category_v2": "consumer_rights",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "fresh_2026",
+      "band": "very_high",
+      "raw_text": "Usted es el \u00fanico responsable de todas las actividades que se produzcan a trav\u00e9s de su Cuenta. Si permite que alguno de sus empleados, contratistas u otros agentes (colectivamente, \u00abUsuarios autorizados\u00bb) acceda a su Cuenta, debe asegurarse de que cada uno de dichos Usuarios auto"
+    },
+    {
+      "clause_id": "144634b6-0302-4d6b-9f7d-3b2f5f4f2b87",
+      "category_v2": "consumer_rights",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "upload_rehearsal",
+      "band": "very_high",
+      "raw_text": "To exercise any of the above rights, please contact us as follows:"
+    },
+    {
+      "clause_id": "8ddd0be8-014d-4766-a931-1c604d6b4e2f",
+      "category_v2": "consumer_rights",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "legacy",
+      "band": "very_high",
+      "raw_text": "The right to correct your Personal Information;"
+    },
+    {
+      "clause_id": "f5a79821-ca87-466e-8281-a2f95dffd0ad",
+      "category_v2": "consumer_rights",
+      "nlp_confidence_v2": 0.8,
+      "source_group": "legacy",
+      "band": "high",
+      "raw_text": "* WHO WE ARE. iPage provides cloud-based solutions, including web-hosting, domain name and related products and services, to businesses, individuals, non-profit organizations and others. As part of the Endurance corporate family, iPage is able to provide a variety and range of pr"
+    },
+    {
+      "clause_id": "c219b758-ca96-4b35-9e7d-d94a0720a54b",
+      "category_v2": "consumer_rights",
+      "nlp_confidence_v2": 0.6,
+      "source_group": "legacy",
+      "band": "moderate",
+      "raw_text": "If you are a European resident, you have the right to access personal information we hold about you and to ask that your personal information be corrected, updated, or deleted. If you would like to exercise this right, please contact us through the contact information below."
+    },
+    {
+      "clause_id": "0a2f95e1-1c6c-4d24-8f8a-8ad89d5ae331",
+      "category_v2": "data_sharing",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "fresh_2026",
+      "band": "very_high",
+      "raw_text": "\u304a\u5ba2\u69d8\u304b\u3089\u901a\u4fe1\u3092\u53d7\u3051\u305f\u5834\u5408\u3001Plaid\u306f\u3001\u304a\u5ba2\u69d8\u306e\u500b\u4eba\u60c5\u5831\u304c\u304a\u5ba2\u69d8\u4ee5\u5916\u306e\u8ab0\u306b\u3082\u63d0\u4f9b\u3055\u308c\u306a\u3044\u3088\u3046\u5fb9\u5e95\u3059\u308b\u305f\u3081\u306b\u304a\u5ba2\u69d8\u306e\u8eab\u5143\u3092\u8a3c\u660e\u3059\u308b\u8a3c\u62e0\u66f8\u985e\u306e\u63d0\u793a\u3092\u6c42\u3081\u308b\u5834\u5408\u304c\u3042\u308a\u307e\u3059\u3002"
+    },
+    {
+      "clause_id": "a93806f9-b6e6-4eba-9c69-3841cfca32ec",
+      "category_v2": "data_sharing",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "upload_rehearsal",
+      "band": "very_high",
+      "raw_text": "Our service providers;"
+    },
+    {
+      "clause_id": "2e913666-d5c8-4baf-8e8b-7288994b9407",
+      "category_v2": "data_sharing",
+      "nlp_confidence_v2": 0.9,
+      "source_group": "legacy",
+      "band": "very_high",
+      "raw_text": "Often times, we may use certain advertising networks and exchanges that participate in the Network Advertising Initiative (NAI). NAI has developed a tool that allows consumers to opt out of certain interest-based advertising delivered by NAI members\u2019 ad networks. To learn more ab"
+    },
+    {
+      "clause_id": "f13e382d-3677-4831-a7bd-00c770e31e30",
+      "category_v2": "data_sharing",
+      "nlp_confidence_v2": 0.8,
+      "source_group": "legacy",
+      "band": "high",
+      "raw_text": "* Developing, managing and conducting advertising and marketing campaigns, promotions and offers, including about our content, products and services or third-parties\u2019 products, services and other initiatives.\n  * Interest-based advertising (also known as targeted or personalised "
+    },
+    {
+      "clause_id": "3077e7c9-318a-4caa-beba-29c4fb89e7a3",
+      "category_v2": "data_sharing",
+      "nlp_confidence_v2": 0.7,
+      "source_group": "legacy",
+      "band": "moderate",
+      "raw_text": "* Usage Data \u2013 This includes your IP address, geographical location, browser type and version, operating system, referral source, length of visit, page views and website navigation paths. This data is provided by Google Analytics.\n  * Account Data \u2013 Account data may include your "
+    },
+    {
+      "clause_id": "1d961014-79c9-4798-9544-12847a37d7d0",
+      "category_v2": "tracking_cookies",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "fresh_2026",
+      "band": "very_high",
+      "raw_text": "App, browser, and device information"
+    },
+    {
+      "clause_id": "8f6d343c-a601-4b08-8993-ab24dfa9a32b",
+      "category_v2": "tracking_cookies",
+      "nlp_confidence_v2": 0.9,
+      "source_group": "legacy",
+      "band": "very_high",
+      "raw_text": "* IP Address and Other Identifiers. When you access and interact with our Services, National Geographic Partners and our service providers may collect information about your visits in order to permit you to connect to and obtain the Services and to understand the frequency with w"
+    },
+    {
+      "clause_id": "066172da-c01f-4de1-a351-319e3ff31a34",
+      "category_v2": "tracking_cookies",
+      "nlp_confidence_v2": 0.8,
+      "source_group": "legacy",
+      "band": "high",
+      "raw_text": "Third parties also collect information automatically from you across websites and over time through the use of their own cookies, web beacons, and tracking mechanisms. This information is used to enable the functions of the site, as well as customize, maintain, and improve our we"
+    },
+    {
+      "clause_id": "b14a69b7-17b2-409f-a557-04af1b02c3d6",
+      "category_v2": "tracking_cookies",
+      "nlp_confidence_v2": 0.7,
+      "source_group": "legacy",
+      "band": "moderate",
+      "raw_text": "Cookies are files that websites send to your computer or other Internet-connected device to uniquely identify your browser or to store information or settings on your device. Our Site may use cookies (such as HTTP cookies) and other types of local storage (such as browser-based o"
+    },
+    {
+      "clause_id": "85e475e0-3acc-4d2c-a91c-f936ba3ce306",
+      "category_v2": "cross_border",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "fresh_2026",
+      "band": "very_high",
+      "raw_text": "Stripe, LLC complies with the EU-U.S. Data Privacy Framework (\u201cEU-U.S. DPF\u201d), the UK Extension to the EU-U.S. DPF, and the Swiss-U.S. Data Privacy Framework as set forth by the U.S. Department of Commerce and as applicable. \u00a0You can learn and read Stripe\u2019s Data Privacy Framework "
+    },
+    {
+      "clause_id": "805fee87-29db-40b3-942e-aefc842b1311",
+      "category_v2": "cross_border",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "legacy",
+      "band": "very_high",
+      "raw_text": "Data Privacy Framework, and Swiss-U.S. Privacy Framework\nFlexport complies with the EU-U.S. Data Privacy Framework program (EU-U.S. DPF), the UK Extension to the EU-U.S. DPF, and the Swiss-U.S. Data Privacy Framework program (Swiss-U.S. DPF) as set forth by the U.S. Department of"
+    },
+    {
+      "clause_id": "d3faca62-2f0a-48d8-acde-be58c10c38a9",
+      "category_v2": "cross_border",
+      "nlp_confidence_v2": 0.8,
+      "source_group": "legacy",
+      "band": "high",
+      "raw_text": "Information you submit to subscribe for our e-newsletter will be stored outside the European Economic Area on our third party mailing list provider\u2019s servers in the United States. For further information about the safeguards used when your information is transferred outside the E"
+    },
+    {
+      "clause_id": "705578bf-3e1f-444d-a7f1-a7170ac63928",
+      "category_v2": "cross_border",
+      "nlp_confidence_v2": 0.7,
+      "source_group": "legacy",
+      "band": "moderate",
+      "raw_text": "We do not sell, trade, or otherwise transfer to outside parties your personally identifiable information. This does not include trusted third parties who assist us in operating our website, conducting our business, or servicing you, so long as those parties agree to keep this inf"
+    },
+    {
+      "clause_id": "b75e6348-dfe4-414a-a27d-43a84a4a69d2",
+      "category_v2": "sensitive_data",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "fresh_2026",
+      "band": "very_high",
+      "raw_text": "Aider \u00e0 lutter contre la fraude, \u00e0 v\u00e9rifier votre identit\u00e9 ou \u00e0 prot\u00e9ger la vie priv\u00e9e : pour v\u00e9rifier votre identit\u00e9 et vous prot\u00e9ger, prot\u00e9ger nos d\u00e9veloppeurs, nos partenaires ou Plaid contre la fraude, les activit\u00e9s malveillantes et d\u2019autres menaces li\u00e9es \u00e0 la vie priv\u00e9e et \u00e0"
+    },
+    {
+      "clause_id": "bb6722ac-a98d-4a49-a2ce-364843a68ead",
+      "category_v2": "sensitive_data",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "legacy",
+      "band": "very_high",
+      "raw_text": "Identification Information , such as social security number and driver's license, passport or other government-issued identification documents to comply with our verification process, global anti-money laundering (AML) and know your customer (KYC) obligations."
+    },
+    {
+      "clause_id": "cdc05eea-5bbb-4613-9ffe-2e9d9cd040ae",
+      "category_v2": "sensitive_data",
+      "nlp_confidence_v2": 0.6,
+      "source_group": "legacy",
+      "band": "moderate",
+      "raw_text": "* Always be suspicious of unsolicited phone calls or emails from individuals requesting personal or confidential information. Verify their identity first by contacting their organization directly.\n  * Do not use contact information provided by these individuals; instead, check pr"
+    },
+    {
+      "clause_id": "d1b1bf9a-0fe0-414d-a08f-516b9bf389f1",
+      "category_v2": "retention",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "fresh_2026",
+      "band": "very_high",
+      "raw_text": "Monitor your systems for any unauthorized access."
+    },
+    {
+      "clause_id": "d99c420e-e431-4d0d-a865-ef8663a6067f",
+      "category_v2": "retention",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "legacy",
+      "band": "very_high",
+      "raw_text": "We retain your personal data for no longer than necessary to achieve the purposes for which it was collected, unless a longer retention period is required under applicable law."
+    },
+    {
+      "clause_id": "232f7dd0-176c-4391-8cc6-12d7400779a1",
+      "category_v2": "retention",
+      "nlp_confidence_v2": 0.8,
+      "source_group": "legacy",
+      "band": "high",
+      "raw_text": "We offer you choices regarding the collection, use, and sharing of your Personal Information. When you receive promotional communications from us you will have the opportunity to \"opt-out\" by following the unsubscribe instructions provided in the promotional e-mail or newsletter "
+    },
+    {
+      "clause_id": "99e0c94a-7fc0-4184-a09f-6568f5b8f0bd",
+      "category_v2": "retention",
+      "nlp_confidence_v2": 0.6,
+      "source_group": "legacy",
+      "band": "moderate",
+      "raw_text": "The services contained in this section enable the Owner to monitor and analyze web traffic and can be used to keep track of User behavior."
+    },
+    {
+      "clause_id": "4e86154f-acb5-4018-9fea-1fd41ea7890d",
+      "category_v2": "children_teens",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "fresh_2026",
+      "band": "very_high",
+      "raw_text": "Les personnes de moins de 18 ans ne peuvent pas cr\u00e9er de Compte Plaid. En cr\u00e9ant et en utilisant votre Compte Plaid, vous d\u00e9clarez et garantissez \u00eatre \u00e2g\u00e9 de 18 ans ou plus. Si vous avez des raisons de croire qu\u2019une personne de moins de 18 ans utilise nos Services, veuillez nous "
+    },
+    {
+      "clause_id": "b971f909-b91a-4a8a-b0b7-de6120777ea3",
+      "category_v2": "children_teens",
+      "nlp_confidence_v2": 0.9,
+      "source_group": "legacy",
+      "band": "very_high",
+      "raw_text": "Protecting the privacy of young children is especially important. The Site is designed to be of service and interest to users ages 13 and older. If you are a minor over the age of 13, you may only use this Site with the permission and under the supervision of your parent or guard"
+    },
+    {
+      "clause_id": "0c4fc4af-9725-4104-8fa7-2fe2aa718d5e",
+      "category_v2": "children_teens",
+      "nlp_confidence_v2": 0.8,
+      "source_group": "legacy",
+      "band": "high",
+      "raw_text": "This Web site is not intended for persons under 13 years of age. We do not knowingly solicit or collect personal information from or about children, and we do not knowingly market our products or services to children"
+    },
+    {
+      "clause_id": "80fc56fc-7ada-4217-afc5-ef7236bb1991",
+      "category_v2": "children_teens",
+      "nlp_confidence_v2": 0.6,
+      "source_group": "legacy",
+      "band": "moderate",
+      "raw_text": "Device and Usage  \n| To improve our website and set default options  \n| To give you the best shopping experience. This is only with your permission."
+    },
+    {
+      "clause_id": "c3690dc7-d58d-4668-85d9-7dedc7ac4f5a",
+      "category_v2": "ai_automated_decisions",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "legacy",
+      "band": "very_high",
+      "raw_text": "- Investiga\u00e7\u00e3o e aplica\u00e7\u00e3o: detectar, prevenir e responder a fraude, viola\u00e7\u00e3o de propriedade intelectual, viola\u00e7\u00f5es de nossos termos e condi\u00e7\u00f5es, viola\u00e7\u00f5es da lei ou outro uso indevido de nossos Servi\u00e7os; realizar investiga\u00e7\u00e3o interna como resultado de relat\u00f3rios feitos por meio "
+    },
+    {
+      "clause_id": "11362ca2-88f6-4d42-91d6-4d1a35d18137",
+      "category_v2": "ai_automated_decisions",
+      "nlp_confidence_v2": 0.6,
+      "source_group": "legacy",
+      "band": "moderate",
+      "raw_text": "Additionally when you make a purchase or attempt to make a purchase through the Site, we collect certain information from you, including your name, billing address, shipping address, payment information (including the collections, but not storage of credit card numbers), email ad"
+    },
+    {
+      "clause_id": "6e2830ac-c5d8-40a1-a58f-56f4b5dee0a7",
+      "category_v2": "other",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "fresh_2026",
+      "band": "very_high",
+      "raw_text": "The Introduced Client agrees Modulr may, in its sole discretion, assign, or transfer some or all of its rights and obligations or delegate any duty of performance set out in the documents forming this Agreement. Modulr may subcontract any of its obligations under this Agreement."
+    },
+    {
+      "clause_id": "8499c957-ba4c-46a4-ab54-34f83d91a927",
+      "category_v2": "other",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "upload_rehearsal",
+      "band": "very_high",
+      "raw_text": "Portions of the Service may require registration and log-in processes in which you will select a user ID and password (collectively, the \"Password\"). Any passwords provided to you by us are the confidential property of the Company and may be used by you solely for your individual"
+    },
+    {
+      "clause_id": "ec131569-b784-461e-bb49-7ef8efdb1e22",
+      "category_v2": "other",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "legacy",
+      "band": "very_high",
+      "raw_text": "to establish, exercise or defend a legal claim or collection procedure;"
+    },
+    {
+      "clause_id": "1aa1ef15-e0f9-49a1-97c6-15f2cbba5bbd",
+      "category_v2": "other",
+      "nlp_confidence_v2": 0.8,
+      "source_group": "fresh_2026",
+      "band": "high",
+      "raw_text": "Instituciones financieras."
+    },
+    {
+      "clause_id": "46e6daa3-871e-4308-ac00-8ecefcc84bae",
+      "category_v2": "other",
+      "nlp_confidence_v2": 0.8,
+      "source_group": "legacy",
+      "band": "high",
+      "raw_text": "We want you to have continuing trust in LEVEL and in our products and services and, so, we have put in place reasonable physical, electronic and managerial procedures to safeguard and secure your personal information. In order to most efficiently serve you, credit card transactio"
+    },
+    {
+      "clause_id": "0ce7ed8a-3c1a-468b-8ab1-45ad6441185b",
+      "category_v2": "other",
+      "nlp_confidence_v2": 0.6,
+      "source_group": "legacy",
+      "band": "moderate",
+      "raw_text": "#### How we use your personal information"
+    },
+    {
+      "clause_id": "a3370c41-329c-4a41-99ac-d98639b944de",
+      "category_v2": "other",
+      "nlp_confidence_v2": 0.5,
+      "source_group": "legacy",
+      "band": "low",
+      "raw_text": "#### CHANGES TO PRIVACY POLICY"
+    },
+    {
+      "clause_id": "6c76f376-9cc4-4a78-9f63-d59fe499954e",
+      "category_v2": "consumer_rights",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "fresh_2026",
+      "band": "very_high",
+      "raw_text": "You agree that we or the Partner Platform may communicate with you by e-mail or telephone for issuing any notices or information about your Account and therefore it is important that you ensure you keep your e-mail address and mobile phone number updated."
+    },
+    {
+      "clause_id": "6f3ac04c-0eca-4c1a-a0e8-abd974deb07a",
+      "category_v2": "consumer_rights",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "upload_rehearsal",
+      "band": "very_high",
+      "raw_text": "California residents may request categories of information shared with third parties prior to the last 12 months and dating back to January 1, 2022."
+    },
+    {
+      "clause_id": "efbbdb2c-2d0b-4020-a3b2-0c352b06ce03",
+      "category_v2": "consumer_rights",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "legacy",
+      "band": "very_high",
+      "raw_text": "- \uadc0\ud558\ub294 \uadc0\ud558\uc758 \uac1c\uc778\uc815\ubcf4 \ucc98\ub9ac\uc5d0 \ub300\ud574 \uc774\uc758 \ub97c \uc81c\uae30\ud560 \uc218 \uc788\uc73c\uba70, \uadc0\ud558\uc758 \uac1c\uc778\uc815\ubcf4 \ucc98\ub9ac\ub97c \uc81c\ud55c \ud558\ub3c4\ub85d \uc694\uccad\ud558\uac70\ub098, \uadc0\ud558\uc758 \uac1c\uc778\uc815\ubcf4\uc758 \uc774\ub3d9\uc131\uc744 \uc694\uccad\ud560 \uc218 \uc788\uc2b5\ub2c8\ub2e4. - \uc774\uc6a9\uc790\uc5d0\uac8c\ub294 \uc790\uc2e0\uc5d0 \ub300\ud574 \ubc95\uc801 \ud6a8\uacfc\ub97c \uac16\uac70\ub098 \uc0c1\ub2f9\ud55c \uc601\ud5a5\uc744 \ubbf8\uce58\ub294 \uacb0\uc815\uc778 \uacbd\uc6b0 \ud504\ub85c\ud30c\uc77c\ub9c1\uc744 \ud3ec\ud568\ud574, \uc804\uc801\uc73c\ub85c \uc790\ub3d9 \ucc98\ub9ac\ub97c \ubc14\ud0d5\uc73c\ub85c \uc790\uc2e0\uc5d0 \ub300\ud574 \uadf8\ub7ec\ud55c \uacb0\uc815\uc774 \uc774\ub8e8\uc5b4\uc9c0\uc9c0 \uc54a\ub3c4\ub85d \ud560 \uad8c\ub9ac\uac00 \uc788\uc2b5\ub2c8\ub2e4. - \ub9c8\ucc2c\uac00\uc9c0\ub85c, \uadc0\ud558\uc758 \ub3d9\uc758 \ud558\uc5d0 \uadc0\ud558\uc758 \uac1c\uc778\uc815\ubcf4\ub97c \uc218\uc9d1\ud558\uace0 \ucc98\ub9ac\ud55c \uacbd\uc6b0, \uc5b8\uc81c\ub4e0\uc9c0 \uadc0\ud558\uc758 \ub3d9\uc758\ub97c \ucca0\ud68c\ud560 \uc218 \uc788\uc2b5\ub2c8\ub2e4. \ub3d9\uc758\ub97c \ucca0\ud68c\ud558\ub354\ub77c"
+    },
+    {
+      "clause_id": "3adfd3db-fcf1-4433-ab91-571b5cd5cc34",
+      "category_v2": "consumer_rights",
+      "nlp_confidence_v2": 0.8,
+      "source_group": "legacy",
+      "band": "high",
+      "raw_text": "If you receive a marketing email from us that you would prefer not to have received, you can use the \u201cunsubscribe\u201d link found at the bottom of the email to \u201copt out\u201d of receiving future emails, or you can contact us at support@tn.com to request the same. We will comply with your "
+    },
+    {
+      "clause_id": "934a8e39-8cbb-4ee6-8c9b-c52e9c6866fc",
+      "category_v2": "consumer_rights",
+      "nlp_confidence_v2": 0.6,
+      "source_group": "legacy",
+      "band": "moderate",
+      "raw_text": "If you visit our site or complete a purchase with us, you will have the opportunity to opt-in to get other emails from us. When you opt in, we\u2019ll send you a series of messages to welcome you and tell you a bit more about our company, what\u2019s important to us, and a bit about our pr"
+    },
+    {
+      "clause_id": "b3fe823b-a92a-4f00-b17a-21948ca01b42",
+      "category_v2": "data_sharing",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "fresh_2026",
+      "band": "very_high",
+      "raw_text": "To send you targeted marketing\u00a0\u00a0communications through email, mobile, in app, and push notifications or by SMS. You may also see ads for our Services\u00a0 when you visit other apps and websites ."
+    },
+    {
+      "clause_id": "672ccc94-3bda-4bfa-b8a5-22e584ee6add",
+      "category_v2": "data_sharing",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "upload_rehearsal",
+      "band": "very_high",
+      "raw_text": "Internally. We may share your information with Company Affiliates as described above, as well as subcontractors, agents, and consultants, who help us operate and improve our businesses and services."
+    },
+    {
+      "clause_id": "2d0d3faf-d3bc-46cd-8dbe-ed7d8a553147",
+      "category_v2": "data_sharing",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "legacy",
+      "band": "very_high",
+      "raw_text": "Nous d\u00e9crivons comment et pourquoi nous utilisons les Donn\u00e9es \u00e0 caract\u00e8re personnel dans ces circonstances dans les politiques de confidentialit\u00e9 applicables de Plaid \u00e0 l'adresse www.plaid.com/legal/. Plaid ne vendra jamais vos Donn\u00e9es \u00e0 caract\u00e8re personnel des Services IDV \u00e0 des"
+    },
+    {
+      "clause_id": "19a093b8-67a6-44cf-aa70-0ed7877f2baf",
+      "category_v2": "data_sharing",
+      "nlp_confidence_v2": 0.8,
+      "source_group": "legacy",
+      "band": "high",
+      "raw_text": "Some content or applications, including advertisements, on the Site are served by third-parties, including advertisers, ad networks and servers, content providers, and application providers. These third parties may use cookies alone or in conjunction with Web Beacons or other tra"
+    },
+    {
+      "clause_id": "ef59f5eb-23ca-4b99-9162-63f97faaa65a",
+      "category_v2": "data_sharing",
+      "nlp_confidence_v2": 0.6,
+      "source_group": "legacy",
+      "band": "moderate",
+      "raw_text": "* To route your calls or message or otherwise provide you with service;\n  * To provide and bill for products and services you purchase and charge to your account;\n  * To deliver and confirm products and services you obtain from us;\n  * To verify your identity and maintain a recor"
+    },
+    {
+      "clause_id": "b549f875-7e40-46cd-83f4-b83a804aa06a",
+      "category_v2": "tracking_cookies",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "fresh_2026",
+      "band": "very_high",
+      "raw_text": "Information Collected by Cookies and Other Tracking Technologies : We use various technologies like cookies and web beacons in our services to collect personal information. Cookies are small data files stored by your web browser, on your hard drive, or in device memory that help "
+    },
+    {
+      "clause_id": "96b3ed63-8e7e-4f97-b27e-e860dec44bf6",
+      "category_v2": "tracking_cookies",
+      "nlp_confidence_v2": 0.9,
+      "source_group": "legacy",
+      "band": "very_high",
+      "raw_text": "We may use Cookies, Mobile Advertising IDs or MAIDs, Statistical IDs, Web Beacons, Pixel Tags, JavaScript, HTML5 Local Storage, or similar technologies, along with other information described in our Privacy Statement to enhance and personalize your experience on our sites and to "
+    },
+    {
+      "clause_id": "f02fe027-09fb-4a51-80ba-bf2806b65dae",
+      "category_v2": "tracking_cookies",
+      "nlp_confidence_v2": 0.8,
+      "source_group": "legacy",
+      "band": "high",
+      "raw_text": "Cookies are files with small amount of data which may include an anonymous unique identifier. Cookies are sent to your browser from a website and stored on your device. Tracking technologies also used are beacons, tags, and scripts to collect and track information and to improve "
+    },
+    {
+      "clause_id": "f34b5598-2ccf-4778-b21a-2b12f28b1759",
+      "category_v2": "tracking_cookies",
+      "nlp_confidence_v2": 0.7,
+      "source_group": "legacy",
+      "band": "moderate",
+      "raw_text": "IV. HOW DO WE UTILIZE WEB ANALYTICS, WEB BEACONS, COOKIES, AND OTHER BEHAVIORAL MARKETING TECHNOLOGIES?"
+    },
+    {
+      "clause_id": "bec27cd8-c21f-49c2-97f4-69ac82e9d0e7",
+      "category_v2": "cross_border",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "fresh_2026",
+      "band": "very_high",
+      "raw_text": "Country residency Information necessary for\u00a0tax purposes"
+    },
+    {
+      "clause_id": "0245e414-ff66-4b0b-b9b8-08ded46f5960",
+      "category_v2": "cross_border",
+      "nlp_confidence_v2": 0.9,
+      "source_group": "legacy",
+      "band": "very_high",
+      "raw_text": "DineEquity has operations in many international locations and partners with companies around the world. DineEquity offers many country specific websites; this site is intended for U.S. audiences only. If you are visiting this Site from outside of the U.S., communications with our"
+    },
+    {
+      "clause_id": "19989164-b8ef-4e8b-9a73-2037a9bb54f4",
+      "category_v2": "cross_border",
+      "nlp_confidence_v2": 0.8,
+      "source_group": "legacy",
+      "band": "high",
+      "raw_text": "The internet is a global network, so it is possible for your data to travel internationally, which may include places outside the European Union. If you visit or shop at proporta.com, you're agreeing and authorising us to process data in this way."
+    },
+    {
+      "clause_id": "84b2e831-7b73-4e76-af1e-311af3374fab",
+      "category_v2": "cross_border",
+      "nlp_confidence_v2": 0.6,
+      "source_group": "legacy",
+      "band": "moderate",
+      "raw_text": "##### European Union"
+    },
+    {
+      "clause_id": "0e036827-c286-4889-aadb-b435b100e2f3",
+      "category_v2": "sensitive_data",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "fresh_2026",
+      "band": "very_high",
+      "raw_text": "Visual Information: For security purposes, we may utilize video or other electronic, digital, or wireless surveillance systems or devices (such as CCTV) at the entrance of our premises to record your data if you visit our premises."
+    },
+    {
+      "clause_id": "6406c4e2-7eb6-41a4-84eb-622d445becf5",
+      "category_v2": "sensitive_data",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "legacy",
+      "band": "very_high",
+      "raw_text": "New Zealand . In this Policy, \u201capplicable law\u201d includes the New Zealand Privacy Act 2020 as amended from time to time. Our processing of biometric data via Stripe Identity complies with the Biometric Privacy Processing Code. When you use this service, we collect and use a photo o"
+    },
+    {
+      "clause_id": "0d7e7ec8-d27c-466e-b369-49e830896909",
+      "category_v2": "sensitive_data",
+      "nlp_confidence_v2": 0.6,
+      "source_group": "legacy",
+      "band": "moderate",
+      "raw_text": "Mercola.com Health Resources, LLC  \n125 SW 3rd Place Suite 205  \nCape Coral, FL 33991"
+    },
+    {
+      "clause_id": "eccbe7e7-3fbf-4bdd-8197-74dfacf35779",
+      "category_v2": "retention",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "fresh_2026",
+      "band": "very_high",
+      "raw_text": "Unsere Aufbewahrungspraktiken"
+    },
+    {
+      "clause_id": "1364b6a2-16d4-4a54-a9f4-6e3a2ec947ad",
+      "category_v2": "retention",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "legacy",
+      "band": "very_high",
+      "raw_text": "Please note that our retention obligations may require us to retain your Personal Information after you are no longer an Authorized User or your Company\u2019s Brex Account has closed. These retention obligations may also prohibit us in some cases from deleting Personal Information af"
+    },
+    {
+      "clause_id": "8374e616-ba2f-485c-b878-3b98ddba59e4",
+      "category_v2": "retention",
+      "nlp_confidence_v2": 0.8,
+      "source_group": "legacy",
+      "band": "high",
+      "raw_text": "Except for payment information, you may change any of your Personal Data stored in your Account by editing your Personal Data within your Account or by sending an e-mail to us at support@meundies.com Payment information stored by MeUndies as described in Section 8 cannot be edite"
+    },
+    {
+      "clause_id": "531c4f86-b20e-4828-83f6-e7abd2b8050f",
+      "category_v2": "retention",
+      "nlp_confidence_v2": 0.6,
+      "source_group": "legacy",
+      "band": "moderate",
+      "raw_text": "To ensure you receive the information you need to manage your account and protect your privacy, please be sure to keep your contact and billing information up to date. You can update all account-related information directly through your Control Panel. Alternatively, you can conta"
+    },
+    {
+      "clause_id": "992e39a4-f621-40e8-8e21-fc690089278a",
+      "category_v2": "children_teens",
+      "nlp_confidence_v2": 0.9,
+      "source_group": "legacy",
+      "band": "very_high",
+      "raw_text": "* Security Methods\n    * We maintain technical, administrative, physical, electronic and procedural safeguards to protect the confidentiality and security of information transmitted to us. To guard this information, the Sites use Transport Layer Security (TLS) where we collect pe"
+    },
+    {
+      "clause_id": "ae4a8fd3-cccc-4d3a-b09b-654751975b57",
+      "category_v2": "children_teens",
+      "nlp_confidence_v2": 0.8,
+      "source_group": "legacy",
+      "band": "high",
+      "raw_text": "Our Commitment to Children's Privacy  \nProtecting the privacy of the very young is especially important. For that reason, we never collect or maintain information at our website from those we actually know are under 13, and no part of our website is structured to attract anyone u"
+    },
+    {
+      "clause_id": "d55f9f46-215b-476d-b779-4782ba5b60bc",
+      "category_v2": "children_teens",
+      "nlp_confidence_v2": 0.6,
+      "source_group": "legacy",
+      "band": "moderate",
+      "raw_text": "All direct payment gateways adhere to the standards set by PCI-DSS as managed by the PCI Security Standards Council, which is a joint effort of brands like Visa, MasterCard, American Express and Discover."
+    },
+    {
+      "clause_id": "be04875c-93c7-4f9b-ae30-e11c89796e88",
+      "category_v2": "ai_automated_decisions",
+      "nlp_confidence_v2": 0.9,
+      "source_group": "legacy",
+      "band": "very_high",
+      "raw_text": "9. Profiling is defined in law as \u201cany form of automated processing of personal data consisting of the use of personal data to evaluate certain personal aspects relating to a natural person, in particular to analyse or predict aspects concerning that natural person's performance "
+    },
+    {
+      "clause_id": "d671483b-83eb-4b53-bc9b-ded704261a66",
+      "category_v2": "ai_automated_decisions",
+      "nlp_confidence_v2": 0.6,
+      "source_group": "legacy",
+      "band": "moderate",
+      "raw_text": "If you choose to use our referral service to tell a friend about PLNDR, we will ask you for your friend\u2019s email address. We will use this email address to send the link to your friend with your personal tracked code to ensure that you can be credited for the referral."
+    },
+    {
+      "clause_id": "83cfa5e0-466b-439a-b400-2a1eeb51e4cb",
+      "category_v2": "other",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "fresh_2026",
+      "band": "very_high",
+      "raw_text": "You will be liable for all unauthorised Transactions that arise from the use of lost or stolen Physical Cards, the Account or Card security information such as but not limited to the Online Portal log in details and API security details, Card number and CVV if you, the Account Ma"
+    },
+    {
+      "clause_id": "5f002da5-d55c-4577-89c6-259f77845f96",
+      "category_v2": "other",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "upload_rehearsal",
+      "band": "very_high",
+      "raw_text": "Depending on how you interact with us, we may collect some or all of the following categories of information:"
+    },
+    {
+      "clause_id": "1eda4e80-9a71-4554-ba73-a2fac191498d",
+      "category_v2": "other",
+      "nlp_confidence_v2": 0.9,
+      "source_group": "legacy",
+      "band": "very_high",
+      "raw_text": "* Password-protected desktops, laptops, mobile devices and servers and the use of technology safeguards, such as firewalls, encryption, two-factor authentication, and intrusion detection, to prevent hacking or unauthorized computer access; and\n  * Storing personal information in "
+    },
+    {
+      "clause_id": "9cf21ad3-2550-4ac6-ad19-ca39b6e59ba7",
+      "category_v2": "other",
+      "nlp_confidence_v2": 0.8,
+      "source_group": "fresh_2026",
+      "band": "high",
+      "raw_text": "Digital Asset Services"
+    },
+    {
+      "clause_id": "8d64e031-6317-4816-af79-5bec26082a71",
+      "category_v2": "other",
+      "nlp_confidence_v2": 0.8,
+      "source_group": "legacy",
+      "band": "high",
+      "raw_text": "BISSELL is working hard to protect your information and keep it from being stolen or misused. When personal information (such as credit card information) is sent to other websites, it\u2019s protected by encryption, like the Secure Sockets Layer (SSL) protocol. That said, our reality "
+    },
+    {
+      "clause_id": "21107088-b609-4c2a-b131-3c843f01d0a4",
+      "category_v2": "other",
+      "nlp_confidence_v2": 0.6,
+      "source_group": "legacy",
+      "band": "moderate",
+      "raw_text": "3.1 We will generally use or disclose your personal information only for the primary purpose for which it was collected; or for a related secondary purpose where you would reasonably expect us to use or disclose the personal information for that secondary purpose. We may otherwis"
+    },
+    {
+      "clause_id": "c86893ed-7e16-4404-9e2b-2506e38e338c",
+      "category_v2": "other",
+      "nlp_confidence_v2": 0.5,
+      "source_group": "legacy",
+      "band": "low",
+      "raw_text": "Diversity is important to Pocket-lint. We do everything we can to seek out various voices, not only in our staff and freelancers, but also the people we interview and feature in the stories we cover. Race, class, generation, gender and geography are all equal in their status at P"
+    },
+    {
+      "clause_id": "71ac0515-1f02-41fa-b658-f9806661b574",
+      "category_v2": "consumer_rights",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "fresh_2026",
+      "band": "very_high",
+      "raw_text": "Siempre debe consultar las pol\u00edticas de privacidad de nuestros Clientes y dirigirles cualquier consulta y solicitud para ejercer sus derechos con respecto a su Informaci\u00f3n personal."
+    },
+    {
+      "clause_id": "82fa0e8d-b466-49ff-8cc8-7f440c26231e",
+      "category_v2": "consumer_rights",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "legacy",
+      "band": "very_high",
+      "raw_text": "We will not use the personal information we collect from an individual to determine a verifiable request for any other purpose, except as required or permitted by law. Our response. We reserve the right to charge a fee to process or respond to your request if it is excessive, rep"
+    },
+    {
+      "clause_id": "1d6fb09b-f91f-440c-9642-4e6dadc7f5b1",
+      "category_v2": "consumer_rights",
+      "nlp_confidence_v2": 0.8,
+      "source_group": "legacy",
+      "band": "high",
+      "raw_text": "In accordance with the terms of the Ordinance, Asia First has the right to charge a reasonable fee for the processing of any data access request."
+    },
+    {
+      "clause_id": "1527f000-d513-4010-9432-7784b1d2aae8",
+      "category_v2": "consumer_rights",
+      "nlp_confidence_v2": 0.6,
+      "source_group": "legacy",
+      "band": "moderate",
+      "raw_text": "The right to data portability enables individuals to reuse their personal data across different services; allowing them to move or copy data from one organisation to another if they choose."
+    },
+    {
+      "clause_id": "a87fea8a-2956-4896-99ea-6779dc2f82cb",
+      "category_v2": "data_sharing",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "fresh_2026",
+      "band": "very_high",
+      "raw_text": "Pode aceder diretamente a alguns dos Servi\u00e7os IDV, incluindo atrav\u00e9s dos nossos sites que fazem refer\u00eancia \u00e0 presente pol\u00edtica (coletivamente \"Sites\"). Podemos ser o controlador de dados em certos casos, nomeadamente caso atue enquanto Cliente, caso pretenda colocar uma quest\u00e3o s"
+    },
+    {
+      "clause_id": "9deb4860-33e9-4b31-bf00-0d2fcd1976c4",
+      "category_v2": "data_sharing",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "upload_rehearsal",
+      "band": "very_high",
+      "raw_text": "Opt Out Signals . Certain mechanisms or technologies may be used to indicate your opt-out preferences to entities that process personal information. To the extent that we are able to recognize these signals and are legally required to honor them, we will treat these signals as re"
+    },
+    {
+      "clause_id": "2998689a-594c-4560-bbf1-8ab0f96e8c12",
+      "category_v2": "data_sharing",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "legacy",
+      "band": "very_high",
+      "raw_text": "Il se peut que nous divulguions des renseignements \u00e0 votre sujet dans la mesure n\u00e9cessaire \u00e0 juste titre afin de mener les n\u00e9gociations, voire de proc\u00e9der \u00e0 la fusion, \u00e0 l\u2019acquisition, au d\u00e9sinvestissement ou \u00e0 la vente des actifs de Honeywell en tout ou en partie. - Divulgation "
+    },
+    {
+      "clause_id": "edfdb344-fae5-420b-869b-166aa65959d1",
+      "category_v2": "data_sharing",
+      "nlp_confidence_v2": 0.8,
+      "source_group": "legacy",
+      "band": "high",
+      "raw_text": "We do not sell, rent or trade your Personal Information to third parties (unless it is Public Information, as described above). In the normal course of business we shares Personal Information with our agents (such as employees, consultants, service providers and lawyers) to perfo"
+    },
+    {
+      "clause_id": "b0034bf3-d2af-4364-8767-c8130f292d04",
+      "category_v2": "data_sharing",
+      "nlp_confidence_v2": 0.6,
+      "source_group": "legacy",
+      "band": "moderate",
+      "raw_text": "Netrition, Inc. has created this privacy statement in order to demonstrate our firm commitment to privacy. The following statements disclose our information gathering and dissemination practices for this website."
+    },
+    {
+      "clause_id": "da83f13f-db96-47ab-9fe3-21b1f44dcda3",
+      "category_v2": "tracking_cookies",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "fresh_2026",
+      "band": "very_high",
+      "raw_text": "Manage cookie settings in Chrome and Chrome Android and Chrome iOS"
+    },
+    {
+      "clause_id": "d3ec794e-4909-44ee-a62c-7f6b456e4938",
+      "category_v2": "tracking_cookies",
+      "nlp_confidence_v2": 0.9,
+      "source_group": "legacy",
+      "band": "very_high",
+      "raw_text": "We or our third-party service providers may use cookies and other tracking technologies (including browser cookies, pixels, beacons, mobile application identifiers, and Adobe Flash technology) to help us recognize you across different sites and services, improve your experience, "
+    },
+    {
+      "clause_id": "44114112-bd4e-440d-87f6-5934a0dd816c",
+      "category_v2": "tracking_cookies",
+      "nlp_confidence_v2": 0.8,
+      "source_group": "legacy",
+      "band": "high",
+      "raw_text": "Advertising partners and other third parties may also use cookies, scripts and/or web beacons to track visitors to our site in order to display advertisements and other useful information. Such tracking is done directly by the third parties through their own servers and is subjec"
+    },
+    {
+      "clause_id": "94e331d1-4113-4bc1-bd1a-ba70f6fe96a5",
+      "category_v2": "tracking_cookies",
+      "nlp_confidence_v2": 0.7,
+      "source_group": "legacy",
+      "band": "moderate",
+      "raw_text": "Cookies and Web Beacons"
+    },
+    {
+      "clause_id": "bf77607d-b223-469a-93ab-ac165964d59f",
+      "category_v2": "cross_border",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "fresh_2026",
+      "band": "very_high",
+      "raw_text": "In addition, we may rely on certain exemptions provided for under data protection law for our international transfers. We also rely on adequacy decisions from the European Commission where available and exemptions provided for under data protection law. For example, because Coinb"
+    },
+    {
+      "clause_id": "9f567457-97d3-4ff6-9141-b01bc71f7414",
+      "category_v2": "cross_border",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "legacy",
+      "band": "very_high",
+      "raw_text": "If you are covered by FATCA or CRS, we are required to give you notice of the information about you that we may transfer to various authorities."
+    },
+    {
+      "clause_id": "49ad9b44-3b9a-4bd4-82cd-3ef8cd00a176",
+      "category_v2": "cross_border",
+      "nlp_confidence_v2": 0.8,
+      "source_group": "legacy",
+      "band": "high",
+      "raw_text": "We may need to transfer your personal data to countries located outside the European Economic Area, for the purpose of fulfilling our obligations and providing our service. Any transfer of your data will be subject to a European Commission approved contract that will safeguard yo"
+    },
+    {
+      "clause_id": "279ef5bd-14ba-4c10-a19d-4ca2fbe4a14f",
+      "category_v2": "cross_border",
+      "nlp_confidence_v2": 0.6,
+      "source_group": "legacy",
+      "band": "moderate",
+      "raw_text": "* Should part or all of our business be sold, expanded, reduced or transferred to a new owner or controlling party, we reserve the right to transfer relevant personal data to the new party under this privacy notice."
+    },
+    {
+      "clause_id": "724516a8-b2e4-4c8f-a5e9-927e5a105e7f",
+      "category_v2": "sensitive_data",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "fresh_2026",
+      "band": "very_high",
+      "raw_text": "in bepaalde regio\u2019s (bijvoorbeeld de VS) kunnen we demografische en andere gevoelige informatie verzamelen (bijv. ras, gender, veteranenstatus, etniciteit, seksuele geaardheid en handicapstatus); ; en"
+    },
+    {
+      "clause_id": "ac48a469-119c-4799-8cb0-479268996c59",
+      "category_v2": "sensitive_data",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "legacy",
+      "band": "very_high",
+      "raw_text": "Politica privind datele biometrice (doar pentru reziden\u021bii din Illinois)\nHoneywell poate colecta \u0219i utiliza date biometrice \u00een scopuri de s\u0103n\u0103tate, siguran\u021b\u0103, securitate \u0219i alte func\u021bii administrative, cum ar fi efectuarea de teste de bun\u0103stare \u0219i control al s\u0103n\u0103t\u0103\u021bii \u00een unit\u0103\u021bil"
+    },
+    {
+      "clause_id": "27267b79-6817-4a75-a686-8cba6f0972b4",
+      "category_v2": "sensitive_data",
+      "nlp_confidence_v2": 0.7,
+      "source_group": "legacy",
+      "band": "moderate",
+      "raw_text": "There are also \u201cspecial categories\u201d of more sensitive personal information which require a higher level of protection, such as information about a person\u2019s health, criminal offences, sexuality, race, ethnicity, health or disability."
+    },
+    {
+      "clause_id": "e574eb87-a407-4892-9e5b-a005c509dc12",
+      "category_v2": "retention",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "fresh_2026",
+      "band": "very_high",
+      "raw_text": "DISPUTES AND INCORRECT TRANSACTIONS If you (or an Account Manager or Cardholder) have a reason to believe that: a Transaction on your Account was unauthorized or made incorrectly, a Physical Card is lost or stolen, or someone else (other than TPP) knows the security credentials o"
+    },
+    {
+      "clause_id": "2814ba52-9d2b-46b4-af6c-207fcc23a04a",
+      "category_v2": "retention",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "legacy",
+      "band": "very_high",
+      "raw_text": "N\u00e3o obstante qualquer disposi\u00e7\u00e3o em contr\u00e1rio nesta Declara\u00e7\u00e3o de privacidade, \u00e9 pol\u00edtica da Honeywell manter os dados biom\u00e9tricos por n\u00e3o mais que um (1) ano ap\u00f3s a \u00faltima intera\u00e7\u00e3o entre o indiv\u00edduo aplic\u00e1vel e n\u00f3s, desde que, no entanto, n\u00f3s possamos manter tais dados biom\u00e9tri"
+    },
+    {
+      "clause_id": "8ac172f0-7e24-4a71-a69c-d33869280183",
+      "category_v2": "retention",
+      "nlp_confidence_v2": 0.8,
+      "source_group": "legacy",
+      "band": "high",
+      "raw_text": "We take every reasonable step to ensure that your personal information is only processed for the minimum period necessary for the purposes set out in this Policy. The criteria for determining the duration for which we will keep your personal information are as follows: we will re"
+    },
+    {
+      "clause_id": "97ecf652-feb0-419b-b0d2-1722c0a06b2a",
+      "category_v2": "retention",
+      "nlp_confidence_v2": 0.7,
+      "source_group": "legacy",
+      "band": "moderate",
+      "raw_text": "Cookies help personalize Your experience on Our Sites, help Us remember the webpages You have visited, measure the effectiveness of marketing initiatives, and identify and resolve website errors. The only personal data a cookie can contain is data You supply yourself. Cookies can"
+    },
+    {
+      "clause_id": "4706bfe4-169f-4dc8-9506-07d010286390",
+      "category_v2": "children_teens",
+      "nlp_confidence_v2": 0.9,
+      "source_group": "legacy",
+      "band": "very_high",
+      "raw_text": "Protecting the privacy of every minor is equally important to us. The Website is not structured to attract minor children under eighteen (18) years and you hereby acknowledge that you are above the age of eighteen (18) years while using the Website."
+    },
+    {
+      "clause_id": "54f6f440-7bca-435f-a91b-3e64fc804a6d",
+      "category_v2": "children_teens",
+      "nlp_confidence_v2": 0.8,
+      "source_group": "legacy",
+      "band": "high",
+      "raw_text": "COPPA (Children Online Privacy Protection Act)"
+    },
+    {
+      "clause_id": "9a6ae549-0165-49da-8fea-0aca5c868298",
+      "category_v2": "children_teens",
+      "nlp_confidence_v2": 0.7,
+      "source_group": "legacy",
+      "band": "moderate",
+      "raw_text": "We do not knowingly collect any information from persons under the age of 18. Children (persons under the age of 18) are not eligible to use our websites unsupervised. If you are under the age of 18, you may use our websites only in conjunction with and under the supervision of a"
+    },
+    {
+      "clause_id": "39dc2d0a-ec5d-4138-a973-962555b0340d",
+      "category_v2": "ai_automated_decisions",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "legacy",
+      "band": "very_high",
+      "raw_text": "For these purposes, some of your data, including but not limited to your inputs and conversations with our chatbots and AI features, may be used to train, test, improve, or enhance our AI functionalities from time to time. We provide notice and obtain consent where required under"
+    },
+    {
+      "clause_id": "daa9af90-2e17-4a80-bf68-058eb2ffd3e8",
+      "category_v2": "ai_automated_decisions",
+      "nlp_confidence_v2": 0.6,
+      "source_group": "legacy",
+      "band": "moderate",
+      "raw_text": "Downloading, installing and your access to and use eToro constitutes your agreement and acknowledgment that the following information and content shall be considered non-confidential and non-proprietary information (other than your personal data as described below), collectively,"
+    },
+    {
+      "clause_id": "ac440463-2103-471e-be91-f0b3012dafaf",
+      "category_v2": "other",
+      "nlp_confidence_v2": 0.9,
+      "source_group": "fresh_2026",
+      "band": "very_high",
+      "raw_text": "Ontwikkelaar(s) van toepassing(en) die u gebruikt, en zoals aangegeven door de ontwikkelaar"
+    },
+    {
+      "clause_id": "bceb010d-d585-403c-8709-5b382983f6b1",
+      "category_v2": "other",
+      "nlp_confidence_v2": 0.9,
+      "source_group": "legacy",
+      "band": "very_high",
+      "raw_text": "We use industry-standard administrative, technical and physical safeguards and protection practices and controls to ensure the integrity of our systems and to protect your information from loss, misuse, alteration and destruction. Such protection measures include firewalls and Se"
+    },
+    {
+      "clause_id": "bdb60497-4139-46cb-938c-7932ab458d60",
+      "category_v2": "other",
+      "nlp_confidence_v2": 0.8,
+      "source_group": "fresh_2026",
+      "band": "high",
+      "raw_text": "it must satisfy itself that its Platform Partner Agreement grants the Partner Platform all permission necessary to operate the Account on the Introduced Client's behalf;"
+    },
+    {
+      "clause_id": "390dca36-25cf-4369-bcb4-ccece372745d",
+      "category_v2": "other",
+      "nlp_confidence_v2": 0.8,
+      "source_group": "legacy",
+      "band": "high",
+      "raw_text": "Once you begin the checkout process on our website, you are entering your personal information across a secure server. This means that all of the information you type into your computer screen is encrypted so that no persons or programs can see or collect your personal informatio"
+    },
+    {
+      "clause_id": "ea214fe6-8704-4a3c-a237-7fb1d3bde8c3",
+      "category_v2": "other",
+      "nlp_confidence_v2": 0.6,
+      "source_group": "legacy",
+      "band": "moderate",
+      "raw_text": "If you submit any Personal Information relating to other people to us or to our service providers, you represent that you have the authority to do so and to permit us to use the information in accordance with this Online Privacy Statement."
+    },
+    {
+      "clause_id": "e8313e72-f56c-4df3-acbe-a305328fc4ea",
+      "category_v2": "other",
+      "nlp_confidence_v2": 0.5,
+      "source_group": "legacy",
+      "band": "low",
+      "raw_text": "https://ico.org.uk/concerns/"
+    },
+    {
+      "clause_id": "e9ad7f90-3484-4717-8d0f-20719f54893e",
+      "category_v2": "consumer_rights",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "fresh_2026",
+      "band": "very_high",
+      "raw_text": "8.3. Wenn Sie mit einer vorgeschlagenen \u00c4nderung nicht einverstanden sind, informieren Sie uns bitte \u00fcber die in Ziffer 4.3 genannten Kontaktdaten von Plaid, bevor die \u00c4nderung in Kraft tritt. Sie haben dann das Recht, diese Vereinbarung jederzeit vor dem vorgesehenen Datum des I"
+    },
+    {
+      "clause_id": "bbe4fb58-89fc-4715-970a-fd98f9906806",
+      "category_v2": "consumer_rights",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "legacy",
+      "band": "very_high",
+      "raw_text": "request portability of personal information that you have provided to us (which does not include information derived from the collected information), where the processing of such personal information is based on consent or a contract with you and is carried out by automated means"
+    },
+    {
+      "clause_id": "014b0b40-ca5e-438a-9adb-faa6ae76044a",
+      "category_v2": "consumer_rights",
+      "nlp_confidence_v2": 0.8,
+      "source_group": "legacy",
+      "band": "high",
+      "raw_text": "Under Privacy Sheild, you may inquire as to whether OLDIES.com is Processing Personal Information about you, request access to Personal Information, and ask that we correct, amend or delete your Personal Information where it is inaccurate. Where otherwise permitted by applicable "
+    },
+    {
+      "clause_id": "a8882e6d-7430-4b25-a770-e7a2db88c760",
+      "category_v2": "consumer_rights",
+      "nlp_confidence_v2": 0.6,
+      "source_group": "legacy",
+      "band": "moderate",
+      "raw_text": "If you feel that Network Solutions, or any of our agents, representatives or employees, is violating this Privacy Policy, please contact us via e-mail at privacy@networksolutions.com, by telephone at (703) 668-4600, or by postal mail at:"
+    },
+    {
+      "clause_id": "bebf268e-af97-4c21-855b-af49a1fedf00",
+      "category_v2": "data_sharing",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "fresh_2026",
+      "band": "very_high",
+      "raw_text": "Ondernemingen die niet verbonden zijn door gemeenschappelijke eigenaarschap of zeggenschap. Het kan gaan om financi\u00eble en niet-financi\u00eble bedrijven. Plaid deelt geen informatie met niet-gelieerde bedrijven zodat zij u kunnen benaderen."
+    },
+    {
+      "clause_id": "d70e8c0e-0b2b-4716-a4d6-54a25c752347",
+      "category_v2": "data_sharing",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "legacy",
+      "band": "very_high",
+      "raw_text": "Tambi\u00e9n compartimos informaci\u00f3n con agencias de cobro para los pagos atrasados de nuestros desarrolladores. - Si creemos de buena fe que la divulgaci\u00f3n es adecuada para cumplir la legislaci\u00f3n, la normativa o el proceso legal aplicables (como una orden o citaci\u00f3n judicial). Esto i"
+    },
+    {
+      "clause_id": "09fd8c60-2108-4565-b6de-331ba29e67c6",
+      "category_v2": "data_sharing",
+      "nlp_confidence_v2": 0.8,
+      "source_group": "legacy",
+      "band": "high",
+      "raw_text": "We may employ third party companies and individuals to facilitate our Service (\"Service Providers\"), to provide the Service on our behalf, to perform Service-related services or to assist us in analyzing how our Service is used."
+    },
+    {
+      "clause_id": "9ae692bb-7f02-4c07-bd70-68917855bd77",
+      "category_v2": "data_sharing",
+      "nlp_confidence_v2": 0.6,
+      "source_group": "legacy",
+      "band": "moderate",
+      "raw_text": "Rakuten Group Companies"
+    },
+    {
+      "clause_id": "8e02908c-6cfd-4d30-89b2-a08f7648d56c",
+      "category_v2": "tracking_cookies",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "fresh_2026",
+      "band": "very_high",
+      "raw_text": "Internet Protocol (\"IP\") address, and unique personal identifiers (including device identifier; cookies, beacons, pixel tags, mobile ad identifiers and similar technology; customer number; unique alias, and other identifiers)."
+    },
+    {
+      "clause_id": "2b7d4b25-4cf7-48ca-80b0-bb457c36c316",
+      "category_v2": "tracking_cookies",
+      "nlp_confidence_v2": 0.9,
+      "source_group": "legacy",
+      "band": "very_high",
+      "raw_text": "1.5. \u00a0Cookies and similar technologies: When you visit the Service, we may use cookies and similar technologies like pixels, web beacons, and local storage to collect information about how you use Open Listings and provide features to you. We may ask advertisers, third party vend"
+    },
+    {
+      "clause_id": "03467bd7-b518-4fc6-9e16-2eae5d46e919",
+      "category_v2": "tracking_cookies",
+      "nlp_confidence_v2": 0.8,
+      "source_group": "legacy",
+      "band": "high",
+      "raw_text": "Non-Identifiable Information  \u00a0means information that alone cannot identify you, including data from\u00a0 Cookies ,\u00a0 Pixel Tags and Web Beacons , and\u00a0 Device Data . Non-Identifiable Information may be derived from\u00a0 Personal Information ."
+    },
+    {
+      "clause_id": "4e4331f4-95a0-4c4d-8ab6-2df9ff060b0c",
+      "category_v2": "tracking_cookies",
+      "nlp_confidence_v2": 0.7,
+      "source_group": "legacy",
+      "band": "moderate",
+      "raw_text": "(c) New Technology. The use of technology on the Internet, including search engine indexing, cookies and web beacons, is rapidly evolving, as is checkmyemails.co's use of new and evolving technology. As a result, checkmyemails.co strongly encourages individuals to revisit this po"
+    },
+    {
+      "clause_id": "e0b8de14-637e-4188-9ee7-61c21edb562b",
+      "category_v2": "cross_border",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "fresh_2026",
+      "band": "very_high",
+      "raw_text": "Country of origin information (from which country you are accessing the website)"
+    },
+    {
+      "clause_id": "31f343a1-32e6-450c-a987-b06d469cc021",
+      "category_v2": "cross_border",
+      "nlp_confidence_v2": 0.9,
+      "source_group": "legacy",
+      "band": "very_high",
+      "raw_text": "If you are located in the European Economic Area (\"EEA\") or Switzerland, we comply with applicable legal requirements for the transfer of Personal Information to countries outside of the EEA or Switzerland. In particular, we may transfer your Personal Information to countries for"
+    },
+    {
+      "clause_id": "fa26c0af-9661-4bba-947b-28c0a941ac87",
+      "category_v2": "cross_border",
+      "nlp_confidence_v2": 0.8,
+      "source_group": "legacy",
+      "band": "high",
+      "raw_text": "From time to time we may transfer your personal information to our suppliers, service providers and other company offices based outside of the European Economic Area (EEA) for the purposes described in this privacy policy. If we do this your personal information will continue to "
+    },
+    {
+      "clause_id": "fc867b6b-d9d4-4afe-917d-124d6d923117",
+      "category_v2": "cross_border",
+      "nlp_confidence_v2": 0.7,
+      "source_group": "legacy",
+      "band": "moderate",
+      "raw_text": "This website uses Google Analytics, a web analysis service of Google Inc. (Google). Google Analytics uses \"cookies\", which are text files placed on your computer, to help the website analyse how users use the site. The information generated by the cookie about your use of this we"
+    },
+    {
+      "clause_id": "06e9a76e-7bd3-484f-8c7d-9885794c29aa",
+      "category_v2": "sensitive_data",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "fresh_2026",
+      "band": "very_high",
+      "raw_text": "Speciale biometrische gegevensverklaring voor inwoners van Illinois en Texas"
+    },
+    {
+      "clause_id": "8d51ca67-e571-4868-b6d9-fa120a30c4c0",
+      "category_v2": "sensitive_data",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "legacy",
+      "band": "very_high",
+      "raw_text": "- Vigilancia por v\u00eddeo, incluidos fotos, im\u00e1genes captadas o grabadas en sistemas de CCTV u otro sistema de audio, v\u00eddeos (donde la ley lo permita) y sistemas de seguridad y supervisi\u00f3n relacionados que se capten cuando visita nuestras instalaciones o durante eventos o sesiones d"
+    },
+    {
+      "clause_id": "d6c87eed-ee85-45ee-a7f7-effcbe59272f",
+      "category_v2": "sensitive_data",
+      "nlp_confidence_v2": 0.6,
+      "source_group": "legacy",
+      "band": "moderate",
+      "raw_text": "* \"Contact Information\" that allows us to identify and communicate with you, such as your name, phone number, address, email, and language preferences.\n  * \"Relationship Information\" that helps us understand who you are and what you want in order to offer you products and service"
+    },
+    {
+      "clause_id": "a8ac66ec-b053-496a-ad21-ebf90c89eb08",
+      "category_v2": "retention",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "fresh_2026",
+      "band": "very_high",
+      "raw_text": "If you dispute a Transaction: Subject to 9.3.2 and 9.3.3, we will immediately refund the amount to your Account to the position it would have been in if the unauthorized Transaction had not taken place. We will have no further liability to you. If we subsequently discover that yo"
+    },
+    {
+      "clause_id": "500eb525-8d68-4279-af92-2bc5243d6264",
+      "category_v2": "retention",
+      "nlp_confidence_v2": 0.9,
+      "source_group": "legacy",
+      "band": "very_high",
+      "raw_text": "How long do we keep your data?  \nWe keep your personal data for a limited period of time, depending on the purpose for which it was collected, at the end of which your personal data will be deleted or otherwise rendered anonymous in an irreversible way. The retention period is di"
+    },
+    {
+      "clause_id": "5ee2fa9c-a139-47cb-b1a8-266864e85bc1",
+      "category_v2": "retention",
+      "nlp_confidence_v2": 0.8,
+      "source_group": "legacy",
+      "band": "high",
+      "raw_text": "These third parties do not have any independent right to share your Personal Information. We will exercise reasonable measures to have the third parties to whom we disclose your Personal Information respect your Personal Information and comply with applicable data protection laws"
+    },
+    {
+      "clause_id": "65bbfb6e-909d-49f0-8d37-484f9c6f4fee",
+      "category_v2": "retention",
+      "nlp_confidence_v2": 0.6,
+      "source_group": "legacy",
+      "band": "moderate",
+      "raw_text": "* To provide payment processing and account management, operate, measure and improve our Services, keep our Services safe, secure and operational, and customise site content that includes items and services that you may like in response to actions that you take."
+    },
+    {
+      "clause_id": "2c682ffe-961c-4fa6-8a70-6c6dc6a6ae5a",
+      "category_v2": "children_teens",
+      "nlp_confidence_v2": 0.9,
+      "source_group": "legacy",
+      "band": "very_high",
+      "raw_text": "tokidoki is committed to protecting the safety of children online. In compliance with the Children's Privacy Protection Act \"COPPA,\" we will never knowingly request or use personal information from children under 13 years of age without prior parental consent. If tokidoki receive"
+    },
+    {
+      "clause_id": "aa50ce18-71ed-4797-aaa4-16c32008df25",
+      "category_v2": "children_teens",
+      "nlp_confidence_v2": 0.8,
+      "source_group": "legacy",
+      "band": "high",
+      "raw_text": "We do not intentionally collect personally identifiable information from children under the age of thirteen (13). If you are under the age of thirteen (13) you should not register, order, purchase or provide information to or from TOMS\u00ae. If you have knowledge that a child under t"
+    },
+    {
+      "clause_id": "d45e1caf-a70a-4a23-bc82-2b94e9fd0165",
+      "category_v2": "children_teens",
+      "nlp_confidence_v2": 0.7,
+      "source_group": "legacy",
+      "band": "moderate",
+      "raw_text": "We encourage you to read this policy in full but please click on the links below for a shortcut to the following sections:  \nContact details  \nWhat data do we collect and how do we use it?  \nWhat lawful bases do we rely on for processing?  \nWho may we share your data with?  \nWhat"
+    },
+    {
+      "clause_id": "2b366aa5-886b-4936-9674-f1e89a117727",
+      "category_v2": "ai_automated_decisions",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "legacy",
+      "band": "very_high",
+      "raw_text": "We encourage you to carefully consider the recommendations and actions of Agentic AI Tools. Our Agentic AI Tools are not designed to make decisions that have legal or similarly significant effects, such as decisions with legal, medical, financial, or employment implications, and "
+    },
+    {
+      "clause_id": "3479d57a-696d-47db-b601-129e7e1c0968",
+      "category_v2": "ai_automated_decisions",
+      "nlp_confidence_v2": 0.6,
+      "source_group": "legacy",
+      "band": "moderate",
+      "raw_text": "Our web servers do not collect e-mail addresses unless you provide it to us. However, we do collect generalized information such as the IP address and domain name from which the connection originates. This information is used in the aggregate to measure pages viewed, the amount o"
+    },
+    {
+      "clause_id": "fd21e14d-8de7-4ecb-a04b-41567be317ea",
+      "category_v2": "other",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "fresh_2026",
+      "band": "very_high",
+      "raw_text": "u informeren over carri\u00e8remogelijkheden , waaronder andere vacatures waarvoor u eventueel in aanmerking komt; en"
+    },
+    {
+      "clause_id": "61aef15d-c558-4926-8458-8e6b9d297dbd",
+      "category_v2": "other",
+      "nlp_confidence_v2": 0.9,
+      "source_group": "legacy",
+      "band": "very_high",
+      "raw_text": "We maintain administrative, technical, and physical safeguards to protect personal information against loss, misuse, unauthorized access, disclosure, alteration, and destruction. We use Secure Sockets Layer encryption for the transmission of account registration information and i"
+    },
+    {
+      "clause_id": "c35f1607-aee7-488a-8421-73967213d87d",
+      "category_v2": "other",
+      "nlp_confidence_v2": 0.8,
+      "source_group": "fresh_2026",
+      "band": "high",
+      "raw_text": "checkbox label label"
+    },
+    {
+      "clause_id": "927aefba-3cda-4d19-a8ef-98ce775cc1ce",
+      "category_v2": "other",
+      "nlp_confidence_v2": 0.8,
+      "source_group": "legacy",
+      "band": "high",
+      "raw_text": "This Site has security measures in place to protect against the loss, misuse or alteration of the information under our control.\u00a0 We follow generally accepted standards to protect the personal information submitted to us, both during transmission and once we receive it.\u00a0 No metho"
+    },
+    {
+      "clause_id": "a231f6c1-4c01-4ddc-bc4c-5c84bc88b641",
+      "category_v2": "other",
+      "nlp_confidence_v2": 0.6,
+      "source_group": "legacy",
+      "band": "moderate",
+      "raw_text": "Your browser may tell you how to be notified when you receive certain types of cookies or how to restrict or disable certain types of cookies.\u00a0 Please note, however, that without cookies you may not be able to use all of the features of our Sites.\u00a0 Both we and others (such as our"
+    },
+    {
+      "clause_id": "4d6420ff-af27-4d67-8f55-a2ef663faad4",
+      "category_v2": "other",
+      "nlp_confidence_v2": 0.5,
+      "source_group": "legacy",
+      "band": "low",
+      "raw_text": "Thank you for choosing Merrick Bank to provide you with the products and services you have selected. We appreciate your business and are committed to providing you confidential service."
+    },
+    {
+      "clause_id": "4705cb18-ebed-44f1-8766-c87cdd068a97",
+      "category_v2": "consumer_rights",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "fresh_2026",
+      "band": "very_high",
+      "raw_text": "If you provide Coinbase or our service providers and agents with personal information of another \u00a0individual, you represent that you have all necessary authority and/or have obtained all necessary \u00a0consents from such person to enable us to collect, use and disclose such personal "
+    },
+    {
+      "clause_id": "ca5f7718-fdfb-458d-b749-99f9263da253",
+      "category_v2": "consumer_rights",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "legacy",
+      "band": "very_high",
+      "raw_text": "Als u niet wilt dat uw informatie wordt bewaard indien u geen functie wordt aangeboden, waar van toepassing, raadpleeg dan de volgende secties hieronder voor opties die voor u beschikbaar kunnen zijn: Gegevensbeschermingsrechten van sollicitanten in Californi\u00eb en Gegevensbescherm"
+    },
+    {
+      "clause_id": "0cd8e94e-3364-4766-aede-cee1385acde7",
+      "category_v2": "consumer_rights",
+      "nlp_confidence_v2": 0.8,
+      "source_group": "legacy",
+      "band": "high",
+      "raw_text": "* You have the right to opt-out of marketing communications we send you at any time. You can exercise this right by clicking on the \u201cunsubscribe\u201d or \u201copt-out\u201d link in the marketing e-mails we send you. To opt-out of other forms of marketing (such as postal marketing or telemarket"
+    },
+    {
+      "clause_id": "101b1e77-b62f-4e5d-ab6b-497847516b81",
+      "category_v2": "consumer_rights",
+      "nlp_confidence_v2": 0.6,
+      "source_group": "legacy",
+      "band": "moderate",
+      "raw_text": "* Only employees who need personal information to perform a specific job (for example, a customer service representative) are granted access to it. All of our employees are kept up to date on our privacy and security practices."
+    },
+    {
+      "clause_id": "6a4e3ed7-ecfa-48f6-b403-06ba0c649393",
+      "category_v2": "data_sharing",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "fresh_2026",
+      "band": "very_high",
+      "raw_text": "Plaid ne fait pas de marketing conjoint."
+    },
+    {
+      "clause_id": "cec8cf0d-1a30-4d1c-ba08-b25f598f30dd",
+      "category_v2": "data_sharing",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "legacy",
+      "band": "very_high",
+      "raw_text": "Review the GLBA-financial privacy notices of our Financial Entities (Robinhood Financial LLC; Robinhood Securities, LLC; Robinhood Derivatives, LLC; Robinhood Crypto, LLC; Robinhood Asset Management, LLC; Robinhood Ventures DE, LLC; and Robinhood Ventures Fund I; and separately f"
+    },
+    {
+      "clause_id": "fd518c5a-1a04-4562-9fd8-307e2520fc81",
+      "category_v2": "data_sharing",
+      "nlp_confidence_v2": 0.8,
+      "source_group": "legacy",
+      "band": "high",
+      "raw_text": "We may employ third party companies and individuals to facilitate our Service (\u201cService Providers\u201d), to provide the Service on our behalf, to perform Service-related services or to assist us in analyzing how our Service is used."
+    },
+    {
+      "clause_id": "e97b1fe8-f92a-4ad9-83d2-a8885d40d49a",
+      "category_v2": "data_sharing",
+      "nlp_confidence_v2": 0.7,
+      "source_group": "legacy",
+      "band": "moderate",
+      "raw_text": "Interest-Based Advertising"
+    },
+    {
+      "clause_id": "1a66f141-7ed2-48c8-8a14-e9e7a3bb44df",
+      "category_v2": "tracking_cookies",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "fresh_2026",
+      "band": "very_high",
+      "raw_text": "Wanneer u uw financi\u00eble rekeningen koppelt via Plaid, gebruiken we doorgaans de reCaptcha-dienst van Google om fraude en misbruik te helpen detecteren. Google reCAPTCHA is ge\u00efntegreerd in de producten en diensten van Plaid om ervoor te zorgen dat invoer in bijvoorbeeld online for"
+    },
+    {
+      "clause_id": "5a0b9054-fa4c-4185-9251-eb03fbed6047",
+      "category_v2": "tracking_cookies",
+      "nlp_confidence_v2": 0.9,
+      "source_group": "legacy",
+      "band": "very_high",
+      "raw_text": "* Cookies, which are small text files that are saved on your computer when you visit a website so that information can be saved between visits, such as your login credentials or language preferences. For example, cookies allow you to log in quickly when you visit our sites.\n  * W"
+    },
+    {
+      "clause_id": "095edb0d-5edc-4fc6-a0f5-fd92e366d93d",
+      "category_v2": "tracking_cookies",
+      "nlp_confidence_v2": 0.8,
+      "source_group": "legacy",
+      "band": "high",
+      "raw_text": "1.     1. Cookies (or browser cookies). A cookie is a small file placed on the hard drive of your computer. You may refuse to accept browser cookies by activating the appropriate setting on your browser. However, if you select this setting you may be unable to access certain part"
+    },
+    {
+      "clause_id": "ca524d64-4902-4bd0-ac6b-73ca5c976c70",
+      "category_v2": "tracking_cookies",
+      "nlp_confidence_v2": 0.6,
+      "source_group": "legacy",
+      "band": "moderate",
+      "raw_text": "Like many websites, we use technology, such as cookies, that allow us to make your visit to our website easier by recognizing you when you return and help provide you with a customized experience."
+    },
+    {
+      "clause_id": "4eb112b5-fc69-4a75-94f4-b9c597f17f2d",
+      "category_v2": "cross_border",
+      "nlp_confidence_v2": 0.95,
+      "source_group": "fresh_2026",
+      "band": "very_high",
+      "raw_text": "EU Standard Contractual Clauses approved by the European Commission and the UK International Data Transfer Addendum issued by the Information Commissioner\u2019s Office. You can obtain a copy of the relevant Standard Contractual Clauses. Learn More ."
+    },
+    {
+      "clause_id": "58b27da8-1c03-41ea-b20e-cadda9c92507",
+      "category_v2": "cross_border",
+      "nlp_confidence_v2": 0.9,
+      "source_group": "legacy",
+      "band": "very_high",
+      "raw_text": "Safeguard(s) used:\u00a0Google has self-certified its compliance with the EU-U.S. Privacy Shield which is available here:\u00a0https://www.privacyshield.gov/welcome. The EU-U.S. Privacy Shield is an approved certification mechanism under Article 42 of the General Data Protection Regulation"
+    },
+    {
+      "clause_id": "35222ff7-d32d-4f3b-9f91-adc3284e4b3a",
+      "category_v2": "cross_border",
+      "nlp_confidence_v2": 0.8,
+      "source_group": "legacy",
+      "band": "high",
+      "raw_text": "* \u2022 In accordance with GDPR Article 46(2), we use specific contracts approved by the European Commission, which give personal information the same protection it has within the EEA. For further details, see European Commission: Model contracts for the transfer of personal data to "
+    }
+  ]
+}

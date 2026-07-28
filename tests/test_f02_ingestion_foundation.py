@@ -102,6 +102,7 @@ def test_apply_now_order_and_step_a_first():
         "0033_intake_provenance.sql",
         "0034_decompose_noise_filter.sql",
         "0035_embeddings_and_obligation_match.sql",
+        "0036_gold_label.sql",
     ]
 
 

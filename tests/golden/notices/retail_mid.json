@@ -1,0 +1,30 @@
+{
+  "slug": "retail_mid",
+  "status": "PROPOSED \u2014 pending SME bless/swap (OQ-1)",
+  "rationale": "MID: some rights + sharing described, vaguer retention, partial specifics.",
+  "output": {
+    "sections": 5,
+    "clauses_total": 5,
+    "clauses_substantive": 4,
+    "clauses_noise": 1,
+    "category_counts": {
+      "consumer_rights": 1,
+      "data_sharing": 1,
+      "retention": 2
+    },
+    "domain_maturity": {
+      "consumer_rights": 15,
+      "data_sharing": 15,
+      "retention": 30
+    },
+    "domains_present": [
+      "consumer_rights",
+      "data_sharing",
+      "retention"
+    ],
+    "formula_version_set": {
+      "scoring": "F-002..F-010_v1",
+      "decompose": "decompose-v2-noisefilter"
+    }
+  }
+}

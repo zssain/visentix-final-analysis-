@@ -4,6 +4,16 @@
 
 ---
 
+## 0. F17 evaluation harness — SME inputs (gates results, not the build)
+
+The measurement harness is built and green, but its **results are honestly "awaiting SME labels"** until you do these. The harness pre-fills nothing and fixes nothing.
+
+- [ ] **Label the gold set (OQ-2).** 200 stratified, `is_noise`-excluded clauses are frozen (`logs/eval/gold_set_v1.json`). Export the CSV (`GET /eval/gold-set/export.csv`), fill `gold_domain` / `verdict` / `note` by hand, import (`POST /eval/gold-set/import.csv`). Until then classifier accuracy + VCI calibration are *awaiting* (no number is fabricated). 94 strata cells are under-populated and reported honestly — do not expect all cells filled.
+- [ ] **Bless or swap the 3 golden notices (OQ-1).** Engineer proposed `retail_strong` / `retail_mid` / `retail_weak` (rationale in `tests/golden/notices/*.json`, marked PROPOSED). Confirm they're representative retail notices spanning strong/mid/weak, or swap them; then re-freeze (`python scripts/eval/golden_notices.py`). The CI diff protects them thereafter (only a cited `formula_version` change may alter a golden file).
+- [ ] **[EXPERT] F-002 severity semantics.** The harness reports (does not assert) that `compute_f002` treats disclosure severity as clause **proportion** (volume), so "weaken a domain → exposure worsens" does not hold cleanly. Confirm whether severity should track disclosure **volume** or **quality** — any change is expert-owned (F17 changes nothing). See `INTELLIGENCE-QUALITY.md` §3.
+
+---
+
 ## 1. Exemplars (F06 / M-03) — content sign-off
 
 Full audit: [`logs/audits/exemplar-triage-2026-07-27.md`](logs/audits/exemplar-triage-2026-07-27.md). 16 → **9 kept** (English, de-id-passing). 7 were deactivated (reversible) for objective failures — confirm you agree, then move on:
