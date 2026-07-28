@@ -1,10 +1,7 @@
 """Assessment endpoints — intake, decompose, classify, and score privacy notices."""
 
-import asyncio
 import hashlib
-import json
 import urllib.parse
-from datetime import date
 from typing import Optional
 from uuid import uuid4
 
@@ -12,13 +9,8 @@ from fastapi import APIRouter, File, Form, HTTPException, UploadFile, status
 
 from app.auth import AuthenticatedUser, require_role
 from app.db import supabase_rest_get, supabase_rest_post
-from app.config import settings
 from app.logging import get_logger
-from app.services.intake.decompose import (
-    DECOMPOSE_VERSION,
-    DecomposedNotice,
-    decompose,
-)
+from app.services.intake.decompose import decompose
 from app.services.intake.discover import discover_policy_url, is_direct_policy_url
 from app.services.intake.extract import (
     ExtractionError,
@@ -27,18 +19,12 @@ from app.services.intake.extract import (
     extract_from_url,
     looks_like_privacy_policy,
 )
+from app.services.intake.persist import classify_clauses, persist_notice
 from app.services.intake.ssrf import SSRFError
 
 log = get_logger(__name__)
 
 router = APIRouter(prefix="/assessments", tags=["assessments"])
-
-# Valid category values the LLM may return (the 8 legacy domain slugs + other)
-from app.services.intake.classify_v2 import (  # noqa: E402
-    CLASSIFIER_VERSION,
-    KEYWORD_FALLBACK_VERSION,
-    TAXONOMY_V2 as _LLM_TAXONOMY,   # single source of truth (shared with the reclassifier)
-)
 
 
 # ── List assessments ─────────────────────────────────────────
@@ -64,6 +50,94 @@ async def list_assessments(
     return r.json()
 
 
+# ── F05 addendum: recommendation evidence stack (frozen at approval) ──
+
+@router.get("/{assessment_id}/findings/{finding_id}/evidence")
+async def finding_evidence(
+    assessment_id: str,
+    finding_id: str,
+    user: AuthenticatedUser = require_role("customer", "sme", "admin"),
+):
+    """The frozen evidence stack for a finding (served from the store, never
+    re-assembled at render). Org-scoped: a customer may only read its own."""
+    if user.role == "customer":
+        r = await supabase_rest_get("privacy_notice", select="organization_id",
+                                    filters=f"notice_id=eq.{assessment_id}", limit=1)
+        rows = r.json() if r.status_code == 200 else []
+        owner = rows[0]["organization_id"] if rows else None
+        if not owner or owner != user.organization_id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not your assessment.")
+    from app.services.evidence import get_evidence
+    ev = await get_evidence(assessment_id, finding_id)
+    if ev is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail="No frozen evidence for this finding (assembled at approval).")
+    return ev
+
+
+async def _assert_owns(assessment_id: str, user: AuthenticatedUser) -> None:
+    """Customer may only touch its own assessment (403 otherwise)."""
+    if user.role != "customer":
+        return
+    r = await supabase_rest_get("privacy_notice", select="organization_id",
+                                filters=f"notice_id=eq.{assessment_id}", limit=1)
+    rows = r.json() if r.status_code == 200 else []
+    owner = rows[0]["organization_id"] if rows else None
+    if not owner or owner != user.organization_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not your assessment.")
+
+
+# ── Clause list (for the rewrite picker) ─────────────────────
+
+@router.get("/{assessment_id}/clauses")
+async def list_clauses(
+    assessment_id: str,
+    user: AuthenticatedUser = require_role("customer", "sme", "admin"),
+):
+    """The assessment's substantive clauses grouped for the rewrite picker
+    (findings-flagged domains first). Org-scoped."""
+    await _assert_owns(assessment_id, user)
+    sr = await supabase_rest_get("notice_section", select="section_id",
+                                 filters=f"notice_id=eq.{assessment_id}", limit=1000)
+    section_ids = [s["section_id"] for s in (sr.json() if sr.status_code == 200 else []) if s.get("section_id")]
+    clauses: list[dict] = []
+    for i in range(0, len(section_ids), 40):
+        chunk = ",".join(f'"{s}"' for s in section_ids[i:i + 40])
+        cr = await supabase_rest_get(
+            "disclosure_clause", select="clause_id,raw_text,category,is_noise",
+            filters=f"section_id=in.({chunk})", limit=2000)
+        for c in (cr.json() if cr.status_code == 200 else []):
+            if c.get("is_noise"):
+                continue
+            clauses.append({"clause_id": c["clause_id"], "raw_text": c.get("raw_text") or "",
+                            "domain": c.get("category") or "other"})
+    # domains that have a finding surface first
+    fr = await supabase_rest_get("risk_finding", select="domain",
+                                 filters=f"notice_id=eq.{assessment_id}", limit=200)
+    flagged = {f.get("domain") for f in (fr.json() if fr.status_code == 200 else [])}
+    clauses.sort(key=lambda c: (c["domain"] not in flagged, c["domain"]))
+    return {"assessment_id": assessment_id, "flagged_domains": sorted(d for d in flagged if d), "clauses": clauses}
+
+
+# ── F18: illustrative clause rewrite (guardrailed + verified) ──
+
+@router.post("/{assessment_id}/clauses/{clause_id}/rewrite")
+async def rewrite_clause(
+    assessment_id: str,
+    clause_id: str,
+    user: AuthenticatedUser = require_role("sme", "admin"),
+):
+    """Guardrailed illustrative rewrite; falls back to an approved-exemplar
+    comparison on any guardrail/verification failure. v1: gated to sme|admin
+    (F18 is the v4 flagship — releases with v4 entitlements, not in the pilot)."""
+    await _assert_owns(assessment_id, user)
+    from app.services.rewrite import generate_rewrite
+    try:
+        return await generate_rewrite(assessment_id, clause_id)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+
 # ── Create assessment ────────────────────────────────────────
 
 @router.post("/", status_code=status.HTTP_201_CREATED)
@@ -80,6 +154,26 @@ async def create_assessment(
     Full pipeline: extract -> decompose -> classify -> persist -> score.
     Returns 201 with assessment details including scores when available.
     """
+    return await run_assessment_intake(
+        user=user, url=url, text=text, organization_id=organization_id,
+        organization_name=organization_name, file=file,
+    )
+
+
+async def run_assessment_intake(
+    *,
+    user: AuthenticatedUser,
+    url: Optional[str] = None,
+    text: Optional[str] = None,
+    organization_id: Optional[str] = None,
+    organization_name: Optional[str] = None,
+    file: Optional[UploadFile] = None,
+):
+    """The single intake+score core (extract → decompose → classify → persist →
+    score). Called by the customer `/assessments/` route AND the F20 partner
+    workspace-assessment route — one path, no fork. Callers whose role is not
+    `customer` supply `organization_id` explicitly (partner → the workspace's
+    client org)."""
 
     # ── 1. EXTRACT ────────────────────────────────────────────
     extracted_text: str | None = None
@@ -181,122 +275,24 @@ async def create_assessment(
     notice = decompose(extracted_text)
 
     # ── 4. LLM CLASSIFY (bounded concurrency) ────────────────
-    llm_classified, keyword_fallback = await _classify_clauses(notice)
+    llm_classified, keyword_fallback = await classify_clauses(notice)
 
     log.info(
         "Classification: llm=%d keyword_fallback=%d total=%d (text not logged)",
         llm_classified, keyword_fallback, len(notice.clauses),
     )
 
-    # ── 5. PERSIST (batched) ─────────────────────────────────
-    notice_id = str(uuid4())
-
-    # Mean NLP confidence across clauses → extraction_confidence
-    mean_conf = (
-        sum(c.nlp_confidence for c in notice.clauses) / len(notice.clauses)
-        if notice.clauses else 0.0
-    )
-
-    # 5a. privacy_notice — single row
-    notice_payload = {
-        "notice_id": notice_id,
-        "organization_id": org_id,
-        "notice_type": "live_assessment",
-        "url": source_url or "",
-        "effective_date": str(date.today()),
-        "retrieval_date": str(date.today()),
-        "content_hash": content_hash,
-        "version_id": 0,
-        "jurisdiction_scope": ["US"],
-        "storage_path": "",
-        "extraction_confidence": round(mean_conf, 4),
-        # Intake provenance (migration 0033). Upload columns are NULL for
-        # url/text intake; set only for uploaded documents.
-        "intake_method": intake_method,
-        "upload_filename": upload_filename,
-        "upload_mime": upload_mime,
-        "upload_file_hash": upload_file_hash,
-        # decompose-v2 noise filter version tag — marks this assessment as
-        # noise-filtered so older assessments (NULL) stay untouched (Rule 4).
-        "decompose_version": DECOMPOSE_VERSION,
-        "ai_disclosure_presence": any(
-            c.category == "ai_automated_decisions" for c in notice.clauses
-        ),
-        "tracking_disclosure_presence": any(
-            c.category == "tracking_cookies" for c in notice.clauses
-        ),
-        "consumer_rights_presence": any(
-            c.category == "consumer_rights" for c in notice.clauses
-        ),
-        "retention_disclosure_presence": any(
-            c.category == "retention" for c in notice.clauses
-        ),
-        "cross_border_indicator": any(
-            c.category == "cross_border" for c in notice.clauses
-        ),
-        "sensitive_data_indicator": any(
-            c.category == "sensitive_data" for c in notice.clauses
-        ),
-    }
-    r = await supabase_rest_post("privacy_notice", notice_payload)
-    if r.status_code >= 400:
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="Failed to store notice.",
-        )
-
-    # 5b. notice_section — ONE batch POST
-    section_rows = [
-        {
-            "section_id": s.section_id,
-            "notice_id": notice_id,
-            "title": s.title,
-            "section_type": s.section_type,
-            "sequence": s.sequence,
-            "extracted_text": s.text[:10000],
-        }
-        for s in notice.sections
-    ]
-    if section_rows:
-        r = await supabase_rest_post("notice_section", section_rows)
-        if r.status_code >= 400:
-            log.error("notice_section insert failed: %d %s", r.status_code, r.text[:300])
-
-    # 5c. disclosure_clause — ONE batch POST (includes v2 taxonomy fields)
-    clause_rows = [
-        {
-            "clause_id": c.clause_id,
-            "section_id": c.section_id,
-            "raw_text": c.raw_text[:5000],
-            "normalized_text": c.normalized_text[:5000],
-            "category": c.category,
-            "ambiguity_score": c.ambiguity_score,
-            "readability_score": c.readability_score,
-            "nlp_confidence": c.nlp_confidence,
-            "domain_id": c.domain_id or None,
-            "clause_type": c.clause_type or None,
-            "transparency_score": c.transparency_score,
-            # v2 classification written at ingest (never NULL) — mirror of the reclassifier
-            "category_v2": c.category_v2,
-            "nlp_confidence_v2": c.nlp_confidence_v2,
-            "classifier_version": c.classifier_version,
-            # decompose-v2 noise filter — kept for lineage, excluded from counts.
-            "is_noise": c.is_noise,
-            "noise_reason": c.noise_reason,
-        }
-        for c in notice.clauses
-    ]
-    if clause_rows:
-        r = await supabase_rest_post("disclosure_clause", clause_rows)
-        if r.status_code >= 400:
-            log.error(
-                "disclosure_clause insert failed: %d %s",
-                r.status_code, r.text[:300],
-            )
-
-    log.info(
-        "Assessment persisted: notice=%s sections=%d clauses=%d",
-        notice_id[:12], len(notice.sections), len(notice.clauses),
+    # ── 5. PERSIST (batched — shared single intake path) ─────
+    # Same code the F19 bulk runner uses (services/intake/persist.py) — one
+    # intake path, no fork. Returns the generated notice_id.
+    notice_id = await persist_notice(
+        org_id, notice,
+        source_url=source_url,
+        content_hash=content_hash,
+        intake_method=intake_method,
+        upload_filename=upload_filename,
+        upload_mime=upload_mime,
+        upload_file_hash=upload_file_hash,
     )
 
     # ── 6. SCORE (live scoring — Prompt 6 adds the module) ───
@@ -350,61 +346,6 @@ async def create_assessment(
         response["upload_filename"] = upload_filename
 
     return response
-
-
-# ── LLM classification helper ────────────────────────────────
-
-async def _classify_clauses(notice: DecomposedNotice) -> tuple[int, int]:
-    """Classify clauses via LLM with bounded concurrency.
-
-    Returns (llm_classified_count, keyword_fallback_count).
-    On any LLM-level failure, all clauses keep their keyword labels.
-    """
-    # Noise clauses are excluded from classification counts (they keep their
-    # deterministic keyword label for lineage but are never LLM-classified/counted).
-    eligible = [c for c in notice.clauses if len(c.raw_text) >= 20 and not c.is_noise]
-    if not eligible:
-        return 0, 0
-
-    try:
-        from app.services.llm import get_llm_client
-        llm = get_llm_client()
-    except Exception:
-        return 0, len(eligible)
-
-    sem = asyncio.Semaphore(4)
-    llm_count = 0
-    fallback_count = 0
-
-    async def _classify_one(clause):
-        nonlocal llm_count, fallback_count
-        async with sem:
-            try:
-                result = await llm.classify(clause.raw_text, _LLM_TAXONOMY)
-                cat = result.get("category", "")
-                if cat in _LLM_TAXONOMY:
-                    conf = min(result.get("confidence", 0.7), 0.95)
-                    clause.category = cat
-                    clause.nlp_confidence = conf
-                    # write the v2 columns at ingest (mirror of the reclassifier) so a
-                    # new clause is NEVER left with a NULL category_v2.
-                    clause.category_v2 = cat
-                    clause.nlp_confidence_v2 = conf
-                    clause.classifier_version = CLASSIFIER_VERSION
-                    llm_count += 1
-                else:
-                    fallback_count += 1
-            except Exception:
-                fallback_count += 1
-        # LLM unavailable / off-taxonomy → keep the deterministic keyword label as v2
-        # (still non-NULL, honestly attributed) so category_v2 is never NULL.
-        if clause.category_v2 is None:
-            clause.category_v2 = clause.category
-            clause.nlp_confidence_v2 = clause.nlp_confidence
-            clause.classifier_version = KEYWORD_FALLBACK_VERSION
-
-    await asyncio.gather(*[_classify_one(c) for c in eligible])
-    return llm_count, fallback_count
 
 
 # ── Org resolution (injection-safe) ──────────────────────────

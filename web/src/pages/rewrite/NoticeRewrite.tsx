@@ -1,133 +1,124 @@
 /**
- * F14 — Notice Rewrite Prompts (Trust Language Studio) · UI (mocks, M-26).
+ * F18 — Clause Rewrite (illustrative, guardrailed) · REAL UI (replaces the F14
+ * mock M-26).
  *
- * For each disclosure gap, show a benchmark-informed LANGUAGE PATTERN beside the
- * org's current wording, so their trust/marketing team can improve clarity.
- * Patterns are examples of how clearer peer notices read — never legal drafting,
- * obligation, or verdict (F14 guardrails). UI-only ahead of the pattern library.
+ * Left: clause picker for an assessment (findings-flagged domains first).
+ * Right: guardrailed + fabrication-verified rewrite with a token diff (gold
+ * added / warm-gray struck), a NON-DISMISSIBLE watermark, and an honest
+ * fallback (side-by-side vs an approved exemplar) whenever a rewrite can't be
+ * safely generated. A rewrite is never shown unless BOTH guardrail AND
+ * verification passed.
  */
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { PageHeader } from "../../components/PageHeader";
 import { IntelligenceMark } from "../../components/IntelligenceMark";
 import { FlashNotice } from "../../components/FlashNotice";
 import { useFlash } from "../../lib/useFlash";
-import { LOW_CONFIDENCE_COHORT_N } from "../../lib/scoreBands";
-import { PROMPTS, type GapStatus } from "./mockData";
+import { api, ApiError } from "../../lib/api";
 import "../../components/furniture.css";
 import "./rewrite.css";
 
-const STATUS_LABEL: Record<GapStatus, string> = {
-  missing: "Not addressed",
-  could_be_clearer: "Could be clearer",
-  adequate: "Reads clearly",
-};
+const WATERMARK = "Illustrative language based on peer patterns — not legal drafting. Review with counsel.";
+
+interface Clause { clause_id: string; raw_text: string; domain: string; }
+interface DiffOp { op: "eq" | "add" | "del"; text: string; }
+interface RewriteResult {
+  rewrite_id: string; status: "llm" | "fallback";
+  suggested_text: string | null; diff: DiffOp[]; watermark_text: string;
+  guardrail_passed: boolean; verification_passed: boolean; fallback_used: boolean;
+}
 
 export function NoticeRewrite() {
-  const [done, setDone] = useState<Set<string>>(new Set());
+  const [assessmentId, setAssessmentId] = useState("");
+  const [clauses, setClauses] = useState<Clause[]>([]);
+  const [flagged, setFlagged] = useState<string[]>([]);
+  const [selected, setSelected] = useState<Clause | null>(null);
+  const [result, setResult] = useState<RewriteResult | null>(null);
+  const [busy, setBusy] = useState(false);
   const [flash, showFlash] = useFlash();
 
-  const toggleDone = (id: string) =>
-    setDone(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      return next;
-    });
+  const loadClauses = useCallback(async (id: string) => {
+    if (!id.trim()) return;
+    try {
+      const data = await api.get(`/assessments/${id.trim()}/clauses`);
+      setClauses(data.clauses || []); setFlagged(data.flagged_domains || []);
+      setSelected(null); setResult(null);
+      if (!data.clauses?.length) showFlash("No substantive clauses found for that assessment.");
+    } catch (e) { showFlash(e instanceof ApiError ? (e.status === 403 ? "Not your assessment." : "Could not load clauses.") : "Load failed."); }
+  }, [showFlash]);
 
-  // Only claim success when the copy actually succeeded — honest feedback.
-  const copyPattern = (text: string) => {
-    if (!navigator.clipboard) {
-      showFlash("Copying isn't available here — select the text and copy it manually.");
-      return;
-    }
-    navigator.clipboard.writeText(text).then(
-      () => showFlash("Language pattern copied — adapt it to your own voice."),
-      () => showFlash("Couldn't copy automatically — select the text and copy it manually."),
-    );
+  const rewrite = async (c: Clause) => {
+    setSelected(c); setResult(null); setBusy(true);
+    try {
+      const r: RewriteResult = await api.post(`/assessments/${assessmentId.trim()}/clauses/${c.clause_id}/rewrite`, {});
+      setResult(r);
+    } catch (e) { showFlash(e instanceof ApiError ? `Rewrite failed: ${e.message}` : "Rewrite failed."); }
+    finally { setBusy(false); }
   };
 
-  // "Addressed" = adequate domains + any prompt the user has checked off.
-  const addressed = PROMPTS.filter(p => p.status === "adequate" || done.has(p.domainId)).length;
-  const total = PROMPTS.length;
-
   return (
-    <div style={{ maxWidth: 960, margin: "0 auto" }}>
-      <PageHeader
-        eyebrow="Rewrite"
-        title="Trust Language Studio"
-        description="For each disclosure gap in your notice, see how the clearest peer notices phrase it. These are language patterns to adapt — not legal drafting."
-        actions={<IntelligenceMark />}
-      />
-
-      {/* Guardrail banner (AC-5) */}
-      <div className="guardrail-banner">
-        <span aria-hidden="true" style={{ fontSize: "1.1rem" }}>ⓘ</span>
-        <span>
-          <b>Language patterns, not legal drafting.</b> Each suggestion shows how clearer notices in your peer
-          cohort tend to read. Adapt it to your own voice and facts — Visentix does not tell you what your notice
-          has to say, and these are not legal advice.
-        </span>
-      </div>
-
+    <div>
+      <PageHeader eyebrow="Rewrite" title="Illustrative Clause Rewrite"
+        description="A drafting aid — clearer structure, peer-informed phrasing — that never adds a practice, recipient, or purpose your clause didn't already make. Every suggestion passes a banned-term and a fabrication check; if it can't, you get a safe side-by-side comparison instead." />
       <FlashNotice message={flash} />
 
-      {/* Progress (AC-6) */}
-      <div className="rw-progress">
-        <span className="rw-progress-count">{addressed} / {total} domains reading clearly</span>
-        <span className="rw-progress-bar"><span style={{ width: `${(addressed / total) * 100}%` }} /></span>
+      <div className="rw-load">
+        <input className="rw-input" placeholder="Assessment ID" value={assessmentId}
+               onChange={e => setAssessmentId(e.target.value)} onKeyDown={e => e.key === "Enter" && loadClauses(assessmentId)} />
+        <button className="btn btn-primary" onClick={() => loadClauses(assessmentId)}>Load clauses</button>
       </div>
 
-      {PROMPTS.map(p => {
-        const isDone = done.has(p.domainId);
-        const isAdequate = p.status === "adequate";
-        const lowConf = p.cohortN < LOW_CONFIDENCE_COHORT_N;
-        return (
-          <div key={p.domainId} className={`rw-card ${isAdequate ? "adequate" : ""} ${isDone ? "done" : ""}`}>
-            <div className="rw-card-head">
-              <span className="domain-chip">{p.domainId}</span>
-              <span className="rw-domain-name">{p.domainName}</span>
-              <span className={`rw-status ${p.status}`}>{STATUS_LABEL[p.status]}</span>
-              {!isAdequate && (
-                <label className="rw-check">
-                  <input type="checkbox" checked={isDone} onChange={() => toggleDone(p.domainId)} />
-                  Handled
-                </label>
-              )}
-            </div>
+      {clauses.length > 0 && (
+        <div className="rw-grid">
+          {/* Clause picker */}
+          <section className="rw-card rw-picker">
+            <div className="rw-h">Clauses {flagged.length > 0 && <span className="rw-flagged-note">· flagged domains first</span>}</div>
+            {clauses.map(c => (
+              <button key={c.clause_id} className={`rw-clause ${selected?.clause_id === c.clause_id ? "on" : ""} ${flagged.includes(c.domain) ? "flagged" : ""}`}
+                      onClick={() => rewrite(c)}>
+                <span className="rw-clause-domain">{c.domain}{flagged.includes(c.domain) ? " ●" : ""}</span>
+                <span className="rw-clause-text">{c.raw_text.slice(0, 140)}{c.raw_text.length > 140 ? "…" : ""}</span>
+              </button>
+            ))}
+          </section>
 
-            {/* Adequate domains stay compact — celebrate what already reads well. */}
-            {isAdequate ? (
-              <div style={{ padding: "0 18px 14px 18px" }}>
-                <div className="rw-current">“{p.currentExcerpt}”</div>
-                <div className="rw-rationale">{p.rationale}</div>
-              </div>
-            ) : (
-              <div className="rw-body">
-                {/* Current state — always shown beside the suggestion (AC-1) */}
-                <div>
-                  <div className="rw-col-label">Your notice today</div>
-                  {p.currentExcerpt ? (
-                    <div className="rw-current">“{p.currentExcerpt}”</div>
-                  ) : (
-                    <div className="rw-current absent">This domain is not addressed in your notice.</div>
-                  )}
-                </div>
-
-                {/* Suggested pattern */}
-                <div>
-                  <div className="rw-col-label">A clearer pattern from your cohort</div>
-                  <div className="rw-pattern">“{p.pattern}”</div>
-                  <div className="rw-rationale">{p.rationale}</div>
-                  <div className="rw-source">
-                    <span>Drawn from n={p.cohortN} top-quartile notices · de-identified</span>
-                    {lowConf && <span className="rw-lowconf">· small cohort — interpret with caution</span>}
-                    <button className="rw-copy" onClick={() => copyPattern(p.pattern)}>Copy pattern</button>
-                  </div>
-                </div>
-              </div>
+          {/* Rewrite / diff */}
+          <section className="rw-card rw-output">
+            {!selected ? <div className="rw-empty">Pick a clause to see an illustrative rewrite.</div> : (
+              <>
+                <div className="rw-watermark">{WATERMARK}</div>
+                {busy ? <div className="rw-empty">Generating…</div> : result ? (
+                  <>
+                    {result.status === "llm" ? (
+                      <div className="rw-diff">
+                        {result.diff.map((op, i) => (
+                          <span key={i} className={`rw-op rw-${op.op}`}>{op.text} </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="rw-fallback">
+                        <div className="rw-fallback-note">A safe rewrite couldn't be generated for this clause (it failed the fabrication or banned-term check, or the model was unavailable). Here is your clause beside an approved peer exemplar instead.</div>
+                        <div className="rw-diff">
+                          {result.diff.length ? result.diff.map((op, i) => (
+                            <span key={i} className={`rw-op rw-${op.op}`}>{op.text} </span>
+                          )) : <span className="rw-empty">No approved exemplar for this domain yet.</span>}
+                        </div>
+                      </div>
+                    )}
+                    {result.suggested_text && (
+                      <div className="rw-actions">
+                        <button className="btn" onClick={() => { navigator.clipboard?.writeText(result.suggested_text || ""); showFlash("Copied."); }}>Copy</button>
+                        <button className="btn" onClick={() => selected && rewrite(selected)}>Regenerate</button>
+                      </div>
+                    )}
+                    <div className="rw-legend"><span className="rw-op rw-add">added</span> <span className="rw-op rw-del">removed</span> · <IntelligenceMark /></div>
+                  </>
+                ) : null}
+              </>
             )}
-          </div>
-        );
-      })}
+          </section>
+        </div>
+      )}
     </div>
   );
 }

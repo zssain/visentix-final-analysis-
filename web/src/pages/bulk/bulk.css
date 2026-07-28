@@ -1,4 +1,4 @@
-/* F12 — Bulk Analysis workflow styles. Reuses tokens + furniture. */
+/* F19 — Bulk Screening styles (replaces the F12 mock; reuses tokens + furniture). */
 
 .bulk-grid { display: grid; gap: 24px; }
 
@@ -104,10 +104,75 @@
 .bulk-gap-bar > span { display: block; height: 100%; background: var(--navy); border-radius: 4px; }
 .bulk-gap-pct { font-family: var(--font-data); font-variant-numeric: tabular-nums; font-weight: 700; font-size: 0.86rem; color: var(--navy); }
 
+/* ── F19 additions ─────────────────────────────────────────── */
+.bulk-eyebrow { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); font-weight: 700; margin-bottom: 10px; }
+.bulk-card-head { display: flex; justify-content: space-between; align-items: center; font-family: var(--font-display); font-weight: 600; font-size: 1.05rem; color: var(--navy); margin-bottom: 14px; }
+.bulk-empty { padding: 22px; text-align: center; color: var(--text-muted); font-size: 0.86rem; }
+.bulk-input { width: 100%; border: 1px solid var(--border); border-radius: var(--radius); padding: 9px 12px; font: inherit; font-size: 0.86rem; margin-bottom: 12px; }
+
+/* Draft-grade + status badges */
+.bulk-draft-badge { font-size: 0.64rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; padding: 2px 7px; border-radius: 4px; background: rgba(200,164,106,0.18); color: #8a6d2f; border: 1px solid rgba(200,164,106,0.5); }
+.bulk-status-chip { font-size: 0.72rem; font-weight: 700; padding: 3px 10px; border-radius: 999px; text-transform: capitalize; border: 1px solid var(--border); color: var(--text-secondary); }
+.bulk-status-chip.st-running, .bulk-status-chip.st-queued { background: rgba(0,95,163,0.12); color: var(--exec-blue); border-color: rgba(0,95,163,0.4); }
+.bulk-status-chip.st-completed { background: rgba(85,199,179,0.15); color: #2c8574; border-color: rgba(85,199,179,0.5); }
+.bulk-status-chip.st-partial { background: rgba(200,164,106,0.18); color: #8a6d2f; border-color: rgba(200,164,106,0.5); }
+.bulk-status-chip.st-failed { background: rgba(248,113,113,0.15); color: #c0392b; border-color: rgba(248,113,113,0.5); }
+
+/* Validation preview */
+.bulk-preview-summary { display: flex; gap: 12px; font-size: 0.8rem; margin-bottom: 10px; }
+.bulk-preview-summary .ok { color: #2c8574; font-weight: 700; }
+.bulk-preview-summary .bad { color: #c0392b; font-weight: 700; }
+.bulk-preview-list { border: 1px solid var(--border); border-radius: var(--radius); max-height: 320px; overflow-y: auto; }
+.bulk-preview-row { display: grid; grid-template-columns: 1.1fr 2fr auto; gap: 10px; padding: 6px 12px; font-size: 0.8rem; border-bottom: 1px solid var(--border); align-items: center; }
+.bulk-preview-row:last-child { border-bottom: none; }
+.bulk-preview-row.invalid { background: rgba(248,113,113,0.06); }
+.bulk-preview-org { font-weight: 600; color: var(--navy); }
+.bulk-preview-url { font-family: var(--font-data); color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bulk-preview-flag { font-size: 0.68rem; color: #c0392b; font-weight: 700; }
+.bulk-preview-more { padding: 8px 12px; font-size: 0.78rem; color: var(--text-muted); font-style: italic; }
+.bulk-cap-note { font-size: 0.78rem; color: #c0392b; margin-top: 8px; }
+
+/* Job list table */
+.bulk-jobs-table, .bulk-results-table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+.bulk-jobs-table th, .bulk-jobs-table td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--border); }
+.bulk-jobs-table th { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); }
+.bulk-progress { height: 6px; border-radius: 3px; background: var(--border); overflow: hidden; margin-bottom: 3px; }
+.bulk-progress > span { display: block; height: 100%; background: var(--exec-blue); border-radius: 3px; transition: width 240ms ease; }
+.bulk-progress-label { font-size: 0.74rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+
+/* Results bar + heat strip */
+.bulk-results-bar { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; flex-wrap: wrap; }
+.bulk-results-title { font-family: var(--font-display); font-weight: 600; font-size: 1.1rem; color: var(--navy); display: flex; align-items: center; gap: 8px; }
+.bulk-heatstrip { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; }
+.bulk-heat-cell { text-align: center; }
+.bulk-heat-bar { font-family: var(--font-data); font-variant-numeric: tabular-nums; font-weight: 700; color: #fff; border-radius: var(--radius); padding: 14px 4px; font-size: 0.9rem; }
+.bulk-heat-label { font-size: 0.68rem; color: var(--text-secondary); margin-top: 4px; }
+
+/* Results table */
+.bulk-results-table th, .bulk-results-table td { padding: 8px 8px; border-bottom: 1px solid var(--border); text-align: left; white-space: nowrap; }
+.bulk-results-table th.dom, .bulk-results-table td.dom { text-align: center; font-size: 0.78rem; }
+.bulk-results-table th.sortable { cursor: pointer; user-select: none; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); }
+.bulk-results-table th.sortable:hover { color: var(--exec-blue); }
+.bulk-org-link { font-weight: 700; color: var(--navy); text-decoration: none; }
+.bulk-org-link:hover { text-decoration: underline; }
+.bulk-row-badges { display: inline-flex; gap: 6px; margin-left: 8px; align-items: center; }
+.bulk-review { font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); }
+.bulk-review.st-approved { color: #2c8574; }
+.bulk-suppressed { font-size: 0.74rem; font-style: italic; color: var(--text-muted); }
+.bulk-relax { color: var(--text-muted); font-weight: 700; }
+.bulk-results-table td.clickable a { text-decoration: none; }
+
+/* Non-scored rows */
+.bulk-nonscored { display: grid; grid-template-columns: 1fr 3fr; gap: 12px; padding: 10px 2px; border-bottom: 1px solid var(--border); align-items: start; }
+.bulk-nonscored:last-child { border-bottom: none; }
+.bulk-nonscored-org { font-weight: 700; color: var(--navy); font-size: 0.86rem; }
+.bulk-nonscored-msg { font-size: 0.82rem; color: var(--text-secondary); line-height: 1.5; }
+.bulk-nonscored.st-failed .bulk-nonscored-msg { color: #c0392b; }
+
 @media (max-width: 768px) {
-  .bulk-row-head { grid-template-columns: 28px 1fr auto; row-gap: 6px; }
-  .bulk-industry, .bulk-issues { grid-column: 2 / -1; justify-content: flex-start; }
+  .bulk-heatstrip { grid-template-columns: repeat(4, 1fr); }
+  .bulk-nonscored { grid-template-columns: 1fr; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .bulk-mode, .bulk-caret { transition: none; }
+  .bulk-progress > span { transition: none; }
 }

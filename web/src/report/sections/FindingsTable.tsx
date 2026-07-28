@@ -3,6 +3,7 @@ import { AdvisorNote } from "../../components/AdvisorNote";
 import { IntelligenceMark } from "../../components/IntelligenceMark";
 import { CodexTooltip } from "../../components/CodexTooltip";
 import { InfoButton } from "../explain";
+import { EvidenceStack } from "./EvidenceStack";
 import type { ReportSection } from "../types";
 
 interface Finding {
@@ -114,6 +115,7 @@ export function FindingsTable({ content }: { content: ReportSection["content"] }
                         advisorBody={f.advisor_body ?? ""}
                         lineageRefs={f.lineage_refs}
                       />
+                      {assessmentId && <EvidenceStack assessmentId={assessmentId} findingId={f.id} />}
                     </td>
                   </tr>
                 )}

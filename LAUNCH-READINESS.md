@@ -6,6 +6,26 @@ Branch `F02-unify-classification` — Stage-3 commits: `0824c7d` (pilot nav), `2
 
 ---
 
+## 🚩 GATING FLAG — Section B: non-v1 surface reachability (BLOCKING, verify from the PRODUCTION build)
+
+**Do NOT trust the `VITE_PREVIEW_SURFACES` default.** A commit **`dfb4b56` ("always show Vendors, Partner, Bulk in nav — remove PREVIEW_SURFACES gate")** de-gated preview surfaces for a demo. The flag was later re-instated (default off) for the **nav**, but **routes stay registered and URL-reachable** by design (comment in `App.tsx`: "reachable by URL for internal QA"). So nav-hiding is **not** an access control — the launch audit must verify the **route role-guards** from the built artifact.
+
+**Route-guard state — RE-RUN 2026-07-28 after the owner's Section-B gating decisions landed (source-level; production-build confirmation still required before deploy):**
+
+| Route | Guard (now) | Customer reachable? | Section-B verdict |
+|---|---|---|---|
+| `/quarterly` | none (public) | yes (public) | **public by design (data-confirmed)** — real F21; serves only approved+suppressed data |
+| `/crosswalk` | `admin` | no | **blocked** — mock → admin-only until rebuilt |
+| `/trust` | `admin` | no | **blocked** — mock → admin-only (public only when rebuilt real + owner-confirmed) |
+| `/vendors` | `admin` | no | **blocked** — mock → admin-only |
+| `/rewrite` | `sme,admin` | no | **blocked** — F18 is the v4 flagship; gated for v1 (route + endpoint) |
+| `/partner` | `partner_admin,admin` | no | **blocked** |
+| `/bulk` | `admin` | no | **blocked** |
+
+Every row reads **blocked** or **public by design (data-confirmed)** ✅ (source-level). Nav links re-gated to match (incl. `/vendors`, which was previously nav-visible to all roles). **Still BLOCKING:** the audit must re-confirm each verdict from the **production build** authenticated as a **customer** — the built artifact is authoritative, this table is the lead. Decisions logged in `logs/decision-log.md` (2026-07-28) + `visentix-specs/00-plan/version-ladder.md`.
+
+---
+
 ## What's done (verified)
 
 ### Workstream A — git hygiene
@@ -74,9 +94,10 @@ Prepared here:
 **I did not deploy** — it needs credentials/access I don't have and shouldn't handle:
 1. [ ] Owner supplies prod env vars to Azure (Supabase URL + **service-role key**, `SUPABASE_JWT_SECRET`, `APP_ENV=production`, CORS origins) — never in git.
 2. [ ] **Provision users in prod** (the image no longer ships them): DB seed users (RLS-AUDIT §5 "C1b") or mount `local_users.json` as an Azure secret. Until then `/auth/login` returns 401 for everyone.
-3. [ ] Build/push image → `az containerapp update`; run migrations 0001-0032 against the prod DB; confirm `/health` + `/docs`.
+3. [ ] Build/push image → `az containerapp update`; run migrations **0001–0039** against the prod DB (via `scripts/db/apply_and_record.py`); confirm `/health` + `/docs`.
 4. [ ] Deploy web to Cloudflare pointing at the prod API; smoke-test login → intake → report → monitoring → admin **logged in**.
 5. [ ] Confirm prod `platform_setting` has **no** `gate_mode` row (or it's `strict`) so the safe default applies.
+6. [ ] **Wire `logo_url` to object storage (Supabase storage bucket)** — **required before any partner demo.** F20 branding persists the `logo_hash` (the freeze anchor) but not the logo bytes; `PUT /partner/branding` must upload the validated image to a Supabase storage bucket and set `partner.logo_url` to its public URL. Until then, branded PDFs render the partner **name + brand-color band only** (no logo image). Touchpoints: `app/routers/partner.py::set_branding` (upload step) + `app/services/report/renderer.py::_branding_band` (already reads `logo_url`).
 
 ## Dress rehearsal (Workstream E) — **blocked on owner inputs**
 

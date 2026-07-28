@@ -50,6 +50,7 @@ function RoleBasedHome() {
   const { profile } = useAuth();
   if (profile?.role === "admin") return <Navigate to="/admin" replace />;
   if (profile?.role === "sme")   return <Navigate to="/review" replace />;
+  if (profile?.role === "partner_admin") return <Navigate to="/partner" replace />;
   return <CustomerDashboard />;
 }
 
@@ -97,10 +98,12 @@ function AppRoutes() {
                 <div className="side-group-label">Workspace</div>
                 <NavLink to="/assessments" onClick={closeNav}><Activity size={17} aria-hidden /> Monitor</NavLink>
                 <NavLink to="/intake" onClick={closeNav}><FilePlus2 size={17} aria-hidden /> Intake</NavLink>
-                {PREVIEW_SURFACES && (
+                {(role === "sme" || role === "admin") && (
                   <NavLink to="/rewrite" onClick={closeNav}><PenLine size={17} aria-hidden /> Rewrite</NavLink>
                 )}
-                <NavLink to="/vendors" onClick={closeNav}><Building2 size={17} aria-hidden /> Vendors</NavLink>
+                {role === "admin" && (
+                  <NavLink to="/vendors" onClick={closeNav}><Building2 size={17} aria-hidden /> Vendors</NavLink>
+                )}
                 {(role === "sme" || role === "admin") && (
                   <NavLink to="/review" onClick={closeNav}><ClipboardCheck size={17} aria-hidden /> Workbench</NavLink>
                 )}
@@ -111,16 +114,22 @@ function AppRoutes() {
                 {PREVIEW_SURFACES && (
                   <NavLink to="/quarterly" onClick={closeNav}><Newspaper size={17} aria-hidden /> Quarterly</NavLink>
                 )}
-                {PREVIEW_SURFACES && (
+                {role === "admin" && (
                   <NavLink to="/crosswalk" onClick={closeNav}><Grid3x3 size={17} aria-hidden /> Crosswalk</NavLink>
                 )}
                 <NavLink to="/codex" onClick={closeNav}><BookMarked size={17} aria-hidden /> Codex</NavLink>
                 <NavLink to="/methodology" onClick={closeNav}><Compass size={17} aria-hidden /> Methodology</NavLink>
-                {PREVIEW_SURFACES && (
+                {role === "admin" && (
                   <NavLink to="/trust" onClick={closeNav}><ShieldCheck size={17} aria-hidden /> Trust Center</NavLink>
                 )}
               </div>
 
+              {role === "partner_admin" && (
+                <div className="side-group">
+                  <div className="side-group-label">Partner</div>
+                  <NavLink to="/partner" onClick={closeNav}><Handshake size={17} aria-hidden /> Partner Workspace</NavLink>
+                </div>
+              )}
               {role === "admin" && (
                 <div className="side-group">
                   <div className="side-group-label">Administration</div>
@@ -154,9 +163,21 @@ function AppRoutes() {
           <Route path="/login" element={<Login />} />
           <Route path="/codex"       element={<FindingCodex />} />
           <Route path="/methodology" element={<Methodology />} />
+          {/* /quarterly is public by design (F21 — approved+suppressed data only). */}
           <Route path="/quarterly"   element={<QuarterlyReport />} />
-          <Route path="/crosswalk"   element={<FrameworkCrosswalk />} />
-          <Route path="/trust"       element={<TrustCenter />} />
+          {/* /crosswalk (F13) + /trust (F15) are still MOCK-backed → admin-only in
+              prod (Section-B gating, owner 2026-07-28). QA reaches them by role,
+              never via open routes. /crosswalk stays admin-only until rebuilt. */}
+          <Route path="/crosswalk" element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <FrameworkCrosswalk />
+            </ProtectedRoute>
+          } />
+          <Route path="/trust" element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <TrustCenter />
+            </ProtectedRoute>
+          } />
           <Route path="/unauthorized" element={
             <div style={{ padding: 60, textAlign: "center" }}>
               <h2 style={{ color: "var(--red)" }}>403 — Access Denied</h2>
@@ -183,16 +204,18 @@ function AppRoutes() {
             </ProtectedRoute>
           } />
 
-          {/* Trust Language Studio (F14) — customer trust tool */}
+          {/* Clause Rewrite (F18) — v4 FLAGSHIP. Gated away from customer for v1
+              (releases with v4 entitlements, not silently in the pilot — see
+              version-ladder.md). sme,admin only for now. */}
           <Route path="/rewrite" element={
-            <ProtectedRoute allowedRoles={["customer", "sme", "admin"]}>
+            <ProtectedRoute allowedRoles={["sme", "admin"]}>
               <NoticeRewrite />
             </ProtectedRoute>
           } />
 
-          {/* Vendor Due Diligence (F16) — procurement workflow */}
+          {/* Vendor Due Diligence (F16) — still mock → admin-only (Section-B gating). */}
           <Route path="/vendors" element={
-            <ProtectedRoute allowedRoles={["customer", "sme", "admin"]}>
+            <ProtectedRoute allowedRoles={["admin"]}>
               <VendorDueDiligence />
             </ProtectedRoute>
           } />
@@ -223,10 +246,10 @@ function AppRoutes() {
             </ProtectedRoute>
           } />
 
-          {/* Partner Portal (F11) — no `partner` role yet (F10 tenancy dependency);
-              gated to admin for demo access until partner tenancy lands. */}
+          {/* Partner Portal (F20) — real tenancy: partner_admin owns their
+              workspaces; admin retained for oversight. */}
           <Route path="/partner" element={
-            <ProtectedRoute allowedRoles={["admin"]}>
+            <ProtectedRoute allowedRoles={["partner_admin", "admin"]}>
               <PartnerPortal />
             </ProtectedRoute>
           } />

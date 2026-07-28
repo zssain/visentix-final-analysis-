@@ -20,7 +20,7 @@ log = get_logger(__name__)
 class AuthenticatedUser:
     """Represents a verified user attached to a request."""
 
-    __slots__ = ("user_id", "role", "organization_id", "email")
+    __slots__ = ("user_id", "role", "organization_id", "email", "partner_id")
 
     def __init__(
         self,
@@ -28,11 +28,14 @@ class AuthenticatedUser:
         role: str = "customer",
         organization_id: str | None = None,
         email: str = "",
+        partner_id: str | None = None,
     ):
         self.user_id = user_id
         self.role = role
         self.organization_id = organization_id
         self.email = email
+        # F20: partner_admin users carry a partner_id, mirroring organization_id.
+        self.partner_id = partner_id
 
     def has_role(self, *roles: str) -> bool:
         return self.role in roles
@@ -106,7 +109,7 @@ async def _load_profile(user_id: str) -> dict | None:
     async with httpx.AsyncClient(timeout=10) as client:
         r = await client.get(
             f"{settings.supabase_url}/rest/v1/profiles"
-            f"?select=role,organization_id&user_id=eq.{user_id}&limit=1",
+            f"?select=role,organization_id,partner_id&user_id=eq.{user_id}&limit=1",
             headers=headers,
         )
         if r.status_code == 200 and r.json():
@@ -136,6 +139,7 @@ async def get_current_user(request: Request) -> AuthenticatedUser:
             role=app_role,
             organization_id=payload.get("organization_id"),
             email=email,
+            partner_id=payload.get("partner_id"),
         )
 
     # Supabase-auth tokens: load role from profiles table.
@@ -149,6 +153,7 @@ async def get_current_user(request: Request) -> AuthenticatedUser:
         role=profile["role"],
         organization_id=profile.get("organization_id"),
         email=email,
+        partner_id=profile.get("partner_id"),
     )
 
 

@@ -267,6 +267,12 @@ def approve_assessment(
     review.approved_at = _now()
     _reviews[assessment_id] = review
     _touched.add(assessment_id)
+
+    # F20: freeze partner branding onto the snapshot AT APPROVAL (when everything
+    # else freezes). No-op for non-partner assessments; never fails the approval.
+    from app.services.partner import record_branding_on_approval
+    record_branding_on_approval(assessment_id, snapshot_id)
+
     return review
 
 

@@ -1,0 +1,10 @@
+/* F05 addendum — recommendation evidence stack */
+.ev-stack { margin-top: 14px; border-top: 1px dashed var(--border); padding-top: 12px; }
+.ev-title { font-family: var(--font-display); font-weight: 600; color: var(--navy); font-size: 0.92rem; margin-bottom: 8px; }
+.ev-block { margin-bottom: 10px; }
+.ev-h { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 700; margin-bottom: 4px; }
+.ev-list { margin: 0; padding-left: 18px; font-size: 0.84rem; color: var(--text-secondary); line-height: 1.6; }
+.ev-sim { color: var(--text-muted); font-size: 0.78rem; }
+.ev-absence { font-size: 0.84rem; color: var(--text-muted); font-style: italic; }
+.ev-register { font-size: 0.74rem; color: var(--text-muted); margin-top: 4px; }
+.ev-muted { font-size: 0.84rem; color: var(--text-muted); }

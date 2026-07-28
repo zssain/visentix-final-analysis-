@@ -80,6 +80,10 @@ APPLY_NOW = [
     "0035_embeddings_and_obligation_match.sql",  # Embeddings backfill RPC + clause_obligation.matched_terms/model_version
     "0036_gold_label.sql",                       # F17 — gold_label (human gold-standard labels for eval harness)
     "0037_f07_scheduler_alerts.sql",             # F07 — job_run/alert_delivery/org_notification_setting + monitoring_event org/payload + litigation
+    "0038_f19_bulk_screening.sql",               # F19 — bulk_job/bulk_job_row + user_role 'analyst' (bulk screening on the reassessment kernel)
+    "0039_f20_partner_portal.sql",               # F20 — partner/partner_workspace/partner_api_key/feed_access_log + user_role 'partner_admin' + profiles.partner_id + report_snapshot.branding_applied
+    "0040_f21_quarterly.sql",                    # F21 — quarterly_snapshot/quarterly_metric + approved-snapshot immutability trigger (DIR-010)
+    "0041_f05_f18_evidence_rewrite.sql",         # F05 addendum (recommendation_evidence) + F18 (clause_rewrite)
 ]
 
 # NOT tracked: paste bundles + the ambiguous local_users migration.

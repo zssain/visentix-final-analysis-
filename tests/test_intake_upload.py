@@ -209,6 +209,7 @@ async def test_upload_lands_under_caller_org_only():
     """A customer uploading a document — even if they try to pass a foreign
     organization_id — persists the notice under THEIR org, never another tenant."""
     import app.routers.assessments as A
+    import app.services.intake.persist as P
 
     captured: dict = {}
 
@@ -227,7 +228,10 @@ async def test_upload_lands_under_caller_org_only():
                         "We share data with providers and retain it as needed."])
 
     transport = ASGITransport(app=app)
-    with patch.object(A, "supabase_rest_post", _fake_post), \
+    # notice/section/clause persistence moved to the shared intake helper
+    # (services/intake/persist.py) — behavior identical, patch target relocated.
+    with patch.object(P, "supabase_rest_post", _fake_post), \
+         patch.object(A, "supabase_rest_post", _fake_post), \
          patch.object(A, "supabase_rest_get", _fake_get), \
          patch("app.services.live_scoring.score_and_persist", AsyncMock(side_effect=_fake_score)), \
          patch("app.services.llm.get_llm_client", side_effect=RuntimeError("no llm in test")):
