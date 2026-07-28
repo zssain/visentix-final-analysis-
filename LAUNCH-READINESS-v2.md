@@ -165,10 +165,17 @@ submitted notices+files / usage logs), retention, subprocessors
 (**Supabase / RunPod / Cloudflare / SMTP provider**), **no sale**, contact,
 effective date. Effective date placeholder **28 July 2026**.
 
-- ⟨owner⟩ **Founder approves wording in-session before it ships.**
+- ✅ **Founder approved wording (2026-07-28)** with 4 required edits — all applied
+  to `Privacy.tsx` + `deploy/legal/visentix-privacy-notice.txt` (PR #12 commit
+  `ccd46cd`): honest training clause (we DO reuse de-id'd derived data / Rule 7),
+  aggregated-benchmark disclosure (≥10 orgs), removed consent-by-inertia from the
+  notice, AI-transparency sentence. Retention 90d/12mo logged as policy. Standing
+  trigger recorded in `version-ladder.md` (hosted models reopen the clause first).
+- ⟨owner action⟩ Confirm `privacy@`/`legal@visentix.ai` mailboxes exist before publish.
 - ⟨owner/live⟩ **Eat our own cooking:** run `deploy/legal/visentix-privacy-
   notice.txt` through our **own** pipeline (rehearsal-labeled) and paste the
-  per-domain scores into the PR description. Needs the live stack.
+  per-domain scores into the PR. **Founder requirement: specifically call out the
+  RETENTION and AI-TRANSPARENCY domain scores** in the PR. Needs the live stack.
 
 ---
 
