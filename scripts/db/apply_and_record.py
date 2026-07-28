@@ -80,6 +80,7 @@ APPLY_NOW = [
     "0035_embeddings_and_obligation_match.sql",  # Embeddings backfill RPC + clause_obligation.matched_terms/model_version
     "0036_gold_label.sql",                       # F17 — gold_label (human gold-standard labels for eval harness)
     "0037_f07_scheduler_alerts.sql",             # F07 — job_run/alert_delivery/org_notification_setting + monitoring_event org/payload + litigation
+    "0038_f19_bulk_screening.sql",               # F19 — bulk_job/bulk_job_row + user_role 'analyst' (bulk screening on the reassessment kernel)
 ]
 
 # NOT tracked: paste bundles + the ambiguous local_users migration.

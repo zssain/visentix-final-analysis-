@@ -30,7 +30,8 @@ import {
 } from "../lib/scoreBands";
 import * as quarterlyMock from "../pages/quarterly/mockData";
 import * as partnerMock from "../pages/partner/mockData";
-import * as bulkMock from "../pages/bulk/mockData";
+// bulk (F12 M-23/M-24) mock removed — replaced by the real F19 bulk-screening
+// surface; its export vocabulary is guarded by the backend test_f19_bulk.py.
 import * as crosswalkMock from "../pages/crosswalk/mockData";
 import * as rewriteMock from "../pages/rewrite/mockData";
 import * as trustMock from "../pages/trust/mockData";
@@ -56,7 +57,6 @@ function bannedTermsIn(data: unknown): string[] {
 const MOCK_MODULES: Record<string, unknown> = {
   "quarterly (F12, M-15–M-18)": { ...quarterlyMock },
   "partner (F11, M-19–M-22)": { ...partnerMock },
-  "bulk (F12, M-23–M-24)": { ...bulkMock },
   "crosswalk (F13, M-25)": { ...crosswalkMock },
   "rewrite (F14, M-26)": { ...rewriteMock },
   "trust (F15, M-27)": { ...trustMock },

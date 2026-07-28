@@ -78,6 +78,14 @@ export const api = {
     return handleResponse(res);
   },
 
+  async getText(path: string): Promise<string> {
+    const headers = getAuthHeaders();
+    const res = await fetch(`${API_BASE}${path}`, { headers });
+    if (res.status === 401) { handleUnauth(); throw new ApiError(401, "Session expired"); }
+    if (!res.ok) throw new ApiError(res.status, await res.text());
+    return res.text();
+  },
+
   async postForm(path: string, formData: FormData) {
     const headers = getAuthHeaders();
     // Remove Content-Type so browser sets multipart boundary automatically
@@ -89,4 +97,5 @@ export const api = {
     });
     return handleResponse(res);
   },
+
 };
