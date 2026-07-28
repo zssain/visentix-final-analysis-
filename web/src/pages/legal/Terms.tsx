@@ -45,7 +45,7 @@ const SECTIONS: LegalSection[] = [
   {
     heading: "No warranty; limitation of liability",
     body: [
-      "To the extent permitted by law, Visentix is provided without warranties of any kind, and Visentix will not be liable for indirect, incidental, or consequential damages. Nothing here limits liability that cannot be limited by law.",
+      "To the extent permitted by law, Visentix is provided without warranties of any kind, and Visentix will not be responsible for indirect, incidental, or consequential damages. Nothing here limits any responsibility that cannot be limited by law.",
     ],
   },
   {
