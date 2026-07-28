@@ -27,6 +27,7 @@ _LIVE_DB_MODULES = {
     "test_persistence_hardening", "test_schema_p1", "test_embeddings",
     "test_f002_f007", "test_normalization", "test_org_profile",
     "test_profile", "test_f02_ingestion_foundation",
+    "test_app_boot", "test_auth", "test_live_classify",
 }
 
 # Modules that import sentence-transformers / torch at runtime.
