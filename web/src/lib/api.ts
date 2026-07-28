@@ -68,6 +68,16 @@ export const api = {
     return handleResponse(res);
   },
 
+  async put(path: string, body?: unknown) {
+    const headers = getAuthHeaders();
+    const res = await fetch(`${API_BASE}${path}`, {
+      method: "PUT",
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    return handleResponse(res);
+  },
+
   async postForm(path: string, formData: FormData) {
     const headers = getAuthHeaders();
     // Remove Content-Type so browser sets multipart boundary automatically

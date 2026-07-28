@@ -70,3 +70,23 @@ async def monitoring_alerts(
 ):
     """F-013 escalations joined to resolved enforcement only (M-08)."""
     return await monitoring.get_alerts(_resolve_org(user, org_id))
+
+
+@router.get("/deliveries")
+async def monitoring_deliveries(
+    org_id: str | None = Query(None),
+    user: AuthenticatedUser = require_role("customer", "sme", "admin"),
+):
+    """Per-event alert-delivery status for the org (drives the /monitor delivery
+    chip: emailed / webhook / in-app only). Org-scoped like the other views."""
+    from app.db import supabase_rest_get
+    oid = _resolve_org(user, org_id)
+    r = await supabase_rest_get("alert_delivery", select="monitoring_event_id,channel,status",
+                                filters=f"org_id=eq.{oid}&order=created_at.desc", limit=1000)
+    rows = r.json() if r.status_code == 200 else []
+    by_event: dict[str, dict] = {}
+    for row in rows:
+        eid = row.get("monitoring_event_id")
+        if eid and eid not in by_event:   # newest per event
+            by_event[eid] = {"channel": row.get("channel"), "status": row.get("status")}
+    return {"org_id": oid, "deliveries": by_event}

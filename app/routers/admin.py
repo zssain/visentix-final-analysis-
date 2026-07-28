@@ -51,12 +51,18 @@ async def admin_status(
                                  filters="needs_review=eq.true&cleared=eq.false", limit=1000)
     pending_reviews = len(pr.json()) if pr.status_code == 200 else None
 
+    # Alert delivery paused? (F-013 thresholds unset → suppressed_no_threshold rows)
+    sup = await supabase_rest_get("alert_delivery", select="id",
+                                  filters="status=eq.suppressed_no_threshold", limit=1000)
+    alerts_suppressed = len(sup.json()) if sup.status_code == 200 else 0
+
     return {
         "db_ok": db_ok,
         "ollama_ok": ollama_ok,
         "gate_mode": gate_mode,
         "last_job_runs": [r for r in last_job_runs if r],
         "pending_reviews": pending_reviews,
+        "alerts_suppressed": alerts_suppressed,
         "model_versions": {
             "scoring_model_version": settings.scoring_model_version,
             "source_corpus_version": settings.source_corpus_version,

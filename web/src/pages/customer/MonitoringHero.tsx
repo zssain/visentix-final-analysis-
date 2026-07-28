@@ -10,6 +10,11 @@
 import { useEffect, useState } from "react";
 import { api } from "../../lib/api";
 import { trendColor } from "../../lib/scoreBands";
+import { NotificationsCard } from "./NotificationsCard";
+
+interface DeliveriesResponse {
+  deliveries: Record<string, { channel: string | null; status: string | null }>;
+}
 
 const VCI_TITLE =
   "Visentix Confidence Index (0–100): how much weight to give this figure.";
@@ -99,6 +104,7 @@ export function MonitoringHero() {
   const [trend, setTrend] = useState<TrendResponse | null>(null);
   const [events, setEvents] = useState<EventsResponse | null>(null);
   const [alerts, setAlerts] = useState<AlertsResponse | null>(null);
+  const [deliveries, setDeliveries] = useState<DeliveriesResponse["deliveries"]>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -107,10 +113,12 @@ export function MonitoringHero() {
       api.get("/api/monitoring/trend").catch(() => null),
       api.get("/api/monitoring/events").catch(() => null),
       api.get("/api/monitoring/alerts").catch(() => null),
-    ]).then(([t, e, a]) => {
+      api.get("/api/monitoring/deliveries").catch(() => null),
+    ]).then(([t, e, a, d]) => {
       setTrend(t as TrendResponse);
       setEvents(e as EventsResponse);
       setAlerts(a as AlertsResponse);
+      if (d) setDeliveries((d as DeliveriesResponse).deliveries ?? {});
     }).finally(() => setLoading(false));
   }, []);
 
@@ -121,7 +129,25 @@ export function MonitoringHero() {
   const overallDelta = trend?.deltas?.overall ?? null;
   const isBaseline = trend?.state === "baseline_established";
 
+  // Delivery chip for a change-feed row: emailed / webhook / in-app only.
+  const deliveryChip = (eventId: string) => {
+    const d = deliveries[eventId];
+    const label = d?.status === "sent" && d.channel === "email" ? "emailed"
+      : d?.status === "sent" && d.channel === "webhook" ? "webhook"
+      : "in-app only";
+    const teal = label !== "in-app only";
+    return (
+      <span style={{
+        fontSize: "0.6rem", fontWeight: 700, marginLeft: 6, padding: "1px 6px", borderRadius: 4,
+        color: teal ? "var(--teal)" : "var(--text-muted)",
+        background: teal ? "rgba(20,138,120,0.08)" : "var(--soft-white)",
+        border: `1px solid ${teal ? "rgba(20,138,120,0.25)" : "var(--border)"}`,
+      }}>{label}</span>
+    );
+  };
+
   return (
+    <>
     <div className="card" style={{ padding: 20 }} data-testid="monitoring-hero">
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
         <div className="card-title">Continuous Monitoring</div>
@@ -176,6 +202,7 @@ export function MonitoringHero() {
                         · {ev.severity}
                       </span>
                     )}
+                    {deliveryChip(ev.event_id)}
                   </div>
                   {ev.type === "score_moved" && ev.from != null && (
                     <div className="tabular" style={{ color: "var(--text-secondary)" }}>
@@ -235,5 +262,7 @@ export function MonitoringHero() {
         }
       `}</style>
     </div>
+    <NotificationsCard />
+    </>
   );
 }
