@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../../lib/api";
 import { PageHeader } from "../../components/PageHeader";
+import { JobsPanel } from "./JobsPanel";
 import "../../components/furniture.css";
 
 interface TrainingStats {
@@ -440,6 +441,8 @@ export function AdminConsole() {
         </div>
 
       </div>
+
+      <JobsPanel />
 
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
