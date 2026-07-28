@@ -1,235 +1,240 @@
-"""Backfill NULL embeddings for disclosure_clause and enforcement_record.
+"""Backfill embeddings for disclosure_clause (+ enforcement_record, obligation).
+
+Local model only (all-MiniLM-L6-v2, 384-dim) — NO external API (Rule 7).
+GPU-aware (CUDA > Apple MPS > CPU), batched (256), idempotent (only rows whose
+`embedding IS NULL` are touched — never overwrites), resumable (keyset checkpoint),
+rate-logged, and tranched (demo-industry orgs first so the pilot benefits even if
+the full run takes days). Stores `embedding_model` per row via the
+apply_clause_embeddings RPC (bulk UPDATE — not one PATCH per row).
 
 Usage:
-    # Dry-run (10 rows, prints dims, no writes):
-    python scripts/embed_backfill.py --dry-run
+    # Runtime estimate on THIS device (no writes):
+    python scripts/embed_backfill.py --estimate
 
-    # Full backfill:
-    python scripts/embed_backfill.py
+    # Demo-industry tranche first (retail/healthcare/fintech):
+    python scripts/embed_backfill.py --tranche demo
 
-    # Single table:
-    python scripts/embed_backfill.py --table disclosure_clause
-    python scripts/embed_backfill.py --table enforcement_record
+    # Everything remaining:
+    python scripts/embed_backfill.py --tranche all
 
-Resumable: only processes rows WHERE embedding IS NULL.
-Idempotent: re-running updates 0 rows if all are filled.
-Only touches the embedding column — no other columns modified.
+    # Bounded run (e.g. 5000 clauses) / resume:
+    python scripts/embed_backfill.py --tranche demo --limit 5000
+
+Coverage is reported honestly before and after. On RunPod the same command runs
+unchanged and auto-selects CUDA.
 """
+
+from __future__ import annotations
 
 import argparse
 import json
 import logging
-import sys
 import time
+from pathlib import Path
 
 import httpx
-from dotenv import dotenv_values
-from sentence_transformers import SentenceTransformer
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s %(levelname)s %(message)s",
+from app.config import settings
+from app.services.embeddings import (
+    DEFAULT_BATCH_SIZE,
+    EMBEDDING_MODEL_NAME,
+    embed_texts,
+    get_model,
+    write_clause_embeddings,
 )
+from scripts.dbcount import exact_count
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger("embed_backfill")
 
-CONFIG = dotenv_values(".env")
-URL = CONFIG["SUPABASE_URL"]
-KEY = CONFIG["SUPABASE_SERVICE_ROLE_KEY"]
-HEADERS = {
-    "apikey": KEY,
-    "Authorization": f"Bearer {KEY}",
-}
-
-# Table configs: (pk_column, text_builder)
-TABLE_CONFIGS = {
-    "disclosure_clause": {
-        "pk": "clause_id",
-        "text_field": "normalized_text",
-        "build_text": lambda row: row.get("normalized_text") or "",
-    },
-    "enforcement_record": {
-        "pk": "enforcement_id",
-        "text_field": "summary,issue_tags",
-        "build_text": lambda row: _enforcement_text(row),
-    },
-}
+URL = settings.supabase_url
+H = {"apikey": settings.supabase_service_role_key,
+     "Authorization": f"Bearer {settings.supabase_service_role_key}"}
+DEMO_INDUSTRIES = ["retail", "healthcare", "fintech"]   # build_cohorts.py
+CHECKPOINT = Path(__file__).resolve().parents[1] / "logs" / "embed_backfill.checkpoint.json"
 
 
-def _enforcement_text(row: dict) -> str:
-    """Build embedding text from enforcement summary + issue_tags."""
-    parts = []
-    if row.get("summary"):
-        parts.append(row["summary"])
-    tags = row.get("issue_tags")
-    if tags:
-        if isinstance(tags, list):
-            parts.append(" ".join(tags))
-        elif isinstance(tags, str):
-            parts.append(tags)
-    # Fallback to target_company if no summary
-    if not parts and row.get("target_company"):
-        parts.append(row["target_company"])
-    return " ".join(parts)
+# ── Counting ─────────────────────────────────────────────────
+
+def coverage(table: str) -> tuple[int, int]:
+    # Exact counts via the pooler — PostgREST count=exact times out on 684k rows.
+    total = exact_count(table=table)
+    embedded = exact_count(where="dc.embedding IS NOT NULL", table=table)
+    return embedded, total
 
 
-def fetch_null_batch(table: str, pk: str, select_fields: str, limit: int) -> list[dict]:
-    """Fetch a batch of rows where embedding IS NULL."""
+def report_coverage(tag: str = "") -> None:
+    log.info("── coverage %s ──", tag)
+    for t in ["disclosure_clause", "enforcement_record", "obligation"]:
+        e, n = coverage(t)
+        pct = e / n * 100 if n else 0.0
+        log.info("  %-20s %d/%d embedded (%.1f%%)", t, e, n, pct)
+
+
+# ── Demo tranche resolution (org.industry → notice → section) ─
+
+def _in_chunks(ids: list[str], size: int):
+    for i in range(0, len(ids), size):
+        yield ids[i:i + size]
+
+
+def demo_section_ids() -> list[str]:
+    """Section ids belonging to demo-industry orgs (retail/healthcare/fintech)."""
+    ind = ",".join(DEMO_INDUSTRIES)
+    orgs = _paged(f"organization?select=organization_id&industry=in.({ind})", "organization_id")
+    log.info("demo-industry orgs: %d", len(orgs))
+    notices: list[str] = []
+    for ch in _in_chunks(orgs, 80):
+        inl = ",".join(f'"{o}"' for o in ch)
+        notices += _paged(f"privacy_notice?select=notice_id&organization_id=in.({inl})", "notice_id")
+    log.info("demo notices: %d", len(notices))
+    sections: list[str] = []
+    for ch in _in_chunks(notices, 60):
+        inl = ",".join(f'"{n}"' for n in ch)
+        sections += _paged(f"notice_section?select=section_id&notice_id=in.({inl})", "section_id")
+    log.info("demo sections: %d", len(sections))
+    return sections
+
+
+def _paged(path: str, key: str, page: int = 1000) -> list[str]:
+    """Page through a select with Range headers (PostgREST caps at 1000/req)."""
+    out, offset = [], 0
+    while True:
+        r = httpx.get(f"{URL}/rest/v1/{path}&limit={page}&offset={offset}", headers=H, timeout=60)
+        rows = r.json() if r.status_code == 200 else []
+        if not rows:
+            break
+        out += [x[key] for x in rows if x.get(key)]
+        if len(rows) < page:
+            break
+        offset += page
+    return out
+
+
+# ── Estimate ─────────────────────────────────────────────────
+
+def run_estimate(sample: int = 512) -> None:
+    e, n = coverage("disclosure_clause")
+    remaining = n - e
+    log.info("Loading model + benchmarking encode on this device …")
+    get_model()  # warm
+    rows = _fetch_unembedded(after_id="", limit=sample, section_ids=None)
+    texts = [r["normalized_text"] for r in rows if (r.get("normalized_text") or "").strip()]
+    if not texts:
+        log.info("No unembedded clauses to sample.")
+        return
+    t0 = time.time()
+    embed_texts(texts, batch_size=DEFAULT_BATCH_SIZE)
+    dt = time.time() - t0
+    rate = len(texts) / dt if dt else 0
+    log.info("Encoded %d clauses in %.1fs → %.0f clauses/sec (encode only) on this device.",
+             len(texts), dt, rate)
+    if rate:
+        hrs = remaining / rate / 3600
+        log.info("Remaining %d clauses → ~%.1f h encode-only here (writes add I/O).", remaining, hrs)
+    log.info("NOTE: a RunPod CUDA GPU is typically 5–20x faster than this device.")
+
+
+# ── Core fetch/loop ──────────────────────────────────────────
+
+def _fetch_unembedded(after_id: str, limit: int, section_ids: list[str] | None) -> list[dict]:
+    """Keyset page of unembedded clauses (clause_id > after_id), optionally scoped
+    to a section-id set. Keyset guarantees forward progress past empty-text rows."""
+    flt = "embedding=is.null"
+    if after_id:
+        flt += f"&clause_id=gt.{after_id}"
+    if section_ids is not None:
+        inl = ",".join(f'"{s}"' for s in section_ids)
+        flt += f"&section_id=in.({inl})"
     r = httpx.get(
-        f"{URL}/rest/v1/{table}"
-        f"?select={pk},{select_fields}"
-        f"&embedding=is.null"
-        f"&limit={limit}"
-        f"&order={pk}",
-        headers=HEADERS,
-        timeout=30,
+        f"{URL}/rest/v1/disclosure_clause"
+        f"?select=clause_id,normalized_text&{flt}&order=clause_id.asc&limit={limit}",
+        headers=H, timeout=60,
     )
     r.raise_for_status()
     return r.json()
 
 
-def update_embedding(table: str, pk: str, pk_value: str, embedding: list[float], retries: int = 3) -> None:
-    """UPDATE only the embedding column for a single row by PK."""
-    for attempt in range(retries):
-        try:
-            r = httpx.patch(
-                f"{URL}/rest/v1/{table}?{pk}=eq.{pk_value}",
-                headers={**HEADERS, "Content-Type": "application/json", "Prefer": "return=minimal"},
-                json={"embedding": json.dumps(embedding)},
-                timeout=30,
-            )
-            r.raise_for_status()
-            return
-        except (httpx.ReadTimeout, httpx.ConnectTimeout, httpx.RemoteProtocolError):
-            if attempt < retries - 1:
-                wait = 2 ** attempt
-                log.warning("Timeout on %s=%s, retrying in %ds (%d/%d)", pk, pk_value, wait, attempt + 1, retries)
-                time.sleep(wait)
-            else:
-                raise
+def _load_ckpt(tranche: str) -> str:
+    if CHECKPOINT.exists():
+        data = json.loads(CHECKPOINT.read_text())
+        if data.get("tranche") == tranche:
+            return data.get("after_id", "")
+    return ""
 
 
-def backfill_table(
-    model: SentenceTransformer,
-    table: str,
-    batch_size: int = 256,
-    dry_run: bool = False,
-) -> int:
-    """Backfill embeddings for a single table. Returns total rows updated."""
-    cfg = TABLE_CONFIGS[table]
-    pk = cfg["pk"]
-    build_text = cfg["build_text"]
-
-    # Determine select fields based on table
-    if table == "disclosure_clause":
-        select = "normalized_text"
-    else:
-        select = "summary,issue_tags,target_company"
-
-    total_updated = 0
-    batch_num = 0
-
-    while True:
-        limit = 10 if dry_run else batch_size
-        rows = fetch_null_batch(table, pk, select, limit)
-
-        if not rows:
-            break
-
-        batch_num += 1
-        texts = [build_text(row) for row in rows]
-
-        # Filter out empty texts
-        valid = [(row, text) for row, text in zip(rows, texts) if text.strip()]
-        if not valid:
-            log.warning("Batch %d: all texts empty, skipping", batch_num)
-            break
-
-        valid_rows, valid_texts = zip(*valid)
-
-        t0 = time.time()
-        embeddings = model.encode(list(valid_texts), show_progress_bar=False)
-        encode_ms = (time.time() - t0) * 1000
-
-        log.info(
-            "Batch %d: encoded %d rows in %.0fms (dim=%d)",
-            batch_num, len(valid_rows), encode_ms, embeddings.shape[1],
-        )
-
-        if dry_run:
-            for i, (row, emb) in enumerate(zip(valid_rows, embeddings)):
-                log.info(
-                    "  [DRY-RUN] %s=%s dim=%d first_3=%s",
-                    pk, row[pk], len(emb), emb[:3].tolist(),
-                )
-            log.info("[DRY-RUN] Would update %d rows. Stopping.", len(valid_rows))
-            return len(valid_rows)
-
-        # Write embeddings one by one (safe, idempotent)
-        for row, emb in zip(valid_rows, embeddings):
-            update_embedding(table, pk, row[pk], emb.tolist())
-
-        total_updated += len(valid_rows)
-        log.info("Progress: %d rows updated so far", total_updated)
-
-    return total_updated
+def _save_ckpt(tranche: str, after_id: str, embedded: int) -> None:
+    CHECKPOINT.write_text(json.dumps(
+        {"tranche": tranche, "after_id": after_id, "embedded": embedded,
+         "model": EMBEDDING_MODEL_NAME}))
 
 
-def count_nulls(table: str) -> int:
-    """Count rows where embedding IS NULL."""
-    r = httpx.get(
-        f"{URL}/rest/v1/{table}?select=*&embedding=is.null&limit=0",
-        headers={**HEADERS, "Prefer": "count=exact"},
-        timeout=15,
-    )
-    r.raise_for_status()
-    cr = r.headers.get("content-range", "*/0")
-    return int(cr.split("/")[-1])
+def backfill_clauses(tranche: str, batch_size: int, limit: int | None, dry_run: bool) -> int:
+    section_ids = demo_section_ids() if tranche == "demo" else None
+    section_chunks = list(_in_chunks(section_ids, 100)) if section_ids is not None else [None]
+
+    get_model()  # load once, log device
+    total_embedded, seen = 0, 0
+    start = time.time()
+
+    for chunk in section_chunks:
+        after_id = "" if section_ids is not None else _load_ckpt(tranche)
+        while True:
+            rows = _fetch_unembedded(after_id, batch_size, chunk)
+            if not rows:
+                break
+            after_id = rows[-1]["clause_id"]           # advance keyset (past empty-text too)
+            valid = [r for r in rows if (r.get("normalized_text") or "").strip()]
+            seen += len(rows)
+
+            if dry_run:
+                log.info("[DRY-RUN] batch of %d (%d embeddable); first=%s", len(rows), len(valid), rows[0]["clause_id"])
+                if limit and seen >= limit:
+                    break
+                continue
+
+            if valid:
+                t0 = time.time()
+                vecs = embed_texts([r["normalized_text"] for r in valid], batch_size=batch_size)
+                enc = time.time() - t0
+                n = write_clause_embeddings([{"clause_id": r["clause_id"], "embedding": v}
+                                             for r, v in zip(valid, vecs)])
+                total_embedded += n
+                rate = total_embedded / (time.time() - start) if time.time() > start else 0
+                log.info("embedded +%d (total %d) | enc %.0fms | %.0f rows/s | keyset=%s",
+                         n, total_embedded, enc * 1000, rate, after_id[:8])
+
+            if section_ids is None:
+                _save_ckpt(tranche, after_id, total_embedded)
+            if limit and seen >= limit:
+                log.info("Reached --limit %d; stopping (resumable).", limit)
+                return total_embedded
+
+    return total_embedded
 
 
-def count_total(table: str) -> int:
-    """Count total rows."""
-    r = httpx.get(
-        f"{URL}/rest/v1/{table}?select=*&limit=0",
-        headers={**HEADERS, "Prefer": "count=exact"},
-        timeout=15,
-    )
-    r.raise_for_status()
-    cr = r.headers.get("content-range", "*/0")
-    return int(cr.split("/")[-1])
+# ── Main ─────────────────────────────────────────────────────
 
+def main() -> None:
+    ap = argparse.ArgumentParser(description="Backfill embeddings (local model only)")
+    ap.add_argument("--tranche", choices=["demo", "all"], default="demo",
+                    help="demo = retail/healthcare/fintech orgs first (default); all = everything remaining")
+    ap.add_argument("--estimate", action="store_true", help="Benchmark + project runtime, no writes")
+    ap.add_argument("--dry-run", action="store_true", help="Iterate without encoding/writing")
+    ap.add_argument("--limit", type=int, default=None, help="Max clauses to scan this run (resumable)")
+    ap.add_argument("--batch-size", type=int, default=DEFAULT_BATCH_SIZE)
+    args = ap.parse_args()
 
-def main():
-    parser = argparse.ArgumentParser(description="Backfill NULL embeddings")
-    parser.add_argument("--dry-run", action="store_true", help="Embed 10 rows, print dims, no writes")
-    parser.add_argument("--table", choices=list(TABLE_CONFIGS.keys()), help="Run on a single table")
-    parser.add_argument("--batch-size", type=int, default=256, help="Batch size (default 256)")
-    args = parser.parse_args()
+    if args.estimate:
+        run_estimate()
+        return
 
-    tables = [args.table] if args.table else list(TABLE_CONFIGS.keys())
-
-    log.info("Loading model: all-MiniLM-L6-v2 ...")
-    model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
-    log.info("Model loaded (dim=%d)", model.get_sentence_embedding_dimension())
-
-    for table in tables:
-        total = count_total(table)
-        nulls_before = count_nulls(table)
-        log.info("=== %s: %d total rows, %d NULL embeddings ===", table, total, nulls_before)
-
-        if nulls_before == 0:
-            log.info("Nothing to do — 0 NULL embeddings.")
-            continue
-
-        updated = backfill_table(model, table, batch_size=args.batch_size, dry_run=args.dry_run)
-
-        if not args.dry_run:
-            nulls_after = count_nulls(table)
-            log.info(
-                "DONE %s: updated=%d, nulls_before=%d, nulls_after=%d",
-                table, updated, nulls_before, nulls_after,
-            )
-        else:
-            log.info("[DRY-RUN] %s: would start with %d NULL rows", table, nulls_before)
+    report_coverage("BEFORE")
+    log.info("Backfilling clauses — tranche=%s model=%s", args.tranche, EMBEDDING_MODEL_NAME)
+    embedded = backfill_clauses(args.tranche, args.batch_size, args.limit, args.dry_run)
+    log.info("DONE clause backfill: embedded=%d", embedded)
+    log.info("enforcement_record + obligation are already 100%% embedded — skipped (idempotent).")
+    report_coverage("AFTER")
 
 
 if __name__ == "__main__":

@@ -77,6 +77,7 @@ APPLY_NOW = [
     "0032_disclosure_clause_exemplar.sql",  # Phase 5 — disclosure_clause.is_exemplar/exemplar_status (M-03)
     "0033_intake_provenance.sql",           # F01 — privacy_notice intake_method + upload provenance (upload intake mode)
     "0034_decompose_noise_filter.sql",      # F01 — disclosure_clause.is_noise/noise_reason + privacy_notice.decompose_version (noise filter)
+    "0035_embeddings_and_obligation_match.sql",  # Embeddings backfill RPC + clause_obligation.matched_terms/model_version
 ]
 
 # NOT tracked: paste bundles + the ambiguous local_users migration.

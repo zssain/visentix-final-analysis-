@@ -40,3 +40,7 @@ local_users.json
 
 # Princeton-Leuven sector CSVs (research-license data — never commit)
 /princeton_extract/
+
+# Embedding backfill runtime artifacts (per-run; resumable state)
+logs/embed_backfill.run.log
+logs/embed_backfill.checkpoint.json

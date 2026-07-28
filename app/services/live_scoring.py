@@ -505,17 +505,24 @@ async def _compute_live_f004(
         model = SentenceTransformer(settings.embedding_model)
         clause_embeddings = model.encode(clause_texts, show_progress_bar=False).tolist()
 
-        # Load enforcement embeddings from DB
+        # Load enforcement embeddings from DB — RESOLVED entities ONLY.
+        # F-004 correlates a clause against enforcement that actually concluded;
+        # unresolved matters (623 of 653) are pending signals, not outcomes, and
+        # must not drive an enforcement-correlation score. (No weight change —
+        # this narrows the candidate set, matching the alert/resolved convention
+        # in schema.md §5.) Breach reports (security_event) already never enter
+        # enforcement_record (OD-06), so they cannot leak in here.
         r = await client.get(
             f"{SB}/rest/v1/enforcement_record"
-            f"?select=enforcement_id,regulator_id,embedding&limit=500",
+            f"?select=enforcement_id,regulator_id,embedding"
+            f"&resolution_status=eq.resolved&limit=500",
             headers=headers,
         )
         enf_rows = r.json() if r.status_code == 200 else []
         enf_with_emb = [e for e in enf_rows if e.get("embedding")]
 
         if not enf_with_emb:
-            return None, {"reason": "no_enforcement_embeddings"}
+            return None, {"reason": "no_resolved_enforcement_embeddings"}
 
         # Build regulator lookup
         reg_map = {r["id"]: r for r in regulators}
