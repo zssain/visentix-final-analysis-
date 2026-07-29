@@ -58,8 +58,10 @@ Private wire: Azure VM (tailnet `100.122.134.63`) ↔ pod (`100.69.10.127`) over
 - ✅ **cross-org 403** — a customer from another org gets 403 on the rehearsal report (tenant isolation holds).
 - ✅ **scheduler machinery** — manual `POST /admin/jobs/refresh_benchmarks/run` → `job_run` **succeeded** (recorded); scheduled jobs stay disabled.
 - ✅ **gate STRICT respected** — everything stopped at `status: scored`; nothing approved or frozen.
-- ⚠️ **PDF NOT byte-identical** — two pulls of the same (snapshot-backed) report differ by ~1 byte + sha. Cause: WeasyPrint stamps a fresh `/CreationDate` + `/ID` per render. Content (`content_hash`) is stable; file bytes are not. **FIX:** pin PDF metadata in `app/services/report/renderer.py` for reproducible delivery. Blocks the "byte-identity → deliver" guarantee until closed.
-- ⚠️ **503 under PDF load** — WeasyPrint rendering on the 4 GB VM spikes resources → `/health` slows → Caddy briefly 503s concurrent requests. Fine for low-traffic pilot; watch under load or bump the VM.
+- ✅ **PDF byte-identity — RESOLVED + regressed.** Investigation: WeasyPrint 69 emits **no** `/CreationDate`, `/ModDate`, or `/ID` (determinism by absence — same HTML → identical bytes, proven). The *live* double-pull differed because that report was **unfrozen → assembled live** (`_assemble_from_live` uses `date.today()` + live recompute); the byte-identity guarantee is a **frozen-snapshot** property, which is deterministic. Root cause of the false "byte-identical ✅" in the old suite: `tests/test_f20_partner.py` asserted `render_html == render_html` (HTML strings), never PDF file bytes. **Fix:** `tests/test_pdf_determinism.py` renders the same snapshot twice and asserts raw **sha256** equality + no non-deterministic metadata (fails if a future WeasyPrint adds a timestamp). No metadata to pin; documented. (A visible/`/Info` CreationDate=frozen_at would need `pikepdf` post-processing — optional cosmetic, not needed for byte-identity; the report already shows the frozen `generated_date` as visible content.)
+- ✅ **503 under PDF load — RESOLVED.** Root cause: WeasyPrint's **synchronous** render blocked the event loop → `/health` stalled → Caddy marked the upstream down. **Fix:** `render_pdf` now runs WeasyPrint in a worker thread (`asyncio.to_thread`) so the loop + `/health` stay responsive; a `Semaphore(1)` on the PDF path serializes renders (memory guard) and returns an honest `503 "report is being prepared, retry"` on contention; Caddy `read_timeout` bumped to 180s for the render route. **Verified live:** 3 concurrent pulls → 1×200 + 2×honest-503, `/health` stayed 200 throughout.
+- **UPGRADE TRIGGER:** if PDF-render 503s recur with **>1 concurrent user** (i.e. real contention, not the single-slot guard), **resize the VM to 8 GB** (Standard_B2ms/B2als_v2 → 8 GB tier). Pilot-fine at 4 GB with the guard.
+- ✅ **Settings-drift guard added** — `/admin/status` now returns `release_version` + `settings_drift[]` comparing live `gate_mode`/job-enabled against the active release baseline (v1). Prod can't silently sit in demo state again; currently `settings_drift: []`.
 
 **Config fixes applied to the live DB during rehearsal (v1 compliance):**
 - `gate_mode` was **`instant_draft`** (a MUST-NOT) → set to **`strict`**.
@@ -69,7 +71,9 @@ Private wire: Azure VM (tailnet `100.122.134.63`) ↔ pod (`100.69.10.127`) over
 
 ### OPEN before v1.0.0 tag
 - [x] **Deploy masked v1 frontend** — DONE (PR #14 → `main` → CF rebuild; live artifact audited clean, above).
-- [ ] **PDF byte-identity** — pin WeasyPrint `/CreationDate` + `/ID` (renderer) OR accept content-hash identity (owner call).
+- [x] **PDF byte-identity** — RESOLVED (WeasyPrint 69 metadata-free + regression test on raw sha256; see rehearsal findings).
+- [x] **503 under PDF load** — RESOLVED (worker-thread render + semaphore + honest 503 + Caddy timeout).
+- [x] **Settings-drift guard** — added to `/admin/status`.
 - [ ] **AI-transparency / retention** on our own notice — owner decides (notice vs expectation).
 - [ ] **Rotate Supabase keys** (service-role + anon + JWT) — owner, Supabase dashboard.
 - [ ] **Backups** — nightly `pg_dump` → object storage + restore drill (RPO 24h/RTO). Needs S3/Azure-Blob creds.

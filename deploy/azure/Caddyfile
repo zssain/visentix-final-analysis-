@@ -29,6 +29,13 @@
 		health_uri /health
 		health_interval 5s
 		health_timeout 4s
+		# Headroom for the heaviest route (PDF render). The API now renders in a
+		# worker thread so the event loop + /health stay responsive; this timeout
+		# just ensures a legitimately slow render isn't cut at the edge.
+		transport http {
+			dial_timeout 10s
+			read_timeout 180s
+		}
 	}
 
 	log {

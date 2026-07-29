@@ -28,6 +28,15 @@ from app.services.scoring.heatmap import build_regulator_heatmap, heatmap_to_ser
 
 router = APIRouter(prefix="/reports", tags=["reports"])
 
+# PDF render is CPU+memory heavy (WeasyPrint). Serialize renders (semaphore=1) so
+# concurrent exports can't exhaust a small VM's RAM; on contention fail fast with
+# an honest "being prepared" 503 rather than piling up and OOMing. Combined with
+# render_pdf running WeasyPrint in a worker thread, the event loop (and /health)
+# stays responsive. UPGRADE TRIGGER: if these 503s recur with >1 concurrent user,
+# resize the VM to 8 GB (see LAUNCH-READINESS-v2.md).
+import asyncio
+_PDF_RENDER_SEM = asyncio.Semaphore(1)
+
 SB_URL = settings.supabase_url
 
 # object_type → score key mapping
@@ -248,7 +257,15 @@ async def get_report_pdf(
     else:
         report = _assemble_from_live(assessment_id)
 
-    pdf_bytes = await render_pdf(report, renderer=settings.renderer)
+    # Fail fast on contention (another render in flight) — honest, retryable.
+    if _PDF_RENDER_SEM.locked():
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="The report is being prepared. Please retry in a moment.",
+            headers={"Retry-After": "3"},
+        )
+    async with _PDF_RENDER_SEM:
+        pdf_bytes = await render_pdf(report, renderer=settings.renderer)
     return Response(
         content=pdf_bytes, media_type="application/pdf",
         headers={"Content-Disposition": f"attachment; filename=report-{assessment_id[:12]}.pdf"},

@@ -47,6 +47,29 @@ async def admin_status(
 
     last_job_runs = [await last_run(name) for name in JOB_DEFAULTS]
 
+    # ── Settings-drift check ────────────────────────────────────
+    # Prod must not silently sit in demo state (e.g. gate_mode=instant_draft, jobs
+    # enabled in a v1 pilot). Compare the LIVE platform_settings against the active
+    # release's baseline (release_version platform_setting, default v1) and surface
+    # any mismatch so it's visible on /admin/status. The authoritative source is
+    # releases/<version>.yaml — mirrored here so the check runs inside the image.
+    from app.services.jobs.framework import job_config
+    _RELEASE_BASELINE = {
+        "v1": {"gate_mode": "strict", "jobs": {"monitor_notices": False, "pull_regulators": False, "refresh_benchmarks": False}},
+        "v2": {"gate_mode": "strict", "jobs": {"monitor_notices": True, "pull_regulators": True, "refresh_benchmarks": True}},
+    }
+    rv = await supabase_rest_get("platform_setting", select="value", filters="key=eq.release_version", limit=1)
+    active_version = (rv.json()[0]["value"] if rv.status_code == 200 and rv.json() else "v1")
+    baseline = _RELEASE_BASELINE.get(active_version if active_version in _RELEASE_BASELINE else "v1",
+                                     _RELEASE_BASELINE["v2"])  # v3+ inherit v2 job posture
+    settings_drift = []
+    if gate_mode != baseline["gate_mode"]:
+        settings_drift.append(f"gate_mode: live={gate_mode} expected={baseline['gate_mode']} ({active_version})")
+    for jn, exp_enabled in baseline["jobs"].items():
+        cfg = await job_config(jn)
+        if bool(cfg.get("enabled")) != exp_enabled:
+            settings_drift.append(f"job.{jn}.enabled: live={cfg.get('enabled')} expected={exp_enabled} ({active_version})")
+
     pr = await supabase_rest_get("review_queue_item", select="id",
                                  filters="needs_review=eq.true&cleared=eq.false", limit=1000)
     pending_reviews = len(pr.json()) if pr.status_code == 200 else None
@@ -63,6 +86,8 @@ async def admin_status(
         "last_job_runs": [r for r in last_job_runs if r],
         "pending_reviews": pending_reviews,
         "alerts_suppressed": alerts_suppressed,
+        "release_version": active_version,
+        "settings_drift": settings_drift,        # [] = live config matches the release baseline
         "model_versions": {
             "scoring_model_version": settings.scoring_model_version,
             "source_corpus_version": settings.source_corpus_version,

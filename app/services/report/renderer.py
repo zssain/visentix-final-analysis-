@@ -89,10 +89,17 @@ def render_html(report: ReportPayload, branding: dict | None = None) -> str:
 
 async def render_pdf(report: ReportPayload, renderer: str = "weasyprint",
                      branding: dict | None = None) -> bytes:
-    """Dispatch to the configured renderer. Never accepts arbitrary URLs."""
+    """Dispatch to the configured renderer. Never accepts arbitrary URLs.
+
+    WeasyPrint is SYNCHRONOUS and CPU-bound; calling it directly on the event
+    loop blocks every other request (including /health) for the render duration,
+    which on a small VM makes the edge proxy 503 concurrent traffic. Run it in a
+    worker thread so the loop stays responsive. (Playwright is already async.)
+    """
     if renderer == "playwright":
         return await render_pdf_playwright(report, branding)
-    return render_pdf_weasyprint(report, branding)
+    import asyncio
+    return await asyncio.to_thread(render_pdf_weasyprint, report, branding)
 
 
 def render_pdf_weasyprint(report: ReportPayload, branding: dict | None = None) -> bytes:
