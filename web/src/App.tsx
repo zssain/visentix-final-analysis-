@@ -2,19 +2,37 @@
  * App — uses AuthProvider context for all auth state.
  * No imperative navigate() after sign-in. All redirects are declarative.
  */
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import { BrowserRouter, Link, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import {
   Activity, FilePlus2, ClipboardCheck, Newspaper, BookMarked,
   Compass, Settings, Grid3x3, PenLine, ShieldCheck, Handshake, ScanSearch, Building2,
 } from "lucide-react";
 
-// Pilot builds hide the post-MVP surfaces that still render mock data
-// (M-15..M-28: Quarterly, Bulk, Crosswalk, Rewrite, Trust Center, Partner,
-// Vendors). Their routes stay registered (reachable by URL for internal QA)
-// but are unlinked from the nav unless VITE_PREVIEW_SURFACES=true. Default off
-// → a pilot client only sees real-data surfaces. See ENGINEERING-CLOSEOUT §7.
-const PREVIEW_SURFACES = import.meta.env.VITE_PREVIEW_SURFACES === "true";
+// ── Build-level surface masking (release system) ───────────────────────────
+// Each maskable surface is gated by a build flag AND lazy-imported ONLY inside a
+// raw `import.meta.env.VITE_SURFACE_* === "true"` check. Vite replaces the env
+// ref with a string literal at build time, so Rollup DEAD-CODE-ELIMINATES the
+// dynamic import() when the surface is off — the masked page's JS chunk is then
+// ABSENT from the bundle (release.sh greps the dist to prove it). Do NOT hoist
+// these into a helper or an object lookup: the literal check must directly wrap
+// import() for DCE to fire.
+//
+// SECURE BY DEFAULT: maskable surfaces are OFF unless explicitly enabled, so an
+// un-flagged build is the masked v1 (a client never sees bulk/partner/etc.).
+// release.sh sets VITE_SURFACE_* per version from releases/<version>.yaml.
+// /quarterly is a public v1 surface (real approved data) → default ON.
+// NB: both routes AND nav links check `import.meta.env.VITE_SURFACE_* === "true"`
+// INLINE (never via a shared object) so Rollup DCEs the whole block — even the
+// nav label string — out of a masked build.
+const S_BULK      = import.meta.env.VITE_SURFACE_BULK === "true";
+const S_PARTNER   = import.meta.env.VITE_SURFACE_PARTNER === "true";
+const S_REWRITE   = import.meta.env.VITE_SURFACE_REWRITE === "true";
+const S_VENDORS   = import.meta.env.VITE_SURFACE_VENDORS === "true";
+const S_TRUST     = import.meta.env.VITE_SURFACE_TRUST === "true";
+const S_CROSSWALK = import.meta.env.VITE_SURFACE_CROSSWALK === "true";
+const S_QUARTERLY = import.meta.env.VITE_SURFACE_QUARTERLY !== "false";
+
 import { AuthProvider, useAuth } from "./auth/AuthProvider";
 import { ProtectedRoute }        from "./auth/ProtectedRoute";
 import { ExplainProvider }       from "./report/explain/ExplainContext";
@@ -27,16 +45,45 @@ import { ReportPage }            from "./pages/ReportPage";
 import { FindingCodex }          from "./pages/FindingCodex";
 import { Methodology }           from "./pages/Methodology";
 import { QuarterlyReport }       from "./pages/quarterly/QuarterlyReport";
-import { PartnerPortal }         from "./pages/partner/PartnerPortal";
-import { BulkAnalysis }          from "./pages/bulk/BulkAnalysis";
-import { FrameworkCrosswalk }    from "./pages/crosswalk/FrameworkCrosswalk";
-import { NoticeRewrite }         from "./pages/rewrite/NoticeRewrite";
-import { TrustCenter }           from "./pages/trust/TrustCenter";
-import { VendorDueDiligence }    from "./pages/vendors/VendorDueDiligence";
 import { Privacy }               from "./pages/legal/Privacy";
 import { Terms }                 from "./pages/legal/Terms";
 import { Footer }                from "./components/Footer";
 import "./App.css";
+
+// Maskable-surface routes — registered only when the surface is on; the import()
+// (and thus the chunk) vanishes from the bundle when off (see note above).
+const susp = (el: React.ReactNode) => <Suspense fallback={null}>{el}</Suspense>;
+const maskedRoutes: React.ReactNode[] = [];
+if (import.meta.env.VITE_SURFACE_REWRITE === "true") {
+  const NoticeRewrite = lazy(() => import("./pages/rewrite/NoticeRewrite").then(m => ({ default: m.NoticeRewrite })));
+  maskedRoutes.push(<Route key="rewrite" path="/rewrite" element={
+    <ProtectedRoute allowedRoles={["sme", "admin"]}>{susp(<NoticeRewrite />)}</ProtectedRoute>} />);
+}
+if (import.meta.env.VITE_SURFACE_VENDORS === "true") {
+  const VendorDueDiligence = lazy(() => import("./pages/vendors/VendorDueDiligence").then(m => ({ default: m.VendorDueDiligence })));
+  maskedRoutes.push(<Route key="vendors" path="/vendors" element={
+    <ProtectedRoute allowedRoles={["admin"]}>{susp(<VendorDueDiligence />)}</ProtectedRoute>} />);
+}
+if (import.meta.env.VITE_SURFACE_CROSSWALK === "true") {
+  const FrameworkCrosswalk = lazy(() => import("./pages/crosswalk/FrameworkCrosswalk").then(m => ({ default: m.FrameworkCrosswalk })));
+  maskedRoutes.push(<Route key="crosswalk" path="/crosswalk" element={
+    <ProtectedRoute allowedRoles={["admin"]}>{susp(<FrameworkCrosswalk />)}</ProtectedRoute>} />);
+}
+if (import.meta.env.VITE_SURFACE_TRUST === "true") {
+  const TrustCenter = lazy(() => import("./pages/trust/TrustCenter").then(m => ({ default: m.TrustCenter })));
+  maskedRoutes.push(<Route key="trust" path="/trust" element={
+    <ProtectedRoute allowedRoles={["admin"]}>{susp(<TrustCenter />)}</ProtectedRoute>} />);
+}
+if (import.meta.env.VITE_SURFACE_PARTNER === "true") {
+  const PartnerPortal = lazy(() => import("./pages/partner/PartnerPortal").then(m => ({ default: m.PartnerPortal })));
+  maskedRoutes.push(<Route key="partner" path="/partner" element={
+    <ProtectedRoute allowedRoles={["partner_admin", "admin"]}>{susp(<PartnerPortal />)}</ProtectedRoute>} />);
+}
+if (import.meta.env.VITE_SURFACE_BULK === "true") {
+  const BulkAnalysis = lazy(() => import("./pages/bulk/BulkAnalysis").then(m => ({ default: m.BulkAnalysis })));
+  maskedRoutes.push(<Route key="bulk" path="/bulk" element={
+    <ProtectedRoute allowedRoles={["admin"]}>{susp(<BulkAnalysis />)}</ProtectedRoute>} />);
+}
 
 function NavLink({ to, label, children, onClick }: { to: string; label?: string; children?: React.ReactNode; onClick?: () => void }) {
   const location = useLocation();
@@ -90,7 +137,8 @@ function AppRoutes() {
           {navOpen && <div className="side-backdrop" onClick={closeNav} aria-hidden="true" />}
 
           {/* Sidebar nav — grouped so the growing route list stays scannable.
-              Nav labels match each page's title/eyebrow so "where am I" is never ambiguous. */}
+              Nav labels match each page's title/eyebrow so "where am I" is never ambiguous.
+              Maskable surfaces show only when their build flag is on AND role allows. */}
           <nav className={`side-nav ${navOpen ? "open" : ""}`} role="navigation" aria-label="Main navigation">
             <div className="side-brand">
               <img src="/wordmark logo for dark background.png" alt="Visentix" className="nav-logo" />
@@ -101,10 +149,10 @@ function AppRoutes() {
                 <div className="side-group-label">Workspace</div>
                 <NavLink to="/assessments" onClick={closeNav}><Activity size={17} aria-hidden /> Monitor</NavLink>
                 <NavLink to="/intake" onClick={closeNav}><FilePlus2 size={17} aria-hidden /> Intake</NavLink>
-                {(role === "sme" || role === "admin") && (
+                {S_REWRITE && (role === "sme" || role === "admin") && (
                   <NavLink to="/rewrite" onClick={closeNav}><PenLine size={17} aria-hidden /> Rewrite</NavLink>
                 )}
-                {role === "admin" && (
+                {S_VENDORS && role === "admin" && (
                   <NavLink to="/vendors" onClick={closeNav}><Building2 size={17} aria-hidden /> Vendors</NavLink>
                 )}
                 {(role === "sme" || role === "admin") && (
@@ -114,20 +162,20 @@ function AppRoutes() {
 
               <div className="side-group">
                 <div className="side-group-label">Intelligence</div>
-                {PREVIEW_SURFACES && (
+                {S_QUARTERLY && (
                   <NavLink to="/quarterly" onClick={closeNav}><Newspaper size={17} aria-hidden /> Quarterly</NavLink>
                 )}
-                {role === "admin" && (
+                {S_CROSSWALK && role === "admin" && (
                   <NavLink to="/crosswalk" onClick={closeNav}><Grid3x3 size={17} aria-hidden /> Crosswalk</NavLink>
                 )}
                 <NavLink to="/codex" onClick={closeNav}><BookMarked size={17} aria-hidden /> Codex</NavLink>
                 <NavLink to="/methodology" onClick={closeNav}><Compass size={17} aria-hidden /> Methodology</NavLink>
-                {role === "admin" && (
+                {S_TRUST && role === "admin" && (
                   <NavLink to="/trust" onClick={closeNav}><ShieldCheck size={17} aria-hidden /> Trust Center</NavLink>
                 )}
               </div>
 
-              {role === "partner_admin" && (
+              {S_PARTNER && role === "partner_admin" && (
                 <div className="side-group">
                   <div className="side-group-label">Partner</div>
                   <NavLink to="/partner" onClick={closeNav}><Handshake size={17} aria-hidden /> Partner Workspace</NavLink>
@@ -137,8 +185,12 @@ function AppRoutes() {
                 <div className="side-group">
                   <div className="side-group-label">Administration</div>
                   <NavLink to="/admin" onClick={closeNav}><Settings size={17} aria-hidden /> Admin</NavLink>
-                  <NavLink to="/partner" onClick={closeNav}><Handshake size={17} aria-hidden /> Partner</NavLink>
-                  <NavLink to="/bulk" onClick={closeNav}><ScanSearch size={17} aria-hidden /> Bulk</NavLink>
+                  {S_PARTNER && (
+                    <NavLink to="/partner" onClick={closeNav}><Handshake size={17} aria-hidden /> Partner</NavLink>
+                  )}
+                  {S_BULK && (
+                    <NavLink to="/bulk" onClick={closeNav}><ScanSearch size={17} aria-hidden /> Bulk</NavLink>
+                  )}
                 </div>
               )}
             </div>
@@ -171,19 +223,12 @@ function AppRoutes() {
           {/* Legal — public, unauthenticated, linked from the footer. */}
           <Route path="/privacy"     element={<Privacy />} />
           <Route path="/terms"       element={<Terms />} />
-          {/* /crosswalk (F13) + /trust (F15) are still MOCK-backed → admin-only in
-              prod (Section-B gating, owner 2026-07-28). QA reaches them by role,
-              never via open routes. /crosswalk stays admin-only until rebuilt. */}
-          <Route path="/crosswalk" element={
-            <ProtectedRoute allowedRoles={["admin"]}>
-              <FrameworkCrosswalk />
-            </ProtectedRoute>
-          } />
-          <Route path="/trust" element={
-            <ProtectedRoute allowedRoles={["admin"]}>
-              <TrustCenter />
-            </ProtectedRoute>
-          } />
+
+          {/* Maskable surfaces — registered ONLY when their build flag is on.
+              When off, the route is absent (URL falls through to "*" → home) AND
+              the page's chunk is excluded from the bundle. */}
+          {maskedRoutes}
+
           <Route path="/unauthorized" element={
             <div style={{ padding: 60, textAlign: "center" }}>
               <h2 style={{ color: "var(--red)" }}>403 — Access Denied</h2>
@@ -210,22 +255,6 @@ function AppRoutes() {
             </ProtectedRoute>
           } />
 
-          {/* Clause Rewrite (F18) — v4 FLAGSHIP. Gated away from customer for v1
-              (releases with v4 entitlements, not silently in the pilot — see
-              version-ladder.md). sme,admin only for now. */}
-          <Route path="/rewrite" element={
-            <ProtectedRoute allowedRoles={["sme", "admin"]}>
-              <NoticeRewrite />
-            </ProtectedRoute>
-          } />
-
-          {/* Vendor Due Diligence (F16) — still mock → admin-only (Section-B gating). */}
-          <Route path="/vendors" element={
-            <ProtectedRoute allowedRoles={["admin"]}>
-              <VendorDueDiligence />
-            </ProtectedRoute>
-          } />
-
           {/* Intake — new and with existing assessment context */}
           <Route path="/intake" element={
             <ProtectedRoute allowedRoles={["customer", "sme", "admin"]}>
@@ -245,26 +274,10 @@ function AppRoutes() {
             </ProtectedRoute>
           } />
 
-          {/* Admin */}
+          {/* Admin (admin role always reaches admin — spec v1) */}
           <Route path="/admin" element={
             <ProtectedRoute allowedRoles={["admin"]}>
               <AdminConsole />
-            </ProtectedRoute>
-          } />
-
-          {/* Partner Portal (F20) — real tenancy: partner_admin owns their
-              workspaces; admin retained for oversight. */}
-          <Route path="/partner" element={
-            <ProtectedRoute allowedRoles={["partner_admin", "admin"]}>
-              <PartnerPortal />
-            </ProtectedRoute>
-          } />
-
-          {/* Bulk Analysis (F12) — sensitive/contract-gated capability;
-              gated to admin pending contract-based access control. */}
-          <Route path="/bulk" element={
-            <ProtectedRoute allowedRoles={["admin"]}>
-              <BulkAnalysis />
             </ProtectedRoute>
           } />
 
