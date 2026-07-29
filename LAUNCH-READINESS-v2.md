@@ -16,7 +16,7 @@ _owner + Claude (engineer). Living doc; the owner tags `v1.0.0` — engineering 
 
 | Host | Role | URL / addr | Status |
 |---|---|---|---|
-| Cloudflare | Frontend (Worker + static assets, SPA) | `https://visentix-v2-mvp.zssaincoding.workers.dev` | live (unmasked build — masked build pending deploy, see Open items) |
+| Cloudflare | Frontend (Worker + static assets, SPA) | `https://visentix-v2-mvp.zssaincoding.workers.dev` | **live, MASKED v1 build** (bundle `index-Cg1OWTAY.js`; targets prod API) |
 | Azure VM `visentix` (Standard_B2ls_v2, West Europe) | FastAPI + APScheduler + Caddy | `https://visentix-api.westeurope.cloudapp.azure.com` (IP `4.231.113.178`) | **live, HTTPS (Let's Encrypt)** |
 | RunPod pod `1zyg93j5rzy4p4` (RTX 4000 Ada 20GB) | Ollama `qwen3:8b` + embeddings, PRIVATE | tailnet `100.69.10.127:11434` | live (stock Ollama + Tailscale + watchdog) |
 | Supabase | Postgres (managed) | `db.jhzkyfitrdxmzyyvqfak.supabase.co` | live, RLS on all 56 public tables |
@@ -32,7 +32,8 @@ Private wire: Azure VM (tailnet `100.122.134.63`) ↔ pod (`100.69.10.127`) over
 ### v1 surface masking (release system) — VERIFIED
 - Build-level masking in `web/src/App.tsx` (lazy import + `import.meta.env.VITE_SURFACE_*` DCE). Secure-by-default: unflagged build = masked v1.
 - **Masked & ABSENT from bundle (grep = 0):** bulk, partner, rewrite, vendors, trust, crosswalk. Single chunk; no masked chunks emitted.
-- **Endpoint audit (customer role, live backend):** `/bulk/jobs` → 403, `/partner/workspaces` → 403. Masked = unreachable by route AND endpoint.
+- **LIVE artifact audit (Section-B, 2026-07-29, `main` @ PR #14):** deployed bundle `index-Cg1OWTAY.js` — all masked identifiers **0** (Bulk Analysis, Partner Workspace, Vendor Due Diligence, Trust Center, Framework Crosswalk, Trust Language Studio + route paths `/bulk /partner /vendors /crosswalk /trust /rewrite`); v1 surfaces present; frontend targets the prod Azure API.
+- **Endpoint audit (customer role, live backend):** `/bulk/jobs` → 403, `/partner/workspaces` → 403. Masked = unreachable by route AND endpoint on the LIVE artifact.
 - **v1 live surfaces:** intake (3 modes), reports, monitor (baseline), methodology, codex, `/quarterly` (public, real approved data), `/privacy`, `/terms`; admin reaches admin.
 - Encoded: `releases/v1.yaml`..`v5.yaml`; driven by `scripts/release.sh`.
 
@@ -46,7 +47,7 @@ Private wire: Azure VM (tailnet `100.122.134.63`) ↔ pod (`100.69.10.127`) over
 - Stock Ollama = stable (no crash loop). Tailscale via `podsetup.sh` + `tailscaled` watchdog (auto-heals crashes). Site stays up if pod drops (health decoupled; classify fails-fast, spec 1D). A full pod restart still drops Tailscale → ~1 min reconnect via RunPod API. Bulletproof supervisor start-command deferred (crash-looped — decision-log 2026-07-29).
 
 ### OPEN before v1.0.0 tag
-- [ ] **Deploy masked v1 frontend** — needs a repo push (CF rebuilds masked-by-default) OR a CF API token for `wrangler deploy`; then re-run Phase-3 against the live masked artifact.
+- [x] **Deploy masked v1 frontend** — DONE (PR #14 → `main` → CF rebuild; live artifact audited clean, above).
 - [ ] **Rotate Supabase keys** (service-role + anon + JWT) — owner, Supabase dashboard.
 - [ ] **Backups** — nightly `pg_dump` → object storage + restore drill (RPO 24h/RTO). Needs S3/Azure-Blob creds.
 - [ ] **Publish `/privacy` + `/terms`** only after owner confirms mailboxes exist.
