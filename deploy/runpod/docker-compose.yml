@@ -1,0 +1,46 @@
+# =============================================================================
+# deploy/runpod/docker-compose.yml — RunPod GPU pod: Ollama + embeddings ONLY.
+#
+# REFERENCE / self-host equivalent. The LIVE RunPod pod is deployed from the
+# "Ollama NVIDIA CUDA" template (a single container), NOT via docker-compose —
+# RunPod pods run one container, so compose-in-pod is not used. This file
+# documents the exact contract that pod-entrypoint.sh reproduces, and lets the
+# same pod be stood up on any GPU host that DOES run compose.
+#
+# HARD RULES (see the spec + logs/decisions):
+#   * Ollama binds 127.0.0.1 ONLY. It is NEVER on 0.0.0.0 and NEVER on a public
+#     port. Reachability is via the tailnet only (tailscale serve), set up by
+#     pod-entrypoint.sh — this pod image has no /dev/net/tun, so Tailscale runs
+#     in userspace-networking mode.
+#   * No api/caddy/postgres here. Those live on the Azure VM (deploy/azure/).
+# =============================================================================
+services:
+  ollama:
+    image: ollama/ollama:latest
+    restart: unless-stopped
+    # The entrypoint sets OLLAMA_HOST=127.0.0.1, brings up Tailscale (userspace)
+    # + `tailscale serve`, pulls the pinned model once, then execs `ollama serve`.
+    entrypoint: ["bash", "/workspace/pod-entrypoint.sh"]
+    environment:
+      OLLAMA_HOST: "127.0.0.1"          # localhost bind — the whole point
+      OLLAMA_MODELS: "/workspace/.ollama"
+      OLLAMA_NUM_PARALLEL: "4"
+      OLLAMA_KEEP_ALIVE: "-1"           # keep the model resident (long)
+      QWEN_LOCAL_MODEL: "qwen3:8b"      # pinned model, pulled once by entrypoint
+      TAILSCALE_AUTHKEY: "${TAILSCALE_AUTHKEY}"  # RunPod Secret — never in image
+    volumes:
+      - model-store:/workspace/.ollama  # persistent model volume (no re-pull)
+      - ts-state:/workspace/tailscale   # persistent tailscale node identity
+      - ./pod-entrypoint.sh:/workspace/pod-entrypoint.sh:ro
+    # NO `ports:` mapping — nothing is published to the host/public. Tailnet only.
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: ["gpu"]
+
+volumes:
+  model-store:
+  ts-state:

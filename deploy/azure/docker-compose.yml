@@ -1,0 +1,79 @@
+# =============================================================================
+# deploy/azure/docker-compose.yml — Azure VM: FastAPI + APScheduler + Caddy.
+#
+# Public surface: Caddy :443 (and :80 for ACME/redirect) ONLY. api:8000 is never
+# published to the host — it lives on the internal `visentix` network and is
+# reached only via Caddy. Postgres is managed Supabase (off-box, over TLS).
+# The LLM (Ollama) is NOT here — it runs on the private RunPod pod and is reached
+# over the tailnet via HOSTED_QWEN_BASE_URL (http://<pod-tailnet-ip>:11434).
+#
+#   docker compose -f deploy/azure/docker-compose.yml --env-file .env up -d --build
+# =============================================================================
+services:
+  # ---------------------------------------------------------------------------
+  # API — FastAPI/uvicorn, built from the repo Dockerfile at the deployed tag.
+  # Embeddings (all-MiniLM-L6-v2) run IN-PROCESS here via sentence-transformers.
+  # ---------------------------------------------------------------------------
+  api:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    image: visentix-api:${GIT_TAG:-local}
+    env_file: ../../.env
+    environment:
+      APP_ENV: production
+      SCHEDULER_ENABLED: "true"          # F07 in-process APScheduler on the single replica
+      HF_HOME: /hf-cache                 # sentence-transformers weight cache (persisted)
+      # LLM backend = private pod over the tailnet; value comes from .env:
+      #   HOSTED_QWEN_BASE_URL=http://100.69.10.127:11434  (Ollama native /api/chat)
+    volumes:
+      - hf-cache:/hf-cache               # persist the embedding model across restarts
+      # Auth users — secret file mount (NEVER baked into the image; RLS-AUDIT §4/§5).
+      # Provision on the VM out of band: python scripts/setup_local_auth.py
+      - ../../local_users.json:/app/local_users.json:ro
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health',timeout=15).status==200 else 1)"]
+      interval: 30s
+      timeout: 20s
+      retries: 5
+      start_period: 120s                 # first boot warms the HF embedding cache
+    restart: unless-stopped
+    networks: [visentix]
+    logging:
+      driver: json-file
+      options: { max-size: "50m", max-file: "5" }
+
+  # ---------------------------------------------------------------------------
+  # Caddy — the ONLY public service. Auto-TLS on :443 for ${DOMAIN}, security
+  # headers, reverse-proxy to api:8000. :80 only for the ACME challenge + redirect.
+  # ---------------------------------------------------------------------------
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"                    # HTTP/3
+    environment:
+      DOMAIN: ${DOMAIN:?set DOMAIN in .env}
+      ACME_EMAIL: ${ACME_EMAIL:-}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data                 # persisted certs — do NOT lose (LE rate limits)
+      - caddy-config:/config
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+    networks: [visentix]
+    logging:
+      driver: json-file
+      options: { max-size: "50m", max-file: "5" }
+
+networks:
+  visentix:
+    driver: bridge
+
+volumes:
+  hf-cache:
+  caddy-data:
+  caddy-config:

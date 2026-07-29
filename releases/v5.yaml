@@ -1,0 +1,71 @@
+# releases/v5.yaml — Visentix v5 (Partner)
+# Builds on v4; unmasks /partner, provisions partner_admin, issuable feed API keys.
+version: v5
+tag_floor: "0042"
+
+frontend_surfaces:
+  - intake
+  - reports
+  - monitor
+  - methodology
+  - codex
+  - quarterly
+  - privacy
+  - terms
+  - admin
+  - notifications_card
+  - delivery_chips
+  - live_feed
+  - rewrite
+  - evidence_drawers
+  - bulk
+  - partner                       # /partner unmasked
+
+masked_surfaces:
+  - vendors                       # still mock — remains masked
+  - trust                         # still mock — remains masked
+  - crosswalk                     # still mock — remains masked
+
+surface_flags:
+  VITE_SURFACE_QUARTERLY: "true"
+  VITE_SURFACE_REWRITE: "true"
+  VITE_SURFACE_BULK: "true"
+  VITE_SURFACE_PARTNER: "true"    # /partner ON
+  VITE_SURFACE_VENDORS: "false"
+  VITE_SURFACE_TRUST: "false"
+  VITE_SURFACE_CROSSWALK: "false"
+
+endpoint_role_gates:
+  rewrite:
+    add_role: customer
+
+platform_settings:
+  gate_mode: expert_review
+  job.monitor_notices.enabled: true
+  job.pull_regulators.enabled: true
+  job.refresh_benchmarks.enabled: true
+  alert_delivery.enabled: true
+  partner.feed_api_keys.issuable: true
+
+roles_provisionable:
+  - customer
+  - sme
+  - admin
+  - analyst
+  - partner_admin                 # new: partner_admin provisionable
+
+data_preconditions:
+  - name: rls_test_green
+    kind: pytest
+    cmd: "python -m pytest tests/test_rls_enabled.py -q"
+  # Logo object-storage wired (the LAUNCH-READINESS item) — check bucket config.
+  - name: partner_logo_bucket_wired
+    kind: env
+    require_env: ["BACKUP_REMOTE"]   # object-storage creds present (partner logos)
+    # release.sh additionally verifies the bucket is reachable.
+
+notes: >
+  Partner portal. /partner unmasked; partner_admin provisionable; feed API keys
+  issuable. Refuses to release unless partner logo object-storage is wired
+  (bucket config exists / reachable). Vendors, trust, crosswalk remain MASKED
+  (still mock-backed) until rebuilt on real data.

@@ -1,0 +1,75 @@
+# =============================================================================
+# releases/v1.yaml — Visentix v1 (Pilot: Assessment + public Quarterly reader)
+#
+# Encodes the owner's release catalog for v1. scripts/release.sh reads this to
+# build the frontend with the right surface flags, apply platform settings,
+# check preconditions, and deploy. Masked surfaces are absent from the v1 bundle
+# (App.tsx build-level masking; release.sh greps the dist to prove it).
+# =============================================================================
+version: v1
+tag_floor: "0042"                 # min migration id that must be at head
+
+# Surfaces UNMASKED in v1 (everything else is masked). These map to always-on
+# routes plus the quarterly public reader.
+frontend_surfaces:
+  - intake                        # 3 modes (paste / upload / URL)
+  - reports
+  - monitor                       # baseline assessments dashboard
+  - methodology
+  - codex
+  - quarterly                     # /quarterly public reader (approved-only, real data)
+  - privacy                       # /privacy (public)
+  - terms                         # /terms (public)
+  - admin                         # admin role still reaches admin console
+
+# Explicitly MASKED — must be ABSENT from the v1 bundle (release.sh verifies).
+masked_surfaces:
+  - bulk
+  - partner
+  - rewrite
+  - vendors
+  - trust
+  - crosswalk
+  - eval_labeling                 # SME labeling/eval tooling (not a public route)
+
+# Build flags passed to `vite build` (VITE_SURFACE_* → App.tsx DCE gates).
+surface_flags:
+  VITE_SURFACE_QUARTERLY: "true"
+  VITE_SURFACE_BULK: "false"
+  VITE_SURFACE_PARTNER: "false"
+  VITE_SURFACE_REWRITE: "false"
+  VITE_SURFACE_VENDORS: "false"
+  VITE_SURFACE_TRUST: "false"
+  VITE_SURFACE_CROSSWALK: "false"
+
+# platform_setting rows applied idempotently (release.sh states SQL vs admin API).
+platform_settings:
+  gate_mode: expert_review        # STRICT human gate; approve_and_freeze untouched
+  job.monitor_notices.enabled: false
+  job.pull_regulators.enabled: false
+  job.refresh_benchmarks.enabled: false
+  alert_delivery.enabled: false   # delivery suppressed in v1
+
+roles_provisionable:
+  - customer
+  - sme
+  - admin
+
+# Machine-checkable gates. release.sh runs each and refuses on failure.
+data_preconditions:
+  - name: rls_test_green
+    kind: pytest
+    cmd: "python -m pytest tests/test_rls_enabled.py -q"
+  - name: sme_approved_report_path
+    kind: sql
+    # >=1 SME-approved (frozen) snapshot exists so the rehearsal has a real path.
+    query: "SELECT count(*) FROM report_snapshot WHERE status = 'approved'"
+    expect: ">=1"
+
+notes: >
+  Pilot release. Customer sees intake (3 modes), reports, baseline monitor,
+  methodology, codex; /quarterly serves approved-only public data; /privacy +
+  /terms public. Bulk, partner, rewrite, eval/labeling, vendors, trust,
+  crosswalk are MASKED (absent from the bundle). Admin role still reaches the
+  admin console. gate_mode=expert_review; all jobs disabled; alert delivery
+  suppressed. approve_and_freeze and all snapshot-approval paths are UNTOUCHED.

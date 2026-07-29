@@ -1,0 +1,64 @@
+# releases/v2.yaml — Visentix v2 (Monitoring live)
+# Builds on v1; adds live monitoring UI + enables the monitoring crons.
+version: v2
+tag_floor: "0042"
+
+frontend_surfaces:                # v1 surfaces + monitoring-live UI
+  - intake
+  - reports
+  - monitor                       # now with: notifications card, delivery chips, live feed
+  - methodology
+  - codex
+  - quarterly
+  - privacy
+  - terms
+  - admin
+  - notifications_card
+  - delivery_chips
+  - live_feed
+
+masked_surfaces:
+  - bulk
+  - partner
+  - rewrite
+  - vendors
+  - trust
+  - crosswalk
+  - eval_labeling
+
+surface_flags:                    # route-level flags unchanged from v1; the
+  VITE_SURFACE_QUARTERLY: "true"  # v2 additions live inside the monitor surface
+  VITE_SURFACE_BULK: "false"      # and are driven by platform_settings below.
+  VITE_SURFACE_PARTNER: "false"
+  VITE_SURFACE_REWRITE: "false"
+  VITE_SURFACE_VENDORS: "false"
+  VITE_SURFACE_TRUST: "false"
+  VITE_SURFACE_CROSSWALK: "false"
+
+platform_settings:
+  gate_mode: expert_review
+  job.monitor_notices.enabled: true    # + SLA cron
+  job.pull_regulators.enabled: true    # + SLA cron
+  job.refresh_benchmarks.enabled: true # + SLA cron
+  alert_delivery.enabled: true         # delivery LIVE
+
+roles_provisionable:
+  - customer
+  - sme
+  - admin
+
+data_preconditions:
+  - name: rls_test_green
+    kind: pytest
+    cmd: "python -m pytest tests/test_rls_enabled.py -q"
+  # F-013 monitoring thresholds MUST exist — refuse if unset.
+  - name: f013_thresholds_set
+    kind: sql
+    query: "SELECT count(*) FROM platform_setting WHERE key LIKE 'monitor.threshold.%'"
+    expect: ">=1"
+
+notes: >
+  Monitoring goes live: notification card, delivery chips, live feed on the
+  monitor surface; monitor_notices / pull_regulators / refresh_benchmarks crons
+  enabled with SLAs; alert delivery live. Refuses to release unless the F-013
+  thresholds exist in platform_setting.

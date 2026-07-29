@@ -1,0 +1,73 @@
+# releases/v3.yaml — Visentix v3 (Evidence + Rewrite to customers)
+# Builds on v2; unmasks rewrite for the CUSTOMER role (frontend route AND the
+# endpoint role gate — BOTH, never one) and turns on full evidence drawers.
+version: v3
+tag_floor: "0042"
+
+frontend_surfaces:
+  - intake
+  - reports
+  - monitor
+  - methodology
+  - codex
+  - quarterly
+  - privacy
+  - terms
+  - admin
+  - notifications_card
+  - delivery_chips
+  - live_feed
+  - rewrite                       # now visible to customer role
+  - evidence_drawers              # full evidence drawers
+
+masked_surfaces:
+  - bulk
+  - partner
+  - vendors
+  - trust
+  - crosswalk
+
+surface_flags:
+  VITE_SURFACE_QUARTERLY: "true"
+  VITE_SURFACE_REWRITE: "true"    # frontend route ON
+  VITE_SURFACE_BULK: "false"
+  VITE_SURFACE_PARTNER: "false"
+  VITE_SURFACE_VENDORS: "false"
+  VITE_SURFACE_TRUST: "false"
+  VITE_SURFACE_CROSSWALK: "false"
+
+# CRITICAL: rewrite for customers flips BOTH the frontend route (above) AND the
+# endpoint role gate. release.sh must set BOTH — never one.
+endpoint_role_gates:
+  rewrite:
+    add_role: customer            # /rewrite route allowedRoles += customer AND
+                                  # the rewrite API endpoint role gate += customer
+
+platform_settings:
+  gate_mode: expert_review
+  job.monitor_notices.enabled: true
+  job.pull_regulators.enabled: true
+  job.refresh_benchmarks.enabled: true
+  alert_delivery.enabled: true
+
+roles_provisionable:
+  - customer
+  - sme
+  - admin
+
+data_preconditions:
+  - name: rls_test_green
+    kind: pytest
+    cmd: "python -m pytest tests/test_rls_enabled.py -q"
+  # Refuse on DEMO-ONLY coverage — require clause_obligation full-scope coverage
+  # recorded in the run-scope log.
+  - name: clause_obligation_full_scope
+    kind: sql
+    query: "SELECT scope FROM obligation_match_run ORDER BY started_at DESC LIMIT 1"
+    expect: "= full"
+
+notes: >
+  Evidence + Rewrite to customers. Rewrite is unmasked for the customer role by
+  flipping BOTH the frontend route flag AND the endpoint role gate (both, never
+  one). Evidence drawers full. Refuses to release on demo-only clause_obligation
+  coverage — requires a full-scope obligation-match run recorded in the run log.

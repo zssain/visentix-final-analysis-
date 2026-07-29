@@ -47,8 +47,13 @@ class LLMClient:
         log.info("LLM backend: %s", self._backend)
 
     def _select_backend(self) -> str:
-        """Select backend based on env config."""
-        if settings.hosted_qwen_base_url and settings.hosted_qwen_api_key:
+        """Select backend based on env config.
+
+        The hosted backend is our own Ollama running on the private RunPod pod,
+        reached over the tailnet (see deploy/runpod/). It needs NO API key, so
+        selection keys off the base URL alone; an API key is sent only if set.
+        """
+        if settings.hosted_qwen_base_url:
             return "hosted"
         return "local"
 
@@ -167,33 +172,41 @@ class LLMClient:
             )
 
     async def _chat_hosted(self, system: str, user: str) -> LLMResponse:
-        """Call hosted Qwen endpoint (OpenAI-compatible API)."""
-        async with httpx.AsyncClient(timeout=60) as client:
+        """Call the hosted Ollama endpoint (private RunPod pod over the tailnet).
+
+        This is the SAME Ollama server as local, just remote — so the request
+        MUST be byte-for-byte identical to _chat_local (native /api/chat,
+        stream=False, think=False, num_predict=500). The only differences are
+        the base URL, an optional bearer token (sent only if configured), and
+        the backend label. Keeping the payload identical guarantees the model
+        sees the same prompt/params regardless of where it runs; classifier
+        outputs and versions stay stable across backends.
+        """
+        headers = {"Content-Type": "application/json"}
+        if settings.hosted_qwen_api_key:
+            headers["Authorization"] = f"Bearer {settings.hosted_qwen_api_key}"
+        async with httpx.AsyncClient(timeout=120) as client:
             r = await client.post(
-                f"{settings.hosted_qwen_base_url}/chat/completions",
-                headers={
-                    "Authorization": f"Bearer {settings.hosted_qwen_api_key}",
-                    "Content-Type": "application/json",
-                },
+                f"{settings.hosted_qwen_base_url}/api/chat",
+                headers=headers,
                 json={
                     "model": settings.hosted_qwen_model,
                     "messages": [
                         {"role": "system", "content": system},
                         {"role": "user", "content": user},
                     ],
-                    "max_tokens": 500,
-                    "temperature": 0.1,
+                    "stream": False,
+                    "think": False,
+                    "options": {"num_predict": 500},
                 },
             )
             r.raise_for_status()
             data = r.json()
-            content = data["choices"][0]["message"]["content"]
-            tokens = data.get("usage", {}).get("total_tokens", 0)
+            content = data.get("message", {}).get("content", "")
             return LLMResponse(
                 content=content,
                 model=settings.hosted_qwen_model,
                 backend="hosted",
-                tokens_used=tokens,
             )
 
 
