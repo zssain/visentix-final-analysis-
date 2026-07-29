@@ -1,4 +1,68 @@
-# Launch Readiness v2 — RunPod deploy prep + launch checklist (2026-07-28)
+# Launch Readiness v2
+
+> ⚠️ **SUPERSEDED TOPOLOGY BELOW.** The 2026-07-28 section (single RunPod host
+> for API+Ollama+scheduler) is superseded by the **three-host** deploy executed
+> 2026-07-29 (Azure VM = API+scheduler+Caddy; RunPod pod = Ollama-only, private;
+> Cloudflare = frontend). The current state is the section immediately below;
+> the older section is kept for history.
+
+---
+
+## 2026-07-29 — THREE-HOST DEPLOY (current, live)
+
+_owner + Claude (engineer). Living doc; the owner tags `v1.0.0` — engineering does NOT tag._
+
+### Topology (live)
+
+| Host | Role | URL / addr | Status |
+|---|---|---|---|
+| Cloudflare | Frontend (Worker + static assets, SPA) | `https://visentix-v2-mvp.zssaincoding.workers.dev` | live (unmasked build — masked build pending deploy, see Open items) |
+| Azure VM `visentix` (Standard_B2ls_v2, West Europe) | FastAPI + APScheduler + Caddy | `https://visentix-api.westeurope.cloudapp.azure.com` (IP `4.231.113.178`) | **live, HTTPS (Let's Encrypt)** |
+| RunPod pod `1zyg93j5rzy4p4` (RTX 4000 Ada 20GB) | Ollama `qwen3:8b` + embeddings, PRIVATE | tailnet `100.69.10.127:11434` | live (stock Ollama + Tailscale + watchdog) |
+| Supabase | Postgres (managed) | `db.jhzkyfitrdxmzyyvqfak.supabase.co` | live, RLS on all 56 public tables |
+
+Private wire: Azure VM (tailnet `100.122.134.63`) ↔ pod (`100.69.10.127`) over Tailscale (userspace). Ollama/Postgres never publicly exposed.
+
+### Security posture (verified)
+- **Azure public ports:** 22, 80, 443 only; API `:8000` **closed** publicly (scanned). ufw active; SSH key-only.
+- **Pod public ports:** SSH only; Ollama `:11434` NOT publicly reachable (scan closed; http→000).
+- **RLS:** 56/56 public tables on; `tests/test_rls_enabled.py` green; migration 0042 at head.
+- **TLS:** Caddy/Let's Encrypt, valid to 2026-10-27; HSTS + nosniff + frame-deny + strict CSP.
+
+### v1 surface masking (release system) — VERIFIED
+- Build-level masking in `web/src/App.tsx` (lazy import + `import.meta.env.VITE_SURFACE_*` DCE). Secure-by-default: unflagged build = masked v1.
+- **Masked & ABSENT from bundle (grep = 0):** bulk, partner, rewrite, vendors, trust, crosswalk. Single chunk; no masked chunks emitted.
+- **Endpoint audit (customer role, live backend):** `/bulk/jobs` → 403, `/partner/workspaces` → 403. Masked = unreachable by route AND endpoint.
+- **v1 live surfaces:** intake (3 modes), reports, monitor (baseline), methodology, codex, `/quarterly` (public, real approved data), `/privacy`, `/terms`; admin reaches admin.
+- Encoded: `releases/v1.yaml`..`v5.yaml`; driven by `scripts/release.sh`.
+
+### Model / classifier
+- `qwen3:8b` (Q4_K_M, 8.2B, ctx 40960), digest `500a1f067a9f…`.
+- `app/services/llm.py` hosted == local byte-for-byte (native `/api/chat`, `think:false`, `num_predict:500`); classifier_version unchanged.
+- Azure→pod classify latency (warm 5-clause): **~1.6 s/clause**, all correct; cold ~3.6 s (one-time load).
+- `gate_mode=expert_review` (STRICT); `approve_and_freeze` + snapshot-approval paths UNTOUCHED.
+
+### Pod durability (honest)
+- Stock Ollama = stable (no crash loop). Tailscale via `podsetup.sh` + `tailscaled` watchdog (auto-heals crashes). Site stays up if pod drops (health decoupled; classify fails-fast, spec 1D). A full pod restart still drops Tailscale → ~1 min reconnect via RunPod API. Bulletproof supervisor start-command deferred (crash-looped — decision-log 2026-07-29).
+
+### OPEN before v1.0.0 tag
+- [ ] **Deploy masked v1 frontend** — needs a repo push (CF rebuilds masked-by-default) OR a CF API token for `wrangler deploy`; then re-run Phase-3 against the live masked artifact.
+- [ ] **Rotate Supabase keys** (service-role + anon + JWT) — owner, Supabase dashboard.
+- [ ] **Backups** — nightly `pg_dump` → object storage + restore drill (RPO 24h/RTO). Needs S3/Azure-Blob creds.
+- [ ] **Publish `/privacy` + `/terms`** only after owner confirms mailboxes exist.
+- [ ] **PROD REHEARSAL** (STRICT gate; pilot notice; pipeline stops; PDF double-pull byte-identity; cross-org 403; scheduler job_runs).
+- [ ] **Owner approves `v1.0.0` tag** — engineering does NOT tag.
+
+### Rotation table
+| Secret | Rotated? | Owner action |
+|---|---|---|
+| Supabase service-role / anon / JWT | ❌ pending | Supabase → Settings → API |
+| Tailscale auth key | reusable 90d | rotate at expiry |
+| RunPod API key | in `.env` (gitignored) | rotate post-launch |
+
+---
+
+# (SUPERSEDED) Launch Readiness v2 — RunPod deploy prep + launch checklist (2026-07-28)
 
 **By:** deploying engineer. Continues [`LAUNCH-READINESS.md`](LAUNCH-READINESS.md).
 **Topology:** RunPod GPU VM hosts **API + Ollama (GPU) + scheduler**; **Cloudflare
