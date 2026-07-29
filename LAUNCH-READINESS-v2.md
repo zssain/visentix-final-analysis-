@@ -46,8 +46,31 @@ Private wire: Azure VM (tailnet `100.122.134.63`) ↔ pod (`100.69.10.127`) over
 ### Pod durability (honest)
 - Stock Ollama = stable (no crash loop). Tailscale via `podsetup.sh` + `tailscaled` watchdog (auto-heals crashes). Site stays up if pod drops (health decoupled; classify fails-fast, spec 1D). A full pod restart still drops Tailscale → ~1 min reconnect via RunPod API. Bulletproof supervisor start-command deferred (crash-looped — decision-log 2026-07-29).
 
+### Prod rehearsal + eat-own-cooking (2026-07-29, live stack)
+
+**Eat-own-cooking** — our own `deploy/legal/visentix-privacy-notice.txt` through the live pipeline (rehearsal-labeled, admin): 11/11 clauses LLM-classified (0 keyword fallback), scored in 11.8 s. Domain scores called out per the standing requirement:
+- **AI-transparency = 15.36 — WEAK** (+ a HIGH-severity `ai_automated_decisions` finding). For an AI-driven product this is a genuine gap.
+- **Retention** = MEDIUM-severity finding (intensity 2.5). Not strong.
+- Per instruction: notice UNTOUCHED — owner decides whether the notice or the expectation changes.
+
+**Prod rehearsal** (public retail-cohort stand-in, labeled `rehearsal`):
+- ✅ **upload mode** → scored, 9/9 LLM-classified, `intake_method: upload`.
+- ✅ **cross-org 403** — a customer from another org gets 403 on the rehearsal report (tenant isolation holds).
+- ✅ **scheduler machinery** — manual `POST /admin/jobs/refresh_benchmarks/run` → `job_run` **succeeded** (recorded); scheduled jobs stay disabled.
+- ✅ **gate STRICT respected** — everything stopped at `status: scored`; nothing approved or frozen.
+- ⚠️ **PDF NOT byte-identical** — two pulls of the same (snapshot-backed) report differ by ~1 byte + sha. Cause: WeasyPrint stamps a fresh `/CreationDate` + `/ID` per render. Content (`content_hash`) is stable; file bytes are not. **FIX:** pin PDF metadata in `app/services/report/renderer.py` for reproducible delivery. Blocks the "byte-identity → deliver" guarantee until closed.
+- ⚠️ **503 under PDF load** — WeasyPrint rendering on the 4 GB VM spikes resources → `/health` slows → Caddy briefly 503s concurrent requests. Fine for low-traffic pilot; watch under load or bump the VM.
+
+**Config fixes applied to the live DB during rehearsal (v1 compliance):**
+- `gate_mode` was **`instant_draft`** (a MUST-NOT) → set to **`strict`**.
+- All 3 scheduler jobs were **enabled** → **disabled**.
+- (Minor: `alerts_suppressed` flag = 0, but the alert source job — monitor_notices — is disabled, so no alerts fire.)
+- These are `platform_setting` rows; `release.sh` applies them from `releases/v1.yaml` on a tagged release.
+
 ### OPEN before v1.0.0 tag
 - [x] **Deploy masked v1 frontend** — DONE (PR #14 → `main` → CF rebuild; live artifact audited clean, above).
+- [ ] **PDF byte-identity** — pin WeasyPrint `/CreationDate` + `/ID` (renderer) OR accept content-hash identity (owner call).
+- [ ] **AI-transparency / retention** on our own notice — owner decides (notice vs expectation).
 - [ ] **Rotate Supabase keys** (service-role + anon + JWT) — owner, Supabase dashboard.
 - [ ] **Backups** — nightly `pg_dump` → object storage + restore drill (RPO 24h/RTO). Needs S3/Azure-Blob creds.
 - [ ] **Publish `/privacy` + `/terms`** only after owner confirms mailboxes exist.

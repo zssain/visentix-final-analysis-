@@ -44,7 +44,7 @@ endpoint_role_gates:
                                   # the rewrite API endpoint role gate += customer
 
 platform_settings:
-  gate_mode: expert_review
+  gate_mode: strict            # == spec "expert_review" (GateMode.STRICT)
   job.monitor_notices.enabled: true
   job.pull_regulators.enabled: true
   job.refresh_benchmarks.enabled: true

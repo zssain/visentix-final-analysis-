@@ -36,7 +36,7 @@ surface_flags:                    # route-level flags unchanged from v1; the
   VITE_SURFACE_CROSSWALK: "false"
 
 platform_settings:
-  gate_mode: expert_review
+  gate_mode: strict            # == spec "expert_review" (GateMode.STRICT)
   job.monitor_notices.enabled: true    # + SLA cron
   job.pull_regulators.enabled: true    # + SLA cron
   job.refresh_benchmarks.enabled: true # + SLA cron

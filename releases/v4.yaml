@@ -40,7 +40,7 @@ endpoint_role_gates:
     add_role: customer
 
 platform_settings:
-  gate_mode: expert_review
+  gate_mode: strict            # == spec "expert_review" (GateMode.STRICT)
   job.monitor_notices.enabled: true
   job.pull_regulators.enabled: true
   job.refresh_benchmarks.enabled: true

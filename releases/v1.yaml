@@ -44,7 +44,7 @@ surface_flags:
 
 # platform_setting rows applied idempotently (release.sh states SQL vs admin API).
 platform_settings:
-  gate_mode: expert_review        # STRICT human gate; approve_and_freeze untouched
+  gate_mode: strict            # == spec "expert_review" (GateMode.STRICT)        # STRICT human gate; approve_and_freeze untouched
   job.monitor_notices.enabled: false
   job.pull_regulators.enabled: false
   job.refresh_benchmarks.enabled: false
