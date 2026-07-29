@@ -1,0 +1,39 @@
+# Caddy — public edge for the Visentix API. Auto-TLS on :443 for {$DOMAIN}
+# (Let's Encrypt), reverse-proxied to the internal api:8000. Ollama and Postgres
+# are NEVER reachable through here. {$DOMAIN} may be a custom domain OR the free
+# Azure name <label>.<region>.cloudapp.azure.com — LE issues real certs for both.
+
+{
+	email {$ACME_EMAIL}
+	# Staging CA while testing to dodge LE rate limits (uncomment if iterating):
+	# acme_ca https://acme-staging-v02.api.letsencrypt.org/directory
+}
+
+{$DOMAIN} {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		# JSON API only — a strict CSP is safe (no inline scripts served here).
+		Content-Security-Policy "default-src 'none'; frame-ancestors 'none'; base-uri 'none'"
+		Permissions-Policy "geolocation=(), microphone=(), camera=()"
+		-Server
+	}
+
+	reverse_proxy api:8000 {
+		# Fast probe → quick failover AND quick recovery after a redeploy
+		# (avoids a ~30s edge-503 window every time the api container restarts).
+		health_uri /health
+		health_interval 5s
+		health_timeout 4s
+	}
+
+	log {
+		output stdout
+		format json
+	}
+}
+# Plain :80 is auto-redirected to https by Caddy (ACME challenge handled inline).

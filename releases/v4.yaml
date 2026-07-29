@@ -1,0 +1,67 @@
+# releases/v4.yaml — Visentix v4 (Bulk)
+# Builds on v3; unmasks /bulk and makes the analyst role provisionable.
+version: v4
+tag_floor: "0042"
+
+frontend_surfaces:
+  - intake
+  - reports
+  - monitor
+  - methodology
+  - codex
+  - quarterly
+  - privacy
+  - terms
+  - admin
+  - notifications_card
+  - delivery_chips
+  - live_feed
+  - rewrite
+  - evidence_drawers
+  - bulk                          # /bulk unmasked
+
+masked_surfaces:
+  - partner
+  - vendors
+  - trust
+  - crosswalk
+
+surface_flags:
+  VITE_SURFACE_QUARTERLY: "true"
+  VITE_SURFACE_REWRITE: "true"
+  VITE_SURFACE_BULK: "true"       # /bulk ON
+  VITE_SURFACE_PARTNER: "false"
+  VITE_SURFACE_VENDORS: "false"
+  VITE_SURFACE_TRUST: "false"
+  VITE_SURFACE_CROSSWALK: "false"
+
+endpoint_role_gates:
+  rewrite:
+    add_role: customer
+
+platform_settings:
+  gate_mode: expert_review
+  job.monitor_notices.enabled: true
+  job.pull_regulators.enabled: true
+  job.refresh_benchmarks.enabled: true
+  alert_delivery.enabled: true
+
+roles_provisionable:
+  - customer
+  - sme
+  - admin
+  - analyst                       # new: analyst role provisionable
+
+data_preconditions:
+  - name: rls_test_green
+    kind: pytest
+    cmd: "python -m pytest tests/test_rls_enabled.py -q"
+  # None beyond CI green on the tag.
+  - name: ci_green_on_tag
+    kind: ci
+    cmd: "gh run list --branch \"$GIT_TAG\" --limit 1 --json conclusion --jq '.[0].conclusion'"
+    expect: "= success"
+
+notes: >
+  Bulk analysis. /bulk unmasked; analyst role provisionable. No precondition
+  beyond CI green on the tag.
