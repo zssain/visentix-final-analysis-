@@ -174,6 +174,7 @@ function AdminPanel({ onPublished }: { onPublished: () => void }) {
   const [snapshots, setSnapshots] = useState<AdminSnapshot[]>([]);
   const [flash, showFlash] = useFlash();
   const [busy, setBusy] = useState(false);
+  const [previewing, setPreviewing] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try { setSnapshots(await api.get("/admin/quarterly")); } catch { /* ignore */ }
@@ -189,6 +190,26 @@ function AdminPanel({ onPublished }: { onPublished: () => void }) {
       load();
     } catch (e) { showFlash(e instanceof ApiError ? `Build failed: ${e.message}` : "Build failed."); }
     finally { setBusy(false); }
+  };
+
+  // The preview endpoint is admin-gated, so it needs the Authorization header —
+  // a plain <a href> can't send it. Fetch the PDF as an authenticated blob and
+  // open it in a tab the browser renders inline. window.open is called first,
+  // inside the click gesture, so popup blockers don't kill it after the await.
+  const preview = async (id: string) => {
+    const w = window.open("", "_blank", "noopener,noreferrer");
+    setPreviewing(id);
+    try {
+      const blob = await api.getBlob(`/admin/quarterly/${id}.pdf`);
+      const url = URL.createObjectURL(blob);
+      if (w) w.location.href = url; else window.location.href = url;
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch (e) {
+      if (w) w.close();
+      showFlash(e instanceof ApiError ? `Preview failed: ${e.message}` : "Preview failed.");
+    } finally {
+      setPreviewing(null);
+    }
   };
 
   const approve = async (id: string) => {
@@ -217,7 +238,7 @@ function AdminPanel({ onPublished }: { onPublished: () => void }) {
                 <td>{passed === true ? <span className="qr-gate ok">passed</span> : passed === false ? <span className="qr-gate bad" title={JSON.stringify(gate?.violations)}>failed · {gate?.violations?.length} violations</span> : "—"}</td>
                 <td>{new Date(s.created_at).toLocaleString()}</td>
                 <td>
-                  <a className="btn" href={`${API_BASE}/admin/quarterly/${s.id}.pdf`} target="_blank" rel="noreferrer">Preview PDF</a>
+                  <button className="btn" disabled={previewing === s.id} onClick={() => preview(s.id)}>{previewing === s.id ? "Opening…" : "Preview PDF"}</button>
                   {s.status === "draft" && passed && <button className="btn btn-primary" onClick={() => approve(s.id)}>Approve</button>}
                 </td>
               </tr>
