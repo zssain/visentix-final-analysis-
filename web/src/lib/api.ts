@@ -89,6 +89,16 @@ export const api = {
     return res.text();
   },
 
+  async getBlob(path: string): Promise<Blob> {
+    // Auth-gated binary GET (e.g. PDF preview). A plain <a href> can't carry the
+    // Authorization header, so admin-only downloads must fetch through here.
+    const headers = getAuthHeaders();
+    const res = await fetch(`${API_BASE}${path}`, { headers });
+    if (res.status === 401) { handleUnauth(); throw new ApiError(401, "Session expired"); }
+    if (!res.ok) throw new ApiError(res.status, await res.text());
+    return res.blob();
+  },
+
   async postForm(path: string, formData: FormData) {
     const headers = getAuthHeaders();
     // Remove Content-Type so browser sets multipart boundary automatically
