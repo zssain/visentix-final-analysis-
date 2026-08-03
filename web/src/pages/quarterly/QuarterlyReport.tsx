@@ -196,8 +196,10 @@ function AdminPanel({ onPublished }: { onPublished: () => void }) {
   // a plain <a href> can't send it. Fetch the PDF as an authenticated blob and
   // open it in a tab the browser renders inline. window.open is called first,
   // inside the click gesture, so popup blockers don't kill it after the await.
+  // NB: do NOT pass "noopener" — it makes window.open return null (and severs the
+  // browsing context), so we could neither load the blob into the tab nor close it.
   const preview = async (id: string) => {
-    const w = window.open("", "_blank", "noopener,noreferrer");
+    const w = window.open("", "_blank");
     setPreviewing(id);
     try {
       const blob = await api.getBlob(`/admin/quarterly/${id}.pdf`);
