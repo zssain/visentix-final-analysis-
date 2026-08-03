@@ -34,16 +34,10 @@ async def latest():
     return payload
 
 
-@public_router.get("/{quarter}")
-async def by_quarter(quarter: str):
-    if quarter == "latest":  # defensive: /quarterly/latest handled above
-        return await latest()
-    payload = await Q.get_by_quarter(quarter)
-    if not payload:  # not approved (or nonexistent) → never leak a draft
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "No approved report for that quarter.")
-    return payload
-
-
+# NB: the `.pdf` route MUST be declared before the bare `/{quarter}` route.
+# FastAPI matches in registration order and `{quarter}` captures any non-slash
+# text (including a trailing ".pdf"), so a bare route declared first would
+# swallow "/2026-Q3.pdf" as quarter="2026-Q3.pdf" and 404.
 @public_router.get("/{quarter}.pdf")
 async def public_pdf(quarter: str):
     """Approved editorial PDF (public). Drafts are NEVER served here — the
@@ -54,6 +48,16 @@ async def public_pdf(quarter: str):
     pdf = _render_pdf(payload, watermark=False)
     return Response(content=pdf, media_type="application/pdf",
                     headers={"Content-Disposition": f'attachment; filename="quarterly-{quarter}.pdf"'})
+
+
+@public_router.get("/{quarter}")
+async def by_quarter(quarter: str):
+    if quarter == "latest":  # defensive: /quarterly/latest handled above
+        return await latest()
+    payload = await Q.get_by_quarter(quarter)
+    if not payload:  # not approved (or nonexistent) → never leak a draft
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "No approved report for that quarter.")
+    return payload
 
 
 # ── Admin / expert ───────────────────────────────────────────
@@ -73,14 +77,10 @@ async def list_snapshots(user: AuthenticatedUser = require_role("admin")):
     return await Q.list_all_snapshots()
 
 
-@admin_router.get("/{snapshot_id}")
-async def admin_detail(snapshot_id: str, user: AuthenticatedUser = require_role("admin")):
-    out = await Q.get_admin_snapshot(snapshot_id)
-    if not out:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Snapshot not found.")
-    return out
-
-
+# NB: the `.pdf` route MUST be declared before the bare `/{snapshot_id}` route —
+# `{snapshot_id}` captures a trailing ".pdf", so a bare route declared first
+# would swallow "/<id>.pdf" as snapshot_id="<id>.pdf" and 404 (this is exactly
+# the bug the authenticated Preview PDF request exposed).
 @admin_router.get("/{snapshot_id}.pdf")
 async def admin_pdf(snapshot_id: str, user: AuthenticatedUser = require_role("admin")):
     """Draft (gold watermark) or approved preview for the expert."""
@@ -97,6 +97,14 @@ async def admin_pdf(snapshot_id: str, user: AuthenticatedUser = require_role("ad
     pdf = _render_pdf(payload, watermark=not approved)
     return Response(content=pdf, media_type="application/pdf",
                     headers={"Content-Disposition": f'attachment; filename="quarterly-{snap["quarter"]}-{snap["status"]}.pdf"'})
+
+
+@admin_router.get("/{snapshot_id}")
+async def admin_detail(snapshot_id: str, user: AuthenticatedUser = require_role("admin")):
+    out = await Q.get_admin_snapshot(snapshot_id)
+    if not out:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Snapshot not found.")
+    return out
 
 
 @admin_router.post("/{snapshot_id}/approve")
