@@ -1,15 +1,26 @@
 """Assessment endpoints — intake, decompose, classify, and score privacy notices."""
 
+import asyncio
 import hashlib
 import urllib.parse
 from typing import Optional
 from uuid import uuid4
 
-from fastapi import APIRouter, File, Form, HTTPException, UploadFile, status
+from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile, status
+
+from app.services.intake import jobs as intake_jobs
 
 from app.auth import AuthenticatedUser, require_role
-from app.db import supabase_rest_get, supabase_rest_post
+from app.db import supabase_rest_get, supabase_rest_patch, supabase_rest_post
 from app.logging import get_logger
+from app.services.ratelimit import check_rate_limit, client_key
+
+# SEC-005: intake is the most expensive path (extract → decompose → LLM classify →
+# score). Throttle creates per-authenticated-user. ~10/min balances a legit user
+# resubmitting/queuing a few notices against a runaway loop or scripted abuse.
+_CREATE_LIMIT = 10
+_CREATE_WINDOW_S = 60
+from app.services import intake_options as _iopt
 from app.services.intake.decompose import decompose
 from app.services.intake.discover import discover_policy_url, is_direct_policy_url
 from app.services.intake.extract import (
@@ -142,22 +153,209 @@ async def rewrite_clause(
 
 @router.post("/", status_code=status.HTTP_201_CREATED)
 async def create_assessment(
+    request: Request,
     user: AuthenticatedUser = require_role("customer", "admin"),
     url: Optional[str] = Form(None),
     text: Optional[str] = Form(None),
     organization_id: Optional[str] = Form(None),
     organization_name: Optional[str] = Form(None),
+    industry: Optional[str] = Form(None),
+    jurisdictions: Optional[str] = Form(None),
     file: Optional[UploadFile] = File(None),
 ):
     """Create a new assessment from URL, PDF upload, or raw text.
 
     Full pipeline: extract -> decompose -> classify -> persist -> score.
+    ARCH-001A: optional `industry` + `jurisdictions` (comma-separated state codes)
+    are threaded into the org profile and consumed by scoring.
     Returns 201 with assessment details including scores when available.
     """
+    check_rate_limit(client_key(request, user), limit=_CREATE_LIMIT, window_s=_CREATE_WINDOW_S)
     return await run_assessment_intake(
         user=user, url=url, text=text, organization_id=organization_id,
-        organization_name=organization_name, file=file,
+        organization_name=organization_name, industry=industry,
+        jurisdictions=jurisdictions, file=file,
     )
+
+
+# ── QA-011: asynchronous intake (202 + server-state progress) ────
+
+class _UploadShim:
+    """Buffered stand-in for UploadFile in the background task — the request's
+    UploadFile is closed once the 202 response is sent, so we read bytes upfront."""
+
+    def __init__(self, data: bytes, filename: str | None):
+        self._data = data
+        self.filename = filename
+
+    async def read(self) -> bytes:
+        return self._data
+
+
+async def _run_intake_job(
+    job_id: str, *, user, url, text, organization_id, organization_name,
+    industry=None, jurisdictions=None, file_bytes=None, file_name=None,
+) -> None:
+    """Background runner: drive the intake core, recording server-side progress
+    and the final outcome on the assessment_job row. Never raises."""
+    try:
+        async def on_stage(s: str) -> None:
+            await intake_jobs.set_stage(job_id, s)
+
+        upload = _UploadShim(file_bytes, file_name) if file_bytes is not None else None
+        result = await run_assessment_intake(
+            user=user, url=url, text=text, organization_id=organization_id,
+            organization_name=organization_name, industry=industry,
+            jurisdictions=jurisdictions, file=upload, on_stage=on_stage,
+        )
+        await intake_jobs.complete_job(
+            job_id, assessment_id=result.get("assessment_id"), result=result)
+    except HTTPException as e:
+        await intake_jobs.fail_job(job_id, f"{e.status_code}: {e.detail}")
+    except Exception as e:  # noqa: BLE001 — record honestly; never crash the loop
+        log.exception("async intake job %s failed", job_id[:12])
+        await intake_jobs.fail_job(job_id, f"{type(e).__name__}: {e}")
+
+
+@router.post("/async", status_code=status.HTTP_202_ACCEPTED)
+async def create_assessment_async(
+    request: Request,
+    user: AuthenticatedUser = require_role("customer", "admin"),
+    url: Optional[str] = Form(None),
+    text: Optional[str] = Form(None),
+    organization_id: Optional[str] = Form(None),
+    organization_name: Optional[str] = Form(None),
+    industry: Optional[str] = Form(None),
+    jurisdictions: Optional[str] = Form(None),
+    idempotency_key: Optional[str] = Form(None),
+    file: Optional[UploadFile] = File(None),
+):
+    """QA-011: enqueue an assessment and return 202 + a job handle immediately,
+    instead of blocking the request through extract→…→score (which exceeds
+    browser/proxy timeouts for large notices — the "processing flow
+    nonfunctional" symptom). Progress lives in SERVER state (`assessment_job`);
+    poll `GET /assessments/{id}/status`. A repeat submit carrying the same
+    `idempotency_key` returns the SAME job — no duplicate assessment.
+    """
+    if idempotency_key:
+        existing = await intake_jobs.find_by_idempotency_key(idempotency_key)
+        if existing:
+            # An idempotent replay does no new work → don't spend the caller's budget.
+            return {"assessment_id": existing["job_id"], "status": existing["status"],
+                    "stage": existing["stage"], "idempotent_replay": True}
+
+    # SEC-005: throttle real new enqueues (shares the create budget with POST /).
+    check_rate_limit(client_key(request, user), limit=_CREATE_LIMIT, window_s=_CREATE_WINDOW_S)
+
+    if not (url or text or file):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="Provide one of: url, file (PDF), or text.")
+
+    # ARCH-001A: validate filters up front so a bad value fails at submit (422),
+    # not silently inside the background job.
+    _validate_filters(industry, _parse_jurisdictions(jurisdictions))
+
+    org_for_job = user.organization_id if user.role == "customer" else organization_id
+    job = await intake_jobs.create_job(
+        organization_id=org_for_job, created_by=user.user_id,
+        idempotency_key=idempotency_key)
+    job_id = job["job_id"]
+
+    # Buffer the upload now — the UploadFile is closed once we return the 202.
+    file_bytes = await file.read() if file else None
+    file_name = file.filename if file else None
+
+    asyncio.create_task(_run_intake_job(
+        job_id, user=user, url=url, text=text, organization_id=organization_id,
+        organization_name=organization_name, industry=industry, jurisdictions=jurisdictions,
+        file_bytes=file_bytes, file_name=file_name))
+
+    return {"assessment_id": job_id, "status": "queued", "stage": "queued"}
+
+
+@router.get("/{assessment_id}/status")
+async def assessment_status(
+    assessment_id: str,
+    user: AuthenticatedUser = require_role("customer", "sme", "admin"),
+):
+    """QA-011: poll intake progress. `assessment_id` is the job handle returned by
+    /async; the real notice id appears in the `assessment_id` field once
+    persistence completes (used for the onward redirect to the report)."""
+    job = await intake_jobs.get_job(assessment_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="No such assessment job")
+    # Org ownership (mirrors the rest of the tenant boundary): a customer may only
+    # poll a job belonging to its own organization.
+    if user.role == "customer" and (
+        not user.organization_id or job.get("organization_id") != user.organization_id
+    ):
+        raise HTTPException(status_code=403, detail="Not permitted")
+    return {
+        "job_id": job["job_id"],
+        "status": job["status"],
+        "stage": job["stage"],
+        "assessment_id": job.get("assessment_id"),
+        "error": job.get("error"),
+        "result": job.get("result"),
+        "created_at": job.get("created_at"),
+        "updated_at": job.get("updated_at"),
+    }
+
+
+# ── ARCH-001A: intake filters (industry + state privacy laws) ────
+
+def _parse_jurisdictions(raw: Optional[str]) -> list[str]:
+    """Accept a comma-separated (or single) jurisdictions field → clean list."""
+    if not raw:
+        return []
+    return [j.strip() for j in raw.split(",") if j.strip()]
+
+
+def _validate_filters(industry: Optional[str], jurisdictions: list[str]) -> None:
+    """Reject unknown filter values rather than passing junk downstream (ARCH-001A)."""
+    if industry and not _iopt.is_valid_industry(industry):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Unknown industry: {industry!r}. Choose one of the listed industries or 'unknown'.",
+        )
+    for j in jurisdictions:
+        if not _iopt.is_valid_jurisdiction(j):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"Unknown jurisdiction: {j!r}.",
+            )
+
+
+async def _apply_intake_filters(
+    org_id: str, industry: Optional[str], jurisdictions: list[str]
+) -> bool:
+    """Write user-declared industry + jurisdictions onto the org row, with honest
+    provenance (ARCH-001A). Blank fields are left untouched (never clobbered).
+    Returns True if a scoring input changed → the caller forces a re-profile so
+    the change actually reaches the score (Hard Rule 6: new versioned profile).
+    """
+    from app.services.profiling.live_profile import compute_ic
+
+    patch: dict = {}
+    if industry:
+        key = industry.strip().lower().replace(" ", "_")
+        if key == _iopt.UNKNOWN_INDUSTRY:
+            # Explicit "not sure / not listed" — honest unknown, never a fake real industry.
+            patch["industry"] = "unknown"
+            patch["industry_source"] = "unknown"
+        else:
+            industry_id, sub_industry, _label, _conf = compute_ic(key)
+            patch["industry"] = key
+            patch["industry_id"] = industry_id
+            patch["sub_industry"] = sub_industry
+            patch["industry_source"] = "user_provided"
+    if jurisdictions:
+        patch["jurisdiction_presence"] = jurisdictions
+
+    if not patch:
+        return False
+    await supabase_rest_patch("organization", f"organization_id=eq.{org_id}", patch)
+    return True
 
 
 async def run_assessment_intake(
@@ -167,13 +365,29 @@ async def run_assessment_intake(
     text: Optional[str] = None,
     organization_id: Optional[str] = None,
     organization_name: Optional[str] = None,
+    industry: Optional[str] = None,
+    jurisdictions: Optional[str] = None,
     file: Optional[UploadFile] = None,
+    on_stage=None,
 ):
     """The single intake+score core (extract → decompose → classify → persist →
     score). Called by the customer `/assessments/` route AND the F20 partner
     workspace-assessment route — one path, no fork. Callers whose role is not
     `customer` supply `organization_id` explicitly (partner → the workspace's
-    client org)."""
+    client org).
+
+    QA-011: `on_stage(stage: str)` is an optional async callback invoked as the
+    pipeline advances, so the async intake job can record SERVER-side progress.
+    Default None → the synchronous callers behave exactly as before.
+    """
+
+    async def _stage(s: str) -> None:
+        if on_stage is not None:
+            await on_stage(s)
+
+    # ── 0. VALIDATE INTAKE FILTERS (ARCH-001A) — fail fast, before any work ──
+    jurisdictions_list = _parse_jurisdictions(jurisdictions)
+    _validate_filters(industry, jurisdictions_list)
 
     # ── 1. EXTRACT ────────────────────────────────────────────
     extracted_text: str | None = None
@@ -192,6 +406,7 @@ async def run_assessment_intake(
         if url:
             intake_method = "url"
             log.info("Assessment intake: URL (text not logged)")
+            await _stage("fetching")
 
             # Discovery: if URL isn't already a policy link, try to find the real one
             fetch_url = url
@@ -208,7 +423,14 @@ async def run_assessment_intake(
                         "carry lower confidence."
                     )
 
-            extracted_text, content_hash = await extract_from_url(fetch_url)
+            try:
+                extracted_text, content_hash = await extract_from_url(fetch_url)
+            except Exception as extract_err:
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail=f"Could not fetch the URL: {type(extract_err).__name__}. "
+                           f"Try submitting a direct privacy policy URL (e.g. /privacy or /privacy-policy).",
+                )
             source_url = fetch_url  # real provenance = the page actually assessed
 
             # Advisory privacy-signal check on the extracted content
@@ -251,6 +473,8 @@ async def run_assessment_intake(
     except ExtractionError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
+    await _stage("extracting")
+
     # ── 2. RESOLVE / CREATE ORG ──────────────────────────────
     # Tenancy (F10): a customer's assessment ALWAYS lands under their own
     # organization — a client-supplied organization_id/name can never redirect a
@@ -271,10 +495,18 @@ async def run_assessment_intake(
         if not org_id:
             org_id = await _find_or_create_org("Anonymous Assessment")
 
+    # ── 2b. APPLY INTAKE FILTERS (ARCH-001A) ─────────────────
+    # Write the user-declared industry + jurisdictions onto the org BEFORE scoring
+    # so compute_ic / compute_rss / build_population consume the real values. A
+    # changed scoring input forces a fresh (versioned) profile below.
+    profile_inputs_changed = await _apply_intake_filters(org_id, industry, jurisdictions_list)
+
     # ── 3. DECOMPOSE ─────────────────────────────────────────
+    await _stage("segmenting")
     notice = decompose(extracted_text)
 
     # ── 4. LLM CLASSIFY (bounded concurrency) ────────────────
+    await _stage("classifying")
     llm_classified, keyword_fallback = await classify_clauses(notice)
 
     log.info(
@@ -296,11 +528,13 @@ async def run_assessment_intake(
     )
 
     # ── 6. SCORE (live scoring — Prompt 6 adds the module) ───
+    await _stage("scoring")
     scoring_summary: dict | None = None
     scoring_error: str | None = None
     try:
         from app.services.live_scoring import score_and_persist
-        result = await score_and_persist(org_id, notice_id, notice)
+        result = await score_and_persist(
+            org_id, notice_id, notice, refresh_profile=profile_inputs_changed)
         scoring_summary = result.get("summary")
     except ImportError:
         # live_scoring module not yet created (Prompt 6)
@@ -344,6 +578,13 @@ async def run_assessment_intake(
         response["content_warning"] = content_warning
     if upload_filename:
         response["upload_filename"] = upload_filename
+    # ARCH-001A: echo the captured filters (honest provenance for the UI/report).
+    if industry:
+        response["industry"] = industry.strip().lower().replace(" ", "_")
+        response["industry_source"] = (
+            "unknown" if response["industry"] == _iopt.UNKNOWN_INDUSTRY else "user_provided")
+    if jurisdictions_list:
+        response["jurisdictions"] = jurisdictions_list
 
     return response
 

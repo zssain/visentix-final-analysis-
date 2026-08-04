@@ -20,6 +20,11 @@ class Settings(BaseSettings):
     # Renderer: "weasyprint" (default) or "playwright" (requires Chromium installed)
     renderer: str = Field(default="weasyprint")
 
+    # SEC-005: only honor X-Forwarded-For for rate-limit keying when we sit behind
+    # a TRUSTED reverse proxy. Default False — the header is client-controlled and
+    # spoofable, so an untrusted deployment must key on the real peer IP.
+    trusted_proxy: bool = Field(default=False)
+
     # Supabase
     supabase_url: str
     supabase_anon_key: str
@@ -53,6 +58,11 @@ class Settings(BaseSettings):
 
     # Admin
     admin_email: str = Field(default="")
+
+    # SEC-009 — server-side pepper for partner API-key hashing (HMAC-SHA256).
+    # When set, new keys are stored as HMAC(pepper, plaintext); verify still
+    # accepts legacy unsalted sha256 for migration. Empty = legacy sha256 (dev).
+    partner_key_pepper: str = Field(default="")
 
     # F07 scheduler — in-process APScheduler. OFF by default so tests / import
     # never start it; the real server sets SCHEDULER_ENABLED=true.

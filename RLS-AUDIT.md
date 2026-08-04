@@ -50,3 +50,11 @@ Not applied here because they touch the live login path / prod DB and carry lock
 - ✅ Gate mode **defaults to STRICT** (expert_review) when `platform_setting` is empty — prod never shows drafts by default + test.
 - ✅ `local_users.json` untracked + ignored; history exposure flagged for rotation.
 - ✅ RLS confirmed enforced live via anon-key probe.
+
+## 7. Remediation update (2026-08-04 — Phases 1–4)
+
+- ✅ **SEC-001 (Critical) closed** — `GET /findings/` was returning every org's findings to any customer; now org-scoped via the new centralized `app/services/tenancy.py::customer_org_scope` (no-org customer → empty, never platform-wide).
+- ✅ **SEC-003 minimum backstop** — a single `customer_org_scope` chokepoint (used by findings list + dashboard-stats) instead of per-route ad-hoc filters; a backend sweep of every router found **no cross-tenant leak beyond SEC-001**. The permanent guard is the extended cross-tenant contract test (`tests/test_org_isolation.py`, `CAPTURE_ROUTES` — org A vs B, scoped/empty/platform-wide, + SME-route role rejection). **Full RLS-under-user-JWT remains the Phase-2/architectural direction (deferred).**
+- ✅ **SEC-008 corrective** — migration `0046_reapply_notice_rls_policies.sql` re-applies 0011's absent `privacy_notice/notice_section/disclosure_clause` SELECT policies (ledger drift); `tests/test_sec008_rls_policies.py` guards the migration set. **Live `pg_policies` verify + prod apply = BLOCKED-EXTERNAL** (query in the test).
+- ✅ **SEC-011** — the alert `webhook_url` SSRF sink is closed: validated at save (https + SSRF check) and re-validated + IP-pinned at send.
+- Runtime still uses the service-role key (RLS bypassed at runtime by design); the app-layer chokepoint + contract test is the interim isolation guarantee until the user-JWT/RLS path lands.

@@ -11,6 +11,7 @@ import json
 
 from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import Response
+from pydantic import BaseModel, Field
 
 from app.auth import AuthenticatedUser, require_role
 from app.logging import get_logger
@@ -62,9 +63,13 @@ async def by_quarter(quarter: str):
 
 # ── Admin / expert ───────────────────────────────────────────
 
+class BuildIn(BaseModel):  # SEC-010 — typed request body
+    quarter: str = Field(..., min_length=1, max_length=16)
+
+
 @admin_router.post("/build", status_code=status.HTTP_201_CREATED)
-async def build(body: dict, user: AuthenticatedUser = require_role("admin")):
-    quarter = (body.get("quarter") or "").strip()
+async def build(body: BuildIn, user: AuthenticatedUser = require_role("admin")):
+    quarter = body.quarter.strip()
     try:
         out = await Q.build_quarterly(quarter)
     except ValueError as e:

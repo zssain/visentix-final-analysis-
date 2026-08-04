@@ -56,8 +56,15 @@ async def score_and_persist(
     organization_id: str,
     notice_id: str,
     notice: DecomposedNotice,
+    *,
+    refresh_profile: bool = False,
 ) -> dict:
     """Score a decomposed notice and persist all intelligence objects.
+
+    `refresh_profile=True` (ARCH-001A: set when the caller changed the org's
+    scoring inputs, e.g. a user-declared industry/jurisdiction at intake) forces a
+    NEW versioned org profile so the change actually reaches the score, rather than
+    reusing a stale cached profile.
 
     Returns dict with scores, findings, vci, and summary.
     """
@@ -67,7 +74,8 @@ async def score_and_persist(
     async with httpx.AsyncClient(timeout=30) as client:
 
         # ── a) Ensure org profile ─────────────────────────────
-        target_profile = await _ensure_org_profile(client, headers, organization_id, notice)
+        target_profile = await _ensure_org_profile(
+            client, headers, organization_id, notice, force_refresh=refresh_profile)
 
         # ── b) Build dynamic population ──────────────────────
         from app.services.benchmark.population import build_population
@@ -217,7 +225,12 @@ async def score_and_persist(
                     json=explain_rows,
                 )
         except Exception:
-            pass  # Table may not exist yet; Prompt 10 finalizes
+            # Non-fatal: table may not exist yet; Prompt 10 finalizes.
+            log.debug(
+                "Skipped explainability_reference upsert for org %s (table may not exist yet)",
+                organization_id,
+                exc_info=True,
+            )
 
         # ── h) Persist report_snapshot ────────────────────────
         snapshot_payload = {
@@ -313,8 +326,16 @@ async def _ensure_org_profile(
     headers: dict,
     organization_id: str,
     notice: DecomposedNotice,
+    *,
+    force_refresh: bool = False,
 ) -> dict:
-    """Load or compute the org's intelligence profile."""
+    """Load or compute the org's intelligence profile.
+
+    ARCH-001A: `force_refresh=True` recomputes a NEW versioned profile even when
+    one exists (used when the org's scoring inputs just changed), so the change
+    reaches the score. Hard Rule 6: we never overwrite — we insert a higher
+    profile_version, and this loader always returns the latest version.
+    """
     r = await client.get(
         f"{SB}/rest/v1/organization_intelligence_profile"
         f"?select=*&organization_id=eq.{organization_id}"
@@ -322,8 +343,10 @@ async def _ensure_org_profile(
         headers=headers,
     )
     existing = r.json() if r.status_code == 200 else []
-    if existing:
+    if existing and not force_refresh:
         return existing[0]
+    # Next version number (1 if none) — never overwrite an existing profile row.
+    next_version = (existing[0].get("profile_version", 0) + 1) if existing else 1
 
     # Compute a new profile
     from app.services.profiling.live_profile import compute_org_profile
@@ -343,7 +366,7 @@ async def _ensure_org_profile(
         {"category": c.category, "clause_type": getattr(c, "clause_type", "")}
         for c in notice.clauses if not getattr(c, "is_noise", False)
     ]
-    profile = compute_org_profile(org_row, clauses, profile_version=1)
+    profile = compute_org_profile(org_row, clauses, profile_version=next_version)
 
     # Persist
     profile_payload = {
@@ -363,7 +386,7 @@ async def _ensure_org_profile(
         "dsi_tier": profile.dsi_tier,
         "ehp_tier": profile.ehp_tier,
         "aigms_tier": profile.aigms_tier,
-        "profile_version": 1,
+        "profile_version": next_version,
         "confidence_score": profile.confidence_score,
     }
     resp = await client.post(

@@ -35,3 +35,23 @@ This report **measures**; it changes no weight, threshold, taxonomy, or formula.
 - **[ENG]** LLM-path stability run; wire the Admin precision panel UI; keep the CI golden diff green.
 
 _The harness fixes nothing based on these results — measurement only._
+
+## Known analysis-depth limitation — presence-proxy scoring (AI-003)
+
+**What it is (accurate, not a bug).** Several scoring dimensions currently measure
+disclosure **presence**, not disclosure **quality**. F-005 disclosure-maturity counts
+a domain as "present" if the notice has ≥1 clause mapped to it (`present_count` in
+`app/services/scoring/formulas.py:217`, comment "proxy — actual element detection is
+Phase 5"); PGMS/DSI/AIGMS pillars use `min(count/saturation, 1)`; specificity uses a
+readability proxy. So a notice that *mentions* a topic scores like one that discloses
+it *well*.
+
+**Why it's not changed here.** These are governed formulas (`intelligence-logic.md` +
+the `formula_version` table); depth is a modelling upgrade, not a remediation bug fix.
+Redesigning them is out of scope for hardening and requires spec/SME sign-off.
+
+**Consequence.** Alongside empty org context (ARCH-001), this is a second reason
+output can read generic. Element-level presence + clause-quality signals are the
+**Phase-5** upgrade (a new formula version, old versions preserved per Hard Rule 6),
+to be specified via the spec-update workflow. Accuracy of the current classifier is
+measured by EVAL-001/F17, not asserted.

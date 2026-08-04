@@ -23,7 +23,7 @@ export interface AdvisorNoteProps {
   /* Analyst layer */
   exposureScore: number;
   cohortPercentile: number;  // 0-100
-  vci: number;               // 0-100
+  vci?: number;              // 0-100, or undefined for honest absence (DATA-003)
   formulaId: string;
   formulaDesc: string;
   cohortSize: number;
@@ -132,7 +132,11 @@ export function AdvisorNote({
               {/* VCI */}
               <div className="an-metric-cell">
                 <div className="an-metric-label">Confidence (VCI)</div>
-                <div className="an-metric-value">{vci}<span style={{ fontSize: "0.6em" }}>%</span></div>
+                <div className="an-metric-value" data-testid="advisor-vci">
+                  {vci !== undefined
+                    ? <>{vci}<span style={{ fontSize: "0.6em" }}>%</span></>
+                    : "Not recorded"}
+                </div>
                 <div className="an-metric-sub">Visentix Confidence Index</div>
               </div>
             </div>
@@ -169,7 +173,7 @@ export function AdvisorNote({
               <div className="an-pills">
                 <span className="an-pill exposure">Exposure: {exposureScore.toFixed(1)}</span>
                 <span className="an-pill cohort">{cohortPercentile}th percentile · n={cohortSize}</span>
-                <span className="an-pill vci">VCI {vci}%</span>
+                <span className="an-pill vci">VCI {vci !== undefined ? `${vci}%` : "Not recorded"}</span>
               </div>
             </div>
 

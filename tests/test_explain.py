@@ -276,6 +276,34 @@ def test_empty_inputs_produce_empty_bundle():
     assert bundle["narrative"]["executive_summary"]["llm_used"] is False
 
 
+def test_absent_guardrail_metadata_never_renders_passed():
+    """GRD-002: a snapshot with no recorded guardrail result must render honest
+    absence ('not_recorded'), never a manufactured 'passed', and the provenance
+    must not assert the guardrail ran."""
+    meta_no_guardrail = {
+        "executive_summary": {"text": "Summary.", "numbers_from": ["f010"], "llm_used": False},
+        "takeaways": [{"text": "A takeaway.", "numbers_from": [], "llm_used": False}],
+    }
+    bundle = build_explanation_bundle(
+        SAMPLE_SCORES, SAMPLE_FINDINGS, SAMPLE_VCI,
+        meta_no_guardrail, SAMPLE_NOTICE_REFS,
+    )
+    exec_ = bundle["narrative"]["executive_summary"]
+    assert exec_["guardrail"] == "not_recorded"
+    assert exec_["guardrail"] != "passed"
+    assert "not recorded" in exec_["provenance"].lower()
+    assert "passed the banned-term guardrail" not in exec_["provenance"]
+    for t in bundle["narrative"]["takeaways"]:
+        assert t["guardrail"] == "not_recorded"
+        assert "not recorded" in t["provenance"].lower()
+
+
+def test_empty_bundle_guardrail_not_passed():
+    """Even the fully-empty bundle must not default the guardrail receipt to passed."""
+    bundle = build_explanation_bundle({}, [], {})
+    assert bundle["narrative"]["executive_summary"]["guardrail"] == "not_recorded"
+
+
 def test_formula_descriptions_cover_all_formulas():
     expected = [
         "F-001_v1", "F-002_v1", "F-003_v1", "F-004_v1", "F-005_v1",

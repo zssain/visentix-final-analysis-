@@ -47,6 +47,11 @@ async def admin_status(
 
     last_job_runs = [await last_run(name) for name in JOB_DEFAULTS]
 
+    # BACK-001: surface orphaned `running` rows so a stalled job is visible here
+    # rather than silently blocking monitoring.
+    from app.services.jobs.framework import stale_run_count
+    stale_runs = await stale_run_count()
+
     # ── Settings-drift check ────────────────────────────────────
     # Prod must not silently sit in demo state (e.g. gate_mode=instant_draft, jobs
     # enabled in a v1 pilot). Compare the LIVE platform_settings against the active
@@ -84,6 +89,7 @@ async def admin_status(
         "ollama_ok": ollama_ok,
         "gate_mode": gate_mode,
         "last_job_runs": [r for r in last_job_runs if r],
+        "stale_job_runs": stale_runs,            # BACK-001: >0 means an orphaned run needs a reap
         "pending_reviews": pending_reviews,
         "alerts_suppressed": alerts_suppressed,
         "release_version": active_version,

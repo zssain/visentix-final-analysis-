@@ -21,6 +21,40 @@ function ReportLoader({ assessmentId }: { assessmentId: string }) {
   const [report, setReport] = useState<ReportPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<{ status: number; message: string } | null>(null);
+  const [downloading, setDownloading] = useState(false);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
+
+  // The PDF endpoint is role-gated, so a bare <a href> (which can't carry the
+  // Authorization header) 401s. Fetch the PDF as an authenticated blob via
+  // api.getBlob (sends the JWT), then trigger a programmatic download — same
+  // idiom as QuarterlyReport / PartnerPortal. Loading + honest error surfacing.
+  const downloadPdf = async () => {
+    setDownloading(true);
+    setDownloadError(null);
+    try {
+      const blob = await api.getBlob(`/reports/${assessmentId}/pdf`);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `report-${assessmentId.slice(0, 8)}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setDownloadError(
+          err.status === 403
+            ? "You do not have permission to download this report."
+            : err.status === 404
+              ? "Report PDF not found."
+              : "Could not download the report. Please try again.",
+        );
+      } else {
+        setDownloadError("Could not download the report. Please try again.");
+      }
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   useEffect(() => {
     api.get(`/reports/${assessmentId}`)
@@ -94,14 +128,19 @@ function ReportLoader({ assessmentId }: { assessmentId: string }) {
         <Link to="/" style={{ color: "var(--text-secondary)", fontSize: "0.9rem" }}>
           ← Back to Assessments
         </Link>
-        <a
-          href={`${import.meta.env.VITE_API_BASE_URL ?? (import.meta.env.DEV ? "http://localhost:8000" : "")}/reports/${assessmentId}/pdf`}
+        <button
+          type="button"
           className="btn btn-outline btn-sm"
-          target="_blank"
-          rel="noopener noreferrer"
+          onClick={downloadPdf}
+          disabled={downloading}
         >
-          Download PDF
-        </a>
+          {downloading ? "Downloading…" : "Download PDF"}
+        </button>
+        {downloadError && (
+          <span role="alert" style={{ color: "var(--red)", fontSize: "0.85rem" }}>
+            {downloadError}
+          </span>
+        )}
       </div>
 
       <ReportView report={report} />

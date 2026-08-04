@@ -16,17 +16,28 @@ from dataclasses import asdict
 from typing import Optional
 
 import httpx
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, HTTPException, Query, Request, status
 from fastapi.responses import Response
 
 from app.auth import AuthenticatedUser, require_role
 from app.config import settings
 from app.db import get_service_headers
+from app.logging import get_logger
+from app.services import guardrail
+from app.services.ratelimit import check_rate_limit, client_key
 from app.services.report.assembly import assemble_report, ReportPayload
 from app.services.review import customer_can_view
 from app.services.scoring.heatmap import build_regulator_heatmap, heatmap_to_serializable
 
+log = get_logger(__name__)
+
 router = APIRouter(prefix="/reports", tags=["reports"])
+
+# SEC-005: PDF render is CPU+RAM heavy (WeasyPrint, serialized by _PDF_RENDER_SEM).
+# ~20/min per user is comfortable for a human clicking Export/Preview but blocks a
+# hammering loop before it reaches the render semaphore.
+_PDF_LIMIT = 20
+_PDF_WINDOW_S = 60
 
 # PDF render is CPU+memory heavy (WeasyPrint). Serialize renders (semaphore=1) so
 # concurrent exports can't exhaust a small VM's RAM; on contention fail fast with
@@ -115,9 +126,68 @@ def _maturity_band(score: float) -> str:
     return "Deficient"
 
 
+# DATA-002: keys that carry NO meaningful content — they are volatile artifacts of
+# WHEN/HOW a snapshot was built (dates, snapshot ids) or runtime envelope metadata
+# (any leading-underscore key injected at store/read time). Including them makes the
+# "content hash" change across days and snapshots for byte-identical scores, which
+# weakens tamper-evidence: two reports with identical findings/scores/narrative must
+# hash IDENTICALLY, and any change to that meaningful content must change the hash.
+#
+# We strip these recursively, wherever they appear in the (nested) report dict —
+# `date` and `snapshot_id` are baked into several section `content` blocks by
+# assembly.py, so a top-level-only strip would not be enough.
+#
+# Two of these keys (`cohort_label`, `note`) hold DERIVED PROSE that embeds the
+# volatile date/snapshot id INSIDE a free-text string, where a key-based strip
+# can't reach it. They carry no content that isn't already covered structurally
+# (`cohort_size`, `snapshot_id`, the score/finding fields), so excluding the whole
+# string is safe and keeps the hash pure.
+_CONTENT_HASH_EXCLUDE_KEYS = frozenset({
+    "date",            # date.today()/cohort_date baked into cover + dashboard sections
+    "generated_date",  # ReportPayload.generated_date (== cohort_date, volatile)
+    "cohort_date",     # the "as of <date>" stamp — a timestamp, not content
+    "snapshot_id",     # per-build UUID baked into cover/dashboard/traceability sections
+    "cohort_label",    # derived prose: "n=<size> peers as of <date>" (embeds the date)
+    "note",            # derived prose: "...via snapshot <id>...as of <date>" (embeds both)
+})
+
+
+def _canonicalize_for_hash(value):
+    """Return a copy of `value` with all volatile/runtime keys removed, recursively.
+
+    Excluded (see _CONTENT_HASH_EXCLUDE_KEYS): `date`, `generated_date`,
+    `cohort_date`, `snapshot_id`, and the derived-prose `cohort_label`/`note`
+    (which embed the date/snapshot id inside free text). Also excluded: ANY key
+    beginning with an underscore (`_content_hash`, `_snapshot_id`,
+    `_report_version`, `_generated_at`
+    and any future `_*` runtime metadata) — these are envelope fields injected at
+    store/read time, never meaningful content.
+
+    Everything else — scores, findings, approved narrative text, config,
+    formula/version refs, cohort_size, etc. — is preserved so a change to any of it
+    changes the hash (tamper-evidence).
+    """
+    if isinstance(value, dict):
+        return {
+            k: _canonicalize_for_hash(v)
+            for k, v in value.items()
+            if not (isinstance(k, str) and (k.startswith("_") or k in _CONTENT_HASH_EXCLUDE_KEYS))
+        }
+    if isinstance(value, (list, tuple)):
+        return [_canonicalize_for_hash(v) for v in value]
+    return value
+
+
 def _content_hash(data: dict) -> str:
-    """Deterministic SHA-256 of the report payload."""
-    canonical = json.dumps(data, sort_keys=True, default=str)
+    """DATA-002: deterministic SHA-256 of ONLY the meaningful, immutable content.
+
+    Volatile fields (dates, snapshot_id) and runtime `_*` metadata are stripped
+    (see _canonicalize_for_hash) BEFORE canonical serialization, so byte-identical
+    scores/findings/narrative always yield the same hash regardless of the day or
+    snapshot in which the report was assembled — while any change to the actual
+    content still changes the hash.
+    """
+    canonical = json.dumps(_canonicalize_for_hash(data), sort_keys=True, default=str)
     return hashlib.sha256(canonical.encode()).hexdigest()
 
 
@@ -139,8 +209,12 @@ def _domain_id_to_slug() -> dict[str, str]:
                     # First non-"other" slug per domain wins (a domain's canonical slug).
                     if did and slug and slug != "other" and did not in _DOMAIN_ID_TO_SLUG:
                         _DOMAIN_ID_TO_SLUG[did] = slug
-        except Exception:
-            pass
+        except (OSError, ValueError, KeyError, TypeError) as e:
+            # BACK-003: don't swallow KeyboardInterrupt/SystemExit; log the
+            # taxonomy-load failure (path + error type, no secrets) and fall back
+            # to an empty map — the your-text lookup then renders honest absence.
+            log.warning("clause_taxonomy load failed (%s): %s; using empty slug map",
+                        type(e).__name__, e)
     return _DOMAIN_ID_TO_SLUG
 
 
@@ -228,10 +302,14 @@ async def get_report(
 @router.get("/{assessment_id}/pdf")
 async def get_report_pdf(
     assessment_id: str,
+    request: Request,
     user: AuthenticatedUser = require_role("customer", "sme", "admin"),
 ):
     """Render the report as PDF. Uses stored snapshot for determinism."""
     from app.services.report.renderer import render_pdf
+
+    # SEC-005: throttle before any snapshot load or render work.
+    check_rate_limit(client_key(request, user), limit=_PDF_LIMIT, window_s=_PDF_WINDOW_S)
 
     # F10: a customer may only export its own organization's report.
     assert_customer_owns(assessment_id, user)
@@ -398,6 +476,39 @@ def _extract_scores(derived_rows: list[dict]) -> tuple[dict, float | None]:
     return scores, vci_confidence
 
 
+def _enforce_snapshot_prose(
+    exec_summary: str,
+    takeaways: list[str],
+    recommendations: list[dict],
+) -> dict:
+    """GRD-001: run the ONE canonical guardrail over EVERY generated string that
+    enters the snapshot — exec summary, takeaways, and each recommendation's
+    title + body (recommendation_library.body_template). Fail closed per Hard
+    Rule 1 ("the phrasing guardrail … must hard-fail report builds containing a
+    banned term"): guardrail.enforce raises GuardrailError, which aborts the
+    build so no legal-verdict language can reach a snapshot.
+
+    Peer/org clause text and exemplars are NOT passed here — they are cited
+    source material, not generated prose, and the guardrail exempts source
+    excerpts (business-logic.md §2).
+
+    Returns the real result to persist in snapshot lineage; GRD-002's receipt
+    displays this instead of a hardcoded default.
+    """
+    strings = [exec_summary, *takeaways]
+    for r in recommendations:
+        strings.append(r.get("title", ""))
+        strings.append(r.get("prose", ""))
+
+    checked = 0
+    for s in strings:
+        if s:
+            guardrail.enforce(s)  # raises GuardrailError on a banned term → fail closed
+            checked += 1
+
+    return {"status": "passed", "strings_checked": checked}
+
+
 def _assemble_from_live(assessment_id: str) -> ReportPayload:
     """Assemble report from live DB data. Used when no snapshot exists."""
 
@@ -479,8 +590,15 @@ def _assemble_from_live(assessment_id: str) -> ReportPayload:
         sp = snap_rows[0]
         snap_payload = sp.get("payload", {})
         if isinstance(snap_payload, str):
-            try: snap_payload = json.loads(snap_payload)
-            except: snap_payload = {}
+            try:
+                snap_payload = json.loads(snap_payload)
+            except (ValueError, TypeError) as e:
+                # BACK-003: narrow the bare except (no KeyboardInterrupt/SystemExit);
+                # log the malformed-payload context (notice id + error, no secrets)
+                # before falling back to an empty cohort payload.
+                log.warning("snapshot payload not valid JSON for notice=%s (%s): %s",
+                            notice_id[:12], type(e).__name__, e)
+                snap_payload = {}
         cohort_size = snap_payload.get("cohort_size", 0)
         cohort_date = (sp.get("created_at") or "")[:10]
         snapshot_id = sp["snapshot_id"]
@@ -582,6 +700,10 @@ def _assemble_from_live(assessment_id: str) -> ReportPayload:
                 if len(text) > 30:
                     org_clauses_by_domain[cat] = text[:1000]
 
+    # GRD-001: enforce the guardrail on ALL generated prose before it can enter a
+    # snapshot. Fails closed on a banned term; records the real result for lineage.
+    guardrail_result = _enforce_snapshot_prose(exec_summary, takeaways, recommendations)
+
     return assemble_report(
         assessment_id=assessment_id,
         org_name=org_name,
@@ -597,4 +719,5 @@ def _assemble_from_live(assessment_id: str) -> ReportPayload:
         cohort_date=cohort_date,
         snapshot_id=snapshot_id,
         org_clauses_by_domain=org_clauses_by_domain,
+        guardrail_result=guardrail_result,
     )

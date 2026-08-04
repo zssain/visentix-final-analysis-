@@ -16,9 +16,81 @@ never an arbitrary URL. No SSRF via the renderer.
 from __future__ import annotations
 
 import io
+import re
 from datetime import datetime
 
 from app.services.report.assembly import ReportPayload, ReportSection
+
+# SEC-006: default brand color used whenever the partner-supplied value fails
+# strict validation. Must NEVER be replaced by an unvalidated raw value.
+_DEFAULT_BRAND_COLOR = "#0f3460"
+
+# SEC-006: strict CSS color allowlist. Only hex (#rgb / #rrggbb / #rrggbbaa)
+# and rgb()/rgba() with numeric args. Anchored to the whole string so a payload
+# like "red;} body{display:none}" or "#fff;}@import url(x)" cannot match — the
+# raw value is dropped and the default is used instead. This blocks `}`-breakout
+# and any CSS-property/at-rule injection.
+_HEX_COLOR_RE = re.compile(r"\A#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})\Z")
+_RGB_COLOR_RE = re.compile(
+    r"\Argba?\(\s*"
+    r"[0-9]{1,3}(?:\.[0-9]+)?%?\s*,\s*"
+    r"[0-9]{1,3}(?:\.[0-9]+)?%?\s*,\s*"
+    r"[0-9]{1,3}(?:\.[0-9]+)?%?"
+    r"(?:\s*,\s*(?:0|1|0?\.[0-9]+|[0-9]{1,3}%))?"
+    r"\s*\)\Z"
+)
+
+
+def _safe_brand_color(value) -> str:
+    """Return a strictly-validated CSS color, or the safe default.
+
+    SEC-006: only #rgb/#rrggbb/#rrggbbaa hex and rgb()/rgba() with numeric args
+    are accepted. Anything else (including any string containing CSS-breakout
+    characters like `}`, `;`, `@`, or `<`) is rejected and the default is used.
+    The returned value is safe to interpolate directly into a CSS context.
+    """
+    if not isinstance(value, str):
+        return _DEFAULT_BRAND_COLOR
+    candidate = value.strip()
+    if _HEX_COLOR_RE.match(candidate) or _RGB_COLOR_RE.match(candidate):
+        return candidate
+    return _DEFAULT_BRAND_COLOR
+
+
+def _safe_logo_url(value) -> str | None:
+    """Return an https-only, SSRF-safe logo URL, or None to drop the logo.
+
+    SEC-006: allowlist the scheme to `https:` ONLY (rejecting javascript:,
+    data:, http:, file:, and relative URLs) and reject any host that resolves to
+    a private/loopback/link-local/metadata address (reusing the intake SSRF
+    validator). On ANY rejection — including a network/resolution failure during
+    validation — the logo is dropped rather than crashing the render.
+    """
+    if not isinstance(value, str):
+        return None
+    candidate = value.strip()
+    if not candidate:
+        return None
+
+    from urllib.parse import urlparse
+
+    try:
+        scheme = urlparse(candidate).scheme.lower()
+    except ValueError:
+        return None
+    if scheme != "https":
+        return None
+
+    # Host must not resolve to a private/loopback/link-local/metadata address.
+    # Never let a validation failure (SSRF block OR network error) crash render.
+    try:
+        from app.services.intake.ssrf import resolve_and_validate
+
+        resolve_and_validate(candidate)
+    except Exception:
+        return None
+
+    return candidate
 
 
 def _branding_band(branding: dict | None) -> str:
@@ -28,12 +100,17 @@ def _branding_band(branding: dict | None) -> str:
     section content — no number or wording in the report body changes (F20
     MUST NOT). Deterministic given the (frozen) branding dict, so the branded
     PDF is byte-identical per snapshot.
+
+    SEC-006: `brand_color` is strictly validated (CSS-injection safe) and
+    `logo_url` is https-only + SSRF-checked; unsafe values are dropped rather
+    than emitted, so both the WeasyPrint and Playwright/Chromium render paths
+    (which consume this same assembled HTML) are safe.
     """
     if not branding or not branding.get("partner_id"):
         return ""
-    color = _esc(branding.get("brand_color") or "#0f3460")
+    color = _safe_brand_color(branding.get("brand_color") or _DEFAULT_BRAND_COLOR)
     name = _esc(branding.get("partner_name") or "")
-    logo = branding.get("logo_url")
+    logo = _safe_logo_url(branding.get("logo_url"))
     logo_html = f'<img src="{_esc(logo)}" alt="" style="max-height:44px;">' if logo else ""
     return (
         f'<div class="brand-band" style="border-top:6px solid {color};'

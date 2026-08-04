@@ -16,10 +16,17 @@ from fastapi.responses import PlainTextResponse
 from app.auth import AuthenticatedUser, require_role
 from app.logging import get_logger
 from app.services import bulk
+from app.services.ratelimit import check_rate_limit, client_key
 
 log = get_logger(__name__)
 
 router = APIRouter(prefix="/bulk", tags=["bulk"])
+
+# SEC-005: a bulk job fans out to ≤200 assessments (extract→classify→score each),
+# so it is by far the heaviest submit. Throttle job creation hard — ~3/min per
+# user is generous given the one-running-job-per-tenant guard below.
+_BULK_JOBS_LIMIT = 3
+_BULK_JOBS_WINDOW_S = 60
 
 
 def _require_tenant(user: AuthenticatedUser) -> str:
@@ -70,6 +77,7 @@ async def create_bulk_job(
     ≤200 rows (201+ → 400). One running job per tenant (else 409). Rows with a
     malformed URL are accepted and fail alone during processing (→ 'partial').
     """
+    check_rate_limit(client_key(request, user), limit=_BULK_JOBS_LIMIT, window_s=_BULK_JOBS_WINDOW_S)
     owner_org_id = _require_tenant(user)
     label, rows = await _parse_rows(request)
 

@@ -18,15 +18,17 @@ import hashlib
 import io
 import re
 import zipfile
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse
 
+import httpcore  # transitive dep of httpx — used to pin the validated IP
 import httpx
 from bs4 import BeautifulSoup
 
-from app.services.intake.ssrf import (
+from app.services.intake.ssrf import (  # noqa: F401 — SSRFError re-exported for callers
     FETCH_TIMEOUT_SECONDS,
     MAX_RESPONSE_BYTES,
     SSRFError,
+    resolve_and_validate,
     validate_url,
 )
 
@@ -94,18 +96,68 @@ def looks_like_privacy_policy(text: str) -> bool:
 
 # ── SSRF-safe fetch with redirect re-validation ─────────────
 
-async def _fetch_ssrf_safe(url: str) -> httpx.Response:
-    """Fetch a URL, re-validating SSRF on every redirect hop.
+class _PinnedResolverBackend(httpcore.AnyIOBackend):
+    """Dial a pre-validated IP for a given host — closes the DNS-rebinding TOCTOU.
 
-    - follow_redirects=False so WE control the redirect chain
-    - Each hop runs validate_url() (DNS resolve + IP block check)
-    - Max MAX_REDIRECTS hops, then error
+    SEC-002: `resolve_and_validate` already resolved+validated the host to a safe
+    IP. This backend makes the socket connect to THAT IP instead of re-resolving
+    the hostname at connect time (which an attacker's DNS could rebind to a
+    private/metadata address). TLS SNI and certificate verification still use the
+    origin hostname (httpcore applies TLS from the request origin, not the connect
+    target), so HTTPS integrity is preserved.
     """
-    current = validate_url(url)  # raises SSRFError if blocked
+
+    def __init__(self, host_to_ip: dict[str, str]):
+        self._host_to_ip = host_to_ip
+        super().__init__()
+
+    async def connect_tcp(self, host, port, timeout=None, local_address=None,
+                          socket_options=None):
+        target = self._host_to_ip.get(host.lower(), host)
+        return await super().connect_tcp(
+            target, port, timeout=timeout,
+            local_address=local_address, socket_options=socket_options,
+        )
+
+
+class _PinnedTransport(httpx.AsyncHTTPTransport):
+    """httpx transport whose connection pool dials pinned IPs (see backend)."""
+
+    def __init__(self, host_to_ip: dict[str, str], **kwargs):
+        super().__init__(**kwargs)
+        # Swap the pool's network backend for the pinning resolver. `_pool` and
+        # `_network_backend` are httpx/httpcore internals but stable in 0.28.x.
+        self._pool._network_backend = _PinnedResolverBackend(host_to_ip)
+
+
+async def _fetch_ssrf_safe(
+    url: str, *, transport: httpx.AsyncBaseTransport | None = None
+) -> httpx.Response:
+    """Fetch a URL, pinning the validated IP and re-validating every redirect hop.
+
+    - resolve_and_validate() resolves the host ONCE, validates every address, and
+      returns the IP we pin the socket to (SEC-002 — no re-resolution at connect).
+    - follow_redirects=False so WE control the chain; each hop is re-validated and
+      re-pinned (the existing per-hop defense is preserved, not weakened).
+    - `transport` is injectable for tests; production uses the pinning transport.
+    - Max MAX_REDIRECTS hops, then error.
+    """
+    host_to_ip: dict[str, str] = {}
+
+    def _pin(u: str) -> str:
+        _, ip, _ = resolve_and_validate(u)  # raises SSRFError if blocked
+        host = (urlparse(u).hostname or "").strip().rstrip(".").lower()
+        host_to_ip[host] = ip
+        return u
+
+    current = _pin(url)
+    if transport is None:
+        transport = _PinnedTransport(host_to_ip)
 
     async with httpx.AsyncClient(
         timeout=FETCH_TIMEOUT_SECONDS,
         follow_redirects=False,
+        transport=transport,
         headers={
             "User-Agent": USER_AGENT,
             "Accept-Language": "en-US,en;q=0.9",
@@ -120,8 +172,8 @@ async def _fetch_ssrf_safe(url: str) -> httpx.Response:
                     raise ExtractionError(
                         f"Redirect {response.status_code} without Location header"
                     )
-                # Resolve relative URLs and re-validate for SSRF
-                current = validate_url(urljoin(current, location))
+                # Resolve relative URLs, then re-validate AND re-pin the new hop.
+                current = _pin(urljoin(current, location))
                 continue
 
             response.raise_for_status()

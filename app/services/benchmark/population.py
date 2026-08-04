@@ -12,6 +12,8 @@ Applies size rules with recorded relaxation:
 
 from __future__ import annotations
 
+import hashlib
+
 import httpx
 
 from app.config import settings
@@ -38,6 +40,52 @@ def _population_key(profile: dict) -> str:
         profile.get("ehp_tier", ""),
     ]
     return "|".join(parts)
+
+
+def _population_version(
+    member_org_ids,
+    *,
+    population_key: str = "",
+    member_profile_versions=None,
+    corpus_version=None,
+) -> int:
+    """Deterministic, content-derived benchmark population version (DATA-001).
+
+    The version is a CANONICAL identity of the population's actual content, NOT a
+    wall-clock timestamp. Two identical re-scores (same member set + same cohort
+    config + same corpus/profile versions) MUST produce the same version; any
+    change to the member set (or the config/versions) MUST produce a different
+    one.
+
+    Inputs folded into the identity (whatever is available in scope):
+      - sorted(member_org_ids)           — the population membership itself
+      - population_key                   — cohort config (industry + tier key)
+      - member_profile_versions          — the formula/profile-version set of members
+      - corpus_version                   — source corpus version
+
+    Returns a STABLE POSITIVE 31-bit int. `report_snapshot.benchmark_population_version`
+    is a Postgres `integer` (int32) column, and the same value is also written to
+    `derived_data_item.benchmark_population_version` (text) via str(). We therefore
+    derive a positive int that fits int32 (mask to 31 bits) rather than the raw
+    hex digest, so nothing downstream breaks.
+    """
+    # Sorted, de-duplicated member ids — order-independent identity.
+    ids = sorted({str(m) for m in (member_org_ids or []) if m})
+    # Sorted set of member profile/formula versions (stringified for stability).
+    pvs = sorted({str(v) for v in (member_profile_versions or []) if v is not None})
+
+    canonical = "\x1f".join(
+        [
+            "members=" + ",".join(ids),
+            "population_key=" + (population_key or ""),
+            "profile_versions=" + ",".join(pvs),
+            "corpus_version=" + ("" if corpus_version is None else str(corpus_version)),
+        ]
+    ).encode("utf-8")
+
+    digest = hashlib.sha256(canonical).hexdigest()
+    # Mask to 31 bits → always a positive value that fits a signed int32 column.
+    return int(digest[:12], 16) & 0x7FFFFFFF
 
 
 async def build_population(
@@ -241,9 +289,18 @@ async def build_population(
     if cqs_excluded > 0:
         relaxations.append(f"cqs_gated_excluded_{cqs_excluded}")
 
-    # Determine population version (timestamp-based)
-    import time
-    pop_version = int(time.time())
+    # Determine population version — CANONICAL, content-derived (DATA-001).
+    # Identical populations produce identical versions; a changed member set
+    # produces a different one. No wall-clock is involved.
+    member_org_ids = [m["organization_id"] for m in normalized_members]
+    member_profile_versions = [
+        m.get("profile", {}).get("profile_version") for m in normalized_members
+    ]
+    pop_version = _population_version(
+        member_org_ids,
+        population_key=pop_key,
+        member_profile_versions=member_profile_versions,
+    )
 
     return {
         "population_key": pop_key,

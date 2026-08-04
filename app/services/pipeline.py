@@ -145,6 +145,17 @@ def score_notice(
     total_findings_count = sum(1 for s in [f002, f003, f005, f006, f007] if s.score > 0)
     f014 = compute_f014(total_findings_count, max(total_findings_count, 1),
                         avg_source_reliability, avg_conf)
+    # F14-001: on the fresh scoring path NO findings are human-validated yet, so the
+    # validated/total ratio is 1.0 by construction — this is NOT completed human
+    # validation. Label the value honestly as pre-review so no consumer/renderer
+    # presents it as SME-confirmed Report Confidence. (Governed formula math is
+    # unchanged; F-014 is recomputed after the SME queue clears — its lifecycle.)
+    if isinstance(f014.source_lineage, dict):
+        f014.source_lineage["review_stage"] = "pre_review"
+        f014.source_lineage["validated_basis"] = (
+            "pre_review_placeholder: validated==total because the SME queue has not "
+            "cleared; recompute post-review for confirmed Report Confidence"
+        )
 
     # Findings
     clause_ids_by_domain = defaultdict(list)

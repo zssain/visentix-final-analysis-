@@ -151,20 +151,40 @@ function NarrativeExplanation({ explanation }: { explanation: Record<string, unk
       </div>
 
       <div style={{ margin: "12px 0", display: "flex", gap: 8, flexWrap: "wrap" }}>
-        <span
-          data-testid="guardrail-badge"
-          className="explain-badge"
-          style={{
-            background: explanation.guardrail === "passed" ? "#dcfce7" : "#fef2f2",
-            color: explanation.guardrail === "passed" ? "#166534" : "#991b1b",
-            padding: "2px 8px",
-            borderRadius: 4,
-            fontSize: "0.85em",
-            fontWeight: 600,
-          }}
-        >
-          Guardrail: {explanation.guardrail as string}
-        </span>
+        {(() => {
+          // GRD-002: honest three-state receipt. "passed" → green; a missing
+          // or "not_recorded" status → neutral (never a green pass, never a red
+          // fail); an explicit non-pass status → red. Red is reserved for a real
+          // failure, per the design system.
+          const g = (explanation.guardrail as string) ?? "not_recorded";
+          const isPass = g === "passed";
+          const isAbsent = g === "not_recorded" || !explanation.guardrail;
+          const bg = isPass ? "#dcfce7" : isAbsent ? "#f3f4f6" : "#fef2f2";
+          const fg = isPass ? "#166534" : isAbsent ? "#4b5563" : "#991b1b";
+          return (
+            <span
+              data-testid="guardrail-badge"
+              className="explain-badge"
+              style={{
+                background: bg,
+                color: fg,
+                padding: "2px 8px",
+                borderRadius: 4,
+                fontSize: "0.85em",
+                fontWeight: 600,
+              }}
+              title={
+                isAbsent
+                  ? "Guardrail status was not recorded for this snapshot."
+                  : undefined
+              }
+            >
+              {isAbsent
+                ? "Guardrail status was not recorded for this snapshot."
+                : `Guardrail: ${g}`}
+            </span>
+          );
+        })()}
         <span
           data-testid="llm-badge"
           className="explain-badge"

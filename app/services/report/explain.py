@@ -10,6 +10,25 @@ in app/services/scoring/formulas.py, formulas_advanced.py, f001.py, and vci.py.
 from __future__ import annotations
 
 
+def _guardrail_provenance(status: str) -> str:
+    """Honest provenance sentence for the banned-term guardrail (GRD-002).
+
+    Only claims the guardrail ran when a real ``"passed"`` result was recorded.
+    Any other value (notably the ``"not_recorded"`` default) renders honest
+    absence — never a manufactured pass. Never let a trust field's provenance
+    assert a control that did not run.
+    """
+    if status == "passed":
+        return (
+            "That text passed the banned-term guardrail (it carries no "
+            "legal-verdict language)."
+        )
+    if status == "not_recorded":
+        return "Guardrail status was not recorded for this snapshot."
+    # An explicit non-pass status (e.g. a recorded failure) — report it plainly.
+    return f"Guardrail status for this snapshot: {status}."
+
+
 # ── Plain-language formula descriptions ──────────────────────
 # Each entry has a short label, a plain-language formula sentence,
 # and a detailed methodology paragraph for the info panel.
@@ -479,7 +498,11 @@ def build_explanation_bundle(
     narrative_bundle = {}
     org_name = notice_refs.get("org_name", "the organization")
 
+    # GRD-002: never default the guardrail receipt to "passed". A missing
+    # result renders as honest absence ("not_recorded"); the provenance prose
+    # only asserts the guardrail ran when a real "passed" result was recorded.
     exec_meta = narrative_meta.get("executive_summary", {})
+    exec_guardrail = exec_meta.get("guardrail", "not_recorded")
     narrative_bundle["executive_summary"] = {
         "text": exec_meta.get("text", ""),
         "provenance": (
@@ -489,12 +512,12 @@ def build_explanation_bundle(
             f"deterministic finding selector), and the cohort size/date (from benchmark_membership). "
             f"The wording was produced from a fixed template with these pre-computed values "
             f"inserted. If an LLM rephrased the text, the output was verified to contain "
-            f"exactly the same numbers (no new numbers introduced, no critical numbers lost) "
-            f"and passed the banned-term guardrail (no legal-verdict language like 'violation', "
-            f"'illegal', 'non-compliant'). The LLM did NOT invent any claim, score, or finding."
+            f"exactly the same numbers (no new numbers introduced, no critical numbers lost). "
+            + _guardrail_provenance(exec_guardrail)
+            + " The LLM did NOT invent any claim, score, or finding."
         ),
         "numbers_from": exec_meta.get("numbers_from", ["f010", "f011"]),
-        "guardrail": exec_meta.get("guardrail", "passed"),
+        "guardrail": exec_guardrail,
         "llm_used": exec_meta.get("llm_used", False),
     }
 
@@ -508,11 +531,10 @@ def build_explanation_bundle(
                 "matching against the fixed finding-type catalog (see findings section for "
                 "details on how each finding was triggered). The wording was produced from "
                 "a fixed template — the LLM did NOT author or invent this takeaway. "
-                "If rephrased by an LLM, the output was verified for number accuracy and "
-                "passed the banned-term guardrail."
+                + _guardrail_provenance(t.get("guardrail", "not_recorded"))
             ),
             "numbers_from": t.get("numbers_from", []),
-            "guardrail": t.get("guardrail", "passed"),
+            "guardrail": t.get("guardrail", "not_recorded"),
             "llm_used": t.get("llm_used", False),
         }
         for t in takeaways_meta

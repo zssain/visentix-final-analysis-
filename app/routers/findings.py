@@ -8,6 +8,7 @@ from fastapi import APIRouter
 from app.auth import AuthenticatedUser, require_role
 from app.config import settings
 from app.db import get_service_headers
+from app.services.tenancy import customer_org_scope
 
 router = APIRouter(prefix="/findings", tags=["findings"])
 
@@ -23,11 +24,22 @@ def _sb_get(path: str) -> list[dict]:
 async def list_findings(
     user: AuthenticatedUser = require_role("customer", "sme", "admin"),
 ):
-    """List all risk findings from the DB."""
+    """List risk findings from the DB.
+
+    SEC-001 fix: a `customer` sees ONLY its own organization's findings;
+    `sme`/`admin` retain the platform-wide view. A customer with no
+    organization gets an empty list — never another org's findings.
+    Scoping goes through the centralized `customer_org_scope` helper
+    (SEC-003 minimum backstop) so it cannot drift from `dashboard_stats`.
+    """
+    scope = customer_org_scope(user)
+    if not scope.allowed:
+        return []
     rows = _sb_get(
         "risk_finding?select=finding_id,finding_type_code,severity,score,domain,"
         "organization_id,confidence_score,notice_id"
         "&order=score.desc&limit=200"
+        f"{scope.clause}"
     )
     return rows
 
@@ -101,7 +113,11 @@ async def dashboard_stats(
     `sme`/`admin` see the platform-wide view. A customer with no organization
     gets empty stats — never another org's globally-latest scores.
     """
-    if user.role == "customer" and not user.organization_id:
+    # Customer → scope every query to their org; sme/admin → platform-wide.
+    # Centralized via customer_org_scope (SEC-003 minimum backstop); a customer
+    # with no org is denied and gets empty stats, never another org's data.
+    scope = customer_org_scope(user)
+    if not scope.allowed:
         return {
             "overall_score": None, "overall_confidence": 0, "domain_scores": [],
             "finding_count": 0, "high_findings": 0, "medium_findings": 0,
@@ -109,9 +125,7 @@ async def dashboard_stats(
             "benchmark_population_version": None},
             "training_stats": {"confirmed": 0, "edited": 0, "dismissed": 0},
         }
-    # Customer → scope every query to their org; sme/admin → platform-wide.
-    org_clause = (f"&organization_id=eq.{user.organization_id}"
-                  if user.role == "customer" else "")
+    org_clause = scope.clause
 
     # Overall score from latest derived_data_item
     overall_rows = _sb_get(

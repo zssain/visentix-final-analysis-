@@ -22,7 +22,7 @@ export function ScoreCell({
   formulaId,
   formulaDesc,
   inputs = [],
-  vci = 0,
+  vci,
   snapshotId = "—",
   frozenDate = "—",
   cohortSize = 0,

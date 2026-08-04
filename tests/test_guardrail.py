@@ -90,10 +90,45 @@ def test_quoted_source_excerpt_allowed():
     assert len(prose_spans) == 0, "Quoted source excerpt should be allowed"
 
 
-def test_single_quoted_source_allowed():
+def test_single_quotes_do_not_exempt():
+    """GRD-003: stylistic single quotes are NOT a source-excerpt delimiter.
+
+    This replaces the old test_single_quoted_source_allowed, which wrongly
+    "proved" single quotes work using a single-quoted excerpt — conflating
+    stylistic quoting/contractions with cited evidence. Per business-logic.md
+    §2 an excerpt is exempt only when tagged [source: …] (see below). A banned
+    term wrapped in single quotes in generated prose must be CAUGHT.
+    """
     text = "The consent order described 'illegal data collection' practices."
     prose_spans = check_generated_prose(text)
-    assert len(prose_spans) == 0
+    assert any(s.term == "illegal" for s in prose_spans), \
+        "single-quoted 'illegal' must not be exempted"
+
+
+@pytest.mark.parametrize("text", [
+    # Verdict word sitting between two contraction apostrophes — the GRD-003 bypass.
+    "The company's practice violates the vendor's terms.",
+    "It's a case where the policy violates what we'd expect.",
+    # Verdict word wrapped in stylistic single quotes.
+    "The finding notes the clause 'violates' expected norms.",
+    # Plain prose control (was already caught).
+    "This clearly violates the rule.",
+])
+def test_contraction_and_single_quote_bypass_caught(text):
+    """All must be caught after removing the single-quote alternation."""
+    spans = check_generated_prose(text)
+    assert any(s.term == "violates" for s in spans), \
+        f"'violates' must be caught in: {text!r}"
+    with pytest.raises(GuardrailError):
+        enforce(text)
+
+
+def test_source_tagged_excerpt_still_exempt_with_contractions():
+    """A properly [source: …]-tagged excerpt remains exempt even with apostrophes."""
+    text = "Per the record [source: FTC order: the company's conduct was a violation]."
+    prose_spans = check_generated_prose(text)
+    assert len(prose_spans) == 0, "attributed [source: …] excerpt must stay exempt"
+    assert enforce(text) == text
 
 
 def test_source_tag_allowed():

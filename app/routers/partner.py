@@ -12,6 +12,7 @@ from typing import Optional
 
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile, status
 from fastapi.responses import Response
+from pydantic import BaseModel, Field
 
 from app.auth import AuthenticatedUser, require_role
 from app.config import settings
@@ -41,14 +42,31 @@ def _require_partner_id(user: AuthenticatedUser) -> str:
     return user.partner_id
 
 
+# ── Typed request bodies (SEC-010) ───────────────────────────
+
+class ClientOrgIn(BaseModel):
+    name: str = Field(..., min_length=1, max_length=300)
+    industry: Optional[str] = Field(default=None, max_length=100)
+
+
+class CreateWorkspaceIn(BaseModel):
+    name: str = Field(..., min_length=1, max_length=300)
+    client_org: ClientOrgIn
+
+
+class CreateApiKeyIn(BaseModel):
+    label: Optional[str] = Field(default="", max_length=200)
+
+
 # ── Workspaces ───────────────────────────────────────────────
 
 @router.post("/workspaces", status_code=status.HTTP_201_CREATED)
-async def create_workspace(body: dict, user: AuthenticatedUser = require_role("partner_admin", "admin")):
+async def create_workspace(body: CreateWorkspaceIn,
+                           user: AuthenticatedUser = require_role("partner_admin", "admin")):
     partner_id = _require_partner_id(user)
-    name = (body.get("name") or "").strip()
-    client_org = body.get("client_org") or {}
-    if not name or not (client_org.get("name") or "").strip():
+    name = body.name.strip()
+    client_org = body.client_org.model_dump()
+    if not name or not client_org["name"].strip():
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "name and client_org.name are required.")
     industry = client_org.get("industry")
     if industry and industry not in _industry_ids():
@@ -185,10 +203,11 @@ async def _resolve_branding(snap: dict, snapshot_id: str) -> dict | None:
 # ── API keys ─────────────────────────────────────────────────
 
 @router.post("/api-keys", status_code=status.HTTP_201_CREATED)
-async def create_api_key(body: dict, user: AuthenticatedUser = require_role("partner_admin", "admin")):
+async def create_api_key(body: CreateApiKeyIn,
+                         user: AuthenticatedUser = require_role("partner_admin", "admin")):
     """Returns the plaintext key ONCE. Only its hash is stored."""
     partner_id = _require_partner_id(user)
-    return await P.create_api_key(partner_id, (body.get("label") or "").strip())
+    return await P.create_api_key(partner_id, (body.label or "").strip())
 
 
 @router.get("/api-keys")

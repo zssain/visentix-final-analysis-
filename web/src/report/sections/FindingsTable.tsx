@@ -60,6 +60,10 @@ export function FindingsTable({ content }: { content: ReportSection["content"] }
           {findings.map((f) => {
             const code = f.finding_code ?? f.id;
             const isOpen = expanded === f.id;
+            // Real VCI parsed from the finding's confidence, or honest absence —
+            // never a fabricated 75 (DATA-003).
+            const parsedVci = Number(f.confidence?.replace("%", ""));
+            const vci = Number.isFinite(parsedVci) && f.confidence?.trim() ? parsedVci : undefined;
             return (
               <Fragment key={f.id}>
                 <tr style={{ borderBottom: "1px solid var(--border)" }}>
@@ -81,7 +85,7 @@ export function FindingsTable({ content }: { content: ReportSection["content"] }
                     {f.score?.toFixed(1)}
                   </td>
                   <td style={{ ...td, color: "var(--text-muted)", fontSize: "0.82rem" }}>
-                    {f.confidence}
+                    {vci !== undefined ? f.confidence : "Not recorded"}
                   </td>
                   <td style={td}>
                     <button
@@ -106,7 +110,7 @@ export function FindingsTable({ content }: { content: ReportSection["content"] }
                         frozenDate={frozenDate}
                         exposureScore={f.score}
                         cohortPercentile={f.percentile ?? 50}
-                        vci={Number(f.confidence?.replace("%", "")) || 75}
+                        vci={vci}
                         formulaId="F-002"
                         formulaDesc={(content.formula_descs as Record<string, string> | undefined)?.["F-002"] ?? ""}
                         cohortSize={cohortSize}

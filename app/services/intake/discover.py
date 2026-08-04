@@ -124,12 +124,24 @@ async def discover_policy_url(base_url: str) -> str | None:
 
 
 async def _try_known_paths(base: str, reasons: list[str]) -> str | None:
-    """S1/S3: Try known privacy paths. Returns first hit or None."""
-    for path in PRIVACY_PATHS:
+    """S1/S3: Try known privacy paths in parallel. Returns first hit or None."""
+
+    async def _check(path: str) -> str | None:
         candidate = base + path
         reasons.append(f"path:{candidate}")
         if await _is_policy_page(candidate):
             return candidate
+        return None
+
+    # Fire all path checks in parallel — first hit wins
+    tasks = [asyncio.create_task(_check(p)) for p in PRIVACY_PATHS]
+    for coro in asyncio.as_completed(tasks):
+        result = await coro
+        if result:
+            # Cancel remaining tasks
+            for t in tasks:
+                t.cancel()
+            return result
     return None
 
 
@@ -189,15 +201,16 @@ async def _try_homepage_links(base: str, reasons: list[str]) -> str | None:
 async def _is_policy_page(url: str) -> bool:
     """Fetch a URL and check if it looks like a privacy policy page."""
     try:
-        response = await _fetch_ssrf_safe(url)
-        if response.status_code != 200:
-            return False
+        async with asyncio.timeout(8):  # 8s cap per probe (discovery, not full extraction)
+            response = await _fetch_ssrf_safe(url)
+            if response.status_code != 200:
+                return False
 
-        text = _html_to_text(response.text)
-        if len(text) < _MIN_POLICY_LENGTH:
-            return False
+            text = _html_to_text(response.text)
+            if len(text) < _MIN_POLICY_LENGTH:
+                return False
 
-        return looks_like_privacy_policy(text)
+            return looks_like_privacy_policy(text)
 
-    except (SSRFError, Exception):
+    except (SSRFError, TimeoutError, Exception):
         return False

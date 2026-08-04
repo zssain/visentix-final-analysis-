@@ -31,28 +31,28 @@ curl -X POST http://localhost:8000/review/gate-mode \
 
 Leave it STRICT for the real pilot — the report stays a DRAFT until the human gate.
 
-### Pre-intake checklist for a PILOT org (do this BEFORE intake)
+### Pre-intake checklist for a PILOT org
 
 Live scoring builds a **dynamic** benchmark population from profiled orgs — it does
 **not** read the `retail-2026Q3-v2` demo cohort (those `benchmark_cluster` /
 `benchmark_membership` rows power the cohort UI + M-12, not the live benchmark). So
-the population quality depends entirely on the org's classification at intake. The
-Stage-3 rehearsal org came through with `industry='unknown'`, so its population was
-similarity-only (no retail industry match) — avoid that:
+population quality depends on the org's classification at intake.
 
-1. **Set the pilot org's industry first.** Create the `organization` row with the
-   correct `industry` (e.g. `retail`) — and `industry_id` via the SME-approved
-   `sic_industry_map` — **before** submitting the notice. Then intake with
-   `organization_id=<that org>` (not a bare URL that derives an `unknown` org).
-   Without this, `build_population`'s industry-expansion can't find retail peers.
-2. **Profiling is automatic** at intake (`_ensure_org_profile`) — no manual step —
-   but sanity-check the resulting `organization_intelligence_profile` (esp. `pgms`:
-   the rehearsal org landed at `pgms=100`/`Leading`, which drove percentile 100 —
-   see `REHEARSAL-DIAGNOSIS.md` §1b; flag any maxed PGMS to the SME).
-3. **Confirm the population is CQS-gated + retail-matched:** the benchmark now
+1. **Select Industry + State privacy laws on the intake screen (ARCH-001A).** The
+   intake now captures these directly and threads them into the org profile
+   (`industry` + `industry_source='user_provided'` + `jurisdiction_presence`), which
+   `compute_ic` / `compute_rss` / `build_population` consume. **The old manual
+   "create the organization row with the right industry in the DB before intake"
+   step is removed** — the product does it now. (If the user leaves Industry blank,
+   the org is honestly `unknown`/similarity-only, disclosed on the intake screen.)
+2. **Profiling is automatic** at intake (`_ensure_org_profile`) — but sanity-check
+   the resulting `organization_intelligence_profile` (esp. `pgms`: the rehearsal org
+   landed at `pgms=100`/`Leading`, which drove percentile 100 — see
+   `REHEARSAL-DIAGNOSIS.md` §1b; flag any maxed PGMS to the SME).
+3. **Confirm the population is CQS-gated + industry-matched:** the benchmark
    excludes CQS-ineligible (stale-corpus) orgs and discloses the hold-out on the
-   cohort label (`cqs_gated_excluded_N`). Expect a retail-heavy population if step 1
-   was done.
+   cohort label (`cqs_gated_excluded_N`). Expect an industry-heavy population when an
+   industry was selected.
 
 ## Demo Script
 

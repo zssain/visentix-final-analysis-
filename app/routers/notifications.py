@@ -12,10 +12,32 @@ from pydantic import BaseModel
 
 from app.auth import AuthenticatedUser, require_role
 from app.db import supabase_rest_get, supabase_rest_post
+from app.services.intake.ssrf import SSRFError, resolve_and_validate
 
 router = APIRouter(prefix="/orgs", tags=["notifications"])
 
 _SEVERITIES = {"low", "moderate", "high", "severe"}
+
+
+def _validate_webhook_url(url: str) -> None:
+    """SEC-011: reject a webhook_url that is not a safe public https target.
+
+    Webhooks are outbound POSTs the platform makes on the org's behalf, so an
+    unvalidated URL is a second-order SSRF sink. We require https (a webhook
+    endpoint must be encrypted) and run the full intake SSRF check
+    (port allowlist + private/loopback/link-local/metadata/ULA/mapped-v6
+    rejection). Only a URL that passes here is ever stored.
+    """
+    from urllib.parse import urlparse
+
+    if urlparse(url).scheme != "https":
+        raise HTTPException(status.HTTP_400_BAD_REQUEST,
+                            "webhook_url must use https")
+    try:
+        resolve_and_validate(url)
+    except SSRFError as e:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST,
+                            f"webhook_url rejected: {e}")
 
 
 class NotificationSetting(BaseModel):
@@ -56,6 +78,9 @@ async def put_notifications(org_id: str, body: NotificationSetting,
     _guard(user, org_id)
     if body.min_severity and body.min_severity not in _SEVERITIES:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, f"bad min_severity: {body.min_severity}")
+    # SEC-011: validate the webhook_url at SAVE — only a safe URL is ever stored.
+    if body.webhook_url:
+        _validate_webhook_url(body.webhook_url)
     existing = await _load(org_id)
     payload = {"org_id": org_id, "email_to": body.email_to, "webhook_url": body.webhook_url,
                "min_severity": body.min_severity}

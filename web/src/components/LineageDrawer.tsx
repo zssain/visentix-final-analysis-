@@ -12,7 +12,7 @@ interface LineageDrawerProps {
   formulaId: string;           // e.g. "F-010"
   formulaDesc: string;         // plain English
   inputs: LineageInput[];
-  vci: number;                 // 0-100
+  vci?: number;                // 0-100, or undefined for honest absence (DATA-003)
   snapshotId: string;
   frozenDate: string;
   cohortSize: number;
@@ -113,7 +113,7 @@ export function LineageDrawer({
             <div className="lineage-metrics">
               <div className="lineage-metric-cell">
                 <div className="lm-label">VCI Score</div>
-                <div className="lm-value">{vci.toFixed(0)}</div>
+                <div className="lm-value">{vci !== undefined ? vci.toFixed(0) : "—"}</div>
                 <div className="lm-sub">Visentix Confidence Index</div>
               </div>
               <div className="lineage-metric-cell">

@@ -5,8 +5,12 @@ exposure/likelihood phrasing. Runs at report-draft time.
 
 Rules:
 - Banned terms (case-insensitive, word-boundary) from config/banned_terms.txt.
-- Source excerpts (inside quotation marks) are exempt — verbatim quotes from
-  enforcement records may contain banned terms, but GENERATED prose may not.
+- Source excerpts are exempt — verbatim quotes from enforcement records may
+  contain banned terms, but GENERATED prose may not. Per business-logic.md §2,
+  the exemption covers `[source: …]` tags and double/smart-quoted spans only.
+  Single (apostrophe) quotes are NOT an exemption delimiter: they collide with
+  contractions ("company's … violates … vendor's"), which previously let a
+  banned term slip through between two apostrophes (GRD-003).
 - Extensible: add terms to config/banned_terms.txt without code changes.
 """
 
@@ -23,8 +27,7 @@ CONFIG_DIR = Path(__file__).resolve().parents[2] / "config"
 # NOT generated prose. Banned terms inside quotes are allowed.
 QUOTE_PATTERN = re.compile(
     r'"[^"]*"|'        # double quotes
-    r"'[^']*'|"        # single quotes
-    r"\u201c[^\u201d]*\u201d|"  # smart quotes ""
+    r"\u201c[^\u201d]*\u201d|"  # smart quotes
     r"\[source:[^\]]*\]",       # [source: ...] tags
 )
 

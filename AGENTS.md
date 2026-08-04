@@ -40,6 +40,15 @@ A normalized corpus already lives in Supabase. You did not create it and you mus
 - When sending notice text to a HOSTED model endpoint, use a provider configured for zero-retention / no-training, set via env. Log THAT text was sent; never log the full text of customer notices. Minimize what is sent.
 - URL upload = SSRF risk. Block requests to private/link-local/loopback ranges (10/8, 172.16/12, 192.168/16, 127/8, 169.254/16, ::1) and cloud metadata endpoints (169.254.169.254). Validate scheme is http/https only. (In the UI this surfaces only as a quiet "verified source" mark — never name the attack class to customers.)
 - Validate uploads: enforce max size, allowed MIME types (pdf/html/plain), and parse PDFs defensively (no shell-outs to untrusted tooling).
+- SSRF, second pass (SEC-002/004/011): resolve the host ONCE, validate the address, then connect to that PINNED IP (see `app/services/intake/extract.py` / `ssrf.resolve_and_validate`) — never re-resolve at connect time. Allowlist ports {80,443}; reject IPv6 ULA + IPv4-mapped-v6. Any server-side fetch of a user-supplied URL (intake, connectors, webhooks, partner logos) MUST go through this, at save AND at send.
+
+## 3a. Tenancy, DB boundaries & trust output (standing rules)
+
+- **Tenant isolation is a chokepoint, not a habit (SEC-001/003).** Every customer-scoped query derives its org filter from `app/services/tenancy.py::customer_org_scope` (customer → own org; no-org → empty, NEVER platform-wide; sme/admin → platform-wide). Any new tenant-scoped route MUST be added to `CAPTURE_ROUTES` in `tests/test_org_isolation.py` (the cross-tenant contract test — org A vs B). Runtime still uses the service-role key (RLS bypassed), so this app-layer guard + contract test IS the isolation guarantee until the user-JWT/RLS path lands.
+- **No fabricated trust/confidence defaults (GRD-002/DATA-003).** A confidence/VCI/guardrail field must show the REAL value or honest absence ("—"/"not_recorded"/"Insufficient data") — never a plausible default (no `vci=75`, no `guardrail="passed"` default). A trust field that defaults to its own success value is a lie.
+- **Guardrail runs on ALL customer-facing generated prose (GRD-001).** Exec summary, takeaways, and every `recommendation_library.body_template` entering a snapshot pass through the one `guardrail.enforce()`; the build fails closed on a banned term and records the real result in Section-11 lineage. Do not add a parallel mini-guardrail.
+- **Intake is asynchronous (QA-011).** `POST /assessments/async` returns 202 + a job handle; progress lives in server state (`assessment_job`), polled via `GET /assessments/{id}/status`; retries are idempotent (idempotency key). The synchronous `POST /assessments/` remains for the partner/internal path.
+- **SME review persists (FUNC-001).** The workbench drives off the real `/review/queue` item and POSTs decisions to `app/routers/review.py`; never render a fabricated finding or a dead submit.
 
 <!-- BEGIN GENERATED: HARD RULES (source: 01-foundation/business-logic.md, intelligence-logic.md) -->
 ## Hard rules — violating any of these fails review automatically

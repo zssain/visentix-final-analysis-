@@ -15,6 +15,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, UploadFile, File, status
 from fastapi.responses import PlainTextResponse
+from pydantic import BaseModel, Field
 
 from app.auth import AuthenticatedUser, require_role
 from app.db import supabase_rest_get, supabase_rest_post
@@ -89,12 +90,19 @@ async def _write_label(clause_id: str, gold_domain: str, verdict: str | None,
         raise HTTPException(status.HTTP_502_BAD_GATEWAY, f"gold_label write failed: {r.text[:200]}")
 
 
+class GoldLabelIn(BaseModel):  # SEC-010 — typed request body
+    clause_id: str = Field(..., min_length=1, max_length=200)
+    gold_domain: str = Field(..., min_length=1, max_length=64)  # value-checked in _write_label
+    verdict: str | None = Field(default=None, max_length=32)
+    note: str | None = Field(default=None, max_length=2000)
+
+
 @router.post("/gold-label", status_code=status.HTTP_201_CREATED)
-async def post_gold_label(body: dict, user: AuthenticatedUser = require_role("sme", "admin")):
+async def post_gold_label(body: GoldLabelIn, user: AuthenticatedUser = require_role("sme", "admin")):
     """Write one human gold label. Labeler is taken from the caller — never blank."""
-    await _write_label(body.get("clause_id"), body.get("gold_domain"),
-                       body.get("verdict"), body.get("note"), _labeler(user))
-    return {"ok": True, "labeler": _labeler(user)}
+    labeler = _labeler(user)
+    await _write_label(body.clause_id, body.gold_domain, body.verdict, body.note, labeler)
+    return {"ok": True, "labeler": labeler}
 
 
 @router.post("/gold-set/import.csv")

@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Awaitable, Callable
 from uuid import uuid4
 
@@ -25,9 +25,31 @@ JOB_DEFAULTS: dict[str, dict] = {
     "refresh_benchmarks": {"cron": "0 4 1 * *", "enabled": True},   # monthly 1st 04:00
 }
 
+# BACK-001: a job_run left in `status=running` past this wall-clock budget is
+# treated as DEAD (orphaned). A worker SIGKILL'd/OOM'd between _open_run and
+# _close_run can never close its row (a `finally` cannot survive SIGKILL), so
+# without a staleness bound `is_running` would report "running" forever and
+# monitor_notices/pull_regulators/refresh_benchmarks would be skipped on every
+# subsequent tick — monitoring stops silently. Per-job override, else default.
+DEFAULT_MAX_RUNTIME_S = 3600  # 1 hour
+JOB_MAX_RUNTIME_S: dict[str, int] = {
+    "monitor_notices": 3600,      # daily corpus diff
+    "pull_regulators": 3600,      # weekly regulator pull
+    "refresh_benchmarks": 7200,   # monthly cohort rebuild — allow longer
+}
+
+
+def _max_runtime_s(job_name: str) -> int:
+    return JOB_MAX_RUNTIME_S.get(job_name, DEFAULT_MAX_RUNTIME_S)
+
 
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+def _stale_cutoff_iso(job_name: str) -> str:
+    """ISO timestamp before which a still-`running` row is considered orphaned."""
+    return (datetime.now(timezone.utc) - timedelta(seconds=_max_runtime_s(job_name))).isoformat()
 
 
 # ── platform_setting config ──────────────────────────────────
@@ -76,9 +98,60 @@ async def emit_event(organization_id: str | None, event_type: str, *, prior=None
 
 
 async def is_running(job_name: str) -> bool:
-    r = await supabase_rest_get("job_run", select="id",
-                                filters=f"job_name=eq.{job_name}&status=eq.running", limit=1)
+    """True only if a job_run is running AND fresh (started within max runtime).
+
+    BACK-001: a `running` row older than the job's max runtime is treated as dead
+    (orphaned by SIGKILL/OOM) and does NOT count as live, so the job can run
+    again. Stale rows are reclaimed by `reap_stale_runs`.
+    """
+    cutoff = _stale_cutoff_iso(job_name)
+    r = await supabase_rest_get(
+        "job_run", select="id",
+        filters=f"job_name=eq.{job_name}&status=eq.running&started_at=gte.{cutoff}",
+        limit=1)
     return bool(r.json()) if r.status_code == 200 else False
+
+
+async def reap_stale_runs(job_name: str | None = None) -> int:
+    """Mark orphaned `running` rows (older than max runtime) as `failed`.
+
+    Returns the count reaped. Called at startup (startup reaper) and defensively
+    before opening a new run, so a hard-crashed worker cannot permanently disable
+    a job. Idempotent: a row already failed/succeeded is not matched.
+    """
+    names = [job_name] if job_name else list(JOB_DEFAULTS.keys())
+    reaped = 0
+    for name in names:
+        cutoff = _stale_cutoff_iso(name)
+        r = await supabase_rest_get(
+            "job_run", select="id,started_at",
+            filters=f"job_name=eq.{name}&status=eq.running&started_at=lt.{cutoff}",
+            limit=100)
+        rows = r.json() if r.status_code == 200 else []
+        for row in rows:
+            await supabase_rest_patch("job_run", f"id=eq.{row['id']}", {
+                "status": "failed", "finished_at": _now(),
+                "error": ("reaped: run exceeded max runtime "
+                          f"({_max_runtime_s(name)}s) — orphaned (worker likely SIGKILL/OOM)"),
+            })
+            reaped += 1
+        if rows:
+            log.warning("reaped %d stale '%s' run(s) left in 'running'", len(rows), name)
+    return reaped
+
+
+async def stale_run_count(job_name: str | None = None) -> int:
+    """Count `running` rows past their max runtime — surfaced on /admin/status."""
+    names = [job_name] if job_name else list(JOB_DEFAULTS.keys())
+    total = 0
+    for name in names:
+        cutoff = _stale_cutoff_iso(name)
+        r = await supabase_rest_get(
+            "job_run", select="id",
+            filters=f"job_name=eq.{name}&status=eq.running&started_at=lt.{cutoff}",
+            limit=1000)
+        total += len(r.json()) if r.status_code == 200 else 0
+    return total
 
 
 async def _open_run(job_name: str, triggered_by: str) -> str:
@@ -112,6 +185,7 @@ async def execute(job_name: str, triggered_by: str,
 
     body(run_id) -> (items_processed, items_changed). Returns a status dict.
     """
+    await reap_stale_runs(job_name)  # BACK-001: reclaim orphaned runs before the guard
     if await is_running(job_name):
         log.info("job %s already running — skipping (%s)", job_name, triggered_by)
         return {"skipped": True, "reason": "already_running", "job_name": job_name}
@@ -134,6 +208,7 @@ async def trigger_background(job_name: str, body: Callable[[str], Awaitable[tupl
     """Open a job_run NOW (returns its id for a 202), run the body in the background.
 
     Returns None if the job is already running (concurrency guard)."""
+    await reap_stale_runs(job_name)  # BACK-001: reclaim orphaned runs before the guard
     if await is_running(job_name):
         return None
     run_id = await _open_run(job_name, triggered_by)

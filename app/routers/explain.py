@@ -8,6 +8,7 @@ Same auth + customer_can_view gate as reports.
 from __future__ import annotations
 
 import json
+import logging
 from pathlib import Path
 
 import httpx
@@ -19,6 +20,8 @@ from app.db import get_service_headers
 from app.services.review import customer_can_view
 
 router = APIRouter(prefix="/reports", tags=["explain"])
+
+log = logging.getLogger(__name__)
 
 SB = settings.supabase_url
 _GLOSSARY_PATH = Path(__file__).resolve().parents[2] / "config" / "glossary.json"
@@ -178,8 +181,11 @@ def _build_envelope(element_type: str, key: str, notice_id: str, org_id: str) ->
     snap = snapshots[0] if snapshots else {}
     snap_payload = snap.get("payload", {})
     if isinstance(snap_payload, str):
-        try: snap_payload = json.loads(snap_payload)
-        except: snap_payload = {}
+        try:
+            snap_payload = json.loads(snap_payload)
+        except Exception:
+            log.warning("Failed to parse report_snapshot payload JSON for org %s; using empty payload", org_id)
+            snap_payload = {}
 
     cohort_size = snap_payload.get("cohort_size", 0)
     cohort_date = (snap.get("created_at") or "")[:10]
@@ -317,8 +323,11 @@ def _explain_score(key: str, notice_id: str, org_id: str, versioning: dict):
     row = derived[0]
     lineage = row.get("source_lineage", {})
     if isinstance(lineage, str):
-        try: lineage = json.loads(lineage)
-        except: lineage = {}
+        try:
+            lineage = json.loads(lineage)
+        except Exception:
+            log.warning("Failed to parse derived_data_item source_lineage JSON for org %s (object_type=%s); using empty lineage", org_id, otype)
+            lineage = {}
 
     fv_id = row.get("formula_version_id", "")
     formula_key = fv_id.replace("_v1", "").replace("-", "-") if fv_id else key.upper()

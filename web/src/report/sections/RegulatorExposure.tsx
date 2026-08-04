@@ -17,6 +17,7 @@ function tierColor(tier: string): string {
 
 export function RegulatorExposure({ content }: { content: ReportSection["content"] }) {
   const regulatoryScore = (content.regulatory_score as number | undefined) ?? 0;
+  const vciScore        = content.vci_score as number | undefined; // real VCI or honest absence — never a fabricated 75 (DATA-003)
   const tier            = (content.tier as string | undefined) ?? "—";
   const regulators      = (content.regulators as RegulatorRow[] | undefined) ?? [];
   const snapshotId      = (content.snapshot_id as string | undefined) ?? "—" /* honest absence — never a plausible-looking fake ID (Hard Rule 7) */;
@@ -39,7 +40,7 @@ export function RegulatorExposure({ content }: { content: ReportSection["content
             { label: "Jurisdiction", type: "jurisdiction" },
             { label: "Notice", type: "clause" },
           ]}
-          vci={75}
+          vci={vciScore}
           snapshotId={snapshotId}
           frozenDate={frozenDate}
           cohortSize={cohortSize}

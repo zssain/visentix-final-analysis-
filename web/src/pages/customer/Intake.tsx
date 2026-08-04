@@ -9,7 +9,7 @@
  *   classification: { llm, keyword_fallback }
  *   sections, clauses, content_hash
  */
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../../lib/api";
 import { maturityBand } from "../../lib/scoreBands";
@@ -19,6 +19,30 @@ import "../../components/furniture.css";
 
 type Step = "idle" | "submitting" | "done" | "error";
 type InputMode = "url" | "text" | "upload";
+
+// QA-011: server-authoritative pipeline stages → customer-register labels.
+const STAGE_LABELS: Record<string, string> = {
+  queued: "Queued…",
+  fetching: "Fetching the notice…",
+  extracting: "Extracting text…",
+  segmenting: "Decomposing into clauses…",
+  classifying: "Classifying clauses…",
+  profiling: "Profiling the organization…",
+  benchmarking: "Building the peer benchmark…",
+  scoring: "Scoring against peers…",
+  generating_findings: "Generating findings…",
+  awaiting_review: "Awaiting expert review…",
+  generating_report: "Generating the report…",
+  complete: "Complete",
+  failed: "Failed",
+};
+
+// Bounded polling: start fast, back off, cap total wall-clock so the UI never
+// spins forever (the QA-011 symptom). Progress is recovered from SERVER state,
+// so a refresh mid-run resumes from the current stage.
+const POLL_MIN_MS = 1200;
+const POLL_MAX_MS = 4000;
+const POLL_MAX_WALL_MS = 5 * 60 * 1000; // 5 min
 
 // Accepted upload types — validated authoritatively server-side by magic bytes;
 // this is only a friendlier client-side pre-check.
@@ -70,8 +94,104 @@ export function Intake() {
   const [step, setStep]         = useState<Step>("idle");
   const [result, setResult]     = useState<AssessmentResult | null>(null);
   const [errorMsg, setErrorMsg] = useState("");
+  const [stage, setStage]       = useState<string>("queued");
+  const [elapsedSec, setElapsedSec] = useState(0);
+  const [canRetry, setCanRetry] = useState(false);
+
+  // ARCH-001A: intake filters. Options come from the engine's real vocabulary
+  // (GET /config/intake-options) so they can't drift from what scoring understands.
+  type IndustryOpt = { value: string; label: string; industry_id?: string };
+  type JurisdictionOpt = { value: string; label: string };
+  const [industry, setIndustry] = useState<string>("");            // "" = not selected
+  const [jurisdictions, setJurisdictions] = useState<string[]>([]);
+  const [industryOpts, setIndustryOpts] = useState<IndustryOpt[]>([]);
+  const [jurisdictionOpts, setJurisdictionOpts] = useState<JurisdictionOpt[]>([]);
+  const [unknownIndustry, setUnknownIndustry] = useState<string>("unknown");
+
+  useEffect(() => {
+    let alive = true;
+    api.get("/config/intake-options")
+      .then((o: { industries: IndustryOpt[]; jurisdictions: JurisdictionOpt[]; unknown_industry?: string }) => {
+        if (!alive) return;
+        setIndustryOpts(o.industries ?? []);
+        setJurisdictionOpts(o.jurisdictions ?? []);
+        if (o.unknown_industry) setUnknownIndustry(o.unknown_industry);
+      })
+      .catch(() => { /* options unavailable — filters stay empty (honest degradation) */ });
+    return () => { alive = false; };
+  }, []);
+
+  const toggleJurisdiction = useCallback((code: string) => {
+    setJurisdictions(prev =>
+      prev.includes(code) ? prev.filter(c => c !== code) : [...prev, code]);
+  }, []);
 
   const isProcessing = step === "submitting";
+  const filtersBlank = !industry && jurisdictions.length === 0;
+
+  // QA-011 polling machinery. The idempotency key is stable across retries of the
+  // SAME submission, so a retry resumes the existing job (no duplicate assessment).
+  const idempotencyKey = useRef<string>("");
+  const startedAt = useRef<number>(0);
+  const pollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const elapsedTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const cancelled = useRef(false);
+
+  const stopTimers = useCallback(() => {
+    if (pollTimer.current) { clearTimeout(pollTimer.current); pollTimer.current = null; }
+    if (elapsedTimer.current) { clearInterval(elapsedTimer.current); elapsedTimer.current = null; }
+  }, []);
+
+  // Clean up timers if the user navigates away mid-processing.
+  useEffect(() => () => { cancelled.current = true; stopTimers(); }, [stopTimers]);
+
+  const finishWithResult = useCallback((res: AssessmentResult) => {
+    stopTimers();
+    setResult(res);
+    setStep("done");
+    if (res.scoring_error) return;               // let the user read the error
+    const delay = res.content_warning ? 4000 : 1500;
+    setTimeout(() => navigate(`/reports/${res.assessment_id}`), delay);
+  }, [navigate, stopTimers]);
+
+  const pollStatus = useCallback(async (jobId: string, intervalMs: number) => {
+    if (cancelled.current) return;
+    // Overall wall-clock guard → recoverable timeout (never an infinite spinner).
+    if (Date.now() - startedAt.current > POLL_MAX_WALL_MS) {
+      stopTimers();
+      setStep("error");
+      setCanRetry(true);
+      setErrorMsg("This is taking longer than expected. You can keep waiting by retrying — your place in line is kept.");
+      return;
+    }
+    try {
+      const s = await api.get(`/assessments/${jobId}/status`) as {
+        status: string; stage: string; assessment_id: string | null;
+        error?: string | null; result?: AssessmentResult | null;
+      };
+      if (cancelled.current) return;
+      setStage(s.stage || s.status);
+      if (s.status === "complete" && s.result) {
+        finishWithResult(s.result);
+        return;
+      }
+      if (s.status === "failed") {
+        stopTimers();
+        setStep("error");
+        setCanRetry(true);
+        setErrorMsg(s.error || "Processing failed. Please try again.");
+        return;
+      }
+      const next = Math.min(intervalMs + 400, POLL_MAX_MS);
+      pollTimer.current = setTimeout(() => pollStatus(jobId, next), next);
+    } catch (err: unknown) {
+      // A transient poll error shouldn't kill the run — retry a few times within
+      // the wall-clock budget; a hard auth error is handled by the api layer.
+      const next = Math.min(intervalMs + 800, POLL_MAX_MS);
+      pollTimer.current = setTimeout(() => pollStatus(jobId, next), next);
+      void err;
+    }
+  }, [finishWithResult, stopTimers]);
 
   // Friendly client-side pre-check. The server re-validates by magic bytes and
   // is the source of truth; this just fails fast with a plain-English message.
@@ -97,35 +217,55 @@ export function Intake() {
     if (mode === "text" && !textVal.trim()) return;
     if (mode === "upload" && !fileVal) return;
 
+    cancelled.current = false;
+    stopTimers();
     setStep("submitting");
     setResult(null);
     setErrorMsg("");
+    setCanRetry(false);
+    setStage("queued");
+    setElapsedSec(0);
+    startedAt.current = Date.now();
+
+    // Stable idempotency key: generated once per submission, REUSED on retry so a
+    // double-submit/retry can never create a duplicate assessment (QA-011).
+    if (!idempotencyKey.current) {
+      idempotencyKey.current =
+        (globalThis.crypto?.randomUUID?.() ?? `idem-${Date.now()}-${Math.random()}`);
+    }
+
+    // Elapsed timer (server-state progress; refresh-safe).
+    elapsedTimer.current = setInterval(() => {
+      setElapsedSec(Math.floor((Date.now() - startedAt.current) / 1000));
+    }, 1000);
 
     try {
       const formData = new FormData();
       if (mode === "url") formData.append("url", urlVal);
       else if (mode === "text") formData.append("text", textVal);
       else if (mode === "upload" && fileVal) formData.append("file", fileVal, fileVal.name);
+      // ARCH-001A: thread the captured filters (blank fields are simply omitted).
+      if (industry) formData.append("industry", industry);
+      if (jurisdictions.length) formData.append("jurisdictions", jurisdictions.join(","));
+      formData.append("idempotency_key", idempotencyKey.current);
 
-      const res = await api.postForm("/assessments/", formData) as AssessmentResult;
-      setResult(res);
-      setStep("done");
-
-      // Auto-redirect logic
-      if (res.scoring_error) {
-        // Don't auto-redirect — user needs to see the error
-      } else if (res.content_warning) {
-        // Delay redirect to show warning
-        setTimeout(() => navigate(`/reports/${res.assessment_id}`), 4000);
-      } else {
-        // Normal redirect after brief display
-        setTimeout(() => navigate(`/reports/${res.assessment_id}`), 1500);
-      }
+      const sub = await api.postForm("/assessments/async", formData) as {
+        assessment_id: string; status: string; stage?: string;
+      };
+      if (cancelled.current) return;
+      setStage(sub.stage || sub.status || "queued");
+      pollStatus(sub.assessment_id, POLL_MIN_MS);
     } catch (err: unknown) {
+      stopTimers();
       setStep("error");
-      setErrorMsg(err instanceof Error ? err.message : "Assessment failed");
+      setCanRetry(true);
+      setErrorMsg(err instanceof Error ? err.message : "Could not submit the notice.");
     }
-  }, [mode, urlVal, textVal, fileVal, navigate]);
+  }, [mode, urlVal, textVal, fileVal, industry, jurisdictions, pollStatus, stopTimers]);
+
+  // A new submission (inputs changed) should get a fresh idempotency key; a retry
+  // of the same inputs keeps it. Clear the key whenever the inputs change.
+  useEffect(() => { idempotencyKey.current = ""; }, [mode, urlVal, textVal, fileVal, industry, jurisdictions]);
 
   return (
     <div>
@@ -222,6 +362,101 @@ export function Intake() {
           )}
         </div>
 
+        {/* ── ARCH-001A: intake filters (industry + state privacy laws) ── */}
+        <div className="intake-filters" data-testid="intake-filters">
+          <div className="intake-field">
+            <label htmlFor="intake-industry">INDUSTRY</label>
+            <select
+              id="intake-industry"
+              data-testid="intake-industry"
+              value={industry}
+              disabled={isProcessing}
+              onChange={e => setIndustry(e.target.value)}
+            >
+              <option value="">Select an industry…</option>
+              {industryOpts.map(o => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+              <option value={unknownIndustry}>Not sure / not listed</option>
+            </select>
+            <span className="intake-field-help">Determines your peer benchmark cohort.</span>
+          </div>
+
+          <div className="intake-field">
+            <label>STATE PRIVACY LAWS</label>
+            <div className="intake-chips" role="group" aria-label="State privacy laws" data-testid="intake-jurisdictions">
+              {jurisdictionOpts.map(o => {
+                const on = jurisdictions.includes(o.value);
+                return (
+                  <button
+                    type="button"
+                    key={o.value}
+                    className={`intake-chip ${on ? "on" : ""}`}
+                    aria-pressed={on}
+                    disabled={isProcessing}
+                    onClick={() => toggleJurisdiction(o.value)}
+                  >
+                    {o.label}
+                  </button>
+                );
+              })}
+            </div>
+            <span className="intake-field-help">Sets which regulators and state-law exposure apply.</span>
+          </div>
+
+          {filtersBlank && (
+            <p className="intake-filters-note" data-testid="intake-filters-note">
+              Without this, your notice is scored against a broad cohort and general US exposure.
+            </p>
+          )}
+        </div>
+
+        {/* ARCH-001B step 6: Review analysis scope — a live, plain-English summary of
+            what will drive the assessment, separating what you DECLARED from what is
+            DETECTED from the notice. Only reflects inputs the engine actually consumes. */}
+        <div className="intake-scope" data-testid="intake-scope">
+          <div className="intake-scope-title">Analysis scope</div>
+          <ul className="intake-scope-list">
+            <li>
+              <span>Benchmark cohort</span>
+              <strong>{industry
+                ? (industry === unknownIndustry
+                    ? "broad cohort (industry not specified)"
+                    : `${(industryOpts.find(o => o.value === industry)?.label) ?? industry} peers`)
+                : "broad cohort (industry not specified)"}</strong>
+            </li>
+            <li>
+              <span>Regulatory / state-law exposure</span>
+              <strong>{jurisdictions.length
+                ? jurisdictions.map(c => jurisdictionOpts.find(o => o.value === c)?.label ?? c).join(", ")
+                : "general US exposure (no states selected)"}</strong>
+            </li>
+            <li>
+              <span>Declared by you</span>
+              <strong>{[industry && "industry", jurisdictions.length && "state laws"].filter(Boolean).join(", ") || "nothing yet"}</strong>
+            </li>
+            <li>
+              <span>Detected from the notice</span>
+              <strong>data categories &amp; practices (tracking, sharing, AI, retention…) — inferred during analysis</strong>
+            </li>
+          </ul>
+          <p className="intake-scope-foot">
+            Confidence and cohort size are shown with the result; small cohorts are disclosed and may be broadened.
+          </p>
+        </div>
+
+        {/* QA-012: honest processing / retention / confidentiality disclosure. Wording
+            matches the owner-approved privacy notice (decision-log 2026-07-28); no
+            invented legal promises. */}
+        <p className="intake-disclosure" data-testid="intake-disclosure">
+          <strong>How your notice is handled.</strong> It is processed on Visentix's own
+          infrastructure to generate your assessment — <strong>not</strong> sent to any
+          third-party AI provider and <strong>not</strong> used to train third-party models.
+          De-identified, aggregated patterns may improve Visentix's own accuracy. Content is
+          retained and protected per our{" "}
+          <a href="/privacy" target="_blank" rel="noopener noreferrer">Privacy Policy</a>.
+        </p>
+
         <div className="intake-actions">
           <button
             className="btn btn-primary"
@@ -232,6 +467,16 @@ export function Intake() {
           >
             {isProcessing ? "Processing…" : "Analyse Notice"}
           </button>
+          {canRetry && step === "error" && (
+            <button
+              className="btn btn-outline btn-sm"
+              onClick={handleSubmit}
+              data-testid="intake-retry"
+              style={{ marginLeft: 8 }}
+            >
+              Retry
+            </button>
+          )}
           {(step === "error" || errorMsg) && (
             <span style={{ fontSize: "0.82rem", color: "var(--red)" }}>
               {errorMsg || "Could not process this notice."}
@@ -258,13 +503,18 @@ export function Intake() {
         )}
 
         {isProcessing && (
-          <div className="intake-empty">
+          <div className="intake-empty" data-testid="intake-progress">
             <div style={{
               width: 36, height: 36, border: "3px solid var(--border)",
               borderTopColor: "var(--exec-blue)", borderRadius: "50%",
               animation: "spin 0.8s linear infinite", margin: "0 auto 12px",
             }} />
-            <p className="intake-empty-msg">Extracting, decomposing, classifying, and scoring…</p>
+            <p className="intake-empty-msg" data-testid="intake-stage">
+              {STAGE_LABELS[stage] ?? "Processing…"}
+            </p>
+            <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", marginTop: 4 }}>
+              {elapsedSec}s elapsed · you can safely refresh — progress is saved
+            </p>
             <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
           </div>
         )}

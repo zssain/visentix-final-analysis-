@@ -49,6 +49,26 @@ def plan_change(stored_hash: str | None, prior_maturity: dict[str, int], fetched
     return {"new_hash": new_hash, "changed": True, "notice_changed": True, "score_moved": moved}
 
 
+async def _already_alerted(notice_id: str, new_hash: str) -> bool:
+    """BACK-002 dedupe: has a notice_changed event for THIS (notice_id, new_hash)
+    already been emitted on a prior run?
+
+    The REST client gives us no multi-statement transaction, so instead of relying
+    on the content_hash patch (which a crash between deliver and patch would leave
+    un-advanced → infinite re-alert) we make the alert itself idempotent on the
+    durable event log. An event carries the new hash in `current_value` and the
+    notice in `payload.notice_id` (see framework.emit_event), so an existing row
+    with the same pair means this exact change was already emitted — skip it.
+    """
+    r = await supabase_rest_get(
+        "monitoring_event", select="event_id",
+        filters=(f"event_type=eq.notice_changed"
+                 f"&current_value=eq.{new_hash}"
+                 f"&payload->>notice_id=eq.{notice_id}"),
+        limit=1)
+    return bool(r.json()) if r.status_code == 200 else False
+
+
 async def _prior_maturity(notice_id: str) -> dict[str, int]:
     """Recompute prior per-domain maturity from STORED substantive clauses (targeted)."""
     secs = await supabase_rest_get("notice_section", select="section_id",
@@ -90,20 +110,52 @@ async def _body(run_id: str) -> tuple[int, int]:
 
         changed += 1
         org = n.get("organization_id")
+        notice_id = n["notice_id"]
+
+        # BACK-002 idempotency: has this exact (notice_id, new_hash) already been
+        # alerted on a prior run (e.g. a crash AFTER deliver but BEFORE the hash
+        # patch below re-detected the same change)? If so, do NOT re-emit/re-deliver
+        # — just re-assert the durable hash advance so the loop stops re-detecting.
+        if await _already_alerted(notice_id, plan["new_hash"]):
+            log.info("monitor_notices: change for %s already alerted (hash %s) — dedupe, "
+                     "re-asserting hash only", notice_id[:8], plan["new_hash"][:12])
+            await supabase_rest_patch("privacy_notice", f"notice_id=eq.{notice_id}",
+                                      {"content_hash": plan["new_hash"]})
+            continue
+
+        # BACK-002 ORDER: advance the stored hash FIRST, so the hash advance is
+        # durable regardless of whether delivery below succeeds. A delivery
+        # exception must never (a) leave the hash un-advanced → infinite re-alert,
+        # nor (b) abort the loop for the remaining notices. The dedupe guard above
+        # additionally protects the narrow window between emit and this patch.
+        await supabase_rest_patch("privacy_notice", f"notice_id=eq.{notice_id}",
+                                  {"content_hash": plan["new_hash"]})
+
+        # Emit durable events, then attempt delivery. Emit BEFORE deliver so the
+        # (notice_id, new_hash) marker exists on the event log even if a later
+        # delivery attempt crashes — a replay is then caught by _already_alerted.
         ev = await emit_event(org, "notice_changed", prior=n.get("content_hash"),
-                              current=plan["new_hash"], payload={"notice_id": n["notice_id"]})
-        await deliver_for_event({"event_id": ev, "organization_id": org,
-                                 "event_type": "notice_changed", "payload": {}})
+                              current=plan["new_hash"], payload={"notice_id": notice_id})
+        try:
+            await deliver_for_event({"event_id": ev, "organization_id": org,
+                                     "event_type": "notice_changed", "payload": {}})
+        except Exception as e:  # noqa: BLE001 — delivery failure must not block hash advance
+            log.warning("monitor_notices: delivery failed for notice_changed %s (notice %s): %s "
+                        "— event %s left for retry; hash already advanced",
+                        ev, notice_id[:8], e, ev)
+
         for m in plan["score_moved"]:
             ev2 = await emit_event(org, "score_moved", prior=m["from"], current=m["to"],
                                    payload={"domain": m["domain"], "from": m["from"],
                                             "to": m["to"], "formula_version": FORMULA_VERSION})
-            await deliver_for_event({"event_id": ev2, "organization_id": org,
-                                     "event_type": "score_moved",
-                                     "payload": {"domain": m["domain"], "from": m["from"], "to": m["to"]}})
-        # Update stored hash so a re-run with identical content is a no-op (idempotent).
-        await supabase_rest_patch("privacy_notice", f"notice_id=eq.{n['notice_id']}",
-                                  {"content_hash": plan["new_hash"]})
+            try:
+                await deliver_for_event({"event_id": ev2, "organization_id": org,
+                                         "event_type": "score_moved",
+                                         "payload": {"domain": m["domain"], "from": m["from"], "to": m["to"]}})
+            except Exception as e:  # noqa: BLE001 — one channel/event failure must not abort the run
+                log.warning("monitor_notices: delivery failed for score_moved %s (notice %s, "
+                            "domain %s): %s — event left for retry", ev2, notice_id[:8],
+                            m["domain"], e)
 
     return processed, changed
 

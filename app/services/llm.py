@@ -11,9 +11,12 @@ Data handling (AGENTS.md §3):
 
 from __future__ import annotations
 
+import asyncio
 import json
 import time
 from dataclasses import dataclass
+from functools import lru_cache
+from pathlib import Path
 from typing import Any
 
 import httpx
@@ -26,6 +29,90 @@ log = get_logger(__name__)
 # Retry config
 MAX_RETRIES = 3
 BACKOFF_BASE = 2  # seconds
+
+# Classifier prompt version — bump when the prompt template or the taxonomy
+# injection changes so lineage stays reproducible. (Accuracy is measured
+# separately by F17 / EVAL-001; this string only tracks the prompt shape.)
+CLASSIFY_PROMPT_VERSION = "classify-taxonomy-v2"
+
+# Path to the single source of truth for the clause taxonomy (definitions,
+# keywords, legacy slugs). We load definitions FROM here rather than hardcoding a
+# divergent taxonomy in this module.
+_TAXONOMY_PATH = Path(__file__).resolve().parents[2] / "config" / "clause_taxonomy.json"
+
+
+@lru_cache(maxsize=1)
+def _load_taxonomy() -> list[dict]:
+    """Load config/clause_taxonomy.json once (cached).
+
+    Returns the raw list of taxonomy rows. Returns [] if the file is missing or
+    unparseable — the classifier still works with bare slugs in that case (it
+    just loses the injected definitions), so a bad config never breaks intake.
+    """
+    try:
+        with _TAXONOMY_PATH.open(encoding="utf-8") as f:
+            data = json.load(f)
+        return data if isinstance(data, list) else []
+    except (OSError, json.JSONDecodeError) as e:
+        log.warning("clause_taxonomy load failed (%s); prompt will use bare slugs", type(e).__name__)
+        return []
+
+
+def _definitions_for(categories: list[str]) -> dict[str, str]:
+    """Map each requested category to a concise one-line definition.
+
+    Callers pass legacy slugs (e.g. "data_sharing"). The taxonomy config keys
+    definitions per fine-grained clause_type and tags each with a `legacy_slug`,
+    so several definitions can share one slug. We aggregate the distinct
+    definitions for a slug into a single concise line (deterministic order:
+    taxonomy file order, de-duplicated). A category with no match (e.g. "other")
+    is simply omitted — the prompt falls back to the bare slug for it.
+    """
+    rows = _load_taxonomy()
+    out: dict[str, list[str]] = {}
+    for cat in categories:  # deterministic: preserves the caller's category order
+        defs: list[str] = []
+        for row in rows:  # taxonomy-file order → stable
+            if row.get("legacy_slug") != cat:
+                continue
+            d = (row.get("definition") or "").strip()
+            if d and d not in defs:
+                defs.append(d)
+        if defs:
+            out[cat] = " / ".join(defs)
+    return {c: out[c] for c in categories if c in out}
+
+
+def _degraded_result() -> dict:
+    """Honest fallback result for a failed classification.
+
+    Zeroed confidence + `degraded=True` so the caller can record in lineage that
+    the label is a keyword/`other` fallback rather than a full AI classification.
+    """
+    return {"category": "other", "confidence": 0.0, "degraded": True}
+
+
+def _build_classify_prompt(text: str, categories: list[str]) -> str:
+    """Construct the taxonomy-aware classifier prompt.
+
+    Injects concise one-line definitions (loaded from config/clause_taxonomy.json)
+    for each category so the model knows what each slug means, then asks for
+    constrained JSON. Kept deterministic (category order preserved, definitions in
+    taxonomy-file order) so the prompt is reproducible for a given version.
+    """
+    definitions = _definitions_for(categories)
+    def_lines = "\n".join(
+        f"- {cat}: {definitions[cat]}" if cat in definitions else f"- {cat}"
+        for cat in categories
+    )
+    return (
+        f"Classify this privacy notice clause into exactly one category.\n"
+        f"Choose the single best-fitting category from the definitions below.\n\n"
+        f"Categories (with definitions):\n{def_lines}\n\n"
+        f"Allowed values (respond with exactly one of these): {json.dumps(categories)}\n\n"
+        f"Clause: {text[:1000]}\n\n"
+        f'Respond with JSON: {{"category": "...", "confidence": 0.0-1.0}}'
+    )
 
 
 @dataclass
@@ -60,25 +147,34 @@ class LLMClient:
     async def classify(self, text: str, categories: list[str]) -> dict:
         """Classify text into one of the given categories.
 
-        Returns {"category": str, "confidence": float} as constrained JSON.
+        Returns {"category": str, "confidence": float} as constrained JSON on a
+        successful AI classification.
+
+        On any failure (transient error after retries, or unparseable output) it
+        returns an HONEST DEGRADED result: {"category": "other", "confidence": 0.0,
+        "degraded": True}. The `degraded` flag + zeroed confidence let the caller
+        record in lineage that this label came from a fallback, NOT from a full AI
+        classification — we do not pretend AI succeeded. Successful results never
+        carry `degraded` (callers can treat its absence/False as "AI-classified").
         """
         system = (
             "You are a privacy notice classifier. Respond with ONLY valid JSON. "
             "No explanation, no markdown, no extra text."
         )
-        prompt = (
-            f"Classify this privacy notice clause into exactly one category.\n"
-            f"Categories: {json.dumps(categories)}\n\n"
-            f"Clause: {text[:1000]}\n\n"
-            f'Respond with JSON: {{"category": "...", "confidence": 0.0-1.0}}'
-        )
+        # Taxonomy-aware prompt: injects one-line definitions loaded from
+        # config/clause_taxonomy.json (single source of truth). See
+        # CLASSIFY_PROMPT_VERSION. (Any accuracy effect is measured by F17.)
+        prompt = _build_classify_prompt(text, categories)
 
-        log.info("LLM classify: sending %d chars (text not logged)", len(text))
+        log.info(
+            "LLM classify: sending %d chars (text not logged), prompt=%s",
+            len(text), CLASSIFY_PROMPT_VERSION,
+        )
         try:
             response = await self._chat(system, prompt)
         except Exception:
-            log.warning("LLM classify: chat failed, returning 'other'")
-            return {"category": "other", "confidence": 0.5}
+            log.warning("LLM classify: chat failed, returning DEGRADED 'other'")
+            return _degraded_result()
 
         # Parse constrained JSON
         try:
@@ -93,13 +189,13 @@ class LLMClient:
             start = response.content.index("{")
             end = response.content.rindex("}") + 1
             parsed = json.loads(response.content[start:end])
-            if "category" in parsed:
+            if "category" in parsed and parsed["category"] in categories:
                 return parsed
         except (ValueError, json.JSONDecodeError):
             pass
 
-        log.warning("LLM classify: failed to parse JSON, falling back to 'other'")
-        return {"category": "other", "confidence": 0.5}
+        log.warning("LLM classify: failed to parse JSON, DEGRADED fallback to 'other'")
+        return _degraded_result()
 
     async def phrase(self, template: str, context: dict) -> str:
         """Smooth a pre-computed finding/recommendation into professional language.
@@ -125,24 +221,45 @@ class LLMClient:
         return response.content.strip()
 
     async def _chat(self, system: str, user: str) -> LLMResponse:
-        """Send a chat message to the selected backend with retries."""
+        """Send a chat message to the selected backend with bounded-backoff retries.
+
+        Retries only TRANSIENT failures:
+          * network-level: ReadTimeout, ConnectTimeout, RemoteProtocolError
+          * HTTP status:   429 (rate limit) and 5xx (e.g. a 502/503 from a GPU
+            cold start) — these are expected to clear on a retry.
+
+        A non-429 4xx (400/401/403/404/…) is PERMANENT — a bad request/auth issue
+        won't fix itself, so we do NOT retry it; it propagates immediately and the
+        caller records an honest DEGRADED fallback instead of burning the backoff.
+        """
         for attempt in range(MAX_RETRIES):
             try:
                 if self._backend == "hosted":
                     return await self._chat_hosted(system, user)
                 else:
                     return await self._chat_local(system, user)
-            except (httpx.ReadTimeout, httpx.ConnectTimeout, httpx.RemoteProtocolError) as e:
-                wait = BACKOFF_BASE ** attempt
-                log.warning(
-                    "LLM %s attempt %d/%d failed (%s), retrying in %ds",
-                    self._backend, attempt + 1, MAX_RETRIES, type(e).__name__, wait,
-                )
-                if attempt < MAX_RETRIES - 1:
-                    import asyncio
-                    await asyncio.sleep(wait)
-                else:
+            except httpx.HTTPStatusError as e:
+                status = e.response.status_code
+                if not (status == 429 or 500 <= status < 600):
+                    # Permanent 4xx (bad request / auth / not found) — fail fast.
+                    log.warning(
+                        "LLM %s got permanent HTTP %d, not retrying",
+                        self._backend, status,
+                    )
                     raise
+                last_exc, detail = e, f"HTTP {status}"
+            except (httpx.ReadTimeout, httpx.ConnectTimeout, httpx.RemoteProtocolError) as e:
+                last_exc, detail = e, type(e).__name__
+
+            # Transient failure (retryable HTTP status or network error): bounded backoff.
+            if attempt >= MAX_RETRIES - 1:
+                raise last_exc  # retries exhausted → propagate the last exception
+            wait = BACKOFF_BASE ** attempt
+            log.warning(
+                "LLM %s attempt %d/%d failed (%s), retrying in %ds",
+                self._backend, attempt + 1, MAX_RETRIES, detail, wait,
+            )
+            await asyncio.sleep(wait)
 
         raise RuntimeError("LLM retries exhausted")
 

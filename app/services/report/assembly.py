@@ -50,8 +50,14 @@ def assemble_report(
     cohort_size: int = 30,
     cohort_date: str = "",
     snapshot_id: str = "",
+    guardrail_result: dict | None = None,
 ) -> ReportPayload:
-    """Assemble the 12-section report from pre-computed + guardrailed data."""
+    """Assemble the 12-section report from pre-computed + guardrailed data.
+
+    `guardrail_result` (GRD-001) is the real outcome of running the banned-term
+    guardrail over all generated prose, persisted in Section 11 lineage so the
+    explainability receipt (GRD-002) reports fact, not a default.
+    """
     if not cohort_date:
         cohort_date = str(date.today())
 
@@ -110,6 +116,9 @@ def assemble_report(
         "percentile": percentile,
         "cohort_size": cohort_size,
         "cohort_date": cohort_date,
+        # DATA-002: `cohort_label` is DERIVED PROSE embedding the volatile "as of
+        # <date>" stamp; the immutable peer count is already in `cohort_size`. It
+        # is excluded from the content hash (see _CONTENT_HASH_EXCLUDE_KEYS).
         "cohort_label": f"n={cohort_size} peers as of {cohort_date}",
         "benchmark_deviation": benchmark_dev,
     })
@@ -200,6 +209,14 @@ def assemble_report(
         "formula_versions_used": list(scores.keys()),
         "cohort_size": cohort_size,
         "cohort_date": cohort_date,
+        # GRD-001/GRD-002: the REAL guardrail outcome for this snapshot's prose.
+        # "not_recorded" (never a manufactured "passed") if the build didn't run it.
+        "guardrail": guardrail_result or {"status": "not_recorded"},
+        # DATA-002: this `note` is DERIVED PROSE that re-states volatile data
+        # (the snapshot id + "as of <date>") already carried structurally by the
+        # `snapshot_id`, `cohort_size` and `cohort_date` keys. It is excluded from
+        # the content hash (see _CONTENT_HASH_EXCLUDE_KEYS) so it stays human-
+        # readable without making the tamper-evidence hash drift across snapshots.
         "note": f"All scores traceable via snapshot {snapshot_id[:12] if snapshot_id else 'N/A'}. "
                 f"Benchmarked against {cohort_size} peers as of {cohort_date}.",
     })

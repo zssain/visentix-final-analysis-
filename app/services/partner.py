@@ -12,6 +12,7 @@ pipeline; this module only adds tenancy, branding provenance, and feed shaping.
 from __future__ import annotations
 
 import hashlib
+import hmac
 import secrets
 import statistics
 from uuid import uuid4
@@ -39,9 +40,39 @@ KEY_PREFIX = "vsx_"
 
 
 # ── API keys ─────────────────────────────────────────────────
+#
+# SEC-009 — storage scheme.
+#   Preferred: HMAC-SHA256(key=partner_key_pepper, msg=plaintext). The pepper is
+#   a server-side secret (settings.partner_key_pepper); an attacker who reads the
+#   DB cannot reconstruct/brute-force keys without it (unlike a bare sha256).
+#   Legacy: unsalted sha256(plaintext) — how keys were stored before SEC-009.
+#
+# New keys are ALWAYS stored with the preferred scheme when the pepper is set.
+# Verify accepts EITHER digest so already-issued (legacy) keys keep working.
+# Rotating existing keys onto HMAC is an EXTERNAL step: re-issue the key
+# (create_api_key + revoke the old one). We deliberately never re-hash on verify
+# because we only have the plaintext momentarily and must not persist it.
+
+
+def _legacy_hash_key(plaintext: str) -> str:
+    """Legacy unsalted sha256 (pre-SEC-009). Kept for migration-safe verify."""
+    return hashlib.sha256(plaintext.encode()).hexdigest()
+
+
+def _hmac_hash_key(plaintext: str) -> str:
+    """HMAC-SHA256 with the server-side pepper (SEC-009 preferred scheme)."""
+    return hmac.new(settings.partner_key_pepper.encode(),
+                    plaintext.encode(), hashlib.sha256).hexdigest()
+
 
 def _hash_key(plaintext: str) -> str:
-    return hashlib.sha256(plaintext.encode()).hexdigest()
+    """Digest used to STORE a new key. HMAC when a pepper is configured, else
+    the legacy sha256 (dev/local) — with a warning so it's never silent."""
+    if settings.partner_key_pepper:
+        return _hmac_hash_key(plaintext)
+    log.warning("PARTNER_KEY_PEPPER unset — storing partner API key with legacy "
+                "unsalted sha256. Set PARTNER_KEY_PEPPER for HMAC hashing.")
+    return _legacy_hash_key(plaintext)
 
 
 async def create_api_key(partner_id: str, label: str) -> dict:
@@ -92,12 +123,21 @@ async def verify_api_key(plaintext: str) -> dict | None:
     """Return {partner_id, api_key_id} for a valid, non-revoked key, else None.
 
     Stamps last_used_at. Hash-compare only — plaintext is never stored.
+
+    MIGRATION-SAFE (SEC-009): accept EITHER the new HMAC digest OR the legacy
+    unsalted sha256, so keys issued before the pepper was configured keep
+    working until they are re-issued. When no pepper is set the two candidates
+    collapse to the single legacy digest.
     """
     if not plaintext:
         return None
+    candidates = {_legacy_hash_key(plaintext)}
+    if settings.partner_key_pepper:
+        candidates.add(_hmac_hash_key(plaintext))
+    in_list = ",".join(sorted(candidates))
     r = await supabase_rest_get(
         "partner_api_key", select="id,partner_id,revoked_at",
-        filters=f"key_hash=eq.{_hash_key(plaintext)}&revoked_at=is.null", limit=1,
+        filters=f"key_hash=in.({in_list})&revoked_at=is.null", limit=1,
     )
     rows = r.json() if r.status_code == 200 else []
     if not rows:

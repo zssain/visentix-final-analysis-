@@ -85,7 +85,24 @@ APPLY_NOW = [
     "0040_f21_quarterly.sql",                    # F21 — quarterly_snapshot/quarterly_metric + approved-snapshot immutability trigger (DIR-010)
     "0041_f05_f18_evidence_rewrite.sql",         # F05 addendum (recommendation_evidence) + F18 (clause_rewrite)
     "0042_enable_rls_all_public.sql",            # SECURITY — ENABLE RLS + REVOKE anon/authenticated on every public table (incident 2026-07-29)
+    "0043_assessment_job.sql",                   # QA-011 — async intake job/progress table (additive, RLS-on); prod apply = external step
+    "0044_org_industry_source.sql",              # ARCH-001A — organization.industry_source provenance column (additive nullable); prod apply = external step
+    "0045_org_notice_fks.sql",                   # DATA-004 — org/notice FKs (NOT VALID, data-safe); prod apply = external step (then audit + VALIDATE)
+    "0046_reapply_notice_rls_policies.sql",      # SEC-008 — re-apply 0011's notice-table RLS policies absent in live schema (ledger drift); prod apply = external step
+    "0047_assessment_id_uuid_check.sql",         # DB-002 — CHECK assessment_id is UUID-shaped (NOT VALID, data-safe); type→uuid+FK is a staged external step
 ]
+
+# ── DB-001: migration numbering & ordering (documented) ──────────────────────
+# Apply order is THIS manifest (HISTORICAL_APPLIED + APPLY_NOW), NOT filename sort —
+# so the historical duplicate prefixes (three 0011_*, two each 0012_/0013_) and the
+# 0023 gap are harmless: order is explicit here, and each file's checksum is recorded
+# in `schema_migrations`. Applied files are NEVER renamed (that would break the
+# checksum ledger + deployed environments). Historical aliases:
+#   0011_live_assessment_isolation / 0011_local_users (UNTRACKED) / 0011_reference_corpus
+#   0012_finding_content / 0012_versioning_metadata ; 0013_clause_taxonomy_v2 / 0013_enforcement_extra_cols
+# RULE FOR NEW MIGRATIONS: use the next strictly-increasing zero-padded integer with
+# NO collision against any existing prefix (next free is 0048), append to APPLY_NOW.
+# A clean monotonic renumber is only safe on a fresh, never-deployed DB.
 
 # NOT tracked: paste bundles, the ambiguous local_users migration, and the
 # authoring template (not a real migration — never applied/recorded).

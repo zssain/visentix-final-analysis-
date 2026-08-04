@@ -19,10 +19,13 @@ import logging
 from datetime import datetime, timezone
 from uuid import uuid4
 
+import httpcore  # transitive dep of httpx — used to pin the validated IP (SEC-011)
+import httpx
 from jinja2 import Template
 
 from app.config import settings
 from app.db import supabase_rest_get, supabase_rest_post
+from app.services.intake.ssrf import SSRFError
 from app.services.jobs.framework import get_setting
 from app.services.scoring.formulas_advanced import compute_f013
 
@@ -124,9 +127,53 @@ def _default_smtp_send(to: str, subject: str, body: str) -> None:  # pragma: no 
         s.send_message(msg)
 
 
-def _default_http_post(url: str, body: dict, signature: str) -> int:  # pragma: no cover - real IO
-    import httpx
-    r = httpx.post(url, json=body, headers={"X-Visentix-Signature": signature}, timeout=10)
+class _SyncPinnedBackend(httpcore.SyncBackend):
+    """SEC-002: sync mirror of extract._PinnedResolverBackend — dials the
+    pre-validated IP instead of re-resolving the host at connect time (the
+    DNS-rebinding TOCTOU). TLS SNI + cert verification still use the origin
+    hostname, so HTTPS integrity is preserved."""
+
+    def __init__(self, host_to_ip: dict[str, str]):
+        self._host_to_ip = host_to_ip
+        super().__init__()
+
+    def connect_tcp(self, host, port, timeout=None, local_address=None,
+                    socket_options=None):
+        target = self._host_to_ip.get(host.lower(), host)
+        return super().connect_tcp(
+            target, port, timeout=timeout,
+            local_address=local_address, socket_options=socket_options,
+        )
+
+
+class _SyncPinnedTransport(httpx.HTTPTransport):
+    """httpx sync transport whose pool dials pinned IPs (see backend)."""
+
+    def __init__(self, host_to_ip: dict[str, str], **kwargs):
+        super().__init__(**kwargs)
+        # `_pool` / `_network_backend` are httpx/httpcore internals, stable in 0.28.x.
+        self._pool._network_backend = _SyncPinnedBackend(host_to_ip)
+
+
+def _default_http_post(url: str, body: dict, signature: str) -> int:
+    """SEC-011 / SEC-002: re-validate + IP-pin the webhook POST at send time.
+
+    A URL that was public-safe at SAVE may resolve to a private/metadata address
+    at SEND (DNS rebinding). So we re-run resolve_and_validate here (raises
+    SSRFError on any blocked/nonstandard target — the caller does NOT POST and
+    records a failure, never a silent success) and pin the socket to the exact IP
+    that was just validated, keeping the hostname for TLS SNI + the Host header.
+    Redirects are not followed (a 3xx Location could point at an internal host).
+    """
+    from urllib.parse import urlparse
+
+    from app.services.intake.ssrf import resolve_and_validate as _rv
+
+    _, ip, _port = _rv(url)  # raises SSRFError → caught by deliver_for_event → recorded failed
+    host = (urlparse(url).hostname or "").strip().rstrip(".").lower()
+    transport = _SyncPinnedTransport({host: ip})
+    with httpx.Client(transport=transport, timeout=10, follow_redirects=False) as client:
+        r = client.post(url, json=body, headers={"X-Visentix-Signature": signature})
     return r.status_code
 
 
@@ -179,6 +226,12 @@ async def deliver_for_event(event: dict, *, smtp_send=_default_smtp_send,
             await _record(event_id, org_id, "webhook", st["webhook_url"],
                           "sent" if ok else "failed", None if ok else f"HTTP {code}")
             deliveries.append({"channel": "webhook", "status": "sent" if ok else "failed"})
+        except SSRFError as e:
+            # SEC-011: the stored URL now resolves to a blocked target (rebinding)
+            # or the pinning transport refused it. Do NOT POST — record + skip.
+            log.warning("webhook SSRF refused for org=%s: %s", org_id, e)
+            await _record(event_id, org_id, "webhook", st["webhook_url"], "failed", f"SSRF blocked: {e}")
+            deliveries.append({"channel": "webhook", "status": "failed", "reason": "ssrf_blocked"})
         except Exception as e:  # noqa: BLE001
             await _record(event_id, org_id, "webhook", st["webhook_url"], "failed", str(e))
             deliveries.append({"channel": "webhook", "status": "failed"})
