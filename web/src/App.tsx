@@ -100,7 +100,11 @@ function RoleBasedHome() {
   const { profile } = useAuth();
   if (profile?.role === "admin") return <Navigate to="/admin" replace />;
   if (profile?.role === "sme")   return <Navigate to="/review" replace />;
-  if (profile?.role === "partner_admin") return <Navigate to="/partner" replace />;
+  // Gate the partner redirect behind the build flag too, so the "/partner" string
+  // is DCE-stripped from a masked build (v1) — otherwise it leaks into the bundle
+  // and fails the release.sh masked-surface grep. In v1 (S_PARTNER=false) a
+  // partner_admin (not a v1-provisioned role) falls through to the customer home.
+  if (S_PARTNER && profile?.role === "partner_admin") return <Navigate to="/partner" replace />;
   return <CustomerDashboard />;
 }
 
