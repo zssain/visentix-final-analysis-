@@ -285,26 +285,40 @@ def _sample_report():
     return ReportPayload(
         assessment_id="NID12345678", organization_name="Acme Retail",
         generated_date="2026-07-28",
-        sections=[ReportSection(number=1, title="Overview", content={"report_title": "Acme", "overall_score": 61.0, "vci_label": "high"})],
+        sections=[
+            # Section 1 is the cover (PHASE 6 renders it via _render_cover).
+            ReportSection(number=1, title="Cover", content={
+                "organization": "Acme Retail", "report_title": "Acme",
+                "date": "2026-07-18", "overall_score": 61.0, "vci_label": "high"}),
+            # Section 2 carries the headline number in the report body.
+            ReportSection(number=2, title="Executive Summary", content={
+                "summary": "Acme Retail overview.", "overall_score": 61.0,
+                "overall_band": "Developing", "takeaways": [],
+                "cohort_size": 25, "cohort_date": "2026-07-18"}),
+        ],
         cohort_size=25, cohort_date="2026-07-18", vci_label="high",
     )
 
 
 def test_branding_is_header_only_body_unchanged():
-    from app.services.report.renderer import render_html
+    from app.services.report.renderer import render_html, _render_section
     report = _sample_report()
     plain = render_html(report, None)
     branded = render_html(report, {"partner_id": _PARTNER_A, "partner_name": "LawCo",
                                    "brand_color": "#123456", "logo_url": None})
-    # Branded adds the band; plain does not.
-    assert "brand-band" in branded and "brand-band" not in plain
+    # Branded emits the band element; plain does not. (The `.brand-band` CSS class
+    # lives in the stylesheet of BOTH renders — check for the emitted <div>.)
+    assert '<div class="brand-band"' in branded and '<div class="brand-band"' not in plain
     assert "LawCo" in branded
-    # The report BODY (everything from the first <h2>/section marker on) is identical —
-    # branding never changes a number or wording. Compare the section HTML.
-    from app.services.report.renderer import _render_section
-    body = _render_section(report.sections[0])
+    # The report BODY is byte-identical apart from the injected band — branding
+    # never changes a number or wording. A content section renders verbatim in both.
+    body = _render_section(report.sections[1])
     assert body in plain and body in branded
-    assert "61.0" in plain and "61.0" in branded  # the number is unchanged
+    assert "61.0" in plain and "61.0" in branded  # the headline number is unchanged
+    # Rigorous F20: strip the band → the whole document is identical.
+    import re
+    stripped = re.sub(r'<div class="brand-band".*?</div>', "", branded, count=1, flags=re.S)
+    assert stripped == plain
 
 
 def test_branded_render_is_deterministic():
@@ -312,6 +326,53 @@ def test_branded_render_is_deterministic():
     report = _sample_report()
     b = {"partner_id": _PARTNER_A, "partner_name": "LawCo", "brand_color": "#123456", "logo_url": None}
     assert render_html(report, b) == render_html(report, b)  # byte-identical per snapshot
+
+
+# ── SEC-009: PARTNER_KEY_PEPPER fail-closed in production ─────────────────────
+
+@pytest.mark.anyio
+async def test_verify_fails_closed_when_pepper_unset_in_production(monkeypatch):
+    """A missing pepper in PRODUCTION must reject partner-key verification, NOT
+    silently fall back to unsalted sha256 (which would undo SEC-009)."""
+    monkeypatch.setattr(settings, "partner_key_pepper", "")
+    monkeypatch.setattr(settings, "app_env", "production")
+    # Guard: if this ever fell back to legacy verify it would hit the DB; assert it
+    # returns None BEFORE any lookup by failing the test if supabase is called.
+    called = {"n": 0}
+
+    async def _boom(*a, **k):
+        called["n"] += 1
+        raise AssertionError("verify hit the DB instead of failing closed")
+
+    monkeypatch.setattr(P, "supabase_rest_get", _boom, raising=False)
+    assert await P.verify_api_key("vsx_anykey") is None
+    assert called["n"] == 0
+
+
+def test_store_fails_closed_when_pepper_unset_in_production(monkeypatch):
+    """Minting a new key with no pepper in production must raise, never store a
+    weak legacy-hashed key."""
+    monkeypatch.setattr(settings, "partner_key_pepper", "")
+    monkeypatch.setattr(settings, "app_env", "production")
+    with pytest.raises(P.PartnerKeyPepperMissing):
+        P._hash_key("vsx_plaintext")
+
+
+def test_dev_still_allows_legacy_without_pepper(monkeypatch):
+    """Dev/local (non-prod) keeps the migration-safe legacy path so local work is
+    not blocked by an unset pepper."""
+    monkeypatch.setattr(settings, "partner_key_pepper", "")
+    monkeypatch.setattr(settings, "app_env", "development")
+    assert P._hash_key("vsx_plaintext") == hashlib.sha256(b"vsx_plaintext").hexdigest()
+
+
+def test_pepper_set_uses_hmac_and_keeps_legacy_candidate(monkeypatch):
+    """With a pepper set, stored digest is HMAC (not bare sha256), and verify still
+    accepts legacy digests for migration safety."""
+    monkeypatch.setattr(settings, "partner_key_pepper", "unit-test-pepper")
+    hmac_digest = P._hash_key("vsx_plaintext")
+    assert hmac_digest != hashlib.sha256(b"vsx_plaintext").hexdigest()  # peppered, not bare
+    assert hmac_digest == P._hmac_hash_key("vsx_plaintext")
 
 
 # ── AC-9: industries served from the canonical config ────────

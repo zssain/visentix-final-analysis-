@@ -63,9 +63,9 @@ ok "all keys present; criticals non-empty"
 log "3/7  DB migrations"
 DUMP_DIR="${REPO_DIR}/db/schema_dumps"; mkdir -p "${DUMP_DIR}"
 STAMP="$(git rev-parse --short HEAD)"
-python scripts/db/dump_column_types.py > "${DUMP_DIR}/pre_deploy_${GIT_TAG}_${STAMP}.sql" 2>/dev/null \
+python3 scripts/db/dump_column_types.py > "${DUMP_DIR}/pre_deploy_${GIT_TAG}_${STAMP}.sql" 2>/dev/null \
   && ok "pre-apply schema dump written" || warn "schema dump skipped (non-fatal)"
-python scripts/db/apply_and_record.py \
+python3 scripts/db/apply_and_record.py \
   && ok "migrations applied + recorded" \
   || die "migrations failed — nothing frozen; safe to re-run"
 
@@ -109,5 +109,5 @@ echo "  url            : https://${DOMAIN_VAL}"
 echo -n "  /health (int)  : "; docker compose -f "${COMPOSE}" exec -T api python -c "import urllib.request;print(urllib.request.urlopen('http://localhost:8000/health',timeout=5).read().decode()[:200])" 2>/dev/null || echo FAILED
 echo -n "  /health (TLS)  : "; curl -fsS "https://${DOMAIN_VAL}/health" -o /dev/null -w '%{http_code}\n' 2>/dev/null || echo 'FAILED (TLS may still be issuing — retry in ~30s)'
 echo -n "  /docs (TLS)    : "; curl -fsS "https://${DOMAIN_VAL}/docs" -o /dev/null -w '%{http_code}\n' 2>/dev/null || echo n/a
-echo "  migration head : $(python scripts/db/apply_and_record.py --print-head 2>/dev/null || echo 'see step 3')"
+echo "  migration head : $(python3 scripts/db/apply_and_record.py --print-head 2>/dev/null || echo 'see step 3')"
 log "deploy complete — record digest + versions in LAUNCH-READINESS-v2.md"

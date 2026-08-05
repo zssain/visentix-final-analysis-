@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """Apply + record migrations against live, per schema.md v1.3 §5 governance.
 
 Governance rule: no migration counts as applied unless a row exists in
@@ -108,6 +109,10 @@ APPLY_NOW = [
 # authoring template (not a real migration — never applied/recorded).
 UNTRACKED = {"APPLY_0009_0010.sql", "APPLY_ALL_PHASE1.sql", "APPLY_PHASE2_AUTH.sql",
              "0011_local_users.sql", "_TEMPLATE.sql"}
+
+
+# Every migration this branch legitimately tracks (record-only may target these).
+TRACKED = frozenset(HISTORICAL_APPLIED) | frozenset(APPLY_NOW)
 
 
 def checksum(name: str) -> str:
@@ -228,10 +233,91 @@ def run() -> int:
     return 0
 
 
+def record_only(filename: str, *, execute: bool = True) -> tuple[str, str]:
+    """RECORD-ONLY reconciliation — insert a `schema_migrations` row for a
+    migration whose DDL was ALREADY applied out-of-band (e.g. pasted into the
+    Supabase SQL editor), WITHOUT running any DDL.
+
+    This exists so a hand-applied migration is reconciled by the SAME checksum
+    code the normal path uses — never by a hand-typed ledger row that could drift
+    (the exact failure this whole preflight guards against).
+
+    Guards (deliberately strict):
+      * `filename` must be a SINGLE, explicit, TRACKED migration — no bulk
+        auto-marking, no unknown/untracked files. Refuses otherwise.
+      * Executes NO DDL. The only statement is the ledger INSERT
+        (ON CONFLICT (filename) DO NOTHING) — identical to the normal record().
+      * Refuses if `schema_migrations` does not yet exist (run the real apply first).
+
+    With `execute=False` it validates + computes the checksum but touches no DB
+    (unit-testable dry run). Returns (filename, checksum).
+    """
+    if filename not in TRACKED:
+        raise ValueError(
+            f"refusing record-only for '{filename}': not a tracked migration "
+            "(must be in HISTORICAL_APPLIED or APPLY_NOW). No bulk / unknown files."
+        )
+    cs = checksum(filename)
+    if not execute:
+        return filename, cs
+
+    import psycopg
+
+    kw, label = _conn_kwargs()
+    print("⚠️  RECORD-ONLY MODE — recording a migration as applied WITHOUT running its DDL.")
+    print(f"    file   : {filename}")
+    print(f"    reason : DDL already applied out-of-band; this reconciles the ledger only.")
+    print(f"    effect : one INSERT into schema_migrations — NO schema change. via {label}")
+    with psycopg.connect(autocommit=False, **kw) as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT to_regclass('public.schema_migrations')")
+            if cur.fetchone()[0] is None:
+                raise RuntimeError(
+                    "schema_migrations does not exist yet — run the normal apply "
+                    "(which creates 0020) before recording anything."
+                )
+            cur.execute(
+                "INSERT INTO schema_migrations (filename, checksum) VALUES (%s, %s) "
+                "ON CONFLICT (filename) DO NOTHING RETURNING filename",
+                (filename, cs),
+            )
+            inserted = cur.fetchone() is not None
+        conn.commit()
+    if inserted:
+        print(f"  ✓ recorded {filename}  {cs[:12]}…  (no DDL executed)")
+    else:
+        print(f"  = {filename} was ALREADY recorded — no change (checksum {cs[:12]}…)")
+    return filename, cs
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--plan", action="store_true", help="local only: print checksums + intended ledger, no DB")
+    ap.add_argument("--record-only", metavar="FILENAME", default=None,
+                    help="reconcile the ledger for ONE already-applied migration (no DDL). "
+                         "Requires an explicit tracked filename; refuses bulk/unknown.")
+    ap.add_argument("--print-head", action="store_true",
+                    help="print the latest recorded migration filename (deploy.sh smoke summary).")
     args = ap.parse_args()
+    if args.print_head:
+        try:
+            import psycopg
+            kw, _ = _conn_kwargs()
+            with psycopg.connect(autocommit=True, **kw) as conn, conn.cursor() as cur:
+                cur.execute("SELECT filename FROM schema_migrations ORDER BY filename DESC LIMIT 1")
+                row = cur.fetchone()
+            print(row[0] if row else "(no rows)")
+            return 0
+        except Exception as e:  # noqa: BLE001 — never fake a head
+            print(f"print-head FAILED: {type(e).__name__}: {str(e)[:120]}", file=sys.stderr)
+            return 1
+    if args.record_only:
+        try:
+            record_only(args.record_only)
+            return 0
+        except Exception as e:  # noqa: BLE001 — surface the real reason, never fake success
+            print(f"record-only FAILED: {type(e).__name__}: {str(e)[:180]}", file=sys.stderr)
+            return 1
     if args.plan:
         print(json.dumps(plan(), indent=2))
         print(f"\n{len(HISTORICAL_APPLIED)} historical (backfill) + {len(APPLY_NOW)} applied-now "

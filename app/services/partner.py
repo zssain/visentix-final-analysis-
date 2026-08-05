@@ -65,13 +65,25 @@ def _hmac_hash_key(plaintext: str) -> str:
                     plaintext.encode(), hashlib.sha256).hexdigest()
 
 
+class PartnerKeyPepperMissing(RuntimeError):
+    """Raised when PARTNER_KEY_PEPPER is required (production) but absent — SEC-009
+    fail-closed. Never silently degrade partner-key crypto to unsalted sha256 in
+    production; that would let a DB-read attacker forge keys."""
+
+
 def _hash_key(plaintext: str) -> str:
-    """Digest used to STORE a new key. HMAC when a pepper is configured, else
-    the legacy sha256 (dev/local) — with a warning so it's never silent."""
+    """Digest used to STORE a new key. HMAC when a pepper is configured. In
+    production a missing pepper FAILS CLOSED (SEC-009) — we refuse to mint a key
+    under the weak legacy scheme. In dev/local only, fall back to legacy sha256
+    with a loud warning."""
     if settings.partner_key_pepper:
         return _hmac_hash_key(plaintext)
+    if settings.is_production:
+        log.error("PARTNER_KEY_PEPPER unset in production — refusing to issue a "
+                  "partner API key under legacy unsalted sha256 (SEC-009 fail-closed).")
+        raise PartnerKeyPepperMissing("PARTNER_KEY_PEPPER is required in production")
     log.warning("PARTNER_KEY_PEPPER unset — storing partner API key with legacy "
-                "unsalted sha256. Set PARTNER_KEY_PEPPER for HMAC hashing.")
+                "unsalted sha256 (dev only). Set PARTNER_KEY_PEPPER for HMAC hashing.")
     return _legacy_hash_key(plaintext)
 
 
@@ -124,16 +136,26 @@ async def verify_api_key(plaintext: str) -> dict | None:
 
     Stamps last_used_at. Hash-compare only — plaintext is never stored.
 
-    MIGRATION-SAFE (SEC-009): accept EITHER the new HMAC digest OR the legacy
-    unsalted sha256, so keys issued before the pepper was configured keep
-    working until they are re-issued. When no pepper is set the two candidates
-    collapse to the single legacy digest.
+    MIGRATION-SAFE (SEC-009): when a pepper IS set, accept EITHER the new HMAC
+    digest OR the legacy unsalted sha256, so keys issued before the pepper was
+    configured keep working until they are re-issued.
+
+    FAIL-CLOSED (SEC-009): when the pepper is ABSENT in production, reject the
+    verification outright rather than silently falling back to unsalted sha256 —
+    a missing pepper in prod is a misconfiguration, and legacy-only verification
+    would let a DB-read attacker forge keys. In dev/local only, legacy verify is
+    allowed for convenience.
     """
     if not plaintext:
         return None
-    candidates = {_legacy_hash_key(plaintext)}
     if settings.partner_key_pepper:
-        candidates.add(_hmac_hash_key(plaintext))
+        candidates = {_hmac_hash_key(plaintext), _legacy_hash_key(plaintext)}
+    elif settings.is_production:
+        log.error("PARTNER_KEY_PEPPER unset in production — refusing partner key "
+                  "verification (SEC-009 fail-closed); set the pepper and re-issue keys.")
+        return None
+    else:
+        candidates = {_legacy_hash_key(plaintext)}
     in_list = ",".join(sorted(candidates))
     r = await supabase_rest_get(
         "partner_api_key", select="id,partner_id,revoked_at",

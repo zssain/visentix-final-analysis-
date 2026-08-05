@@ -109,12 +109,34 @@ def test_apply_now_order_and_step_a_first():
         "0040_f21_quarterly.sql",
         "0041_f05_f18_evidence_rewrite.sql",
         "0042_enable_rls_all_public.sql",
+        # Remediation Phase 2–4 (QA-011/ARCH-001A/DATA-004/SEC-008/DB-002).
+        # Applied + recorded to live (ledger checksums match — see
+        # test_schema_migrations_rows_match_file_checksums).
+        "0043_assessment_job.sql",
+        "0044_org_industry_source.sql",
+        "0045_org_notice_fks.sql",
+        "0046_reapply_notice_rls_policies.sql",
+        "0047_assessment_id_uuid_check.sql",
     ]
 
 
 def test_checksum_is_raw_file_sha256():
     for name in runner.APPLY_NOW:
         assert runner.checksum(name) == hashlib.sha256((MIG / name).read_bytes()).hexdigest()
+
+
+def test_record_only_is_guarded_and_uses_file_checksum():
+    """record-only reconciliation (dry run, no DB): computes the SAME sha256 the
+    normal path would, and refuses bulk / unknown / untracked filenames."""
+    fn, cs = runner.record_only("0043_assessment_job.sql", execute=False)
+    assert fn == "0043_assessment_job.sql"
+    assert cs == hashlib.sha256((MIG / fn).read_bytes()).hexdigest()
+    # Refuses a file that is not a tracked migration (no bulk, no bogus files).
+    with pytest.raises(ValueError):
+        runner.record_only("0999_not_a_migration.sql", execute=False)
+    # Refuses the deliberately-UNTRACKED ambiguous migration.
+    with pytest.raises(ValueError):
+        runner.record_only("0011_local_users.sql", execute=False)
 
 
 def test_seed_rows_wellformed():

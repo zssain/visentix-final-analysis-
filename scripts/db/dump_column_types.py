@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """Dump live Postgres column types for the ingestion-write tables into
 tests/fixtures/pg_column_types.json — the pinned snapshot the schema-typed test
 fakes validate against.

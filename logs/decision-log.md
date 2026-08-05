@@ -119,3 +119,7 @@ Format: `YYYY-MM-DD · who · decision · one-line why`
 
 - 2026-07-15 · team · Adopted spec-driven repo (visentix-specs/) + compiled AGENTS.md + feedback/audit automation · two-person eng team needs written truth and machine memory.
 - 2026-07-15 · team · Audit agent files feedback issues instead of editing specs directly · keeps each agent single-purpose and human-reviewable.
+
+- 2026-08-05 · agent · Committed Phase 6 (report design) + Prompt 7A (preflight-unblock) directly to branch `remediation-2026-08-04` as 2 units, no PR — STANDING WAIVER of AGENTS.md §1.4 (branch/PR-per-change), same waiver recorded for the remediation series; owner reviews via the release tag. Excluded from the release: an unattributable multi-select-intake WIP (changes scoring weights — `org_profile_weights.json` removes US-NY) + a one-off review-PDF tool, both left uncommitted for owner triage.
+- 2026-08-05 · agent · Migration-ledger diagnosis: 0043–0047 are all State A (applied + recorded, checksums match live `schema_migrations`); the "diverged ledger" premise was stale, no reconciliation write made. Added `apply_and_record.py --record-only` (no-DDL ledger reconciliation, manifest-gated) + `--print-head` for future hand-applied migrations.
+- 2026-08-05 · agent · SEC-009 hardening: `partner.verify_api_key`/`_hash_key` now FAIL CLOSED when `PARTNER_KEY_PEPPER` is unset in production (previously fell back to unsalted sha256, silently undoing SEC-009). Dev/local keeps legacy for convenience.
