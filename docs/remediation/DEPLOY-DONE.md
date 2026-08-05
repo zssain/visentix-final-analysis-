@@ -52,6 +52,19 @@
 >
 > **Frontend:** ✅ deployed (see the 2026-08-06 frontend block above).
 >
+> **Post-deploy fix — login 500 (surfaced as a CORS error):** `docker-compose.yml`
+> bind-mounts `local_users.json:ro`; the checkout had no such file so Docker created
+> it as an empty **directory** → `auth._load_users()` did `.read_text()` on a dir →
+> `IsADirectoryError` → 500. FastAPI adds no CORS header to unhandled-500s, so the
+> browser reported "blocked by CORS." Fixed by seeding a real `local_users.json`
+> (admin/sme/customer) at the mount source + `docker compose up -d --force-recreate api`.
+> Verified: admin login → 200 + `access_token` + CORS; wrong pw → 401 + CORS.
+> **Follow-ups:** (1) harden `_load_users` to treat a non-file path as "no users"
+> (return `[]` → clean 401) so a future fresh checkout can't re-trigger the 500 —
+> needs a rebuild; (2) `local_users.json` must be re-provisioned on every fresh
+> deploy checkout (it's the intended out-of-band secret mount); (3) these are demo
+> creds in prod — rotate under SEC-007.
+>
 > ---
 > *(Original preflight record retained below for history.)*
 
