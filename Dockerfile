@@ -9,7 +9,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# CPU-only torch: this VM has no GPU (model inference runs on the RunPod pod), so
+# install the CPU build FIRST — sentence-transformers then reuses it instead of
+# pulling the multi-GB CUDA/NVIDIA stack. Keeps the image ~3.5GB (vs ~9.5GB) so it
+# builds within the VM's disk. See docs/remediation/DEPLOY-DONE.md.
+RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu \
+ && pip install --no-cache-dir -r requirements.txt
 
 COPY app/ app/
 COPY config/ config/
