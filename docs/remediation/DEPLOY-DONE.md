@@ -1,7 +1,44 @@
-# DEPLOYMENT — STATUS: ⛔ NOT DEPLOYED (blocked at preflight)
+# DEPLOYMENT — STATUS: 🟢 BACKEND LIVE · ⛔ FRONTEND PENDING
 
-**Date:** 2026-08-05
+**Date:** 2026-08-05 (backend deployed 2026-08-06)
 **Prompt:** PROMPT 7 — Backend + Frontend to Production.
+
+> ## 2026-08-06 — BACKEND DEPLOYED (owner-directed; credential rotation risk accepted)
+> Tag **`v1.0.0-pilot.1`** (commit `cfe238c`) is live on the Azure VM.
+> Transport was git-bundle → scp → clone on VM (no VM GitHub credential).
+>
+> **Verified (real output):**
+> - external TLS `GET /health` → **200** `{"status":"healthy","db":"ok","model_backend":"hosted","model_status":"ok","ollama":"ok"}`
+> - `GET /docs` → **404** (not exposed in prod)
+> - migration head → **`0047_assessment_id_uuid_check.sql`**
+> - port self-scan → 80/443 open; **8000, 5432, 11434 closed**
+> - running image `visentix-api:v1.0.0-pilot.1` (**CPU-torch, 2.94GB**), container healthy
+>
+> **Host-prep done during deploy** (gaps found live): installed `python3-psycopg` +
+> `python3-dotenv` on the VM host (deploy.sh step 3); switched the image to **CPU-only
+> torch** (Dockerfile) because the 29GB VM couldn't build the ~9.5GB CUDA image — this
+> VM has no GPU (inference is on RunPod), so CUDA torch was pure waste.
+>
+> **Known issues / follow-ups:**
+> - `deploy.sh` step 5 died on its OWN bug — `docker compose ps` is called without
+>   `--env-file`, so `${DOMAIN}` fails to interpolate. Steps 1–4 (migrations, build,
+>   recreate) completed and the container is healthy; step 5–7 self-verification was
+>   done manually (above). Fix deploy.sh to pass `--env-file` in `wait_healthy`.
+> - Old image `visentix-api:local` (9.48GB) kept as the rollback fallback.
+> - **⚠️ Credentials NOT rotated (SEC-007)** — owner explicitly accepted the risk for
+>   the pilot. Seeded-account/service-role/JWT/DB secrets remain in git history and are
+>   now pointed at production. Rotate before broadening access. (See risk write-up in
+>   the session record.)
+> - **`.env` deployed "lite":** the 3 secret keys (`PARTNER_KEY_PEPPER`,
+>   `RCLONE_CONFIG_BASE64`, `SMTP_PASS`) are EMPTY → partner-key auth fails closed
+>   (masked surface, fine), and **backups + SMTP alerts are non-functional**.
+> - **Off-VM backup still BLOCKED** (`pg_dump`/`rclone` + keys) — deploy ran without a
+>   fresh backup, per accepted risk.
+>
+> **Frontend:** NOT deployed — blocked on Cloudflare auth (see below).
+>
+> ---
+> *(Original preflight record retained below for history.)*
 
 > **2026-08-05 update (PROMPT 7A preflight-unblock):** several blockers cleared —
 > see [PREFLIGHT-UNBLOCK-DONE.md](PREFLIGHT-UNBLOCK-DONE.md). Migration ledger
