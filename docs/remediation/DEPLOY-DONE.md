@@ -13,6 +13,15 @@
 > unvetted multi-select-intake WIP intentionally excluded. **Still NOT DEPLOYED.**
 > Remaining owner-BLOCKED gates: credential rotation, VM `.env` (18 keys), off-VM
 > backup (pg_dump/rclone + keys), and cutting `v1.0.0-pilot`.
+
+> **2026-08-05 test-count note (PROMPT 7B — [TEST-RECONCILIATION.md](TEST-RECONCILIATION.md)):**
+> the full suite is `1045 passed · 34 failed · 15 skipped`. The 34 are an
+> **environment change, not a regression and not an "unchanged pre-existing env
+> class"**: the live DB advanced after the Phase-4 gate — 0047's UUID CHECK now
+> rejects tests' non-UUID `assessment_id` fixtures (28), `count=exact` on the
+> ~691k-row `disclosure_clause` 500s (3), and 3 are live data-state assertions.
+> An A/B diff against the excluded WIP is identical (regression ruled out). The
+> committed code is clean; the baseline needs re-stating against this DB.
 **Outcome:** Deployment was **not executed.** Preflight (STAGE 0) found multiple
 hard-stop gates unmet. Per Hard Rule 4 ("if a stage fails, stop and report — do
 not fix forward into production") and Hard Rule 5 ("nothing is deployed until

@@ -175,6 +175,17 @@ legacy candidate.
 **Tag NOT created.** Per item 5, `v1.0.0-pilot` is cut only once 1–4 pass; several
 gates remain owner-BLOCKED (rotation, VM `.env`, backup). Handing back for those.
 
+> **Full-suite counts — corrected (see [TEST-RECONCILIATION.md](TEST-RECONCILIATION.md), Prompt 7B):**
+> `1045 passed · 34 failed · 15 skipped`. The 34 are **NOT** an "unchanged
+> pre-existing env class" and **NOT** a commit regression (A/B diff with the
+> excluded WIP is identical). They are an **environment change** — the live DB
+> advanced after the Phase-4 gate: (28) test fixtures write non-UUID
+> `assessment_id`s that migration **0047**'s live UUID CHECK now rejects
+> (`23514 check_violation` → HTTP 400); (3) REST `count=exact` on the ~691k-row
+> `disclosure_clause` 500s and is misreported as "empty" (data present);
+> (3) live data-state assertions. Verdict **A**. The committed code has no
+> regression; the count needs re-baselining against the current environment.
+
 ---
 
 ## Remaining BLOCKED — EXTERNAL (exact owner steps)
