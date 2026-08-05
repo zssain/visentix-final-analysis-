@@ -1,7 +1,22 @@
-# DEPLOYMENT — STATUS: 🟢 BACKEND LIVE · ⛔ FRONTEND PENDING
+# DEPLOYMENT — STATUS: 🟢 FULL STACK LIVE (pilot)
 
-**Date:** 2026-08-05 (backend deployed 2026-08-06)
+**Date:** 2026-08-05 (deployed 2026-08-06)
 **Prompt:** PROMPT 7 — Backend + Frontend to Production.
+
+> ## 2026-08-06 — FRONTEND DEPLOYED
+> Cloudflare **Worker** `visentix-v2-mvp` (not Pages) → **https://visentix-v2-mvp.zssaincoding.workers.dev**
+> (version `de970590`). Built from the release tree (multi-select WIP stashed out)
+> with the v1 surface flags; the `release.sh` mask gate was replicated manually.
+>
+> **Verified (real output):**
+> - site `GET /` → **200**; serves `index-BKf-6wp2.js` (748 KB)
+> - **points at prod API** `https://visentix-api.westeurope.cloudapp.azure.com`; **no** `127.0.0.1:8000` fallback (MAINT-001 holds)
+> - masked surfaces (bulk/partner/rewrite/vendors/trust/crosswalk) **provably absent** from the served bundle
+> - CORS preflight from the Worker origin → **200**, `access-control-allow-origin` = the Worker URL (frontend→backend path works)
+>
+> Surface flags: `QUARTERLY=true`; bulk/partner/rewrite/vendors/trust/crosswalk `=false`.
+> The Cloudflare API token was used as an env var only (never printed/committed) and
+> the local copy deleted after; **rotate it** since it was shared in chat.
 
 > ## 2026-08-06 — BACKEND DEPLOYED (owner-directed; credential rotation risk accepted)
 > Tag **`v1.0.0-pilot.1`** (commit `cfe238c`) is live on the Azure VM.
@@ -35,7 +50,7 @@
 > - **Off-VM backup still BLOCKED** (`pg_dump`/`rclone` + keys) — deploy ran without a
 >   fresh backup, per accepted risk.
 >
-> **Frontend:** NOT deployed — blocked on Cloudflare auth (see below).
+> **Frontend:** ✅ deployed (see the 2026-08-06 frontend block above).
 >
 > ---
 > *(Original preflight record retained below for history.)*
