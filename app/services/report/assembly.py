@@ -82,10 +82,17 @@ def assemble_report(
     })
 
     # Section 2: Executive Summary + Takeaways
+    # PHASE 6 (render): percentile / regulatory exposure+tier / overall band are
+    # surfaced here READ-ONLY (already computed above) so the exec-summary KPI
+    # cards read real values. No math is performed — pure exposure of scores.*.
     s2 = ReportSection(2, "Executive Summary", {
         "summary": narrative_exec,
         "takeaways": narrative_takeaways,
         "overall_score": overall,
+        "overall_band": scores.get("f010", {}).get("band", ""),
+        "percentile": percentile,
+        "regulatory_exposure": regulatory,
+        "regulatory_tier": reg_tier,
         "finding_count": len(findings),
         "cohort_size": cohort_size,
         "cohort_date": cohort_date,
@@ -121,6 +128,12 @@ def assemble_report(
         # is excluded from the content hash (see _CONTENT_HASH_EXCLUDE_KEYS).
         "cohort_label": f"n={cohort_size} peers as of {cohort_date}",
         "benchmark_deviation": benchmark_dev,
+        # PHASE 6 (render): F-003 already computes the WEIGHTED top-quartile
+        # threshold + peer count; surface them READ-ONLY so §4 can draw a real
+        # "your score vs top quartile" comparison. `None` when F-003 had no peers,
+        # so the renderer shows honest absence instead of a fabricated average.
+        "top_quartile_score": scores.get("f003", {}).get("lineage", {}).get("top_quartile_score"),
+        "peer_n": scores.get("f003", {}).get("lineage", {}).get("n_peers"),
     })
 
     # Section 5: Regulator Exposure Heatmap

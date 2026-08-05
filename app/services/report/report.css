@@ -1,0 +1,319 @@
+/* Visentix Privacy Intelligence Report — executive design system.
+ *
+ * WeasyPrint-compatible ONLY. No CSS grid, no JS. Card strips and the heat
+ * grid use table layout (WeasyPrint's flex/grid support is partial). Every
+ * colour comes from the ONE risk ramp defined here — never ad-hoc.
+ *
+ * Determinism: no remote fonts, no url() to the network. Fonts fall back to
+ * DejaVu Sans (bundled with WeasyPrint) — brand .ttf/.otf files are a
+ * BLOCKED-EXTERNAL owner asset (see PHASE6-REPORT-DESIGN-DONE.md); when they
+ * arrive, drop them in assets/ and add an @font-face here.
+ */
+
+/* ── Tokens ─────────────────────────────────────────────────── */
+/* WeasyPrint supports var() since 53; kept for one source of truth. */
+:root {
+  --navy: #12365B;
+  --teal: #2FB3A0;
+  --ink: #1B2A3D;
+  --muted: #5B6B7F;
+  --hair: #DBE2EA;
+  --panel: #F4F7FA;
+  --white: #FFFFFF;
+  /* risk ramp — low→elevated, used everywhere */
+  --risk-low: #2E9E6B;
+  --risk-moderate: #E9A23B;
+  --risk-high: #D9534F;
+  --risk-elevated: #C0392B;
+}
+
+/* ── Page furniture ─────────────────────────────────────────── */
+@page {
+  size: A4;
+  margin: 18mm 15mm 16mm 15mm;
+  @top-left {
+    content: "VISENTIX";
+    font-family: "DejaVu Sans", sans-serif;
+    font-size: 7pt;
+    letter-spacing: 2px;
+    color: #12365B;
+    font-weight: bold;
+    vertical-align: bottom;
+    padding-bottom: 3mm;
+  }
+  @top-right {
+    content: string(secname);
+    font-family: "DejaVu Sans", sans-serif;
+    font-size: 7pt;
+    color: #5B6B7F;
+    vertical-align: bottom;
+    padding-bottom: 3mm;
+  }
+  @bottom-left {
+    content: string(secname);
+    font-family: "DejaVu Sans", sans-serif;
+    font-size: 7pt;
+    color: #5B6B7F;
+    vertical-align: top;
+    padding-top: 3mm;
+  }
+  @bottom-right {
+    content: "Page " counter(page);
+    font-family: "DejaVu Sans", sans-serif;
+    font-size: 7pt;
+    color: #5B6B7F;
+    vertical-align: top;
+    padding-top: 3mm;
+  }
+}
+/* Cover + back cover: full-bleed panels, no running chrome. */
+@page cover { margin: 0;
+  @top-left { content: none } @top-right { content: none }
+  @bottom-left { content: none } @bottom-right { content: none }
+}
+@page back { margin: 0;
+  @top-left { content: none } @top-right { content: none }
+  @bottom-left { content: none } @bottom-right { content: none }
+}
+
+/* ── Base ───────────────────────────────────────────────────── */
+html { font-family: "DejaVu Sans", "Segoe UI", system-ui, sans-serif; }
+body {
+  margin: 0;
+  color: var(--ink);
+  font-size: 8.75pt;
+  line-height: 1.5;
+}
+h1, h2, h3, h4 { margin: 0; font-weight: bold; color: var(--navy); }
+p { margin: 0 0 6pt; }
+.muted { color: var(--muted); }
+.caption { font-size: 7pt; color: var(--muted); }
+.absent { color: var(--muted); font-style: italic; }
+
+/* ── Section lockup ─────────────────────────────────────────── */
+.report-section { break-before: page; break-inside: auto; }
+.report-section.first { break-before: auto; }
+.sec-head {
+  display: table; width: 100%; margin: 0 0 10pt;
+  border-bottom: 2pt solid var(--teal); padding-bottom: 5pt;
+}
+.sec-num {
+  display: table-cell; width: 34pt; vertical-align: bottom;
+  font-size: 22pt; font-weight: bold; color: var(--teal); line-height: 1;
+}
+.sec-title-wrap { display: table-cell; vertical-align: bottom; }
+.sec-kicker { font-size: 6.5pt; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; }
+.sec-title { string-set: secname content(); font-size: 15pt; color: var(--navy); line-height: 1.1; }
+
+/* ── KPI cards (Exec Summary) ───────────────────────────────── */
+.strip { width: 100%; border-collapse: separate; border-spacing: 8pt 0; table-layout: fixed; }
+.strip td { vertical-align: top; }
+.kpi-card {
+  background: var(--panel); border: 0.75pt solid var(--hair);
+  border-top: 3pt solid var(--navy); border-radius: 4pt;
+  padding: 9pt 10pt;
+}
+.kpi-card.accent-teal { border-top-color: var(--teal); }
+.kpi-label { font-size: 6.5pt; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); }
+.kpi-value { font-size: 26pt; font-weight: bold; color: var(--navy); line-height: 1.05; margin-top: 2pt; }
+.kpi-value .unit { font-size: 11pt; color: var(--muted); font-weight: normal; }
+.kpi-sub { font-size: 7.5pt; color: var(--ink); margin-top: 2pt; }
+.kpi-value.absent, .kpi-sub.absent { font-size: 12pt; }
+
+/* ── Chips / bands ──────────────────────────────────────────── */
+.chip {
+  display: inline-block; padding: 1.5pt 7pt; border-radius: 9pt;
+  font-size: 7pt; font-weight: bold; letter-spacing: 0.4px;
+}
+.chip-low { background: #E4F3EC; color: var(--risk-low); }
+.chip-moderate { background: #FBEFD9; color: #B77A18; }
+.chip-high { background: #FBE4E3; color: var(--risk-high); }
+.chip-elevated { background: #F7DCDA; color: var(--risk-elevated); }
+.chip-na { background: #ECF0F4; color: var(--muted); }
+
+/* ── Takeaway rows ──────────────────────────────────────────── */
+.takeaways { margin: 10pt 0 0; }
+.takeaway { display: table; width: 100%; margin-bottom: 6pt; break-inside: avoid; }
+.takeaway .ic { display: table-cell; width: 20pt; vertical-align: top; }
+.takeaway .tx { display: table-cell; vertical-align: top; font-size: 8.5pt; }
+.ico { width: 13pt; height: 13pt; vertical-align: middle; }
+
+/* ── Gauges (Risk Dashboard) ────────────────────────────────── */
+.gauge-row { width: 100%; table-layout: fixed; border-collapse: collapse; }
+.gauge-row td { text-align: center; vertical-align: top; padding: 4pt; }
+.gauge { width: 118pt; height: 74pt; }
+.gauge-cap { font-size: 7pt; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-top: 2pt; }
+
+/* ── Metric strip (4 cards) ─────────────────────────────────── */
+.metric-card {
+  background: var(--white); border: 0.75pt solid var(--hair); border-radius: 4pt;
+  padding: 7pt 8pt; text-align: left;
+}
+.metric-label { font-size: 6.5pt; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); }
+.metric-value { font-size: 17pt; font-weight: bold; color: var(--navy); line-height: 1.1; }
+.metric-value.absent { font-size: 9pt; }
+
+/* ── Comparison / risk bars ─────────────────────────────────── */
+.bar-compare { margin: 4pt 0 8pt; break-inside: avoid; }
+.bar-compare .bl { font-size: 7.5pt; color: var(--ink); margin-bottom: 2pt; }
+.bar-track {
+  position: relative; background: #EDF1F5; border-radius: 3pt;
+  height: 13pt; width: 100%; overflow: hidden;
+}
+.bar-fill { height: 13pt; border-radius: 3pt; }
+.bar-fill.f-navy { background: var(--navy); }
+.bar-fill.f-teal { background: var(--teal); }
+.bar-fill.f-muted { background: #AEBBC9; }
+.bar-fill.f-low { background: var(--risk-low); }
+.bar-fill.f-moderate { background: var(--risk-moderate); }
+.bar-fill.f-high { background: var(--risk-high); }
+.bar-fill.f-elevated { background: var(--risk-elevated); }
+.bar-val { font-size: 7pt; color: var(--muted); margin-top: 1pt; }
+/* percentile marker bar */
+.pmark-track { position: relative; height: 20pt; background: linear-gradient(90deg,#E4F3EC,#FBEFD9,#F7DCDA); border-radius: 3pt; }
+.pmark { position: absolute; top: -3pt; width: 2.5pt; height: 26pt; background: var(--navy); }
+.pmark-lbl { position: absolute; top: -14pt; font-size: 7pt; font-weight: bold; color: var(--navy); transform: translateX(-50%); }
+
+/* grouped comparison legend */
+.legend { font-size: 7pt; color: var(--muted); margin: 2pt 0 8pt; }
+.legend .sw { display: inline-block; width: 8pt; height: 8pt; border-radius: 2pt; vertical-align: middle; margin: 0 3pt 0 9pt; }
+
+/* ── Heat grid (Regulator Exposure) ─────────────────────────── */
+.heat-grid { border-collapse: collapse; width: 100%; margin: 8pt 0; font-size: 6.5pt; }
+.heat-grid th, .heat-grid td { border: 0.5pt solid var(--white); padding: 4pt 3pt; text-align: center; }
+.heat-grid th.rowh { text-align: left; color: var(--ink); background: var(--panel); font-size: 6.5pt; white-space: nowrap; }
+.heat-grid th.colh { color: var(--muted); background: var(--white); font-size: 6pt; font-weight: bold; }
+.heat-grid td { color: var(--white); font-weight: bold; }
+.heat-l1 { background: #DCEDE4; color: #2E5E48 !important; }
+.heat-l2 { background: var(--risk-moderate); }
+.heat-l3 { background: var(--risk-high); }
+.heat-l4 { background: var(--risk-elevated); }
+.heat-na { background: repeating-linear-gradient(45deg,#EEF2F6,#EEF2F6 3pt,#E2E8EF 3pt,#E2E8EF 6pt); color: var(--muted) !important; }
+.heat-legend { font-size: 6.5pt; color: var(--muted); margin-top: 3pt; }
+.heat-legend .sw { display: inline-block; width: 9pt; height: 9pt; border-radius: 2pt; vertical-align: middle; margin: 0 3pt 0 8pt; }
+
+/* ── Regulator cards ────────────────────────────────────────── */
+.reg-card { background: var(--white); border: 0.75pt solid var(--hair); border-left: 3pt solid var(--navy); border-radius: 3pt; padding: 7pt 8pt; }
+.reg-name { font-size: 8.5pt; font-weight: bold; color: var(--navy); }
+.reg-juris { font-size: 6.5pt; color: var(--muted); }
+
+/* ── Callouts ───────────────────────────────────────────────── */
+.callout { border-radius: 4pt; padding: 9pt 11pt; margin: 8pt 0; break-inside: avoid; border-left: 4pt solid var(--navy); background: var(--panel); }
+.callout .co-title { font-weight: bold; font-size: 9pt; margin-bottom: 3pt; }
+.callout--insight { border-left-color: var(--teal); background: #EAF7F4; }
+.callout--insight .co-title { color: #1E7A6C; }
+.callout--alert { border-left-color: var(--risk-moderate); background: #FCF3E2; }
+.callout--alert .co-title { color: #B77A18; }
+.callout--risk { border-left-color: var(--risk-high); background: #FBE9E8; }
+.callout--risk .co-title { color: var(--risk-high); }
+
+/* ── Finding rows ───────────────────────────────────────────── */
+.finding-row {
+  display: table; width: 100%; border: 0.75pt solid var(--hair);
+  border-left: 3pt solid var(--muted); border-radius: 3pt;
+  padding: 7pt 9pt; margin-bottom: 6pt; break-inside: avoid;
+}
+.finding-row.sev-high { border-left-color: var(--risk-high); }
+.finding-row.sev-medium { border-left-color: var(--risk-moderate); }
+.finding-row.sev-low { border-left-color: var(--risk-low); }
+.fr-main { display: table-cell; vertical-align: top; }
+.fr-side { display: table-cell; vertical-align: top; text-align: right; width: 90pt; white-space: nowrap; }
+.fr-id { font-weight: bold; color: var(--navy); font-size: 9pt; }
+.fr-domain { color: var(--ink); font-size: 8.5pt; }
+.fr-meta { font-size: 7pt; color: var(--muted); margin-top: 2pt; }
+.fr-score { font-size: 15pt; font-weight: bold; color: var(--navy); }
+
+/* ── Numbered drivers ───────────────────────────────────────── */
+.numbered-driver { list-style: none; counter-reset: drv; margin: 6pt 0 0; padding: 0; }
+.numbered-driver li {
+  counter-increment: drv; position: relative; padding-left: 22pt;
+  margin-bottom: 6pt; font-size: 8.5pt; break-inside: avoid; min-height: 15pt;
+}
+.numbered-driver li::before {
+  content: counter(drv); position: absolute; left: 0; top: 0;
+  width: 15pt; height: 15pt; background: var(--navy); color: var(--white);
+  border-radius: 8pt; text-align: center; line-height: 15pt;
+  font-size: 8pt; font-weight: bold;
+}
+
+/* ── Recommendation rows ────────────────────────────────────── */
+.rec-row { display: table; width: 100%; margin-bottom: 8pt; break-inside: avoid; }
+.rec-ic { display: table-cell; width: 26pt; vertical-align: top; }
+.rec-bd { display: table-cell; vertical-align: top; }
+.rec-title { font-weight: bold; color: var(--navy); font-size: 9pt; }
+.rec-body { font-size: 8.5pt; margin-top: 1pt; }
+
+/* ── Severity columns (Risk Reduction) ──────────────────────── */
+.sev-cols { width: 100%; table-layout: fixed; border-collapse: separate; border-spacing: 8pt 0; }
+.sev-cols td { vertical-align: top; }
+.sev-col { border: 0.75pt solid var(--hair); border-radius: 4pt; overflow: hidden; }
+.sev-col .hd { padding: 6pt 8pt; font-weight: bold; font-size: 8.5pt; color: var(--white); }
+.sev-col.high .hd { background: var(--risk-high); }
+.sev-col.moderate .hd { background: var(--risk-moderate); }
+.sev-col.low .hd { background: var(--risk-low); }
+.sev-col .bd { padding: 7pt 8pt; font-size: 8pt; }
+
+/* ── Two-column language comparison ─────────────────────────── */
+.lang-cmp { width: 100%; table-layout: fixed; border-collapse: separate; border-spacing: 8pt 6pt; }
+.lang-cmp td { vertical-align: top; width: 50%; }
+.lang-domain { font-weight: bold; color: var(--navy); font-size: 8.5pt; margin: 6pt 0 2pt; }
+.quote { border: 0.75pt solid var(--hair); border-radius: 3pt; padding: 7pt 8pt; font-size: 7.75pt; background: var(--white); }
+.quote.you { border-left: 3pt solid var(--navy); }
+.quote.peer { border-left: 3pt solid var(--teal); background: #F5FBFA; }
+.quote .qh { font-size: 6.5pt; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); margin-bottom: 3pt; }
+
+/* ── Plain data table ───────────────────────────────────────── */
+.data-table { border-collapse: collapse; width: 100%; margin: 8pt 0; font-size: 7.5pt; }
+.data-table th, .data-table td { border: 0.5pt solid var(--hair); padding: 5pt 7pt; text-align: left; vertical-align: top; }
+.data-table th { background: var(--navy); color: var(--white); font-size: 7pt; letter-spacing: 0.4px; }
+.data-table tr:nth-child(even) td { background: var(--panel); }
+
+/* ── Empty state ────────────────────────────────────────────── */
+.empty-state {
+  border: 0.75pt dashed var(--hair); border-radius: 4pt; background: var(--panel);
+  padding: 14pt 16pt; text-align: center; color: var(--muted); margin: 8pt 0;
+}
+.empty-state .es-title { font-weight: bold; color: var(--ink); font-size: 9pt; margin-bottom: 3pt; }
+.empty-state .es-body { font-size: 8pt; }
+
+/* ── Snapshot / lineage line ────────────────────────────────── */
+.snapline { font-size: 7pt; color: var(--muted); border-top: 0.5pt solid var(--hair); padding-top: 5pt; margin-top: 10pt; }
+
+/* ── Partner branding band (F20 — header only) ──────────────── */
+.brand-band { display: table; width: 100%; border-bottom: 0.75pt solid var(--hair); padding: 6pt 0 8pt; margin-bottom: 6pt; }
+.brand-band .bb-logo { display: table-cell; vertical-align: middle; width: 60pt; }
+.brand-band .bb-name { display: table-cell; vertical-align: middle; font-weight: bold; font-size: 11pt; }
+.brand-band .bb-via { display: table-cell; vertical-align: middle; text-align: right; font-size: 7pt; color: var(--muted); }
+
+/* ── Cover ──────────────────────────────────────────────────── */
+.cover { page: cover; position: relative; width: 210mm; height: 297mm; background: var(--white); overflow: hidden; }
+.cover-panel {
+  position: absolute; top: 0; left: 0; right: 0; height: 176mm;
+  background: var(--navy); color: var(--white);
+}
+/* teal angular accent */
+.cover-accent { position: absolute; top: 158mm; left: 0; right: 0; height: 40mm; background: var(--teal); transform: skewY(-4deg); transform-origin: left; }
+.cover-logo { position: absolute; top: 26mm; left: 22mm; width: 62mm; }
+.cover-kicker { position: absolute; top: 92mm; left: 22mm; right: 22mm; font-size: 8pt; letter-spacing: 3px; text-transform: uppercase; color: #9EC7DE; }
+.cover-org { position: absolute; top: 100mm; left: 22mm; right: 22mm; font-size: 30pt; font-weight: bold; color: var(--white); line-height: 1.1; }
+.cover-title { position: absolute; top: 128mm; left: 22mm; right: 22mm; font-size: 13pt; color: #CDE0EC; font-weight: normal; }
+.cover-meta { position: absolute; top: 196mm; left: 22mm; right: 22mm; }
+.cover-meta table { border-collapse: collapse; }
+.cover-meta td { padding: 3pt 26pt 3pt 0; vertical-align: top; }
+.cover-meta .ml { font-size: 6.5pt; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); }
+.cover-meta .mv { font-size: 10pt; color: var(--navy); font-weight: bold; }
+.cover-badge {
+  position: absolute; top: 250mm; left: 22mm; right: 22mm;
+  border: 0.75pt solid var(--hair); border-left: 3pt solid var(--teal);
+  border-radius: 3pt; padding: 9pt 12pt; font-size: 7.5pt; color: var(--muted); background: var(--panel);
+}
+.cover-badge b { color: var(--navy); letter-spacing: 1px; }
+
+/* ── Back cover ─────────────────────────────────────────────── */
+.back { page: back; position: relative; width: 210mm; height: 297mm; background: var(--navy); color: var(--white); overflow: hidden; }
+.back-accent { position: absolute; bottom: 0; left: 0; right: 0; height: 70mm; background: var(--teal); transform: skewY(-4deg); transform-origin: right bottom; }
+.back-logo { position: absolute; top: 92mm; left: 0; right: 0; text-align: center; }
+.back-logo img { width: 74mm; }
+.back-thanks { position: absolute; top: 128mm; left: 0; right: 0; text-align: center; font-size: 18pt; font-weight: bold; color: var(--white); }
+.back-contact { position: absolute; top: 150mm; left: 0; right: 0; text-align: center; font-size: 9pt; color: #CDE0EC; line-height: 1.7; }
+.back-conf { position: absolute; bottom: 14mm; left: 24mm; right: 24mm; text-align: center; font-size: 7pt; color: #12365B; }
