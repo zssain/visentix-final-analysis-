@@ -1,12 +1,13 @@
 /**
  * ARCH-001A — intake filter controls (industry + state privacy laws).
- * Mocks ../../lib/api and react-router-dom so no network/router is needed. Asserts:
+ * Both are now checkbox dropdowns (MultiSelectDropdown). Mocks ../../lib/api and
+ * react-router-dom so no network/router is needed. Asserts:
  *  - options load from GET /config/intake-options (real vocabulary)
  *  - blank filters show the honest-degradation note
  *  - multi-select round-trips and clears the note
- *  - submit appends industry + jurisdictions to the FormData
+ *  - submit sends comma-separated industry + jurisdictions in the FormData
  */
-import { render, screen, waitFor, fireEvent } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent, within } from "@testing-library/react";
 import { expect, it, vi, beforeEach } from "vitest";
 
 const mockGet = vi.fn();
@@ -49,12 +50,19 @@ beforeEach(() => {
   mockPostForm.mockResolvedValue({ assessment_id: "job-1", status: "queued" });
 });
 
+// Open a dropdown by clicking its trigger button (found via the root test-id).
+const openDropdown = (testId: string) =>
+  fireEvent.click(within(screen.getByTestId(testId)).getByRole("button"));
+
 it("loads real options and shows the honest-degradation note when blank", async () => {
   render(<Intake />);
   await waitFor(() => expect(mockGet).toHaveBeenCalledWith("/config/intake-options"));
-  // industry option + jurisdiction chip render from the real vocabulary
+  // industry options render from the real vocabulary (once the menu is open)
+  openDropdown("intake-industry");
   expect(await screen.findByRole("option", { name: "Retail" })).toBeTruthy();
-  expect(screen.getByText("California (CCPA / CPRA)")).toBeTruthy();
+  // jurisdiction options render from the real vocabulary
+  openDropdown("intake-jurisdictions");
+  expect(screen.getByRole("option", { name: "California (CCPA / CPRA)" })).toBeTruthy();
   // blank → honest note
   expect(screen.getByTestId("intake-filters-note")).toBeTruthy();
 });
@@ -67,11 +75,13 @@ it("multi-select round-trips and submit sends industry + jurisdictions", async (
   render(<Intake />);
   await waitFor(() => expect(screen.getByTestId("intake-industry")).toBeTruthy());
 
-  // choose industry
-  fireEvent.change(screen.getByTestId("intake-industry"), { target: { value: "retail" } });
-  // toggle two jurisdiction chips
-  fireEvent.click(screen.getByText("California (CCPA / CPRA)"));
-  fireEvent.click(screen.getByText("Colorado (CPA)"));
+  // choose an industry (checkbox dropdown)
+  openDropdown("intake-industry");
+  fireEvent.click(screen.getByRole("option", { name: "Retail" }));
+  // toggle two jurisdictions
+  openDropdown("intake-jurisdictions");
+  fireEvent.click(screen.getByRole("option", { name: "California (CCPA / CPRA)" }));
+  fireEvent.click(screen.getByRole("option", { name: "Colorado (CPA)" }));
   // note disappears once a filter is set
   expect(screen.queryByTestId("intake-filters-note")).toBeNull();
 

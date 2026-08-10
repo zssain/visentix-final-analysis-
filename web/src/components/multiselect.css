@@ -1,0 +1,83 @@
+/* MultiSelectDropdown — checkbox dropdown shared by the intake filters. */
+.msd {
+  position: relative;
+  width: 100%;
+}
+.msd-trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-card);
+  color: var(--text);
+  font-size: 0.9rem;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.12s ease;
+}
+.msd-trigger:hover:not(:disabled) { border-color: var(--teal); }
+.msd-trigger.open { border-color: var(--teal); }
+.msd-trigger:disabled { opacity: 0.5; cursor: default; }
+.msd-summary {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.msd-placeholder { color: var(--text-muted); }
+.msd-caret {
+  flex: none;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  transition: transform 0.12s ease;
+}
+.msd-trigger.open .msd-caret { transform: rotate(180deg); }
+
+.msd-menu {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  max-height: 260px;
+  overflow-y: auto;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+.msd-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 0.1s ease;
+}
+.msd-option:hover { background: var(--soft-white); }
+.msd-option.on { color: var(--teal); font-weight: 600; }
+/* Two classes (.msd .msd-check) so this beats the page-level
+   `.intake-field input { width:100% }` rule that otherwise stretches the
+   checkbox to full width and pushes the label off-screen. */
+.msd .msd-check {
+  flex: none;
+  width: 15px;
+  min-width: 15px;
+  height: 15px;
+  margin: 0;
+  padding: 0;
+  border-radius: 3px;
+  background: none;
+  accent-color: var(--teal);
+  pointer-events: none;
+  box-shadow: none;
+}

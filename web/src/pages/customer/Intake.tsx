@@ -14,6 +14,7 @@ import { useNavigate } from "react-router-dom";
 import { api } from "../../lib/api";
 import { maturityBand } from "../../lib/scoreBands";
 import { PageHeader } from "../../components/PageHeader";
+import { MultiSelectDropdown, type MSDOption } from "../../components/MultiSelectDropdown";
 import "./intake.css";
 import "../../components/furniture.css";
 
@@ -102,7 +103,9 @@ export function Intake() {
   // (GET /config/intake-options) so they can't drift from what scoring understands.
   type IndustryOpt = { value: string; label: string; industry_id?: string };
   type JurisdictionOpt = { value: string; label: string };
-  const [industry, setIndustry] = useState<string>("");            // "" = not selected
+  // Industry is now a multi-select (checkbox dropdown); the FIRST real pick is the
+  // primary benchmark cohort server-side. Empty array = not selected.
+  const [industries, setIndustries] = useState<string[]>([]);
   const [jurisdictions, setJurisdictions] = useState<string[]>([]);
   const [industryOpts, setIndustryOpts] = useState<IndustryOpt[]>([]);
   const [jurisdictionOpts, setJurisdictionOpts] = useState<JurisdictionOpt[]>([]);
@@ -121,13 +124,20 @@ export function Intake() {
     return () => { alive = false; };
   }, []);
 
-  const toggleJurisdiction = useCallback((code: string) => {
-    setJurisdictions(prev =>
-      prev.includes(code) ? prev.filter(c => c !== code) : [...prev, code]);
-  }, []);
+  // Options for the two checkbox dropdowns. Industry appends the honest
+  // "not sure / not listed" sentinel so opting out is a first-class choice.
+  const industryChoices: MSDOption[] = [
+    ...industryOpts.map(o => ({ value: o.value, label: o.label })),
+    { value: unknownIndustry, label: "Not sure / not listed" },
+  ];
+  const jurisdictionChoices: MSDOption[] = jurisdictionOpts.map(o => ({ value: o.value, label: o.label }));
+
+  // The primary (cohort) industry = first real (non-unknown) selection.
+  const realIndustries = industries.filter(v => v !== unknownIndustry);
+  const industryLabel = (v: string) => industryChoices.find(o => o.value === v)?.label ?? v;
 
   const isProcessing = step === "submitting";
-  const filtersBlank = !industry && jurisdictions.length === 0;
+  const filtersBlank = industries.length === 0 && jurisdictions.length === 0;
 
   // QA-011 polling machinery. The idempotency key is stable across retries of the
   // SAME submission, so a retry resumes the existing job (no duplicate assessment).
@@ -245,7 +255,9 @@ export function Intake() {
       else if (mode === "text") formData.append("text", textVal);
       else if (mode === "upload" && fileVal) formData.append("file", fileVal, fileVal.name);
       // ARCH-001A: thread the captured filters (blank fields are simply omitted).
-      if (industry) formData.append("industry", industry);
+      // Industry is comma-separated (multi-select); the server treats the first
+      // entry as the primary benchmark cohort.
+      if (industries.length) formData.append("industry", industries.join(","));
       if (jurisdictions.length) formData.append("jurisdictions", jurisdictions.join(","));
       formData.append("idempotency_key", idempotencyKey.current);
 
@@ -261,11 +273,11 @@ export function Intake() {
       setCanRetry(true);
       setErrorMsg(err instanceof Error ? err.message : "Could not submit the notice.");
     }
-  }, [mode, urlVal, textVal, fileVal, industry, jurisdictions, pollStatus, stopTimers]);
+  }, [mode, urlVal, textVal, fileVal, industries, jurisdictions, pollStatus, stopTimers]);
 
   // A new submission (inputs changed) should get a fresh idempotency key; a retry
   // of the same inputs keeps it. Clear the key whenever the inputs change.
-  useEffect(() => { idempotencyKey.current = ""; }, [mode, urlVal, textVal, fileVal, industry, jurisdictions]);
+  useEffect(() => { idempotencyKey.current = ""; }, [mode, urlVal, textVal, fileVal, industries, jurisdictions]);
 
   return (
     <div>
@@ -365,42 +377,30 @@ export function Intake() {
         {/* ── ARCH-001A: intake filters (industry + state privacy laws) ── */}
         <div className="intake-filters" data-testid="intake-filters">
           <div className="intake-field">
-            <label htmlFor="intake-industry">INDUSTRY</label>
-            <select
-              id="intake-industry"
-              data-testid="intake-industry"
-              value={industry}
+            <label id="intake-industry-label">INDUSTRY</label>
+            <MultiSelectDropdown
+              testId="intake-industry"
+              ariaLabel="Industry"
+              placeholder="Select industries…"
+              options={industryChoices}
+              selected={industries}
+              onChange={setIndustries}
               disabled={isProcessing}
-              onChange={e => setIndustry(e.target.value)}
-            >
-              <option value="">Select an industry…</option>
-              {industryOpts.map(o => (
-                <option key={o.value} value={o.value}>{o.label}</option>
-              ))}
-              <option value={unknownIndustry}>Not sure / not listed</option>
-            </select>
-            <span className="intake-field-help">Determines your peer benchmark cohort.</span>
+            />
+            <span className="intake-field-help">Determines your peer benchmark cohort (first selection is primary).</span>
           </div>
 
           <div className="intake-field">
-            <label>STATE PRIVACY LAWS</label>
-            <div className="intake-chips" role="group" aria-label="State privacy laws" data-testid="intake-jurisdictions">
-              {jurisdictionOpts.map(o => {
-                const on = jurisdictions.includes(o.value);
-                return (
-                  <button
-                    type="button"
-                    key={o.value}
-                    className={`intake-chip ${on ? "on" : ""}`}
-                    aria-pressed={on}
-                    disabled={isProcessing}
-                    onClick={() => toggleJurisdiction(o.value)}
-                  >
-                    {o.label}
-                  </button>
-                );
-              })}
-            </div>
+            <label id="intake-jurisdictions-label">STATE PRIVACY LAWS</label>
+            <MultiSelectDropdown
+              testId="intake-jurisdictions"
+              ariaLabel="State privacy laws"
+              placeholder="Select state privacy laws…"
+              options={jurisdictionChoices}
+              selected={jurisdictions}
+              onChange={setJurisdictions}
+              disabled={isProcessing}
+            />
             <span className="intake-field-help">Sets which regulators and state-law exposure apply.</span>
           </div>
 
@@ -419,10 +419,8 @@ export function Intake() {
           <ul className="intake-scope-list">
             <li>
               <span>Benchmark cohort</span>
-              <strong>{industry
-                ? (industry === unknownIndustry
-                    ? "broad cohort (industry not specified)"
-                    : `${(industryOpts.find(o => o.value === industry)?.label) ?? industry} peers`)
+              <strong>{realIndustries.length
+                ? `${industryLabel(realIndustries[0])} peers${realIndustries.length > 1 ? ` (+${realIndustries.length - 1} more selected)` : ""}`
                 : "broad cohort (industry not specified)"}</strong>
             </li>
             <li>
@@ -433,7 +431,7 @@ export function Intake() {
             </li>
             <li>
               <span>Declared by you</span>
-              <strong>{[industry && "industry", jurisdictions.length && "state laws"].filter(Boolean).join(", ") || "nothing yet"}</strong>
+              <strong>{[industries.length && "industry", jurisdictions.length && "state laws"].filter(Boolean).join(", ") || "nothing yet"}</strong>
             </li>
             <li>
               <span>Detected from the notice</span>

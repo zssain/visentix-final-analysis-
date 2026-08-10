@@ -29,9 +29,13 @@
     "regulatory_history":       0.10
   },
   "rss_state_lookup": {
-    "US-CA": 1.0,  "US-NY": 0.85, "US-TX": 0.70, "US-CO": 0.65,
-    "US-CT": 0.60, "US-VA": 0.55, "US-WA": 0.55, "US-FED": 0.90,
-    "EU": 0.80,    "_default": 0.30
+    "US-CA": 1.0,  "US-TX": 0.70, "US-CO": 0.65, "US-CT": 0.60,
+    "US-VA": 0.55, "US-WA": 0.55, "US-DE": 0.60, "US-IL": 0.70,
+    "US-NJ": 0.60, "US-OR": 0.60, "US-UT": 0.45, "US-IN": 0.55,
+    "US-KY": 0.50, "US-RI": 0.55, "US-MD": 0.70, "US-MN": 0.60,
+    "US-MT": 0.55, "US-NE": 0.55, "US-NH": 0.55, "US-IA": 0.45,
+    "US-TN": 0.50, "US-FL": 0.55, "US-FED": 0.90, "EU": 0.80,
+    "_default": 0.30
   },
   "rss_tiers": [
     {"label": "Minimal",  "min": 0,  "max": 20},

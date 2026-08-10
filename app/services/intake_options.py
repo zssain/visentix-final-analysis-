@@ -27,17 +27,42 @@ RSS_STATE_LOOKUP: dict[str, float] = _CFG["rss_state_lookup"]
 JURISDICTION_CODES: list[str] = [k for k in RSS_STATE_LOOKUP if not k.startswith("_")]
 
 # Plain-language labels (Rule 9). Codes not listed fall back to the raw code.
+# Every state here has an ingested comprehensive privacy law in `legal_reference`
+# / `obligation`; the label names the governing statute so the choice is legible.
 _JURISDICTION_LABELS: dict[str, str] = {
     "US-CA": "California (CCPA / CPRA)",
-    "US-NY": "New York",
-    "US-TX": "Texas",
+    "US-TX": "Texas (TDPSA)",
     "US-CO": "Colorado (CPA)",
     "US-CT": "Connecticut (CTDPA)",
     "US-VA": "Virginia (VCDPA)",
     "US-WA": "Washington (My Health My Data)",
+    "US-DE": "Delaware (DPDPA)",
+    "US-IL": "Illinois (BIPA)",
+    "US-NJ": "New Jersey (NJDPA)",
+    "US-OR": "Oregon (OCPA)",
+    "US-UT": "Utah (UCPA)",
+    "US-IN": "Indiana (INCDPA)",
+    "US-KY": "Kentucky (KCDPA)",
+    "US-RI": "Rhode Island (RIDPA)",
+    "US-MD": "Maryland (MODPA)",
+    "US-MN": "Minnesota (MNCDPA)",
+    "US-MT": "Montana (MCDPA)",
+    "US-NE": "Nebraska (NEDPA)",
+    "US-NH": "New Hampshire (NHDPA)",
+    "US-IA": "Iowa (ICDPA)",
+    "US-TN": "Tennessee (TIPA)",
+    "US-FL": "Florida (FDBR)",
     "US-FED": "United States — Federal",
     "EU": "European Union (GDPR)",
 }
+
+# ── Industries offered in intake ─────────────────────────────
+# Only industries with a real peer benchmark cohort built (`benchmark_cluster`)
+# are offered, so a customer never picks a cohort that would silently fall back
+# to the broad population with a disclosed confidence penalty. Keyed by
+# industry_id → the one canonical taxonomy name to surface (aliases collapsed:
+# e.g. fintech folds into financial_services under IND-05).
+_COHORT_BACKED_INDUSTRIES: list[str] = ["retail", "healthcare", "financial_services"]
 
 # The honest "no real industry" sentinel written when the user opts out.
 UNKNOWN_INDUSTRY = "unknown"
@@ -59,11 +84,16 @@ def is_valid_jurisdiction(code: str) -> bool:
 
 
 def industry_options() -> list[dict]:
-    """[{value, label, industry_id}] for the intake dropdown."""
+    """[{value, label, industry_id}] for the intake dropdown.
+
+    Restricted to cohort-backed industries (see `_COHORT_BACKED_INDUSTRIES`) so
+    the dropdown never offers a peer benchmark that doesn't exist.
+    """
     return [
         {"value": name, "label": name.replace("_", " ").title(),
-         "industry_id": entry.get("industry_id")}
-        for name, entry in INDUSTRY_TAXONOMY.items()
+         "industry_id": INDUSTRY_TAXONOMY[name].get("industry_id")}
+        for name in _COHORT_BACKED_INDUSTRIES
+        if name in INDUSTRY_TAXONOMY
     ]
 
 

@@ -304,20 +304,36 @@ async def assessment_status(
 
 # ── ARCH-001A: intake filters (industry + state privacy laws) ────
 
-def _parse_jurisdictions(raw: Optional[str]) -> list[str]:
-    """Accept a comma-separated (or single) jurisdictions field → clean list."""
+def _parse_csv(raw: Optional[str]) -> list[str]:
+    """Accept a comma-separated (or single) field → clean, order-preserving list."""
     if not raw:
         return []
-    return [j.strip() for j in raw.split(",") if j.strip()]
+    return [v.strip() for v in raw.split(",") if v.strip()]
+
+
+# Back-compat alias — jurisdictions were the first multi-value field (ARCH-001A).
+_parse_jurisdictions = _parse_csv
+
+
+def _parse_industries(raw: Optional[str]) -> list[str]:
+    """Industry may now be multi-select (checkbox dropdown). The list is
+    order-preserving; the FIRST entry is the primary benchmark cohort (scoring
+    keys the cohort on a single industry_id)."""
+    return _parse_csv(raw)
 
 
 def _validate_filters(industry: Optional[str], jurisdictions: list[str]) -> None:
-    """Reject unknown filter values rather than passing junk downstream (ARCH-001A)."""
-    if industry and not _iopt.is_valid_industry(industry):
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"Unknown industry: {industry!r}. Choose one of the listed industries or 'unknown'.",
-        )
+    """Reject unknown filter values rather than passing junk downstream (ARCH-001A).
+
+    `industry` accepts a single value or a comma-separated multi-select; every
+    entry must be a known industry (or the honest `unknown` sentinel).
+    """
+    for ind in _parse_industries(industry):
+        if not _iopt.is_valid_industry(ind):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"Unknown industry: {ind!r}. Choose one of the listed industries or 'unknown'.",
+            )
     for j in jurisdictions:
         if not _iopt.is_valid_jurisdiction(j):
             raise HTTPException(
@@ -337,8 +353,13 @@ async def _apply_intake_filters(
     from app.services.profiling.live_profile import compute_ic
 
     patch: dict = {}
-    if industry:
-        key = industry.strip().lower().replace(" ", "_")
+    # Industry may be multi-select; the primary (first) entry drives the single
+    # benchmark cohort. Additional selections are captured on the request/echo
+    # but scoring keys the cohort on one industry_id (Hard Rule 6).
+    industries = _parse_industries(industry)
+    primary = industries[0] if industries else None
+    if primary:
+        key = primary.strip().lower().replace(" ", "_")
         if key == _iopt.UNKNOWN_INDUSTRY:
             # Explicit "not sure / not listed" — honest unknown, never a fake real industry.
             patch["industry"] = "unknown"
@@ -579,8 +600,11 @@ async def run_assessment_intake(
     if upload_filename:
         response["upload_filename"] = upload_filename
     # ARCH-001A: echo the captured filters (honest provenance for the UI/report).
-    if industry:
-        response["industry"] = industry.strip().lower().replace(" ", "_")
+    industries_list = [i.strip().lower().replace(" ", "_") for i in _parse_industries(industry)]
+    if industries_list:
+        # `industry` = the primary (cohort) selection; `industries` = full picks.
+        response["industry"] = industries_list[0]
+        response["industries"] = industries_list
         response["industry_source"] = (
             "unknown" if response["industry"] == _iopt.UNKNOWN_INDUSTRY else "user_provided")
     if jurisdictions_list:
