@@ -16,8 +16,14 @@ FROM ollama/ollama:${OLLAMA_VERSION}
 ENTRYPOINT []
 
 RUN apt-get update \
- && apt-get install -y --no-install-recommends python3 python3-pip ca-certificates \
+ && apt-get install -y --no-install-recommends python3 python3-venv ca-certificates \
  && rm -rf /var/lib/apt/lists/*
+
+# Install into an isolated venv. This avoids PEP 668 "externally-managed" errors
+# and old-pip `--break-system-packages` incompatibilities across base-image
+# variants (the ollama/ollama base ships a pip that rejects that flag).
+RUN python3 -m venv /opt/venv
+ENV PATH="/opt/venv/bin:${PATH}"
 
 WORKDIR /app
 
@@ -25,7 +31,8 @@ WORKDIR /app
 # so paths are repo-root-relative. Only these two files are copied — no secrets,
 # no app code, no .env.
 COPY deploy/runpod/serverless/requirements.txt .
-RUN pip3 install --no-cache-dir --break-system-packages -r requirements.txt
+RUN pip install --no-cache-dir --upgrade pip \
+ && pip install --no-cache-dir -r requirements.txt
 
 COPY deploy/runpod/serverless/handler.py .
 
