@@ -11,3 +11,5 @@ tests/
 .DS_Store
 .git/
 .gitignore
+
+# build retry: 2026-08-10 (RunPod build-cache I/O error on the prior attempt)
