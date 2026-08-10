@@ -99,22 +99,21 @@ def _ensure_model() -> None:
         raise RuntimeError(f"ollama pull {MODEL} failed rc={rc}")
 
 
-_model_ready = False
-_model_lock = threading.Lock()
+_model_ready = threading.Event()
 
 
-def _ensure_model_once() -> None:
-    """Pull the model on the FIRST job only (lazy). Done here — not before
-    runpod.serverless.start() — so the worker registers/serves promptly and RunPod
-    doesn't mark it unhealthy while a multi-GB pull is still running. Thread-safe."""
-    global _model_ready
-    if _model_ready:
-        return
-    with _model_lock:
-        if _model_ready:
-            return
+def _prepare_model_bg() -> None:
+    """Pull the model in a BACKGROUND thread (started right after the worker
+    registers with RunPod). Critical: the pull must NOT run inside the job handler
+    or before runpod.serverless.start() — a multi-GB synchronous pull blocks the
+    worker and RunPod marks it unhealthy. Here it runs off the hot path; the worker
+    stays healthy and the FIRST job simply waits for `_model_ready`."""
+    try:
         _ensure_model()
-        _model_ready = True
+        _model_ready.set()
+        log.info("[startup] model ready — worker can serve jobs")
+    except Exception as e:  # noqa: BLE001
+        log.error("[startup] model preparation FAILED: %s", e)
 
 
 # ── Job handler (import-safe; unit-tested directly) ─────────────────────────
@@ -123,7 +122,11 @@ def handler(job: dict) -> dict:
     """Process one RunPod job. Raises on any failure so RunPod marks the job
     FAILED (the Azure backend then records an honest DEGRADED result — it does NOT
     silently succeed). Never logs prompt text."""
-    _ensure_model_once()  # first job pulls the model (worker already registered)
+    # Wait for the background model pull (first cold start only; instant thereafter).
+    # The SDK's health server runs separately, so waiting here does not make the
+    # worker unhealthy.
+    if not _model_ready.wait(timeout=float(os.environ.get("MODEL_READY_TIMEOUT_S", "900"))):
+        raise RuntimeError("model not ready (still downloading or the pull failed) — see worker logs")
     inp = (job or {}).get("input") or {}
     operation = inp.get("operation", "chat")
     if operation != "chat":
@@ -167,11 +170,12 @@ def handler(job: dict) -> dict:
 
 if __name__ == "__main__":
     # Real worker entrypoint (NOT run during unit tests).
-    # Start Ollama (fast — seconds) and register with RunPod PROMPTLY so the worker
-    # is healthy immediately. The multi-GB model pull happens lazily on the first
-    # job (see _ensure_model_once) rather than blocking startup.
+    # Start Ollama (fast — seconds), kick off the model pull in the BACKGROUND, and
+    # register with RunPod PROMPTLY so the worker is healthy immediately. The pull
+    # runs off the hot path; the first job waits for _model_ready.
     _start_ollama()
+    threading.Thread(target=_prepare_model_bg, name="model-prep", daemon=True).start()
     import runpod  # imported here so tests don't require the SDK
 
-    log.info("[worker] ollama up — starting runpod.serverless (model pulls on first job)")
+    log.info("[worker] ollama up — starting runpod.serverless (model pulling in background)")
     runpod.serverless.start({"handler": handler})

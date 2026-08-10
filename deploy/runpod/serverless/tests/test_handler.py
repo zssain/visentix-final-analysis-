@@ -16,10 +16,13 @@ import handler as H  # noqa: E402
 
 
 @pytest.fixture(autouse=True)
-def _skip_lazy_model_pull(monkeypatch):
-    # The handler lazily pulls the model on first job; short-circuit it in tests
+def _model_already_ready(monkeypatch):
+    # The handler waits on a background model-pull Event; pre-set it in tests
     # (no Ollama running) so we exercise only the chat path.
-    monkeypatch.setattr(H, "_model_ready", True)
+    import threading
+    ev = threading.Event()
+    ev.set()
+    monkeypatch.setattr(H, "_model_ready", ev)
 
 
 class _Resp:

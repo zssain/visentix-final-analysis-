@@ -42,13 +42,9 @@ ENV OLLAMA_MODELS=/root/.ollama \
     OLLAMA_URL=http://127.0.0.1:11434 \
     LOG_LEVEL=INFO
 # NB: deliberately NO `OLLAMA_KEEP_ALIVE=-1` — RunPod must be free to scale to zero.
-
-# Bake qwen3:8b INTO the image (into the read-only layer at OLLAMA_MODELS). Workers
-# then start with the model already present: NO runtime download (so no container-
-# disk-full crash, no health timeout during a multi-GB pull, no network volume /
-# region needed) and FAST cold starts. Adds ~5 GB to the image; that's the trade.
-RUN ollama serve & \
-    for i in $(seq 1 90); do ollama list >/dev/null 2>&1 && break; sleep 1; done; \
-    ollama pull "${OLLAMA_MODEL}" && ollama list
+# The model is pulled at RUNTIME by handler.py in a BACKGROUND thread (worker stays
+# healthy; first job waits for it). Set the endpoint Container disk >= 12 GB so the
+# ~5 GB model fits. (Baking into the image is nicer but exceeds RunPod's GitHub
+# build disk — see deploy/runpod/README.md.)
 
 CMD ["python3", "handler.py"]
