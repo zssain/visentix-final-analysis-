@@ -36,8 +36,11 @@ RUN pip install --no-cache-dir --upgrade pip \
 
 COPY deploy/runpod/serverless/handler.py .
 
-# Model weights persist on the mounted network volume, not the container disk.
-ENV OLLAMA_MODELS=/runpod-volume/ollama \
+# Default model location = container disk (works with NO network volume — but then
+# Container disk must be >= ~12GB for qwen3:8b, and the model re-pulls each cold
+# start). To PERSIST the model + get fast cold starts, attach a network volume in a
+# HIGH-SUPPLY region and set OLLAMA_MODELS=/runpod-volume/ollama in the endpoint env.
+ENV OLLAMA_MODELS=/root/.ollama \
     OLLAMA_HOST=127.0.0.1 \
     OLLAMA_MODEL=qwen3:8b \
     OLLAMA_URL=http://127.0.0.1:11434 \

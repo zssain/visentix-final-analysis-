@@ -30,6 +30,7 @@ from __future__ import annotations
 import logging
 import os
 import subprocess
+import threading
 import time
 
 import httpx
@@ -98,11 +99,22 @@ def _ensure_model() -> None:
         raise RuntimeError(f"ollama pull {MODEL} failed rc={rc}")
 
 
-def _ensure_ready() -> None:
-    """Full worker readiness. Fail LOUD + FAST if the model can't be served — the
-    worker must not report healthy while every request would fail."""
-    _start_ollama()
-    _ensure_model()
+_model_ready = False
+_model_lock = threading.Lock()
+
+
+def _ensure_model_once() -> None:
+    """Pull the model on the FIRST job only (lazy). Done here — not before
+    runpod.serverless.start() — so the worker registers/serves promptly and RunPod
+    doesn't mark it unhealthy while a multi-GB pull is still running. Thread-safe."""
+    global _model_ready
+    if _model_ready:
+        return
+    with _model_lock:
+        if _model_ready:
+            return
+        _ensure_model()
+        _model_ready = True
 
 
 # ── Job handler (import-safe; unit-tested directly) ─────────────────────────
@@ -111,6 +123,7 @@ def handler(job: dict) -> dict:
     """Process one RunPod job. Raises on any failure so RunPod marks the job
     FAILED (the Azure backend then records an honest DEGRADED result — it does NOT
     silently succeed). Never logs prompt text."""
+    _ensure_model_once()  # first job pulls the model (worker already registered)
     inp = (job or {}).get("input") or {}
     operation = inp.get("operation", "chat")
     if operation != "chat":
@@ -154,8 +167,11 @@ def handler(job: dict) -> dict:
 
 if __name__ == "__main__":
     # Real worker entrypoint (NOT run during unit tests).
-    _ensure_ready()
+    # Start Ollama (fast — seconds) and register with RunPod PROMPTLY so the worker
+    # is healthy immediately. The multi-GB model pull happens lazily on the first
+    # job (see _ensure_model_once) rather than blocking startup.
+    _start_ollama()
     import runpod  # imported here so tests don't require the SDK
 
-    log.info("[worker] ready — starting runpod.serverless (scale-to-zero)")
+    log.info("[worker] ollama up — starting runpod.serverless (model pulls on first job)")
     runpod.serverless.start({"handler": handler})

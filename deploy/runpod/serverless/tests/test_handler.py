@@ -15,6 +15,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import handler as H  # noqa: E402
 
 
+@pytest.fixture(autouse=True)
+def _skip_lazy_model_pull(monkeypatch):
+    # The handler lazily pulls the model on first job; short-circuit it in tests
+    # (no Ollama running) so we exercise only the chat path.
+    monkeypatch.setattr(H, "_model_ready", True)
+
+
 class _Resp:
     def __init__(self, payload):
         self._payload = payload
