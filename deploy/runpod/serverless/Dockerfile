@@ -21,10 +21,13 @@ RUN apt-get update \
 
 WORKDIR /app
 
-COPY requirements.txt .
+# Build context is the REPO ROOT (RunPod's GitHub build + `docker build -f <this> .`),
+# so paths are repo-root-relative. Only these two files are copied — no secrets,
+# no app code, no .env.
+COPY deploy/runpod/serverless/requirements.txt .
 RUN pip3 install --no-cache-dir --break-system-packages -r requirements.txt
 
-COPY handler.py .
+COPY deploy/runpod/serverless/handler.py .
 
 # Model weights persist on the mounted network volume, not the container disk.
 ENV OLLAMA_MODELS=/runpod-volume/ollama \

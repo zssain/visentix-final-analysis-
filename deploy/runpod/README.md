@@ -87,12 +87,21 @@ deploy/runpod/
 RunPod GPU nodes are `linux/amd64`. On Apple Silicon/macOS you **must** cross-build:
 
 ```bash
-# from the repo root
+# from the repo root — context is the repo root (matches RunPod's GitHub build)
 docker buildx build --platform linux/amd64 \
   --build-arg OLLAMA_VERSION=0.5.11 \
+  -f deploy/runpod/serverless/Dockerfile \
   -t <registry>/visentix-runpod-serverless:2026-08-10-<git-sha> \
-  deploy/runpod/serverless --push
+  . --push
 ```
+
+**Two ways to get the image onto RunPod:**
+- **A — RunPod GitHub build (no local Docker/registry needed):** in the endpoint
+  wizard select this repo, branch `main`, **Dockerfile path
+  `/deploy/runpod/serverless/Dockerfile`** (NOT `/Dockerfile` — that's the Azure
+  backend). RunPod builds the image for you.
+- **B — pre-built image:** run the command above (push to GHCR/Docker Hub), then in
+  the wizard choose **Docker image** and paste the tag.
 
 - Pin `OLLAMA_VERSION` to a tested tag (verify it exists + serves qwen3:8b).
 - Use an **immutable tag** (`<date>-<sha>`), not `:latest`, for the endpoint.

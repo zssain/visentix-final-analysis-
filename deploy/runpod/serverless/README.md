@@ -12,12 +12,15 @@ pytest deploy/runpod/serverless/tests -q
 under `__main__`, so the handler is unit-tested directly with the Ollama call mocked.
 
 ## Build (linux/amd64 — required for RunPod GPU nodes)
+Build context = repo root (matches RunPod's GitHub build). Run from the repo root:
 ```bash
 docker buildx build --platform linux/amd64 \
   --build-arg OLLAMA_VERSION=0.5.11 \
+  -f deploy/runpod/serverless/Dockerfile \
   -t <registry>/visentix-runpod-serverless:<date>-<sha> \
-  deploy/runpod/serverless --push
+  . --push
 ```
+RunPod GitHub build: Dockerfile path = `/deploy/runpod/serverless/Dockerfile`.
 
 ## Contract
 Input:
