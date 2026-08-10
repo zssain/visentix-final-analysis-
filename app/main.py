@@ -18,6 +18,11 @@ log = get_logger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Fail fast on LLM misconfiguration — a syntactic check only, NO inference
+    # call (must never wake a scale-to-zero serverless worker at boot).
+    settings.validate_llm_backend()
+    log.info("LLM provider: %s", settings.effective_llm_backend)
+
     # BACK-001 startup reaper: reclaim any job_run left in `running` by a worker
     # that was SIGKILL'd/OOM'd (its `finally` never ran). Without this a single
     # hard crash disables monitor_notices/pull_regulators/refresh_benchmarks

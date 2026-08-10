@@ -126,23 +126,28 @@ class LLMResponse:
     tokens_used: int = 0
 
 
+class RunPodServerlessError(RuntimeError):
+    """A terminal, NON-retryable RunPod Serverless failure (job FAILED/CANCELLED,
+    missing/malformed worker output, or missing config). Distinct from httpx
+    transport/status errors so the ONE retry policy in `_chat` doesn't retry it —
+    it propagates and the caller records an honest DEGRADED result. Never carries a
+    secret in its message."""
+
+
 class LLMClient:
-    """Unified LLM client with local and hosted backends."""
+    """Unified LLM client. Providers: local Ollama, legacy hosted Ollama (Pod),
+    and RunPod Serverless (scale-to-zero). classify()/phrase() are provider-agnostic."""
 
     def __init__(self):
+        # Fail fast on misconfiguration — NO network call (never wakes a worker).
+        settings.validate_llm_backend()
         self._backend = self._select_backend()
         log.info("LLM backend: %s", self._backend)
 
     def _select_backend(self) -> str:
-        """Select backend based on env config.
-
-        The hosted backend is our own Ollama running on the private RunPod pod,
-        reached over the tailnet (see deploy/runpod/). It needs NO API key, so
-        selection keys off the base URL alone; an API key is sent only if set.
-        """
-        if settings.hosted_qwen_base_url:
-            return "hosted"
-        return "local"
+        """Provider is resolved centrally in config (LLM_BACKEND, else auto):
+        'local' | 'hosted_ollama' | 'runpod_serverless'."""
+        return settings.effective_llm_backend
 
     async def classify(self, text: str, categories: list[str]) -> dict:
         """Classify text into one of the given categories.
@@ -234,10 +239,12 @@ class LLMClient:
         """
         for attempt in range(MAX_RETRIES):
             try:
-                if self._backend == "hosted":
-                    return await self._chat_hosted(system, user)
-                else:
+                if self._backend == "local":
                     return await self._chat_local(system, user)
+                elif self._backend == "runpod_serverless":
+                    return await self._chat_runpod_serverless(system, user)
+                else:  # hosted_ollama — legacy always-on Pod
+                    return await self._chat_hosted_ollama(system, user)
             except httpx.HTTPStatusError as e:
                 status = e.response.status_code
                 if not (status == 429 or 500 <= status < 600):
@@ -288,8 +295,10 @@ class LLMClient:
                 backend="local",
             )
 
-    async def _chat_hosted(self, system: str, user: str) -> LLMResponse:
-        """Call the hosted Ollama endpoint (private RunPod pod over the tailnet).
+    async def _chat_hosted_ollama(self, system: str, user: str) -> LLMResponse:
+        """Call the LEGACY hosted Ollama endpoint (always-on RunPod Pod over the tailnet).
+
+        Retained for back-compat + rollback. Production uses runpod_serverless.
 
         This is the SAME Ollama server as local, just remote — so the request
         MUST be byte-for-byte identical to _chat_local (native /api/chat,
@@ -323,8 +332,115 @@ class LLMClient:
             return LLMResponse(
                 content=content,
                 model=settings.hosted_qwen_model,
-                backend="hosted",
+                backend="hosted_ollama",
             )
+
+    # ── RunPod Serverless (scale-to-zero) ────────────────────────────────────
+    async def _chat_runpod_serverless(self, system: str, user: str) -> LLMResponse:
+        """Call the qwen3:8b model on a RunPod Serverless endpoint.
+
+        The GPU worker exists ONLY while a job is being processed; between jobs
+        RunPod scales it to zero (no idle billing). This method:
+          1. Builds the SAME native Ollama /api/chat payload as the local/hosted
+             backends (stream=False, think=False, num_predict=500) so generation
+             behaviour is backend-independent (output parity).
+          2. Wraps it in RunPod's job envelope `{"input": {...}}`.
+          3. POSTs to `{base}/{endpoint_id}/runsync` with a Bearer API key.
+          4. If runsync returns before the job is COMPLETED (cold start > runsync
+             wait window), polls `/status/{id}` until terminal or timeout.
+          5. Validates the RunPod envelope + the worker's Ollama-shaped output.
+
+        Transient failures (429, 5xx, network timeout) raise httpx errors that the
+        ONE retry policy in `_chat` handles. Terminal failures (job FAILED, missing
+        output) raise RunPodServerlessError (NOT retried → caller degrades). No
+        secret (API key) or prompt text is ever logged.
+        """
+        endpoint = settings.runpod_endpoint_id
+        api_key = settings.runpod_api_key.get_secret_value()
+        if not endpoint or not api_key:
+            # validate_llm_backend() covers startup; guard here for direct callers.
+            raise RunPodServerlessError("RunPod Serverless not configured (endpoint id / api key)")
+
+        base = settings.runpod_serverless_base_url.rstrip("/")
+        model = settings.llm_model_name
+        headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+        payload = {
+            "input": {
+                "operation": "chat",
+                "model": model,
+                # IDENTICAL inference params to _chat_local / _chat_hosted_ollama.
+                "messages": [
+                    {"role": "system", "content": system},
+                    {"role": "user", "content": user},
+                ],
+                "stream": False,
+                "think": False,
+                "options": {"num_predict": 500},
+            }
+        }
+
+        overall = settings.runpod_serverless_timeout_seconds
+        timeout = httpx.Timeout(overall, connect=15.0)
+        t0 = time.monotonic()
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            r = await client.post(f"{base}/{endpoint}/runsync", headers=headers, json=payload)
+            r.raise_for_status()  # 401/403/404 → permanent; 429/5xx → retried by _chat
+            env = r.json()
+            env = await self._runpod_await_terminal(client, base, endpoint, headers, env, t0, overall)
+
+        return self._runpod_parse(env, model, t0)
+
+    async def _runpod_await_terminal(
+        self, client: httpx.AsyncClient, base: str, endpoint: str, headers: dict,
+        env: dict, t0: float, overall: float,
+    ) -> dict:
+        """If runsync returned a non-terminal status (cold start exceeded its wait
+        window), poll GET /status/{id} until the job reaches a terminal state or
+        the overall budget is exhausted. Polling is backend-only — the browser is
+        polling the assessment status separately, never RunPod."""
+        NON_TERMINAL = {"IN_QUEUE", "IN_PROGRESS"}
+        status = (env or {}).get("status")
+        job_id = (env or {}).get("id")
+        while status in NON_TERMINAL and job_id:
+            if time.monotonic() - t0 >= overall:
+                raise httpx.ReadTimeout(f"RunPod job {job_id} exceeded {overall}s budget (status={status})")
+            await asyncio.sleep(2.0)
+            r = await client.get(f"{base}/{endpoint}/status/{job_id}", headers=headers)
+            r.raise_for_status()
+            env = r.json()
+            status = env.get("status")
+        return env
+
+    def _runpod_parse(self, env: dict, model: str, t0: float) -> LLMResponse:
+        """Validate the RunPod envelope + extract the Ollama-shaped worker output."""
+        status = (env or {}).get("status")
+        job_id = (env or {}).get("id")
+        dur_ms = int((time.monotonic() - t0) * 1000)
+        if status != "COMPLETED":
+            err = env.get("error") if isinstance(env, dict) else None
+            # Log safe metadata only (no prompt text, no api key).
+            log.warning(
+                "runpod_serverless job non-COMPLETED provider=runpod_serverless status=%s "
+                "job_id=%s duration_ms=%d", status, job_id, dur_ms,
+            )
+            raise RunPodServerlessError(
+                f"RunPod job {job_id} status={status}"
+                + (f": {str(err)[:200]}" if err else "")
+            )
+        output = env.get("output")
+        if not isinstance(output, dict):
+            raise RunPodServerlessError(f"RunPod job {job_id} COMPLETED but output missing/invalid")
+        content = (output.get("message") or {}).get("content", "")
+        log.info(
+            "runpod_serverless ok provider=runpod_serverless operation=chat model=%s "
+            "job_id=%s status=COMPLETED delay_ms=%s exec_ms=%s duration_ms=%d",
+            model, job_id, env.get("delayTime"), env.get("executionTime"), dur_ms,
+        )
+        return LLMResponse(
+            content=content,
+            model=output.get("model", model),
+            backend="runpod_serverless",
+        )
 
 
 # Singleton

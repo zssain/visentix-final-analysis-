@@ -1,0 +1,13 @@
+# Keep the worker image tiny + secret-free. The build context is this directory;
+# only handler.py + requirements.txt are needed.
+tests/
+**/__pycache__/
+*.pyc
+*.pyo
+*.md
+.env
+.env.*
+*.log
+.DS_Store
+.git/
+.gitignore

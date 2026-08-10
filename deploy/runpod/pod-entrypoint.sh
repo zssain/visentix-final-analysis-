@@ -1,5 +1,11 @@
 #!/bin/bash
 # =============================================================================
+# ⚠️  LEGACY — always-on Pod (ROLLBACK ONLY). Superseded by RunPod Serverless
+#     (deploy/runpod/serverless/ + deploy/runpod/README.md). This supervisor runs
+#     ollama 24/7 with OLLAMA_KEEP_ALIVE=-1 and therefore BILLS CONTINUOUSLY. Do
+#     NOT use this pattern for the Serverless worker (RunPod must scale to zero).
+#     Kept so the Pod can be restarted for the rollback path (README §19).
+# =============================================================================
 # pod-entrypoint.sh — RunPod GPU pod start command (Ollama + embeddings, PRIVATE).
 #
 # Pulled fresh from a gist by the pod's Container Start Command on every (re)start:

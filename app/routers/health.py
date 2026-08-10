@@ -46,9 +46,7 @@ async def health(cfg: Settings = Depends(get_settings)):
     # exact count; a health probe must stay fast on 500k+ row tables.
     headers = {**get_service_headers(), "Prefer": "count=estimated"}
 
-    # Active model backend: hosted (private pod over tailnet) if configured, else local.
-    backend = "hosted" if cfg.hosted_qwen_base_url else "local"
-    model_base_url = cfg.hosted_qwen_base_url or cfg.ollama_base_url
+    backend = cfg.effective_llm_backend  # "local" | "hosted_ollama" | "runpod_serverless"
 
     async with httpx.AsyncClient(timeout=8) as client:
 
@@ -63,33 +61,51 @@ async def health(cfg: Settings = Depends(get_settings)):
             except Exception:
                 return table, "error"
 
-        # Row counts + backend probe run concurrently → ~1s instead of ~10s.
-        counts, model_status = await asyncio.gather(
-            asyncio.gather(*(_count(t) for t in CORE_TABLES)),
-            _probe_model(client, model_base_url),
-        )
+        # CRITICAL (cost): /health MUST NOT run inference or wake a scale-to-zero
+        # serverless worker. Only the LOCAL dev backend (localhost Ollama, no GPU
+        # bill) is probed. Hosted/serverless report configuration presence WITHOUT
+        # any network/inference call — a "cold" serverless endpoint is normal.
+        if backend == "local":
+            counts, model_status = await asyncio.gather(
+                asyncio.gather(*(_count(t) for t in CORE_TABLES)),
+                _probe_model(client, cfg.ollama_base_url),
+            )
+            llm = {"provider": "local", "configured": True,
+                   "status": model_status, "probe": "ollama_version"}
+        else:
+            counts = await asyncio.gather(*(_count(t) for t in CORE_TABLES))
+            if backend == "runpod_serverless":
+                configured = bool(cfg.runpod_endpoint_id and cfg.runpod_api_key.get_secret_value())
+            else:  # hosted_ollama (legacy Pod)
+                configured = bool(cfg.hosted_qwen_base_url)
+            model_status = "not_probed"
+            llm = {"provider": backend, "configured": configured,
+                   "status": "not_probed",
+                   "probe": "not_invoked_to_avoid_cold_start"}
 
     row_counts = dict(counts)
     db_ok = not any(v == "error" for v in row_counts.values())
 
+    # Liveness is DB-driven ONLY. The LLM provider is REPORTED, never gated — a
+    # scale-to-zero endpoint sitting cold must not mark the app unhealthy (which
+    # would 503 the edge / break login + reports).
     return {
-        "status": "healthy" if db_ok and model_status == "ok" else "degraded",
+        "status": "healthy" if db_ok else "degraded",
         "db": "ok" if db_ok else "degraded",
         "model_backend": backend,
-        "model_status": model_status,
-        # Back-compat alias for existing consumers (admin status, frontend):
-        "ollama": model_status,
+        "model_status": model_status,           # "ok"/"down" (local) or "not_probed"
+        "ollama": model_status,                 # back-compat alias
+        "llm": llm,
         "row_counts": row_counts,
     }
 
 
 async def _probe_model(client: httpx.AsyncClient, base_url: str) -> str:
-    """Reachability of the model backend's Ollama server (native /api/version).
+    """Reachability of a LOCAL Ollama server (native /api/version) — dev only.
 
-    Short timeout on purpose: /health must stay fast (and return HTTP 200) even
-    when the model backend is unreachable, so a transient pod outage NEVER 503s
-    the edge / takes down login + reports. Classification fails fast elsewhere
-    (spec 1D); /health only *reports* model_status, it does not gate liveness.
+    NEVER used for the hosted Pod or the serverless endpoint (a probe there would
+    either hit a Tailscale-only host or WAKE A SERVERLESS WORKER, defeating
+    scale-to-zero). /health only *reports* model status; it does not gate liveness.
     """
     try:
         r = await client.get(f"{base_url}/api/version", timeout=2.0)

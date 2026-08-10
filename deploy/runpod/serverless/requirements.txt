@@ -1,0 +1,3 @@
+# RunPod Serverless worker deps — keep minimal (small image, fast cold start).
+runpod>=1.6.0,<2.0.0
+httpx>=0.27.0,<1.0.0

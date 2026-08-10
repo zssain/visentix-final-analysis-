@@ -1,0 +1,13 @@
+{
+  "input": {
+    "operation": "chat",
+    "model": "qwen3:8b",
+    "messages": [
+      { "role": "system", "content": "You are a privacy notice classifier. Respond with ONLY valid JSON." },
+      { "role": "user", "content": "Reply with exactly: SERVERLESS_OK" }
+    ],
+    "stream": false,
+    "think": false,
+    "options": { "num_predict": 500 }
+  }
+}

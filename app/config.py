@@ -1,6 +1,6 @@
 """Typed application settings — all values from .env, zero hardcoded secrets."""
 
-from pydantic import Field
+from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -39,10 +39,31 @@ class Settings(BaseSettings):
     # Embeddings
     embedding_model: str = Field(default="sentence-transformers/all-MiniLM-L6-v2")
 
-    # Hosted Qwen (wired in Phase 5)
+    # ── LLM provider selection ───────────────────────────────────────────────
+    # Explicit provider switch. Empty = auto (back-compat): runpod_serverless if a
+    # RunPod endpoint is set, else hosted_ollama if HOSTED_QWEN_BASE_URL is set,
+    # else local. Resolved by `effective_llm_backend`. Valid explicit values:
+    #   "local"             — dev: localhost Ollama (OLLAMA_BASE_URL)
+    #   "hosted_ollama"     — legacy: always-on Ollama on a RunPod Pod (Tailscale)
+    #   "runpod_serverless" — RunPod Serverless, scale-to-zero (production target)
+    llm_backend: str = Field(default="")
+
+    # Hosted Qwen — LEGACY always-on RunPod Pod (Ollama over the tailnet). Kept for
+    # back-compat + rollback; production moves to runpod_serverless below.
     hosted_qwen_base_url: str = Field(default="")
     hosted_qwen_api_key: str = Field(default="")
     hosted_qwen_model: str = Field(default="")
+
+    # ── RunPod Serverless (scale-to-zero) — production LLM compute ────────────
+    # The Azure backend authenticates TO RunPod with RUNPOD_API_KEY (a SecretStr so
+    # it never prints in logs/repr). NEVER exposed to the frontend. See
+    # deploy/runpod/serverless/ + deploy/runpod/README.md.
+    runpod_endpoint_id: str = Field(default="")
+    runpod_api_key: SecretStr = Field(default=SecretStr(""))
+    runpod_serverless_base_url: str = Field(default="https://api.runpod.ai/v2")
+    # Overall per-inference budget (covers cold start + model load + generation).
+    runpod_serverless_timeout_seconds: float = Field(default=180.0)
+    runpod_serverless_max_retries: int = Field(default=3)
 
     # Versioning metadata (VICBNF v2 quintet — stamped on every score/finding)
     scoring_model_version: str = Field(default="vicbnf-2.0.0")
@@ -92,6 +113,46 @@ class Settings(BaseSettings):
     @property
     def is_production(self) -> bool:
         return self.app_env == "production"
+
+    @property
+    def effective_llm_backend(self) -> str:
+        """Resolve the active LLM provider. Explicit LLM_BACKEND wins; otherwise
+        auto-detect for back-compat (never silently changes an existing deploy)."""
+        if self.llm_backend:
+            return self.llm_backend
+        if self.runpod_endpoint_id:
+            return "runpod_serverless"
+        if self.hosted_qwen_base_url:
+            return "hosted_ollama"
+        return "local"
+
+    @property
+    def llm_model_name(self) -> str:
+        """Model tag used for hosted/serverless inference (falls back to the local
+        model tag so a single deploy needn't set two model vars)."""
+        return self.hosted_qwen_model or self.qwen_local_model
+
+    def validate_llm_backend(self) -> None:
+        """Fail fast on misconfiguration — WITHOUT any network/inference call.
+
+        Called at app startup. Only checks that required config is syntactically
+        present for the selected provider; it NEVER contacts RunPod/Ollama (which
+        would wake a serverless worker and defeat scale-to-zero)."""
+        backend = self.effective_llm_backend
+        if backend == "runpod_serverless":
+            missing = []
+            if not self.runpod_endpoint_id:
+                missing.append("RUNPOD_ENDPOINT_ID")
+            if not self.runpod_api_key.get_secret_value():
+                missing.append("RUNPOD_API_KEY")
+            if missing:
+                raise ValueError(
+                    f"LLM_BACKEND=runpod_serverless but missing required config: "
+                    f"{', '.join(missing)}. Set them in the backend .env (never the frontend)."
+                )
+        elif backend == "hosted_ollama":
+            if not self.hosted_qwen_base_url:
+                raise ValueError("LLM_BACKEND=hosted_ollama but HOSTED_QWEN_BASE_URL is empty.")
 
     @property
     def cors_origins(self) -> list[str]:
