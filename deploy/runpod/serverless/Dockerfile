@@ -36,15 +36,19 @@ RUN pip install --no-cache-dir --upgrade pip \
 
 COPY deploy/runpod/serverless/handler.py .
 
-# Default model location = container disk (works with NO network volume — but then
-# Container disk must be >= ~12GB for qwen3:8b, and the model re-pulls each cold
-# start). To PERSIST the model + get fast cold starts, attach a network volume in a
-# HIGH-SUPPLY region and set OLLAMA_MODELS=/runpod-volume/ollama in the endpoint env.
 ENV OLLAMA_MODELS=/root/.ollama \
     OLLAMA_HOST=127.0.0.1 \
     OLLAMA_MODEL=qwen3:8b \
     OLLAMA_URL=http://127.0.0.1:11434 \
     LOG_LEVEL=INFO
 # NB: deliberately NO `OLLAMA_KEEP_ALIVE=-1` — RunPod must be free to scale to zero.
+
+# Bake qwen3:8b INTO the image (into the read-only layer at OLLAMA_MODELS). Workers
+# then start with the model already present: NO runtime download (so no container-
+# disk-full crash, no health timeout during a multi-GB pull, no network volume /
+# region needed) and FAST cold starts. Adds ~5 GB to the image; that's the trade.
+RUN ollama serve & \
+    for i in $(seq 1 90); do ollama list >/dev/null 2>&1 && break; sleep 1; done; \
+    ollama pull "${OLLAMA_MODEL}" && ollama list
 
 CMD ["python3", "handler.py"]
