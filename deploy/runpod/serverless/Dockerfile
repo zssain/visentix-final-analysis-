@@ -9,7 +9,10 @@
 
 # Pin to a tested Ollama version — do NOT float on :latest in production.
 # Verify the tag exists and serves qwen3:8b before deploying.
-ARG OLLAMA_VERSION=0.5.11
+# NB: qwen3 requires a modern Ollama. 0.5.11 fails the pull with HTTP 412
+# "requires a newer version of Ollama" — the worker then crash-loops. 0.32.6
+# (== ollama/ollama:latest as of 2026-08) resolves + downloads qwen3:8b cleanly.
+ARG OLLAMA_VERSION=0.32.6
 FROM ollama/ollama:${OLLAMA_VERSION}
 
 # The base image's ENTRYPOINT is the ollama binary; our worker drives ollama itself.
