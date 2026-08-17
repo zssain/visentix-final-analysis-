@@ -52,6 +52,11 @@ _JURISDICTION_LABELS: dict[str, str] = {
     "US-IA": "Iowa (ICDPA)",
     "US-TN": "Tennessee (TIPA)",
     "US-FL": "Florida (FDBR)",
+    # Signed but not yet effective — offered so multi-state exposure includes upcoming obligations.
+    "US-OK": "Oklahoma (OKCDPA — eff. 2027)",
+    "US-AL": "Alabama (APDPA — eff. 2027)",
+    "US-LA": "Louisiana (LDPA — eff. 2027)",
+    "US-VT": "Vermont (VDPOSA — eff. 2028)",
     "US-FED": "United States — Federal",
     "EU": "European Union (GDPR)",
 }

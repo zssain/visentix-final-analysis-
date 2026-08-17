@@ -9,10 +9,33 @@ jurisdictions:
   US-TX:  0.7       # Texas — growing enforcement
   US-CT:  0.5       # Connecticut — CTDPA, moderate activity
   US-CO:  0.6       # Colorado — CPA, growing
-  US-WA:  0.5       # Washington — MHMD, moderate
+  US-WA:  0.5       # Washington — MHMD (sector), moderate
   US-VA:  0.5       # Virginia — VCDPA
-  US-NY:  0.7       # New York — SHIELD Act, active AG
+  US-NY:  0.7       # New York — SHIELD Act (sector), active AG
   EU:     0.8       # GDPR (for cross-border exposure)
 
-# Default for unlisted jurisdictions
+  # ── [D4] DRAFT tiers added 2026-08-18 — SME to confirm. See STATE_PRIVACY_LAW_MATRIX.md.
+  # Comprehensive law IN EFFECT (default tier 0.5):
+  US-UT:  0.5       # Utah — UCPA
+  US-OR:  0.5       # Oregon — OCPA
+  US-MT:  0.5       # Montana — MCDPA
+  US-FL:  0.5       # Florida — FDBR (large-business scope)
+  US-IA:  0.5       # Iowa — ICDPA
+  US-NE:  0.5       # Nebraska — NDPA
+  US-NH:  0.5       # New Hampshire — NHDPA
+  US-DE:  0.5       # Delaware — DPDPA
+  US-NJ:  0.5       # New Jersey — NJDPA
+  US-MN:  0.5       # Minnesota — MNCDPA
+  US-MD:  0.5       # Maryland — MODPA (strict minimization)
+  US-TN:  0.5       # Tennessee — TIPA
+  US-IN:  0.5       # Indiana — INCDPA
+  US-KY:  0.5       # Kentucky — KCDPA
+  US-RI:  0.5       # Rhode Island — RIDTPPA
+  # Comprehensive law SIGNED, NOT YET EFFECTIVE (lower tier 0.4 until in force):
+  US-AL:  0.4       # Alabama — APDPA (eff. 2027-05-01)
+  US-LA:  0.4       # Louisiana — LDPA (eff. 2027-01-01)
+  US-OK:  0.4       # Oklahoma — OKCDPA (eff. 2027-01-01)
+  US-VT:  0.4       # Vermont — VDPOSA (eff. 2028-01-01)
+
+# Default for unlisted jurisdictions (the 26 states + DC with no comprehensive law)
 default_jw: 0.3

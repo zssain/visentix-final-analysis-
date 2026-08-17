@@ -35,6 +35,7 @@
     "US-KY": 0.50, "US-RI": 0.55, "US-MD": 0.70, "US-MN": 0.60,
     "US-MT": 0.55, "US-NE": 0.55, "US-NH": 0.55, "US-IA": 0.45,
     "US-TN": 0.50, "US-FL": 0.55, "US-FED": 0.90, "EU": 0.80,
+    "US-OK": 0.40, "US-AL": 0.40, "US-LA": 0.40, "US-VT": 0.40,
     "_default": 0.30
   },
   "rss_tiers": [
