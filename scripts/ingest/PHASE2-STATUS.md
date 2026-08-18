@@ -1,9 +1,15 @@
-# Phase 2 (breach + sector laws) — STATUS / RESUME CHECKPOINT
+# Phase 2 (breach + sector laws) — ✅ COMPLETE & DEPLOYED (v1.0.3-pilot)
 
-**As of 2026-08-18.** Goal: make all 50 states + DC assessable by modeling breach-notification +
-sector laws as obligations. Paused on the operator's call to **verify all citations to
-primary-source quality** — the 51-state research fan-out was throttled by a session limit
-(resets ~05:50 Asia/Calcutta). Resume with a fresh fan-out, then ingest → embed → codex → intake → deploy.
+**Completed 2026-08-18.** All 50 states + DC are now assessable. All 51 breach-notification laws +
+10 sector laws verified vs primary sources, ingested (51 `security_practices_disclosure` + 10 sector
+obligations, all embedded), codex-linked (+60), and the 25 remaining jurisdictions added to intake.
+Deployed as **v1.0.3-pilot** (commit 4e55946) — container healthy, public /health 200, intake offers
+all 50 states + DC. Data snapshot: `scripts/ingest/phase2_breach_sector_data.json`.
+SME follow-up: all Phase 2 refs/obligations are `sme_authored=false` (pending review); SEC-006 finding
+was operator-approved as `proposed` — confirm with legal expert. Section-level pin cites flagged
+UNVERIFIED in the research (NV/CT/OR/IN sector subsections) should be spot-checked before publishing.
+
+<details><summary>Original resume checkpoint (historical)</summary>
 
 ## ✅ DONE (committed + in DB)
 - **Spec** (approved + merged to remediation-2026-08-04): schema.md §2.4 **v1.3.9**, intelligence-logic.md §4 **v1.6**, decision-log entry, AGENTS.md regen. Commits `61d1933` (spec), `19ab7d8` (merge).
@@ -41,3 +47,5 @@ primary-source quality** — the 51-state research fan-out was throttled by a se
 ]
 ```
 Note: OH is defense-based ("explicit" but soft); OK becomes explicit 2027-01-01. Applicability text should reflect these nuances.
+
+</details>
