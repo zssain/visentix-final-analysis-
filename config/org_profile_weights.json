@@ -36,6 +36,12 @@
     "US-MT": 0.55, "US-NE": 0.55, "US-NH": 0.55, "US-IA": 0.45,
     "US-TN": 0.50, "US-FL": 0.55, "US-FED": 0.90, "EU": 0.80,
     "US-OK": 0.40, "US-AL": 0.40, "US-LA": 0.40, "US-VT": 0.40,
+    "US-NY": 0.60, "US-MA": 0.35, "US-NV": 0.35,
+    "US-AK": 0.30, "US-AZ": 0.30, "US-AR": 0.30, "US-GA": 0.30, "US-HI": 0.30,
+    "US-ID": 0.30, "US-KS": 0.30, "US-ME": 0.30, "US-MI": 0.30, "US-MS": 0.30,
+    "US-MO": 0.30, "US-NM": 0.30, "US-NC": 0.30, "US-ND": 0.30, "US-OH": 0.30,
+    "US-PA": 0.30, "US-SC": 0.30, "US-SD": 0.30, "US-WI": 0.30, "US-WV": 0.30,
+    "US-WY": 0.30, "US-DC": 0.30,
     "_default": 0.30
   },
   "rss_tiers": [
