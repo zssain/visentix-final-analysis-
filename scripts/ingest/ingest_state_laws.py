@@ -53,6 +53,11 @@ REQUIREMENT_TYPES = [
     "ai_profiling_optout",
     "childrens_data_restrictions",
     "private_right_of_action",
+    # Phase 2 (breach-notification + sector laws) — schema.md §2.4 v1.3.9.
+    "security_practices_disclosure",
+    "biometric_disclosure",
+    "consumer_health_data_disclosure",
+    "data_broker_disclosure",
 ]
 
 # ────────────────────────────────────────────────────────────
@@ -585,6 +590,11 @@ REQ_DOMAIN_MAP = {
     "ai_profiling_optout": "ai_automated_decisions",
     "childrens_data_restrictions": "children_teens",
     "private_right_of_action": "consumer_rights",
+    # Phase 2 — 'security' is a NEW domain slug (surfaces via finding SEC-006).
+    "security_practices_disclosure": "security",
+    "biometric_disclosure": "sensitive_data",
+    "consumer_health_data_disclosure": "sensitive_data",
+    "data_broker_disclosure": "data_sharing",
 }
 
 

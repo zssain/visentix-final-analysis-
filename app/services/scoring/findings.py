@@ -20,6 +20,7 @@ DOMAIN_TO_FINDING: dict[str, str] = {
     "sensitive_data": "SEC-002",
     "cross_border": "XB-001",
     "other": "DC-005",
+    "security": "SEC-006",  # Phase 2 — security-practices disclosure (intelligence-logic §4)
 }
 
 # Severity from catalog (read at runtime, but defaults for pure-function tests)
@@ -32,6 +33,7 @@ DEFAULT_SEVERITY: dict[str, str] = {
     "DC-005": "medium",
     "SEC-002": "high",
     "XB-001": "medium",
+    "SEC-006": "high",  # Phase 2 — security-practices disclosure gap
 }
 
 # Score thresholds for triggering a finding per domain
