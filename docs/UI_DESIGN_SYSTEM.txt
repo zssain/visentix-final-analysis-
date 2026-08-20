@@ -1,0 +1,180 @@
+================================================================================
+VISENTIX — UI & COLOR PALETTE REFERENCE
+================================================================================
+
+--------------------------------------------------------------------------------
+FRAMEWORK & STACK
+--------------------------------------------------------------------------------
+- React + TypeScript
+- Build tool: Vite 8
+- Styling: Pure CSS with CSS Variables (NO Tailwind)
+- Icons: Lucide-react
+- Charts: Recharts
+- Design tokens source of truth: web/src/index.css
+
+
+--------------------------------------------------------------------------------
+BRAND PALETTE (THE CORE 9)
+--------------------------------------------------------------------------------
+Rule (from CSS comments): "NEVER add colors outside this set."
+
+TOKEN             HEX        MEANING / USAGE
+-----             ---        ---------------
+Navy              #09234F    Primary brand — nav, headings, structure
+Navy Light        #0d2d66    Navy hover states
+Executive Blue    #005FA3    Focus rings, links, accents
+Teal              #55C7B3    Verified / approved / live status
+Teal Light        #7DD9CA    Teal hover
+Gold              #C8A46A    Draft / provisional / pending
+Gold Light        #E8C98A    Gold hover
+Red               #F87171    Low score / critical exposure
+Emerald           #10b981    Live dots, success
+
+SEMANTIC MEANING (deterministic — memorize this):
+  Gold  = draft / provisional
+  Teal  = verified / live
+  Red   = exposure
+  Navy  = primary structure
+
+
+--------------------------------------------------------------------------------
+NEUTRALS & TEXT
+--------------------------------------------------------------------------------
+TOKEN             HEX        USAGE
+-----             ---        -----
+Soft White        #F7F8FA    Page background
+Card White        #ffffff    Cards
+Warm Gray         #D9DDE2    Borders
+Warm Gray Dark    #B8BEC6    Separators
+Text Primary      #1a2035    Body text
+Text Secondary    #4A5568    Descriptive text
+Text Muted        #8896A5    Labels, metadata
+
+
+--------------------------------------------------------------------------------
+TYPOGRAPHY (3 FONTS, EACH WITH A JOB)
+--------------------------------------------------------------------------------
+- Fraunces (serif)   -> display headings, logo
+- Inter              -> all UI, buttons, labels
+- Source Sans 3      -> tabular numerics for scores/metrics
+                        (.tabular, .stat-value, .score-num, [data-numeric])
+
+Letter spacing:
+  -0.02em          on large navy headings
+  0.06em - 0.1em   on uppercase labels/tags
+
+
+--------------------------------------------------------------------------------
+DEPTH & SHAPE TOKENS
+--------------------------------------------------------------------------------
+--shadow-sm:      0 1px 3px rgba(9,35,79,0.08);
+--shadow:         0 4px 12px rgba(9,35,79,0.12);
+--shadow-lg:      0 12px 32px rgba(9,35,79,0.16);
+--shadow-drawer:  -8px 0 32px rgba(9,35,79,0.18);
+
+--radius:         8px;
+--radius-lg:      12px;
+--radius-xl:      16px;
+
+Note: shadows are navy-tinted (rgba(9,35,79,...)), not neutral black — keeps
+everything on-brand.
+
+
+--------------------------------------------------------------------------------
+COMPONENT CONVENTIONS
+--------------------------------------------------------------------------------
+BUTTONS:
+  .btn-primary   Navy background
+  .btn-teal      Teal background
+  .btn-gold      Gold background
+  .btn-outline   Border only
+  .btn-ghost     Transparent
+  .btn-danger    Red background
+  Sizes: .btn-xs, .btn-sm, .btn-lg
+
+STATUS BADGES (tint background + text color):
+  .badge-high      -> rgba(248,113,113,0.12); color: #b91c1c
+  .badge-elevated  -> rgba(200,164,106,0.15); color: #92400e
+  .badge-moderate  -> rgba(85,199,179,0.15);  color: #065f46
+  .badge-low       -> rgba(16,185,129,0.15);  color: #065f46
+  .badge-teal      -> rgba(85,199,179,0.15);  color: #0d6b5c
+  .badge-gold      -> rgba(200,164,106,0.2);  color: #7a5c20 (dashed border)
+  .badge-approved  -> rgba(85,199,179,0.12);  color: #0d6b5c (solid border)
+  .badge-draft     -> rgba(200,164,106,0.12); color: #7a5c20 (dashed border)
+
+  Convention: dashed border = draft/unverified; solid border = approved.
+
+NOTICE BOXES:
+  .notice-box.teal -> bg rgba(85,199,179,0.08); border rgba(85,199,179,0.3)
+  .notice-box.red  -> bg rgba(248,113,113,0.06); border rgba(248,113,113,0.25)
+  .notice-box.gold -> bg rgba(200,164,106,0.08); border var(--gold)
+
+
+--------------------------------------------------------------------------------
+PDF REPORTS (SEPARATE, PRINT-SAFE PALETTE)
+--------------------------------------------------------------------------------
+Files: app/services/report/report.css and scripts/review_pdf.css (WeasyPrint)
+
+TOKEN             HEX        USAGE
+-----             ---        -----
+Navy (report)     #12365B    Report headings, structure
+Teal (report)     #2FB3A0    Report accents, section numbers
+Ink               #1B2A3D    Report body text
+Muted (report)    #5B6B7F    Report secondary text
+Hair (report)     #DBE2EA    Report borders
+Panel (report)    #F4F7FA    Report card backgrounds
+
+RISK RAMP:
+  Risk Low        #2E9E6B
+  Risk Moderate   #E9A23B
+  Risk High       #D9534F
+  Risk Elevated   #C0392B
+
+
+--------------------------------------------------------------------------------
+NOTABLE UI PATTERNS
+--------------------------------------------------------------------------------
+- Sidebar nav: navy background, inactive links at 66% white opacity, active item
+  gets a 3px teal left rail.
+- Draft watermark: diagonal "DRAFT — PENDING EXPERT REVIEW" text at ~-30deg,
+  gold at ~12% opacity.
+- Login artwork pane: radial gradient of navy/teal/gold/exec-blue + SVG grain
+  overlay.
+- Form controls: focus outline 2px solid var(--exec-blue); hover border
+  transitions to var(--teal); checkbox accent-color: var(--teal).
+- Score/risk viz: navy-based shadows; risk ramp Low(green) -> Moderate(gold) ->
+  High(red) -> Elevated(dark red); interactive score dial.
+
+
+--------------------------------------------------------------------------------
+RESPONSIVE BREAKPOINTS
+--------------------------------------------------------------------------------
+@media (max-width: 900px)  -> Sidebar becomes off-canvas drawer
+@media (max-width: 768px)  -> Content grid single column
+@media (max-width: 600px)  -> Drawer becomes full-width bottom sheet
+@media (max-width: 480px)  -> Stats grid single column
+
+
+--------------------------------------------------------------------------------
+CSS FILE MAP
+--------------------------------------------------------------------------------
+web/src/index.css                      Design tokens, base styles, utilities (SOURCE OF TRUTH)
+web/src/App.css                        Layout, sidebar nav, login split layout, responsive
+web/src/components/furniture.css       Ribbons, drawers, tooltips, buttons, badges
+web/src/components/multiselect.css     Dropdown selector, form controls
+web/src/components/advisor-note.css    Advisor component, draft watermark, view toggle
+web/src/report/report.css              Interactive report layout, score dial
+web/src/report/explain/explain.css     Explainability drawer, formula boxes
+web/src/report/sections/evidence.css   Evidence section
+web/src/pages/bulk/bulk.css            Bulk screening tables, heat strips, chips
+web/src/pages/partner/partner.css      Partner page
+web/src/pages/quarterly/quarterly.css  Quarterly page
+web/src/pages/trust/trust.css          Trust page
+web/src/pages/vendors/vendors.css      Vendors page
+web/src/pages/rewrite/rewrite.css      Rewrite page
+web/src/pages/crosswalk/crosswalk.css  Crosswalk page
+web/src/pages/customer/intake.css      Customer intake page
+app/services/report/report.css         WeasyPrint PDF report styles
+scripts/review_pdf.css                 Executive review PDF wrapper (cover, headers)
+
+================================================================================

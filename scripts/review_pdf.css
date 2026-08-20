@@ -1,0 +1,239 @@
+/* Visentix executive-report stylesheet for WeasyPrint.
+   Brand palette mirrors web/src/index.css. */
+
+:root {
+  --navy:      #09234F;
+  --exec-blue: #005FA3;
+  --teal:      #55C7B3;
+  --gold:      #C8A46A;
+  --red:       #F87171;
+  --soft:      #F7F8FA;
+  --border:    #E2E6EC;
+  --text:      #1A2035;
+  --text-2:    #4A5568;
+  --muted:     #8896A5;
+}
+
+/* ── Page frame + running header/footer ───────────────────── */
+@page {
+  size: A4;
+  margin: 20mm 16mm 18mm 16mm;
+  @top-right {
+    content: "Visentix — Codebase Review Report";
+    font: 7pt "Helvetica Neue", Arial, sans-serif;
+    color: #8896A5;
+    letter-spacing: 0.06em;
+  }
+  @bottom-left {
+    content: "CONFIDENTIAL — VISENTIX INTERNAL USE ONLY";
+    font: 7pt "Helvetica Neue", Arial, sans-serif;
+    color: #8896A5;
+    letter-spacing: 0.08em;
+  }
+  @bottom-right {
+    content: counter(page);
+    font: 8pt "Helvetica Neue", Arial, sans-serif;
+    color: #8896A5;
+  }
+}
+
+/* Cover has its own page box: no margins, no header/footer. */
+@page cover {
+  margin: 0;
+  @top-right { content: none; }
+  @bottom-left { content: none; }
+  @bottom-right { content: none; }
+}
+
+/* ── Base typography ──────────────────────────────────────── */
+html { font-size: 10.5pt; }
+body {
+  font-family: "Helvetica Neue", Arial, sans-serif;
+  color: var(--text);
+  line-height: 1.5;
+  margin: 0;
+}
+
+p { margin: 0 0 8px; }
+strong { color: var(--navy); }
+
+/* ── Cover page ───────────────────────────────────────────── */
+.cover {
+  page: cover;
+  break-after: page;
+  height: 297mm;
+  box-sizing: border-box;
+  padding: 42mm 22mm 24mm;
+  position: relative;
+  color: var(--text);
+}
+.cover::before {  /* top brand band */
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 10mm;
+  background: linear-gradient(90deg, var(--navy) 0%, var(--exec-blue) 55%, var(--teal) 100%);
+}
+.cover-brand {
+  font-size: 30pt;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  color: var(--navy);
+}
+.cover-tagline {
+  font-size: 9pt;
+  letter-spacing: 0.16em;
+  color: var(--teal);
+  text-transform: uppercase;
+  margin-top: 4px;
+}
+.cover-title {
+  font-size: 34pt;
+  font-weight: 800;
+  color: var(--navy);
+  line-height: 1.1;
+  margin: 60mm 0 6px;
+  border: none;
+  padding: 0;
+}
+.cover-sub {
+  font-size: 13pt;
+  color: var(--exec-blue);
+  font-weight: 600;
+}
+.cover-rule {
+  height: 3px;
+  width: 64mm;
+  background: var(--gold);
+  margin: 16px 0 22px;
+}
+.cover-meta p { font-size: 10pt; color: var(--text-2); margin: 0 0 5px; }
+.cover-meta strong { color: var(--navy); }
+.cover-confidential {
+  position: absolute;
+  bottom: 22mm; left: 22mm;
+  font-size: 7.5pt;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 5px 10px;
+  background: var(--soft);
+}
+
+/* ── Headings ─────────────────────────────────────────────── */
+h1, h2, h3, h4 { color: var(--navy); break-after: avoid; }
+
+/* Section headers (## in markdown) */
+h2 {
+  font-size: 15pt;
+  margin: 20px 0 10px;
+  padding-bottom: 5px;
+  border-bottom: 2px solid var(--teal);
+}
+/* Finding titles (### in markdown) */
+h3 {
+  font-size: 11.5pt;
+  margin: 16px 0 6px;
+  padding-left: 9px;
+  border-left: 3px solid var(--exec-blue);
+}
+h4 { font-size: 10.5pt; margin: 12px 0 5px; }
+
+/* ── Lists ────────────────────────────────────────────────── */
+ul, ol { margin: 4px 0 10px; padding-left: 20px; }
+li { margin: 2px 0; }
+
+/* ── Callout (blockquote) ─────────────────────────────────── */
+blockquote {
+  margin: 12px 0;
+  padding: 10px 14px;
+  background: rgba(200,164,106,0.10);
+  border-left: 4px solid var(--gold);
+  border-radius: 3px;
+  color: #6f5622;
+  font-size: 9.5pt;
+}
+blockquote p { margin: 0; }
+blockquote strong { color: #6f5622; }
+
+/* ── Code ─────────────────────────────────────────────────── */
+code {
+  font-family: "SF Mono", Menlo, Consolas, monospace;
+  font-size: 8.6pt;
+  background: var(--soft);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 0 3px;
+  color: var(--navy);
+}
+pre {
+  background: var(--soft);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 12px 14px;
+  overflow: hidden;
+  break-inside: avoid;
+}
+pre code {
+  border: none; background: none; padding: 0;
+  font-size: 8.2pt; color: var(--text-2); line-height: 1.35;
+}
+
+/* ── Tables ───────────────────────────────────────────────── */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 8.4pt;
+  margin: 10px 0 14px;
+  break-inside: auto;
+}
+thead { display: table-header-group; }   /* repeat header across pages */
+th {
+  background: var(--navy);
+  color: #fff;
+  text-align: left;
+  font-weight: 600;
+  padding: 6px 8px;
+  border: 1px solid var(--navy);
+}
+td {
+  padding: 5px 8px;
+  border: 1px solid var(--border);
+  vertical-align: top;
+  color: var(--text-2);
+}
+tbody tr:nth-child(even) { background: var(--soft); }
+tr { break-inside: avoid; }
+
+/* ── Severity badges ──────────────────────────────────────── */
+.sev {
+  display: inline-block;
+  font-weight: 700;
+  font-size: 7.6pt;
+  letter-spacing: 0.03em;
+  padding: 1px 7px;
+  border-radius: 9px;
+  color: #fff;
+  white-space: nowrap;
+}
+.sev-critical { background: #C1272D; }
+.sev-high     { background: #E0761B; }
+.sev-medium   { background: var(--gold); color: #3d2f12; }
+.sev-low      { background: #6C7A89; }
+.sev-informational { background: var(--exec-blue); }
+
+.sev-inline { font-weight: 700; }
+.sev-inline.sev-critical { color: #C1272D; background: none; padding: 0; }
+.sev-inline.sev-high     { color: #E0761B; background: none; padding: 0; }
+.sev-inline.sev-medium   { color: #9a7a2e; background: none; padding: 0; }
+.sev-inline.sev-low      { color: #6C7A89; background: none; padding: 0; }
+
+/* ── Horizontal rule → section spacer ─────────────────────── */
+hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 18px 0;
+}
+
+a { color: var(--exec-blue); text-decoration: none; }
