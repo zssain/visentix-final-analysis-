@@ -62,7 +62,7 @@ const FIXTURE: ReportPayload = {
     { number: 7, title: "Compound Risk Analysis", content: { compound_score: 28, lineage: {} }},
     { number: 8, title: "Benchmark Language Comparison", content: {
       sme_cleaned_available: false,
-      entries: [{ domain: "pending", exemplar_text: "Pending SME-cleaned exemplar", maturity_note: "" }],
+      entries: [{ domain: "data_sharing", your_text: "We share data with service providers.", exemplar_text: "", maturity_note: "No comparable approved peer language is available for this domain." }],
     }},
     { number: 9, title: "Strategic Recommendations", content: {
       recommendations: [
@@ -119,10 +119,10 @@ describe("ReportView", () => {
     expect(html).not.toContain("10,000");
   });
 
-  it("shows exemplar placeholder when sme_cleaned=false", () => {
+  it("shows org language and honest comparator absence when sme_cleaned=false", () => {
     renderReport(FIXTURE);
-    expect(screen.getByTestId("exemplar-placeholder")).toBeInTheDocument();
-    expect(screen.getByText(/Pending SME-reviewed/)).toBeInTheDocument();
+    expect(screen.getByText("We share data with service providers.")).toBeInTheDocument();
+    expect(screen.getAllByText(/No comparable approved peer language/).length).toBeGreaterThan(0);
   });
 
   it("shows findings table", () => {

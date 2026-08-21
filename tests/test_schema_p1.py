@@ -22,10 +22,18 @@ def _get(table: str, select: str = "*", filters: str = "", limit: int = 0):
     return r
 
 
-def _count(table: str) -> int:
-    r = _get(table, limit=0)
-    cr = r.headers.get("content-range", "*/0")
-    return int(cr.split("/")[-1])
+def _nonempty(table: str) -> bool:
+    """True if the table has at least one row.
+
+    A LIMIT-1 fetch (no count) — `Prefer: count=exact` forces PostgREST to run a
+    full COUNT(*) which times out (57014) on large corpus tables under suite
+    load, and the missing content-range then reads as a false 0/"corpus lost".
+    Raises on a non-2xx response instead of mistaking an error for emptiness.
+    """
+    h = {"apikey": KEY, "Authorization": f"Bearer {KEY}"}
+    r = httpx.get(f"{URL}/rest/v1/{table}?select=*&limit=1", headers=h, timeout=30)
+    assert r.status_code in (200, 206), f"{table} probe failed: HTTP {r.status_code}"
+    return len(r.json()) > 0
 
 
 def _columns(table: str, expected: set[str] | None = None) -> set[str]:
@@ -135,7 +143,7 @@ CORPUS_TABLES = [
 @pytest.mark.parametrize("table", CORPUS_TABLES)
 def test_corpus_tables_nonempty(table):
     """Each pre-existing corpus table must stay populated. Fails if emptied."""
-    assert _count(table) > 0, f"{table} is empty — corpus data lost"
+    assert _nonempty(table), f"{table} is empty — corpus data lost"
 
 
 def test_disclosure_clause_category_reconciles():
@@ -235,4 +243,4 @@ def test_exemplar_stubs():
 def test_oip_populated():
     """Profiles exist. Live invariant (not a hardcoded 30, which drifts as the
     pipeline persists new org profiles). Fails if the table is emptied."""
-    assert _count("organization_intelligence_profile") > 0
+    assert _nonempty("organization_intelligence_profile")

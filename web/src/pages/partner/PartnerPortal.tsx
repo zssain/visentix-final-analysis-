@@ -82,7 +82,10 @@ function ClientsTab({ onOpen, showFlash }: { onOpen: (w: Workspace) => void; sho
     catch (e) { if (e instanceof ApiError && e.status === 403) showFlash("Partner access required."); }
   }, [showFlash]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    const initialLoad = window.setTimeout(() => { void load(); }, 0);
+    return () => window.clearTimeout(initialLoad);
+  }, [load]);
   useEffect(() => { api.get("/partner/industries").then(setIndustries).catch(() => setIndustries([])); }, []);
 
   const create = async () => {
@@ -238,7 +241,10 @@ function FeedTab({ showFlash }: { showFlash: (m: string) => void }) {
   const load = useCallback(async () => {
     try { setKeys(await api.get("/partner/api-keys")); } catch { /* ignore */ }
   }, []);
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    const initialLoad = window.setTimeout(() => { void load(); }, 0);
+    return () => window.clearTimeout(initialLoad);
+  }, [load]);
 
   const create = async () => {
     try {

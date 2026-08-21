@@ -15,6 +15,17 @@ export function Cover({ content }: { content: ReportSection["content"] }) {
   const size      = content.org_size      as string | undefined;
   const geography = content.org_geography as string | undefined;
   const vciScore  = content.vci_score     as number | undefined;
+  const scope = (content.assessment_scope as Record<string, { value?: unknown; provenance?: string }> | undefined) ?? {};
+  const scopeLabels: Record<string, string> = {
+    source: "Assessed source", notice_version: "Notice version", capture_date: "Capture date",
+    effective_date: "Effective date", intake_method: "Intake method", organization_name: "Organization",
+    organization_size: "Organization size", public_private: "Ownership type", geography: "Geography",
+    industry: "Industry",
+    cohort_definition: "Peer cohort", state_footprint: "State footprint",
+    selected_laws: "Selected legal scope", data_categories: "Data categories",
+    business_practices: "Business practices",
+  };
+  const displayValue = (value: unknown) => Array.isArray(value) ? value.join(", ") : value === null || value === undefined || value === "" ? "Not recorded" : String(value);
 
   const hasMeta = domain || industry || size || geography;
 
@@ -54,6 +65,17 @@ export function Cover({ content }: { content: ReportSection["content"] }) {
           practices.
         </p>
       </div>
+
+      {Object.keys(scope).length > 0 && <div className="cover-scope-block" data-testid="assessment-scope">
+        <div className="cover-scope-label">Assessment Scope</div>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.78rem" }}>
+          <tbody>{Object.entries(scopeLabels).map(([key, label]) => {
+            const item = scope[key] ?? {};
+            return <tr key={key}><th style={{ textAlign: "left", padding: "4px 6px" }}>{label}</th><td style={{ padding: "4px 6px" }}>{displayValue(item.value)}</td><td style={{ padding: "4px 6px", color: "var(--text-muted)" }}>{(item.provenance ?? "not recorded").replace(/_/g, " ")}</td></tr>;
+          })}</tbody>
+        </table>
+        <p className="cover-scope-text">Unconfirmed values are shown as assumptions; legacy assessments are not back-filled.</p>
+      </div>}
 
       <div className="cover-footer">
         <IntelligenceMark />

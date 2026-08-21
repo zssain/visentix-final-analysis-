@@ -35,6 +35,15 @@ const OPTIONS = {
     { value: "US-CA", label: "California (CCPA / CPRA)" },
     { value: "US-CO", label: "Colorado (CPA)" },
   ],
+  organization_sizes: [{ value: "medium", label: "Medium" }],
+  public_private: [{ value: "private", label: "Private" }],
+  geographies: [{ value: "us", label: "United States" }],
+  state_footprint: [
+    { value: "US-CA", label: "California" },
+    { value: "US-CO", label: "Colorado" },
+  ],
+  data_categories: [{ value: "financial", label: "Financial information" }],
+  business_practices: [{ value: "targeted_advertising", label: "Targeted advertising" }],
   unknown_industry: "unknown",
 };
 
@@ -61,13 +70,13 @@ it("loads real options and shows the honest-degradation note when blank", async 
   openDropdown("intake-industry");
   expect(await screen.findByRole("option", { name: "Retail" })).toBeTruthy();
   // jurisdiction options render from the real vocabulary
-  openDropdown("intake-jurisdictions");
+  openDropdown("intake-selected-laws");
   expect(screen.getByRole("option", { name: "California (CCPA / CPRA)" })).toBeTruthy();
   // blank → honest note
   expect(screen.getByTestId("intake-filters-note")).toBeTruthy();
 });
 
-it("multi-select round-trips and submit sends industry + jurisdictions", async () => {
+it("keeps footprint distinct from selected laws and submits the reviewed scope", async () => {
   // Keep the status poll pending so no post-submit state update fires after the
   // assertion (we're only verifying the submit payload here, not the poll loop).
   mockGet.mockImplementation((path: string) =>
@@ -78,8 +87,10 @@ it("multi-select round-trips and submit sends industry + jurisdictions", async (
   // choose an industry (checkbox dropdown)
   openDropdown("intake-industry");
   fireEvent.click(screen.getByRole("option", { name: "Retail" }));
-  // toggle two jurisdictions
-  openDropdown("intake-jurisdictions");
+  // Factual footprint and requested legal scope are separate fields.
+  openDropdown("intake-footprint");
+  fireEvent.click(screen.getByRole("option", { name: "California" }));
+  openDropdown("intake-selected-laws");
   fireEvent.click(screen.getByRole("option", { name: "California (CCPA / CPRA)" }));
   fireEvent.click(screen.getByRole("option", { name: "Colorado (CPA)" }));
   // note disappears once a filter is set
@@ -89,11 +100,15 @@ it("multi-select round-trips and submit sends industry + jurisdictions", async (
   fireEvent.change(screen.getByLabelText("Privacy Notice URL"), {
     target: { value: "https://example.com/privacy" },
   });
-  fireEvent.click(screen.getByText("Analyse Notice"));
+  fireEvent.click(screen.getByText("Review scope"));
+  expect(screen.getByTestId("intake-review")).toBeTruthy();
+  fireEvent.click(screen.getByText("Confirm and analyse"));
 
   await waitFor(() => expect(mockPostForm).toHaveBeenCalled());
   const fd = mockPostForm.mock.calls[0][1] as FormData;
   expect(fd.get("industry")).toBe("retail");
-  expect(fd.get("jurisdictions")).toBe("US-CA,US-CO");
+  expect(fd.get("state_footprint")).toBe("US-CA");
+  expect(fd.get("selected_laws")).toBe("US-CA,US-CO");
+  expect(fd.get("jurisdictions")).toBeNull();
   expect(mockPostForm.mock.calls[0][0]).toBe("/assessments/async");
 });

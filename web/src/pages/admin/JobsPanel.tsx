@@ -51,7 +51,10 @@ export function JobsPanel() {
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    const initialLoad = window.setTimeout(() => { void load(); }, 0);
+    return () => window.clearTimeout(initialLoad);
+  }, [load]);
 
   // Poll every 5s while any job is running.
   useEffect(() => {

@@ -22,6 +22,12 @@ _CFG = json.loads(_CFG_PATH.read_text())
 
 INDUSTRY_TAXONOMY: dict[str, dict] = _CFG["industry_taxonomy"]
 RSS_STATE_LOOKUP: dict[str, float] = _CFG["rss_state_lookup"]
+LOW_CONFIDENCE_COHORT_N: int = int(_CFG["low_confidence_cohort_n"])
+DSI_CATEGORY_WEIGHTS: dict[str, float] = _CFG["dsi_category_weights"]
+AIGMS_CLAUSE_TYPE_MAP: dict[str, list[str]] = _CFG["aigms_clause_type_map"]
+INTAKE_PROFILE_OPTIONS: dict[str, list[str]] = _CFG["intake_profile_options"]
+BENCHMARK_DIMENSION_LABELS: list[str] = _CFG["benchmark_dimension_labels"]
+BENCHMARK_RELAXATION_LABELS: dict[str, str] = _CFG["benchmark_relaxation_labels"]
 
 # Selectable jurisdictions = every RSS code except sentinels (e.g. `_default`).
 JURISDICTION_CODES: list[str] = [k for k in RSS_STATE_LOOKUP if not k.startswith("_")]
@@ -98,6 +104,17 @@ _COHORT_BACKED_INDUSTRIES: list[str] = ["retail", "healthcare", "financial_servi
 # The honest "no real industry" sentinel written when the user opts out.
 UNKNOWN_INDUSTRY = "unknown"
 
+_DOMAIN_LABELS = {
+    "ai_automated_decisions": "AI & Automated Decisions",
+    "children_teens": "Children & Teens",
+    "consumer_rights": "Consumer Rights",
+    "cross_border": "Cross-Border Transfers",
+    "data_sharing": "Data Sharing",
+    "retention": "Retention",
+    "sensitive_data": "Sensitive Data",
+    "tracking_cookies": "Tracking & Cookies",
+}
+
 
 def _industry_key(name: str) -> str:
     return (name or "").strip().lower().replace(" ", "_")
@@ -112,6 +129,45 @@ def is_valid_industry(name: str) -> bool:
 def is_valid_jurisdiction(code: str) -> bool:
     """True for a real RSS jurisdiction code (never the `_default` sentinel)."""
     return code in RSS_STATE_LOOKUP and not code.startswith("_")
+
+
+def is_valid_size(value: str) -> bool:
+    return value in _CFG["osi_size_scores"]
+
+
+def is_valid_public_private(value: str) -> bool:
+    return value in INTAKE_PROFILE_OPTIONS["public_private"]
+
+
+def is_valid_geography(value: str) -> bool:
+    return value in INTAKE_PROFILE_OPTIONS["geography"]
+
+
+def data_category_values() -> list[str]:
+    return [key for key in DSI_CATEGORY_WEIGHTS if key != "other"]
+
+
+def business_practice_values() -> list[str]:
+    # Existing scoring vocabularies only: AI factors plus governed taxonomy slugs.
+    taxonomy_practices = [
+        "tracking_cookies", "data_sharing", "cross_border",
+        "children_teens", "sensitive_data",
+    ]
+    return list(dict.fromkeys([*AIGMS_CLAUSE_TYPE_MAP.keys(), *taxonomy_practices]))
+
+
+def benchmark_relaxation_label(value: str) -> str:
+    for prefix, label in BENCHMARK_RELAXATION_LABELS.items():
+        if value == prefix or value.startswith(prefix + "_n") or value.startswith(prefix + "_"):
+            return label
+    return value
+
+
+def _plain_options(values: list[str]) -> list[dict]:
+    return [
+        {"value": value, "label": _DOMAIN_LABELS.get(value, value.replace("_", " ").title())}
+        for value in values
+    ]
 
 
 def industry_options() -> list[dict]:
@@ -142,4 +198,10 @@ def intake_options() -> dict:
         "industries": industry_options(),
         "jurisdictions": jurisdiction_options(),
         "unknown_industry": UNKNOWN_INDUSTRY,
+        "organization_sizes": _plain_options(list(_CFG["osi_size_scores"])),
+        "public_private": _plain_options(INTAKE_PROFILE_OPTIONS["public_private"]),
+        "geographies": _plain_options(INTAKE_PROFILE_OPTIONS["geography"]),
+        "state_footprint": jurisdiction_options(),
+        "data_categories": _plain_options(data_category_values()),
+        "business_practices": _plain_options(business_practice_values()),
     }

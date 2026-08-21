@@ -59,7 +59,7 @@ async def create_job(*, organization_id: str | None, created_by: str | None,
     if r.status_code == 409 and idempotency_key:
         existing = await find_by_idempotency_key(idempotency_key)
         if existing:
-            return existing
+            return {**existing, "_idempotent_replay": True}
     if r.status_code >= 400:
         raise RuntimeError(f"could not create assessment_job (HTTP {r.status_code})")
     return payload

@@ -16,6 +16,9 @@
 | OD-06 | `security_event` separation from enforcement | **Proposed:** breach/security-incident reports are org-risk signals, NOT enforcement actions — store in `security_event`, and **never** populate `enforcement_record` or feed **F-004** without a separate, expert-approved formula change | Expert (SME) | Recommended | F02 v2, schema §2.9 |
 | OD-07 | Canonical benchmark-cohort table name | Live DB exposes **`benchmark_cluster`**; schema.md names **`benchmark_population`**. Decide the canonical name going forward (rename vs adopt-live). No recommendation — engineer to confirm against live + code | Engineer | Open | schema §2.6, F03 |
 | OD-08 | Canonical gate-mode enum | Spec (business-logic §5) says `instant_draft` / `expert_review`; code (`app/services/review.py`) implements `STRICT` / `INSTANT_DRAFT` / `CLIENT_REVIEWS`. Pick one canonical set; do not assume either. No recommendation | Expert + Engineer | Open | business-logic §5, F06, F09 |
+| OD-10 | F-005 observed-element semantics | **(PROPOSAL — needs expert calibration):** keep and explicitly label the domain-presence proxy for the pilot; require governed element detection before describing F-005 as element-level quality | Expert + SME | Recommended | intelligence-logic §7, F04, F05 |
+| OD-11 | F-002 disclosure-severity semantics | **(PROPOSAL — needs expert calibration):** retain clause share as concentration/context for the pilot; do not call it quality severity until SME-labelled quality signals are governed | Expert + SME | Recommended | intelligence-logic §§7/9, F04, F05 |
+| OD-12 | Section 4 peer-position measure | **(PROPOSAL — needs expert calibration):** confirm PGMS for F-003/F-011 and label it explicitly; keep F-010 on headline surfaces | Expert + Product | Recommended | intelligence-logic §§5-7, F03, F04, F05 |
 
 ## How an OD closes
 1. Owner approves the recommendation (in Teams, per our feedback method).
@@ -24,6 +27,7 @@
 4. Record one line in `logs/decision-log.md`.
 
 ## Changelog
+- 1.3 (2026-08-21): Added OD-10–OD-12 for F-005 observed-element semantics, F-002 disclosure-severity semantics, and the Section 4 peer-position measure. Proposals only; nothing applied. See `DECISION-NEEDED-F005-PRESENCE-PROXY.md`.
 - 1.2 (2026-07-27): **OD-01–OD-05 Decided (ai_reviewed)** by the interim AI reviewer during the Phase-1 pilot-readiness pass, adopting each standing recommendation verbatim; propagated to the governed specs (F13, F05, F06, design-system §2/§3/DDR-003, intelligence-logic §5). Attributed `ai_reviewed` — **not** the human owner's Teams sign-off, which is still required to promote these from ai_reviewed to a full content-gate approval (do not treat as expert-approved for client delivery). Added **OD-09** (no canonical industry for "Entertainment & Media", surfaced by the `sic_industry_map` review — Open, expert + engineer). See `logs/decision-log.md` 2026-07-27.
 - 1.1 (2026-07-20): Added **OD-06** (`security_event` separated from enforcement / F-004 — proposed, expert), **OD-07** (canonical `benchmark_cluster` vs `benchmark_population` name — engineer), **OD-08** (canonical gate-mode enum, spec vs code — expert + engineer). From the ingestion-architecture amendment (schema v1.3 + F02 v2) and `logs/audits/2026-07-data-layer-audit.md`.
 - 1.0 (2026-07-16): Promoted the OD table out of `mvp-completion-plan.md` Workstream C into a standalone register with an explicit Status column and a close-out procedure, so decided/undecided state is tracked rather than static.

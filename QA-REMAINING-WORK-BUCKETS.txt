@@ -1,0 +1,183 @@
+================================================================================
+VISENTIX — HOW TO CLOSE THE REMAINING QA ITEMS (Partial + Open)
+================================================================================
+Date:    2026-08-21
+Context: Companion to QA-VERIFICATION-REPORT-2026-08-21.txt
+Scope:   The 6 PARTIAL items and 3 OPEN items from the QA verification.
+
+STATUS (2026-08-21): BUCKET A IS DONE. All A items merged; full backend suite
+1163 passed / 0 failed (+20 new tests), frontend 94/94, tsc/lint/build clean.
+RPT-005, RPT-008, RPT-009 are now FULLY RESOLVED; the test nits on RPT-001,
+RPT-002, RPT-004, RPT-010, RPT-016 are closed. Buckets B and C still need YOU.
+
+The remaining work is sorted by WHO HAS TO UNBLOCK IT, not by finding number:
+
+  Bucket A — [DONE] engineering finished; you decided nothing.
+  Bucket B — small builds, but you make one quick call each first.  <-- YOUR MOVE
+  Bucket C — genuine product/expert/SME decisions; cannot be coded blind. <-- YOUR MOVE
+
+Key truth: the only items that are literally "not started" are RPT-011,
+RPT-015, and INT-06 — and all three are blocked on YOUR product decisions,
+not on engineering effort. Everything else is a fix that already works with a
+missing test or a small honesty tweak.
+
+================================================================================
+BUCKET A — [DONE 2026-08-21] FINISHED, NO DECISION WAS NEEDED
+================================================================================
+All items merged and verified (1163 passed / 0 failed, +20 test cases).
+
+A1. RPT-005 — per-finding confidence fallback ................ [DONE]
+    Was: a finding with no stored confidence showed the GLOBAL VCI label,
+         masking absence with a plausible value.
+    Done: assembly.py now passes the finding's real value or None; None renders
+          honest "Not recorded" in PDF + React. Guard test added.
+
+A2. RPT-008 — parametrized template-defect test .............. [DONE]
+    Done: new test_every_authored_template_strips_clean sweeps EVERY body_template
+          in scripts/ingest/update_findings.py::RECOMMENDATIONS, asserting no
+          "{", "}", empty "()", or unresolved token survives stripping.
+
+A3. RPT-009 — out-of-scope obligation state + basis matrix ... [DONE]
+    Done: basis logic extracted to reports.py::_recommendation_basis_label
+          (behaviour-preserving) + a new 5th state, "General requirement context
+          (outside selected scope)". New 5-way parametrized matrix test + the
+          new label added to the guardrail-copy sweep. (An SME may still reword
+          the label later; it is guardrail-clean today.)
+
+A4. RPT-010 (test half) — opposite-colour guard test ........ [DONE]
+    Done: test_opposite_direction_metrics_at_equal_value_get_opposite_bands
+          proves a maturity metric and an exposure metric at the same value band
+          to opposite colours. (Only the palette decision B1 remains for RPT-010.)
+
+Also folded into this pass (cheap missing tests):
+  - RPT-001: percentile<->top-quartile invariant test (with an F-010 trap) [DONE]
+  - RPT-004: direct "mismatch" (counts diverge, both nonzero) branch test  [DONE]
+  - RPT-002: embedding=null suppression test (org + exemplar sides)        [DONE]
+  - RPT-016: regression test asserting defective label strings never render [DONE]
+
+BUCKET A OUTCOME (achieved): RPT-005/008/009 moved PARTIAL->RESOLVED; test nits
+on RPT-001/002/004/010/016 closed. Overall completion rose from ~85% to ~90%
+(21 of 27 findings fully resolved). No formula/weight/threshold changed.
+
+================================================================================
+BUCKET B — SMALL BUILDS, BUT YOU MAKE ONE QUICK CALL FIRST
+================================================================================
+I can build each; I just need one choice so I'm not guessing.
+
+B1. RPT-010 (colour half) — PDF vs web palette reconciliation
+    Situation: the PDF's colour hex values drift slightly from the web app's
+               scoreBands.ts. Per your rules the TS file is the source of
+               truth, so "reconcile" = change the PDF colours to match the web.
+    DECISION:  (a) Change PDF colours to match the web palette? (low stakes,
+               purely visual), OR (b) leave as-is and just document the drift?
+    If (a): small code change, I do it.
+
+B2. INT-07 — pre-analysis methodology cue
+    Situation: before "analyse", you show the cohort but not HOW the
+               methodology works. You already have a "Methodology" nav item.
+    NEED FROM YOU: either a URL to an existing methodology page to link, OR
+               approval for me to write a short plain-English "how we pick your
+               peers" blurb inline on the intake screen.
+    Then: small frontend build.
+
+B3. RPT-013 — aggregated enforcement view
+    Situation: enforcement cases already show per-finding in the evidence
+               drawer, but there's no single "enforcement themes driving your
+               exposure" section or dashboard card.
+    DECISION:  Do you want a dedicated aggregated enforcement section / card
+               for the pilot, OR is per-finding evidence enough for now?
+    If yes: moderate build (surface F-004 data into a section).
+
+B4. RPT-014 — report density judgment
+    Situation: "report too sparse" — it's materially denser now as a byproduct
+               of the other fixes. This is a judgment call, not code.
+    NEED FROM YOU: your eyes on a freshly generated report, OR the original
+               prototype PDF so I can diff against it. I cannot objectively
+               "close" this without the comparison target.
+    Then: if any specific section still looks thin, I fill it.
+
+================================================================================
+BUCKET C — GENUINE DECISIONS ONLY YOU / AN EXPERT / AN SME CAN MAKE
+================================================================================
+These change what the numbers MEAN or require human-owned content. I cannot
+just code them.
+
+C1. RPT-011 — domain-level benchmark comparisons  [THE BIGGEST ONE]
+    Situation: today Section 4 compares your OVERALL maturity to peers. The
+               prototype showed PER-DOMAIN comparisons (e.g. your Retention vs
+               peer Retention top-quartile). Building that needs new PER-DOMAIN
+               peer statistics = a new scoring behaviour. Hard Rule 3 says an
+               agent may NOT invent formula semantics — an expert must define
+               it first.
+    DECISION:  Do you want per-domain benchmarking for the pilot?
+               - If YES: someone with scoring authority must specify HOW each
+                 domain's peer threshold is computed (which measure, which
+                 percentile per domain). Then I build it.
+               - If NOT NOW: we defer it explicitly and it stops being an
+                 open "bug".
+    This is the ONE real feature gap, and it is blocked on a spec decision,
+    not on engineering.
+
+C2. RPT-015 — Next Steps page
+    Situation: the section literally does not exist. The BUILD is small; the
+               COPY is the blocker — it is customer-facing report language,
+               which under your rules is SME-owned (no legal-verdict phrasing).
+               Prototype version was: prioritize high findings -> validate with
+               counsel -> re-run after remediation -> optionally convert to
+               monitored/GRC mode.
+    DECISION:  Approve that prototype copy, OR give me your own wording. Then I
+               add the section (small build).
+
+C3. INT-06 — role / assessment-purpose selector
+    Situation: deliberately skipped because there is no backend field to
+               receive it. The real question is whether purpose CHANGES
+               anything.
+    DECISION:  (a) What purposes? (e.g. CPO self-assessment, vendor diligence,
+               law-firm review, regulator scan)
+               (b) Does each purpose just get RECORDED, or does it actually
+               CHANGE the report (language, sections, outputs)?
+                 - Just recorded  -> small build.
+                 - Reshapes output -> significant build.
+                 - Not needed for pilot -> leave deferred; it stops being a gap.
+
+TWO THINGS NO CODE CAN CLOSE (on your radar, SME time not engineering):
+  * Exemplar content — the retrieval MECHANISM is fixed, but whether your ~16
+    approved peer examples are genuinely good comparators needs an SME to
+    eyeball them.
+  * Gold labels / classifier accuracy — 0 of 200 clauses have human labels.
+    The pipeline is now provably HONEST, but nobody has confirmed the
+    INTELLIGENCE is correct. This is the single biggest risk before any real
+    customer sees a report. SME time.
+
+================================================================================
+DECISIONS YOU NEED TO MAKE — CHECKLIST
+================================================================================
+[ ] B1  PDF colours: match the web palette, or leave + document?
+[ ] B2  Methodology cue: give a URL to link, or let me write an inline blurb?
+[ ] B3  Enforcement: build an aggregated section/card, or per-finding is enough?
+[ ] B4  Density: send the prototype PDF (or review a generated report) so I can
+        objectively close it?
+[ ] C1  Per-domain benchmarks: yes (needs expert spec of the method) / defer?
+[ ] C2  Next Steps: approve prototype copy / provide your own copy?
+[ ] C3  Role-purpose selector: which purposes, and does purpose change outputs,
+        or just get recorded, or defer for pilot?
+[ ] SME Exemplar content review (human)
+[ ] SME Start the 200-clause gold-label set (human)
+
+================================================================================
+RECOMMENDED SEQUENCE
+================================================================================
+1. [DONE] BUCKET A finished — RPT-005/008/009 resolved, test nits closed.
+2. You answer the B-bucket calls (B1/B2/B3 are one-line answers; B4 needs the
+   prototype PDF or your review).                              <-- NEXT
+3. You + expert decide C1 (per-domain method) and C3 (role/purpose behaviour);
+   you + SME provide C2 copy.
+4. SME begins exemplar review + gold labels in parallel (this gates real
+   external delivery regardless of the code).
+
+Fastest thing right now: answer the B1/B2/B3 one-liners and tell me which of
+C1/C2/C3 you actually want for the pilot — I'll build whatever unblocks.
+
+================================================================================
+END
+================================================================================

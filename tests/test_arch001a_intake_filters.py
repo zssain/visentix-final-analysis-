@@ -80,6 +80,19 @@ def test_intake_options_payload():
     assert "US-CA" in jurs and "US-CO" in jurs
     assert "_default" not in jurs
     assert opts["unknown_industry"] == "unknown"
+    assert {o["value"] for o in opts["data_categories"]} == set(iopt.data_category_values())
+    assert {o["value"] for o in opts["business_practices"]} == set(iopt.business_practice_values())
+    assert {o["value"] for o in opts["state_footprint"]} == jurs
+    assert len({code for code in jurs if code.startswith("US-") and code != "US-FED"}) == 51
+
+
+def test_csv_parser_deduplicates_and_ignores_empty_or_whitespace_entries():
+    assert A._parse_csv(" US-CA, ,US-TX,US-CA,  ,") == ["US-CA", "US-TX"]
+
+
+def test_footprint_and_selected_laws_remain_distinct_when_disjoint_or_identical():
+    A._validate_filters(None, [], state_footprint=["US-CA"], selected_laws=["US-TX"])
+    A._validate_filters(None, [], state_footprint=["US-CA"], selected_laws=["US-CA"])
 
 
 # ── 5. Intake WRITES real industry + provenance + jurisdictions ──
@@ -130,6 +143,52 @@ async def test_apply_filters_blank_does_not_touch_org():
     assert called["n"] == 0  # blank ≠ overwrite
 
 
+@pytest.mark.anyio
+async def test_footprint_is_distinct_from_legacy_legal_scope_and_profile_fields_trigger_refresh():
+    captured = {}
+
+    async def fake_patch(table, filters, payload):
+        captured.update(payload)
+
+    with patch.object(A, "supabase_rest_patch", fake_patch):
+        changed = await A._apply_intake_filters(
+            "org-1", "retail", ["US-CO"], organization_size="medium",
+            public_private="private", geography="US", state_footprint=["US-CA"],
+        )
+    assert changed is True
+    assert captured["jurisdiction_presence"] == ["US-CA"]
+    assert captured["size"] == "medium"
+    assert captured["public_private"] == "private"
+    assert captured["geography"] == "US"
+
+
+@pytest.mark.anyio
+async def test_intake_scope_persists_distinct_values_and_provenance_without_merge():
+    captured = {}
+
+    class Response:
+        status_code = 201
+
+    async def fake_post(table, payload, **kwargs):
+        captured["table"] = table
+        captured["payload"] = payload
+        captured["kwargs"] = kwargs
+        return Response()
+
+    with patch.object(A, "supabase_rest_post", fake_post):
+        await A._persist_intake_scope(
+            "notice-1", "org-1", organization_name="Acme", organization_size="medium",
+            public_private="private", geography="US", state_footprint=["US-CA"],
+            selected_laws=["US-CO"], data_categories=["sensitive_data"],
+            business_practices=["tracking_cookies"],
+        )
+    assert captured["table"] == "assessment_intake_scope"
+    assert captured["payload"]["state_footprint"] == ["US-CA"]
+    assert captured["payload"]["selected_laws"] == ["US-CO"]
+    assert captured["payload"]["provenance"]["data_categories"] == "user_declared"
+    assert captured["kwargs"] == {}  # immutable insert, never merge-upsert
+
+
 # ── 4 (endpoint). Invalid value → 422, not a silent pass-through ──
 
 def _hdr(role="customer", org=None):
@@ -145,6 +204,9 @@ def _hdr(role="customer", org=None):
 @pytest.mark.parametrize("field,value", [
     ("industry", "banana"),
     ("jurisdictions", "US-XX"),
+    ("organization_size", "enormous"),
+    ("data_categories", "unknown_category"),
+    ("business_practices", "unknown_practice"),
 ])
 async def test_invalid_filter_rejected_422(field, value):
     async def fake_find(key):

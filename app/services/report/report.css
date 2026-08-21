@@ -308,6 +308,8 @@ p { margin: 0 0 6pt; }
   border-radius: 3pt; padding: 9pt 12pt; font-size: 7.5pt; color: var(--muted); background: var(--panel);
 }
 .cover-badge b { color: var(--navy); letter-spacing: 1px; }
+.scope-front { break-before: page; padding-top: 8mm; }
+.scope-front h1 { font-size: 20pt; margin: 3mm 0 8mm; }
 
 /* ── Back cover ─────────────────────────────────────────────── */
 .back { page: back; position: relative; width: 210mm; height: 297mm; background: var(--navy); color: var(--white); overflow: hidden; }

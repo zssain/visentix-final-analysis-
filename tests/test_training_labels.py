@@ -23,6 +23,12 @@ from app.services.training import (
 )
 
 
+# UUID-shaped synthetic id — assessment_id columns enforce a UUID CHECK
+# (migration 0047). Must stay in sync with _TEST_IDS in app/services/training.py
+# and app/services/review.py so reset cleans it from the DB.
+A1 = "aaaaaaaa-0000-4000-8000-0000000000a1"
+
+
 @pytest.fixture(autouse=True)
 def _clean():
     reset_labels()
@@ -36,7 +42,7 @@ def _clean():
 
 def test_capture_label_returns_label():
     label = capture_label(
-        assessment_id="a1",
+        assessment_id=A1,
         finding_id="f1",
         action="confirm",
         original={"severity": "high"},
@@ -49,10 +55,10 @@ def test_capture_label_returns_label():
 
 
 def test_capture_stores_original_and_corrected():
-    capture_label("a1", "f1", "edit",
+    capture_label(A1, "f1", "edit",
                   original={"severity": "high"},
                   corrected={"severity": "medium"})
-    labels = get_labels("a1")
+    labels = get_labels(A1)
     assert len(labels) == 1
     assert labels[0]["original"] == {"severity": "high"}
     assert labels[0]["corrected"] == {"severity": "medium"}
@@ -61,7 +67,7 @@ def test_capture_stores_original_and_corrected():
 def test_capture_non_blocking_on_failure():
     """Capture should never raise — log and return None on failure."""
     # This should not crash even with weird input
-    result = capture_label("a1", "f1", "confirm",
+    result = capture_label(A1, "f1", "confirm",
                            original=None, corrected=None)
     assert result is not None  # Normal case works
 
@@ -69,8 +75,8 @@ def test_capture_non_blocking_on_failure():
 # ── Integration with review actions ──────────────────────────
 
 def test_confirm_writes_one_label():
-    submit_finding_action("a1", "f1", FindingAction.CONFIRM, reviewer_id="sme-1")
-    labels = get_labels("a1")
+    submit_finding_action(A1, "f1", FindingAction.CONFIRM, reviewer_id="sme-1")
+    labels = get_labels(A1)
     assert len(labels) == 1
     assert labels[0]["action"] == "confirm"
     assert labels[0]["finding_id"] == "f1"
@@ -78,37 +84,37 @@ def test_confirm_writes_one_label():
 
 
 def test_edit_writes_one_label_with_changes():
-    submit_finding_action("a1", "f1", FindingAction.EDIT,
+    submit_finding_action(A1, "f1", FindingAction.EDIT,
                            edited_fields={"severity": "medium"},
                            reviewer_id="sme-2")
-    labels = get_labels("a1")
+    labels = get_labels(A1)
     assert len(labels) == 1
     assert labels[0]["action"] == "edit"
     assert labels[0]["corrected"]["severity"] == "medium"
 
 
 def test_dismiss_writes_one_label():
-    submit_finding_action("a1", "f1", FindingAction.DISMISS, reviewer_id="sme-3")
-    labels = get_labels("a1")
+    submit_finding_action(A1, "f1", FindingAction.DISMISS, reviewer_id="sme-3")
+    labels = get_labels(A1)
     assert len(labels) == 1
     assert labels[0]["action"] == "dismiss"
 
 
 def test_multiple_actions_write_multiple_labels():
-    submit_finding_action("a1", "f1", FindingAction.CONFIRM, reviewer_id="sme-1")
-    submit_finding_action("a1", "f2", FindingAction.DISMISS, reviewer_id="sme-1")
-    submit_finding_action("a1", "f3", FindingAction.EDIT,
+    submit_finding_action(A1, "f1", FindingAction.CONFIRM, reviewer_id="sme-1")
+    submit_finding_action(A1, "f2", FindingAction.DISMISS, reviewer_id="sme-1")
+    submit_finding_action(A1, "f3", FindingAction.EDIT,
                            edited_fields={"severity": "low"}, reviewer_id="sme-1")
-    labels = get_labels("a1")
+    labels = get_labels(A1)
     assert len(labels) == 3
 
 
 def test_re_reviewing_same_finding_adds_new_label():
     """Re-reviewing the same finding should add a second label (not overwrite)."""
-    submit_finding_action("a1", "f1", FindingAction.CONFIRM)
-    submit_finding_action("a1", "f1", FindingAction.EDIT,
+    submit_finding_action(A1, "f1", FindingAction.CONFIRM)
+    submit_finding_action(A1, "f1", FindingAction.EDIT,
                            edited_fields={"severity": "low"})
-    labels = get_labels("a1")
+    labels = get_labels(A1)
     assert len(labels) == 2
     assert labels[0]["action"] == "confirm"
     assert labels[1]["action"] == "edit"
@@ -117,9 +123,9 @@ def test_re_reviewing_same_finding_adds_new_label():
 # ── Training stats ───────────────────────────────────────────
 
 def test_stats_by_action():
-    submit_finding_action("a1", "f1", FindingAction.CONFIRM)
-    submit_finding_action("a1", "f2", FindingAction.DISMISS)
-    submit_finding_action("a1", "f3", FindingAction.EDIT, edited_fields={})
+    submit_finding_action(A1, "f1", FindingAction.CONFIRM)
+    submit_finding_action(A1, "f2", FindingAction.DISMISS)
+    submit_finding_action(A1, "f3", FindingAction.EDIT, edited_fields={})
     stats = get_training_stats()
     assert stats["total_labels"] == 3
     assert stats["by_action"]["confirm"] == 1
@@ -136,8 +142,8 @@ def test_stats_empty():
 
 def test_labels_contain_no_secrets():
     """Labels should never contain API keys, tokens, or connection strings."""
-    submit_finding_action("a1", "f1", FindingAction.CONFIRM, reviewer_id="sme-1")
-    labels = get_labels("a1")
+    submit_finding_action(A1, "f1", FindingAction.CONFIRM, reviewer_id="sme-1")
+    labels = get_labels(A1)
     label_str = str(labels)
     assert "sb_" not in label_str
     assert "eyJ" not in label_str
@@ -158,8 +164,8 @@ def _make_token():
 
 @pytest.mark.anyio
 async def test_admin_training_stats_route():
-    submit_finding_action("a1", "f1", FindingAction.CONFIRM, reviewer_id="sme")
-    submit_finding_action("a1", "f2", FindingAction.DISMISS, reviewer_id="sme")
+    submit_finding_action(A1, "f1", FindingAction.CONFIRM, reviewer_id="sme")
+    submit_finding_action(A1, "f2", FindingAction.DISMISS, reviewer_id="sme")
 
     token = _make_token()
     mock = patch("app.auth._load_profile", new_callable=AsyncMock,

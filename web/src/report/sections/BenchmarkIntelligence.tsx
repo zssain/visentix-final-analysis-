@@ -2,12 +2,12 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, Cell, ResponsiveContainer } from 
 import { CohortLabel }    from "../CohortLabel";
 import { ScoreCell }      from "../../components/ScoreCell";
 import { IntelligenceMark } from "../../components/IntelligenceMark";
-import { maturityBandColor, LOW_CONFIDENCE_COHORT_N } from "../../lib/scoreBands";
+import { maturityBandColor } from "../../lib/scoreBands";
 import type { ReportSection } from "../types";
 
 export function BenchmarkIntelligence({ content }: { content: ReportSection["content"] }) {
-  const orgScore   = (content.org_score  as number | undefined) ?? 0;
-  const percentile = (content.percentile as number | undefined) ?? 0;
+  const orgScore   = content.org_score as number | null | undefined;
+  const percentile = content.percentile as number | null | undefined;
   const cohortSize = (content.cohort_size as number | undefined) ?? 0;
   const cohortDate = (content.cohort_date as string | undefined) ?? "—";
   const snapshotId = (content.snapshot_id as string | undefined) ?? "—" /* honest absence — never a plausible-looking fake ID (Hard Rule 7) */;
@@ -15,13 +15,15 @@ export function BenchmarkIntelligence({ content }: { content: ReportSection["con
 
   // Honest benchmark bars — a bar renders only when its value is real.
   // A missing peer median must never fall back to an invented 50 (Hard Rule 7).
-  const peerMedian  = content.peer_median  as number | undefined;
-  const topQuartile = content.top_quartile as number | undefined;
+  const topQuartile = content.top_quartile_score as number | null | undefined;
+  const measure = (content.measure_label as string | undefined) ?? "Governance Maturity (PGMS)";
+  const methodology = (content.methodology as {
+    dimensions?: string[]; relaxations?: string[]; benchmark_population_version?: number | string;
+    as_of_date?: string; low_confidence?: boolean; confidence_penalty?: number;
+  } | undefined);
   const data = [
-    // F-010 is a maturity score (higher = better) — maturity color scale.
-    { name: "Your Score", value: orgScore, fill: maturityBandColor(orgScore) },
-    ...(peerMedian  !== undefined ? [{ name: "Peer Median",  value: peerMedian,  fill: "#D9DDE2" }] : []),
-    ...(topQuartile !== undefined ? [{ name: "Top Quartile", value: topQuartile, fill: "#09234F" }] : []),
+    ...(typeof orgScore === "number" ? [{ name: `Your ${measure}`, value: orgScore, fill: maturityBandColor(orgScore) }] : []),
+    ...(typeof topQuartile === "number" ? [{ name: "Peer Top Quartile", value: topQuartile, fill: "#09234F" }] : []),
   ];
 
   return (
@@ -34,41 +36,41 @@ export function BenchmarkIntelligence({ content }: { content: ReportSection["con
           <div style={{
             fontSize: "0.68rem", fontWeight: 700, textTransform: "uppercase",
             letterSpacing: "0.09em", color: "var(--text-muted)", marginBottom: 4,
-          }}>Cohort Percentile</div>
+          }}>{measure} Percentile</div>
           <div style={{
             fontFamily: "var(--font-data)", fontVariantNumeric: "tabular-nums",
             fontSize: "2.4rem", fontWeight: 700, color: "var(--navy)", lineHeight: 1,
           }}>
-            {percentile?.toFixed(1)}<span style={{ fontSize: "1rem" }}>th</span>
+            {typeof percentile === "number" ? <>{percentile.toFixed(1)}<span style={{ fontSize: "1rem" }}>th</span></> : "Not recorded"}
           </div>
         </div>
         <div>
           <div style={{
             fontSize: "0.68rem", fontWeight: 700, textTransform: "uppercase",
             letterSpacing: "0.09em", color: "var(--text-muted)", marginBottom: 4,
-          }}>Your Score</div>
-          <ScoreCell
+          }}>Your {measure} Score · higher is better</div>
+          {typeof orgScore === "number" ? <ScoreCell
             value={orgScore}
-            formulaId="F-010"
-            formulaDesc="Weighted combination of all six risk dimensions to produce the overall privacy intelligence score."
+            formulaId="F-003"
+            formulaDesc={(content.formula_descs as Record<string, string> | undefined)?.["F-003"] ?? ""}
             inputs={[
               { label: "Notice", type: "clause" },
               { label: "Regulator", type: "regulator" },
               { label: `n=${cohortSize}`, type: "cohort" },
             ]}
-            /* Never invent confidence: missing VCI → conservative 0 default. */
+            /* Never invent confidence: missing VCI stays absent in lineage. */
             vci={content.vci_score as number | undefined}
             snapshotId={snapshotId}
             frozenDate={frozenDate}
             cohortSize={cohortSize}
             cohortDate={cohortDate}
             size="lg"
-          />
+          /> : <div style={{ color: "var(--text-muted)" }}>Not recorded</div>}
         </div>
       </div>
 
       {/* Chart */}
-      <div style={{ width: "100%", height: 200 }} className="chart-container">
+      {data.length > 0 ? <div style={{ width: "100%", height: 200 }} className="chart-container">
         <ResponsiveContainer>
           <BarChart data={data} barSize={48}>
             <XAxis dataKey="name" tick={{ fontSize: 11 }} />
@@ -82,7 +84,9 @@ export function BenchmarkIntelligence({ content }: { content: ReportSection["con
             </Bar>
           </BarChart>
         </ResponsiveContainer>
-      </div>
+      </div> : <div style={{ padding: "14px 16px", background: "var(--soft-white)", color: "var(--text-muted)" }}>
+        A stored peer comparison is not available for this assessment.
+      </div>}
 
       {/* Honest cohort label */}
       <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
@@ -91,7 +95,7 @@ export function BenchmarkIntelligence({ content }: { content: ReportSection["con
       </div>
 
       {/* Low-confidence label when cohort is small */}
-      {cohortSize > 0 && cohortSize < LOW_CONFIDENCE_COHORT_N && (
+      {methodology?.low_confidence && (
         <div style={{
           marginTop: 10, padding: "8px 12px",
           background: "rgba(200,164,106,0.09)", border: "1px dashed var(--gold)",
@@ -101,6 +105,16 @@ export function BenchmarkIntelligence({ content }: { content: ReportSection["con
           Percentile figures should be interpreted with caution.
         </div>
       )}
+
+      {methodology ? (
+        <div style={{ marginTop: 12, padding: "12px 14px", border: "1px solid var(--border)", borderRadius: "var(--radius)", fontSize: "0.8rem" }}>
+          <strong>Peer-cohort methodology</strong>
+          <div>Dimensions: {methodology.dimensions?.length ? methodology.dimensions.join(" · ") : "Not recorded"}</div>
+          <div>Population version: {methodology.benchmark_population_version ?? "Not recorded"} · as of {methodology.as_of_date ?? cohortDate}</div>
+          {!!methodology.relaxations?.length && <div>Cohort widening: {methodology.relaxations.join(", ")}. Confidence is reduced to reflect the broader comparison.</div>}
+          <div>Comparison formula: F-003 · percentile formula: F-011</div>
+        </div>
+      ) : <div style={{ marginTop: 12, color: "var(--text-muted)", fontSize: "0.8rem" }}>Cohort methodology not recorded.</div>}
     </div>
   );
 }

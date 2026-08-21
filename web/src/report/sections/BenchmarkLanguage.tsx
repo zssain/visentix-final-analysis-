@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { CodexTooltip } from "../../components/CodexTooltip";
 import { IntelligenceMark } from "../../components/IntelligenceMark";
+import { domainLabel } from "../../lib/domainLabels";
 import type { ReportSection } from "../types";
 
 interface ExemplarEntry {
@@ -54,11 +55,10 @@ function DiffView({ your, exemplar }: { your: string; exemplar: string }) {
 }
 
 export function BenchmarkLanguage({ content }: { content: ReportSection["content"] }) {
-  const available = content.sme_cleaned_available as boolean;
   const entries   = (content.entries as ExemplarEntry[]) ?? [];
   const [showDiff, setShowDiff] = useState(false);  // off by default
 
-  if (!available || entries.length === 0) {
+  if (entries.length === 0) {
     return (
       <div data-testid="section-8" className="report-section">
         <h2>8. Benchmark Language Comparison</h2>
@@ -67,8 +67,7 @@ export function BenchmarkLanguage({ content }: { content: ReportSection["content
           padding: "16px 20px", borderRadius: "var(--radius)",
           color: "var(--text-secondary)", fontSize: "0.88rem",
         }}>
-          Pending SME-reviewed exemplar — this section will be populated once subject-matter
-          expert review is complete.
+          No substantive notice clause is available for a domain comparison.
         </div>
       </div>
     );
@@ -79,7 +78,7 @@ export function BenchmarkLanguage({ content }: { content: ReportSection["content
       <h2>8. Benchmark Language Comparison</h2>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, marginBottom: 16, flexWrap: "wrap" }}>
         <p style={{ color: "var(--text-muted)", fontSize: "0.85rem", margin: 0 }}>
-          How your privacy notice language compares to best-practice exemplars across key domains.
+          Your notice language by disclosed domain, with an approved peer comparator only where the evidence gates are met.
         </p>
         {/* Show-differences toggle (off by default): gold = language the exemplar
             adds, warm-gray strikethrough = language it drops. */}
@@ -111,7 +110,7 @@ export function BenchmarkLanguage({ content }: { content: ReportSection["content
         const exemplarText = (e.exemplar_text ?? "").trim();
         const hasYour      = yourText.length > 0;
         const hasExemplar  = exemplarText.length > 0;
-        const domainLabel  = e.domain.replace(/_/g, " ");
+        const displayDomain = domainLabel(e.domain);
 
         return (
           <div key={i} style={{ marginBottom: 28 }}>
@@ -119,19 +118,9 @@ export function BenchmarkLanguage({ content }: { content: ReportSection["content
             <div style={{
               display: "flex", alignItems: "center", gap: 10, marginBottom: 8,
             }}>
-              <span className="domain-eyebrow">{domainLabel.toUpperCase()}</span>
+              <span className="domain-eyebrow">{displayDomain.toUpperCase()}</span>
               {/* DDR-006: finding codes are hover/focus Codex targets */}
               {e.finding_code && <CodexTooltip code={e.finding_code} />}
-              {!hasYour && (
-                <span style={{
-                  fontSize: "0.7rem", fontWeight: 600,
-                  color: "var(--red)", background: "rgba(248,113,113,0.08)",
-                  border: "1px solid rgba(248,113,113,0.2)",
-                  padding: "1px 8px", borderRadius: 4,
-                }}>
-                  Gap — not found in your notice
-                </span>
-              )}
             </div>
 
             {/* Diff view — merged single column when toggled on and both sides exist */}
@@ -155,7 +144,7 @@ export function BenchmarkLanguage({ content }: { content: ReportSection["content
             /* Content cards */
             <div style={{
               display: "grid",
-              gridTemplateColumns: hasExemplar && hasYour ? "1fr 1fr" : "1fr",
+              gridTemplateColumns: hasYour ? "1fr 1fr" : "1fr",
               gap: 0,
               border: "1px solid var(--border)",
               borderRadius: "var(--radius)",
@@ -185,7 +174,7 @@ export function BenchmarkLanguage({ content }: { content: ReportSection["content
                     fontStyle: "italic", margin: 0,
                   }}>
                     Your privacy notice does not appear to include a dedicated clause
-                    for {domainLabel}. Adding one would strengthen your disclosure maturity.
+                    for {displayDomain}.
                   </p>
                 )}
               </div>
@@ -200,13 +189,23 @@ export function BenchmarkLanguage({ content }: { content: ReportSection["content
                     fontSize: "0.68rem", fontWeight: 700, textTransform: "uppercase",
                     letterSpacing: "0.09em", color: "var(--exec-blue)", marginBottom: 10,
                   }}>
-                    Best-Practice Exemplar
+                    Approved Peer Comparator
                   </div>
                   <p style={{
                     fontSize: "0.85rem", lineHeight: 1.75, color: "var(--text)",
                     margin: 0,
                   }}>
                     {exemplarText.length > 500 ? exemplarText.slice(0, 500) + "…" : exemplarText}
+                  </p>
+                </div>
+              )}
+              {!hasExemplar && (
+                <div style={{ padding: "16px 18px", background: "rgba(9,35,79,0.02)" }}>
+                  <div style={{ fontSize: "0.68rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.09em", color: "var(--exec-blue)", marginBottom: 10 }}>
+                    Approved Peer Comparator
+                  </div>
+                  <p style={{ fontSize: "0.85rem", lineHeight: 1.6, color: "var(--text-muted)", fontStyle: "italic", margin: 0 }}>
+                    No comparable approved peer language is available for this domain.
                   </p>
                 </div>
               )}

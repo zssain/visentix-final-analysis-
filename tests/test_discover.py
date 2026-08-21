@@ -90,7 +90,10 @@ async def test_s1_hit_skips_s2_and_s3():
             resp.text = "<html><body>Not found</body></html>"
         return resp
 
-    with patch("app.services.intake.discover._fetch_ssrf_safe", side_effect=mock_fetch):
+    # DNS/network validation is covered in test_ssrf.py; keep this discovery
+    # test deterministic by mocking that external boundary.
+    with patch("app.services.intake.discover._fetch_ssrf_safe", side_effect=mock_fetch), \
+         patch("app.services.intake.ssrf.validate_url", side_effect=lambda url: url):
         result = await discover_policy_url("https://example.com")
 
     assert result == "https://example.com/privacy"
@@ -138,7 +141,8 @@ async def test_s2_homepage_link_discovery():
             resp.text = "<html><body>Not found</body></html>"
         return resp
 
-    with patch("app.services.intake.discover._fetch_ssrf_safe", side_effect=mock_fetch):
+    with patch("app.services.intake.discover._fetch_ssrf_safe", side_effect=mock_fetch), \
+         patch("app.services.intake.ssrf.validate_url", side_effect=lambda url: url):
         result = await discover_policy_url("https://example.com")
 
     assert result == "https://example.com/our-privacy-page"

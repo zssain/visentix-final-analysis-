@@ -117,6 +117,7 @@ def test_apply_now_order_and_step_a_first():
         "0045_org_notice_fks.sql",
         "0046_reapply_notice_rls_policies.sql",
         "0047_assessment_id_uuid_check.sql",
+        "0048_assessment_intake_scope.sql",
     ]
 
 

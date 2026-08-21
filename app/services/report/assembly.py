@@ -46,11 +46,14 @@ def assemble_report(
     narrative_recommendations: list[dict],
     exemplars: list[dict],
     enforcement_heatmap: list[dict],
-    org_clauses_by_domain: dict[str, str] | None = None,
-    cohort_size: int = 30,
+    org_clauses_by_domain: dict[str, dict | str] | None = None,
+    cohort_size: int = 0,
     cohort_date: str = "",
     snapshot_id: str = "",
     guardrail_result: dict | None = None,
+    extraction_quality: dict | None = None,
+    cohort_methodology: dict | None = None,
+    assessment_scope: dict | None = None,
 ) -> ReportPayload:
     """Assemble the 12-section report from pre-computed + guardrailed data.
 
@@ -71,7 +74,13 @@ def assemble_report(
     ai_score = scores.get("f007", {}).get("score", 0)
     compound = scores.get("f008", {}).get("score", 0)
 
-    # Section 1: Cover
+    extraction_quality = extraction_quality or {"status": "not_recorded"}
+    cohort_methodology = cohort_methodology or {}
+    assessment_scope = assessment_scope or {}
+    suppress_parse_dependent = extraction_quality.get("status") in {"mismatch", "insufficient"}
+
+    # Section 1: Cover. Assessment Scope is front matter inside the Cover so the
+    # governed 12-section sequence remains stable (F05 AC-8).
     s1 = ReportSection(1, "Cover", {
         "organization": org_name,
         "report_title": "Privacy Intelligence Assessment",
@@ -79,6 +88,7 @@ def assemble_report(
         "overall_score": overall,
         "vci_label": vci.get("label", ""),
         "snapshot_id": snapshot_id,
+        "assessment_scope": assessment_scope,
     })
 
     # Section 2: Executive Summary + Takeaways
@@ -104,23 +114,27 @@ def assemble_report(
         "overall_intelligence": overall,
         "regulatory_exposure": regulatory,
         "regulatory_tier": reg_tier,
-        "benchmark_deviation": benchmark_dev,
-        "disclosure_maturity": disclosure,
-        "transparency": transparency,
-        "ai_transparency": ai_score,
+        "benchmark_deviation": None if suppress_parse_dependent else benchmark_dev,
+        "disclosure_maturity": None if suppress_parse_dependent else disclosure,
+        "transparency": None if suppress_parse_dependent else transparency,
+        "ai_transparency": None if suppress_parse_dependent else ai_score,
         "compound_risk": compound,
-        "vci_score": vci.get("score", 0),
+        "vci_score": vci.get("score"),
         "vci_label": vci.get("label", ""),
         "snapshot_id": snapshot_id,
         "date": cohort_date,
         "cohort_size": cohort_size,
         "cohort_date": cohort_date,
+        "extraction_quality": extraction_quality,
     })
 
     # Section 4: Benchmark Intelligence
     s4 = ReportSection(4, "Benchmark Intelligence", {
-        "org_score": overall,
-        "percentile": percentile,
+        # F-003 and F-011 both benchmark PGMS; never mix the F-010 headline score
+        # into this chart. Missing F-003 lineage is honest absence.
+        "org_score": None if suppress_parse_dependent else scores.get("f003", {}).get("lineage", {}).get("org_score"),
+        "measure_label": "Governance Maturity (PGMS)",
+        "percentile": None if suppress_parse_dependent else percentile,
         "cohort_size": cohort_size,
         "cohort_date": cohort_date,
         # DATA-002: `cohort_label` is DERIVED PROSE embedding the volatile "as of
@@ -132,8 +146,11 @@ def assemble_report(
         # threshold + peer count; surface them READ-ONLY so §4 can draw a real
         # "your score vs top quartile" comparison. `None` when F-003 had no peers,
         # so the renderer shows honest absence instead of a fabricated average.
-        "top_quartile_score": scores.get("f003", {}).get("lineage", {}).get("top_quartile_score"),
+        "top_quartile_score": None if suppress_parse_dependent else scores.get("f003", {}).get("lineage", {}).get("top_quartile_score"),
         "peer_n": scores.get("f003", {}).get("lineage", {}).get("n_peers"),
+        "formula_ids": {"comparison": "F-003", "percentile": "F-011"},
+        "methodology": cohort_methodology,
+        "extraction_quality": extraction_quality,
     })
 
     # Section 5: Regulator Exposure Heatmap
@@ -152,7 +169,17 @@ def assemble_report(
             "domain": f.get("domain", ""),
             "severity": f.get("severity", ""),
             "score": f.get("score", 0),
-            "confidence": vci.get("label", ""),
+            # RPT-005: per-finding confidence shows the finding's REAL stored
+            # value or honest absence — never the global VCI label, which would
+            # mask a missing per-finding value with a plausible one. Renderer
+            # and React both map a falsy value to "Not recorded".
+            "confidence": f.get("confidence"),
+            "clause_ids": f.get("clause_ids", []),
+            "evidence": f.get("evidence", []),
+            "obligation_refs": f.get("obligation_refs", []),
+            "enforcement_refs": f.get("enforcement_refs", []),
+            "formula_version": f.get("formula_version"),
+            "benchmark_reference": f.get("benchmark_reference"),
         })
     s6 = ReportSection(6, "Disclosure Findings", {
         "assessment_id": assessment_id,
@@ -168,37 +195,25 @@ def assemble_report(
 
     # Section 8: Benchmark Language Comparison
     org_clauses = org_clauses_by_domain or {}
-    cleaned = [e for e in exemplars if e.get("sme_cleaned", False)]
-    if cleaned:
-        comparison_entries = [
-            {
-                "domain": e["domain"],
-                "your_text": org_clauses.get(e["domain"], ""),
-                "exemplar_text": e["clause_text"],
-                "maturity_note": e.get("maturity_note", ""),
-            }
-            for e in cleaned
-        ]
-    else:
-        # No SME exemplars — build comparison from org clauses only
-        key_domains = [
-            "data_sharing", "retention", "ai_automated_decisions",
-            "consumer_rights", "tracking_cookies", "sensitive_data",
-            "cross_border", "children_teens",
-        ]
-        comparison_entries = [
-            {
-                "domain": d,
-                "your_text": org_clauses.get(d, ""),
-                "exemplar_text": "",
-                "maturity_note": "",
-            }
-            for d in key_domains
-            if org_clauses.get(d)
-        ]
+    cleaned = {e["domain"]: e for e in exemplars if e.get("sme_cleaned", False)}
+    comparison_entries = []
+    for domain in sorted(org_clauses):
+        org_clause = org_clauses[domain]
+        your_text = org_clause.get("text", "") if isinstance(org_clause, dict) else org_clause
+        exemplar = cleaned.get(domain)
+        comparison_entries.append({
+            "domain": domain,
+            "your_text": your_text,
+            "your_clause_id": org_clause.get("clause_id") if isinstance(org_clause, dict) else None,
+            "exemplar_text": exemplar.get("clause_text", "") if exemplar else "",
+            "exemplar_clause_id": exemplar.get("clause_id") if exemplar else None,
+            "similarity": exemplar.get("similarity") if exemplar else None,
+            "maturity_note": exemplar.get("maturity_note", "") if exemplar else "No comparable approved peer language is available for this domain.",
+        })
     s8 = ReportSection(8, "Benchmark Language Comparison", {
         "entries": comparison_entries,
-        "sme_cleaned_available": len(cleaned) > 0 or len(comparison_entries) > 0,
+        "sme_cleaned_available": any(entry.get("exemplar_text") for entry in comparison_entries),
+        "org_language_available": bool(comparison_entries),
     })
 
     # Section 9: Strategic Recommendations
@@ -225,6 +240,9 @@ def assemble_report(
         # GRD-001/GRD-002: the REAL guardrail outcome for this snapshot's prose.
         # "not_recorded" (never a manufactured "passed") if the build didn't run it.
         "guardrail": guardrail_result or {"status": "not_recorded"},
+        "template_tokens": (guardrail_result or {}).get("template_tokens", {"status": "not_recorded"}),
+        "extraction_quality": extraction_quality,
+        "finding_evidence": findings_table,
         # DATA-002: this `note` is DERIVED PROSE that re-states volatile data
         # (the snapshot id + "as of <date>") already carried structurally by the
         # `snapshot_id`, `cohort_size` and `cohort_date` keys. It is excluded from

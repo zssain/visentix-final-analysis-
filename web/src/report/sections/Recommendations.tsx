@@ -1,7 +1,11 @@
 import { IntelligenceMark } from "../../components/IntelligenceMark";
 import type { ReportSection } from "../types";
 
-interface Rec { severity: string; code: string; title: string; prose: string; }
+interface Rec {
+  severity: string; code: string; title: string; prose: string;
+  basis_label?: string; source_note?: string;
+  evidence?: { clause_id?: string; section_reference?: string; excerpt?: string }[];
+}
 
 // Guardrail-compliant severity label mapping
 // Maps severity to exposure language — never legal verdict language
@@ -66,6 +70,15 @@ export function Recommendations({ content }: { content: ReportSection["content"]
               <p style={{ fontSize: "0.88rem", color: "var(--text-secondary)", lineHeight: 1.65 }}>
                 {r.prose}
               </p>
+              <div style={{ fontSize: "0.76rem", color: "var(--text-muted)" }}>
+                <strong>Basis:</strong> {r.basis_label ?? "Basis not recorded"}
+              </div>
+              {(r.evidence ?? []).length > 0 ? <div style={{ fontSize: "0.76rem", color: "var(--text-muted)" }}>
+                <strong>Notice evidence:</strong> {r.evidence?.[0]?.section_reference ?? r.evidence?.[0]?.clause_id ?? "Stored clause"} — {r.evidence?.[0]?.excerpt ?? "Excerpt not recorded"}
+              </div> : <div style={{ fontSize: "0.76rem", color: "var(--text-muted)" }}>No triggering notice evidence is recorded.</div>}
+              <div style={{ fontSize: "0.76rem", color: "var(--text-muted)" }}>
+                {r.source_note ? <><strong>Authored source note:</strong> {r.source_note}</> : "No authored source citation is recorded."}
+              </div>
             </div>
           ))}
         </div>

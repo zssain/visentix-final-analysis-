@@ -1,25 +1,33 @@
-import { CodexTooltip } from "../../components/CodexTooltip";
 import { IntelligenceMark } from "../../components/IntelligenceMark";
 import { ScoreCell }    from "../../components/ScoreCell";
+import { domainLabel } from "../../lib/domainLabels";
 import type { ReportSection } from "../types";
 
+interface HeatmapCell {
+  domain: string;
+  intensity: number;
+  clause_density: number;
+  evidenced?: boolean;
+}
 interface RegulatorRow {
-  regulator: string;
+  regulator_id: string;
+  regulator_name: string;
   jurisdiction: string;
-  tier: string;
-  score: number;
-  finding_codes?: string[];
+  cells: HeatmapCell[];
 }
 
-function tierColor(tier: string): string {
-  return { high: "var(--red)", elevated: "var(--gold)", moderate: "var(--exec-blue)", low: "var(--teal)" }[tier.toLowerCase()] ?? "var(--border)";
+function cellColor(cell: HeatmapCell): string {
+  if (!(cell.evidenced ?? cell.clause_density > 0)) return "repeating-linear-gradient(135deg, #f4f5f7, #f4f5f7 4px, #e3e6ea 4px, #e3e6ea 8px)";
+  if (cell.intensity >= 70) return "var(--red)";
+  if (cell.intensity >= 45) return "var(--gold)";
+  return "var(--teal)";
 }
 
 export function RegulatorExposure({ content }: { content: ReportSection["content"] }) {
-  const regulatoryScore = (content.regulatory_score as number | undefined) ?? 0;
+  const regulatoryScore = content.regulatory_score as number | undefined;
   const vciScore        = content.vci_score as number | undefined; // real VCI or honest absence — never a fabricated 75 (DATA-003)
   const tier            = (content.tier as string | undefined) ?? "—";
-  const regulators      = (content.regulators as RegulatorRow[] | undefined) ?? [];
+  const regulators      = (content.heatmap as RegulatorRow[] | undefined) ?? [];
   const snapshotId      = (content.snapshot_id as string | undefined) ?? "—" /* honest absence — never a plausible-looking fake ID (Hard Rule 7) */;
   const frozenDate      = (content.date        as string | undefined) ?? "—";
   const cohortSize      = (content.cohort_size as number | undefined) ?? 0;
@@ -31,7 +39,7 @@ export function RegulatorExposure({ content }: { content: ReportSection["content
 
       {/* Headline score */}
       <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
-        <ScoreCell
+        {typeof regulatoryScore === "number" ? <ScoreCell
           value={regulatoryScore}
           formulaId="F-002"
           formulaDesc="Weights jurisdiction importance against regulator priority and disclosure severity per domain."
@@ -46,7 +54,7 @@ export function RegulatorExposure({ content }: { content: ReportSection["content
           cohortSize={cohortSize}
           cohortDate={cohortDate}
           size="lg"
-        />
+        /> : <span style={{ color: "var(--text-muted)" }}>Exposure score not recorded</span>}
         <span className={`badge badge-${tier.toLowerCase()}`}>{tier}</span>
         <span style={{ fontSize: "0.82rem", color: "var(--text-muted)", fontStyle: "italic" }}>
           Click score to view lineage
@@ -58,38 +66,16 @@ export function RegulatorExposure({ content }: { content: ReportSection["content
           <thead>
             <tr style={{ background: "var(--soft-white)" }}>
               <th style={th}>Regulator</th>
-              <th style={th}>Jurisdiction</th>
-              <th style={th}>Tier</th>
-              <th style={th}>Exposure Score</th>
-              <th style={th}>Finding Codes</th>
+              {(regulators[0]?.cells ?? []).map(cell => <th style={th} key={cell.domain}>{domainLabel(cell.domain)}</th>)}
             </tr>
           </thead>
           <tbody>
-            {regulators.map((r, i) => (
-              <tr key={i}>
-                <td style={{ ...td, fontWeight: 600, color: "var(--navy)" }}>{r.regulator}</td>
-                <td style={td}>{r.jurisdiction}</td>
-                <td style={td}>
-                  <span style={{
-                    display: "inline-block", width: 10, height: 10,
-                    borderRadius: "50%", background: tierColor(r.tier),
-                    marginRight: 6, verticalAlign: "middle",
-                  }} />
-                  {r.tier}
-                </td>
-                <td style={{ ...td, fontFamily: "var(--font-data)", fontVariantNumeric: "tabular-nums" }}>
-                  {r.score?.toFixed(1)}
-                </td>
-                <td style={td}>
-                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                    {(r.finding_codes ?? []).map(code => (
-                      <CodexTooltip key={code} code={code} />
-                    ))}
-                    {(!r.finding_codes || r.finding_codes.length === 0) && (
-                      <span style={{ color: "var(--text-muted)", fontSize: "0.8rem" }}>—</span>
-                    )}
-                  </div>
-                </td>
+            {regulators.map((r) => (
+              <tr key={r.regulator_id}>
+                <td style={{ ...td, fontWeight: 600, color: "var(--navy)" }}>{r.regulator_name}<div style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>{r.jurisdiction}</div></td>
+                {r.cells.map(cell => <td key={cell.domain} style={{ ...td, textAlign: "center", background: cellColor(cell), color: (cell.evidenced ?? cell.clause_density > 0) ? "white" : "var(--text-muted)" }}>
+                  {(cell.evidenced ?? cell.clause_density > 0) ? cell.intensity.toFixed(1) : "—"}
+                </td>)}
               </tr>
             ))}
           </tbody>
@@ -103,6 +89,9 @@ export function RegulatorExposure({ content }: { content: ReportSection["content
           Regulatory heatmap will appear here once regulator data is populated.
         </div>
       )}
+      {regulators.length > 0 && <div style={{ marginTop: 8, fontSize: "0.75rem", color: "var(--text-muted)" }}>
+        Hatched cells are regulator baselines with no clause from your notice mapped to that domain. {regulators.flatMap(r => r.cells).filter(c => c.evidenced ?? c.clause_density > 0).length} of {regulators.flatMap(r => r.cells).length} cells are backed by notice-clause evidence.
+      </div>}
       {/* DDR-007: every report section carries the mark */}
       <div style={{ marginTop: 12 }}><IntelligenceMark /></div>
     </div>

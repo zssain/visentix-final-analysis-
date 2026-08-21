@@ -19,6 +19,23 @@
     "manufacturing":       {"industry_id": "IND-10", "sensitivity": 0.45}
   },
   "industry_default_sensitivity": 0.50,
+  "low_confidence_cohort_n": 10,
+  "intake_profile_options": {
+    "public_private": ["public", "private", "unknown"],
+    "geography": ["US", "EU", "global", "unknown"]
+  },
+  "benchmark_dimension_labels": [
+    "Industry", "Regulatory scrutiny", "Governance maturity",
+    "Organization sophistication", "Data sensitivity", "AI governance",
+    "Enforcement history"
+  ],
+  "benchmark_relaxation_labels": {
+    "broader_industry_cohort": "broader industry cohort",
+    "adjacent_tier_expansion": "adjacent maturity tiers",
+    "minor_relaxation": "minor weighting relaxation",
+    "all_orgs_fallback": "all eligible organizations",
+    "cqs_gated_excluded": "stale-corpus organizations excluded"
+  },
 
   "rss_weights": {
     "state_exposure":           0.25,

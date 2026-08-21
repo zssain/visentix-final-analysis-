@@ -2,20 +2,22 @@ import { ProvenanceRibbon } from "../../components/ProvenanceRibbon";
 import { IntelligenceMark } from "../../components/IntelligenceMark";
 import type { ReportSection } from "../types";
 
-// [MOCK M-09] snapshot_id and formula_version read from content
-// real: report_snapshot.id and frozen_at from Supabase, threaded through the API response
 export function Traceability({ content }: { content: ReportSection["content"] }) {
   const snapshotId  = (content.snapshot_id     as string | undefined) ?? "—" /* honest absence — never a plausible-looking fake ID (Hard Rule 7) */;
-  const formulaVer  = (content.formula_version as string | undefined) ?? "v1.0";
+  const formulaVer  = content.formula_version as string | undefined;
   const frozenDate  = (content.date            as string | undefined) ?? "—";
   const assessmentId= (content.assessment_id   as string | undefined) ?? "—";
   const isDraft     = (content.is_draft        as boolean | undefined) ?? false;
   const note        = content.note             as string | undefined;
 
-  const formulaIds  = (content.formula_ids as string[] | undefined) ?? [
-    "F-001","F-002","F-003","F-004","F-005","F-006",
-    "F-007","F-008","F-009","F-010","F-011","F-012","F-013","F-014",
-  ];
+  const formulaIds  = (content.formula_versions_used as string[] | undefined) ?? [];
+  const guardrail = content.guardrail as { status?: string } | undefined;
+  const templateTokens = content.template_tokens as { status?: string } | undefined;
+  const extraction = content.extraction_quality as { status?: string } | undefined;
+  const findingEvidence = (content.finding_evidence as {
+    id?: string; formula_version?: string; confidence?: string | number;
+    evidence?: { clause_id?: string; section_reference?: string; excerpt?: string; source_reference?: string }[];
+  }[] | undefined) ?? [];
 
   return (
     <div data-testid="section-11" className="report-section">
@@ -39,10 +41,10 @@ export function Traceability({ content }: { content: ReportSection["content"] })
       }}>
         {[
           { key: "Snapshot ID",         val: snapshotId },
-          { key: "Formula Version",     val: formulaVer },
+          { key: "Formula Version",     val: formulaVer ?? "Not recorded" },
           { key: "Frozen",              val: frozenDate },
           { key: "Assessment ID",       val: assessmentId },
-          { key: "Formulas Applied",    val: formulaIds.join("  ·  ") },
+          { key: "Formulas Applied",    val: formulaIds.length ? formulaIds.join("  ·  ") : "Not recorded" },
         ].map(({ key, val }, i) => (
           <div key={i} style={{
             display: "flex", gap: 16, padding: "10px 16px",
@@ -62,6 +64,20 @@ export function Traceability({ content }: { content: ReportSection["content"] })
           </div>
         ))}
       </div>
+
+      <div style={{ marginBottom: 16, fontSize: "0.82rem", color: "var(--text-secondary)" }}>
+        Guardrail: <strong>{guardrail?.status ?? "not recorded"}</strong> · Template-token gate: <strong>{templateTokens?.status ?? "not recorded"}</strong> · Clause read agreement: <strong>{extraction?.status ?? "not recorded"}</strong>
+      </div>
+
+      <h3>Finding evidence lineage</h3>
+      <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 16 }}>
+        <thead><tr><th>Finding</th><th>Clause / section</th><th>Excerpt</th><th>Source</th><th>Formula</th><th>Confidence</th></tr></thead>
+        <tbody>
+          {findingEvidence.length ? findingEvidence.flatMap(f => (f.evidence ?? []).length ? (f.evidence ?? []).map((ev, i) => (
+            <tr key={`${f.id}-${i}`}><td>{f.id}</td><td>{ev.clause_id ?? "Not recorded"}<br />{ev.section_reference ?? "Not recorded"}</td><td>{ev.excerpt ?? "Not recorded"}</td><td>{ev.source_reference ?? "Not recorded"}</td><td>{f.formula_version ?? "Not recorded"}</td><td>{f.confidence ?? "Not recorded"}</td></tr>
+          )) : [<tr key={`${f.id}-absent`}><td>{f.id}</td><td colSpan={5}>No stored clause reference for this finding.</td></tr>]) : <tr><td colSpan={6}>No finding evidence is recorded.</td></tr>}
+        </tbody>
+      </table>
 
       <p style={{ fontSize: "0.82rem", color: "var(--text-muted)", lineHeight: 1.6 }}>
         This report was generated from a frozen snapshot of all scores, lineage references, and narrative text.

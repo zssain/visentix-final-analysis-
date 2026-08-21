@@ -123,6 +123,9 @@ def test_section8_shows_cleaned_exemplars():
             {"domain": "data_sharing", "clause_text": "Cleaned exemplar text.", "sme_cleaned": True},
             {"domain": "retention", "clause_text": "Raw candidate.", "sme_cleaned": False},
         ],
+        org_clauses_by_domain={
+            "data_sharing": {"text": "We disclose information to service providers.", "clause_id": "c-1"},
+        },
         enforcement_heatmap=[],
     )
     s8 = report.sections[7]

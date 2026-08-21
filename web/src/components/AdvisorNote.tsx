@@ -5,6 +5,7 @@ import { ProvenanceRibbon } from "./ProvenanceRibbon";
 import { ScoreCell } from "./ScoreCell";
 import { IntelligenceMark } from "./IntelligenceMark";
 import { scoreBandColor } from "../lib/scoreBands";
+import { domainLabel } from "../lib/domainLabels";
 import "./advisor-note.css";
 import "./furniture.css";
 
@@ -22,7 +23,7 @@ export interface AdvisorNoteProps {
 
   /* Analyst layer */
   exposureScore: number;
-  cohortPercentile: number;  // 0-100
+  cohortPercentile?: number;  // 0-100; undefined means honestly absent
   vci?: number;              // 0-100, or undefined for honest absence (DATA-003)
   formulaId: string;
   formulaDesc: string;
@@ -38,10 +39,6 @@ export interface AdvisorNoteProps {
 
   /* View switch default */
   defaultView?: "analyst" | "advisor";
-}
-
-function domainLabel(d: string): string {
-  return d.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
 }
 
 export function AdvisorNote({
@@ -125,7 +122,7 @@ export function AdvisorNote({
               {/* Cohort percentile */}
               <div className="an-metric-cell">
                 <div className="an-metric-label">Cohort Percentile</div>
-                <div className="an-metric-value">{cohortPercentile}<span style={{ fontSize: "0.6em" }}>th</span></div>
+                <div className="an-metric-value">{cohortPercentile !== undefined ? <>{cohortPercentile}<span style={{ fontSize: "0.6em" }}>th</span></> : "Not recorded"}</div>
                 <div className="an-metric-sub">n={cohortSize} peers · {cohortDate}</div>
               </div>
 
@@ -172,7 +169,7 @@ export function AdvisorNote({
               {/* Metric pills */}
               <div className="an-pills">
                 <span className="an-pill exposure">Exposure: {exposureScore.toFixed(1)}</span>
-                <span className="an-pill cohort">{cohortPercentile}th percentile · n={cohortSize}</span>
+                <span className="an-pill cohort">{cohortPercentile !== undefined ? `${cohortPercentile}th percentile` : "Percentile not recorded"} · n={cohortSize}</span>
                 <span className="an-pill vci">VCI {vci !== undefined ? `${vci}%` : "Not recorded"}</span>
               </div>
             </div>

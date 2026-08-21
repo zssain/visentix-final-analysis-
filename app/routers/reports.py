@@ -26,6 +26,12 @@ from app.logging import get_logger
 from app.services import guardrail
 from app.services.ratelimit import check_rate_limit, client_key
 from app.services.report.assembly import assemble_report, ReportPayload
+from app.services.report.clause_data import (
+    heatmap_counts,
+    representative_clauses,
+    select_comparators,
+)
+from app.services.report.renderer import find_unresolved_template_tokens
 from app.services.review import customer_can_view
 from app.services.scoring.heatmap import build_regulator_heatmap, heatmap_to_serializable
 
@@ -146,6 +152,7 @@ _CONTENT_HASH_EXCLUDE_KEYS = frozenset({
     "date",            # date.today()/cohort_date baked into cover + dashboard sections
     "generated_date",  # ReportPayload.generated_date (== cohort_date, volatile)
     "cohort_date",     # the "as of <date>" stamp — a timestamp, not content
+    "as_of_date",      # peer-methodology presentation stamp; population version is retained
     "snapshot_id",     # per-build UUID baked into cover/dashboard/traceability sections
     "cohort_label",    # derived prose: "n=<size> peers as of <date>" (embeds the date)
     "note",            # derived prose: "...via snapshot <id>...as of <date>" (embeds both)
@@ -218,36 +225,45 @@ def _domain_id_to_slug() -> dict[str, str]:
     return _DOMAIN_ID_TO_SLUG
 
 
-def _load_exemplar_clauses() -> list[dict]:
-    """M-03: approved `disclosure_clause` exemplars, mapped to the assembly
-    exemplar shape ({domain: legacy_slug, clause_text, maturity_note, sme_cleaned}).
-
-    One exemplar per domain (first approved). Clauses with no mappable domain
-    are skipped — the section renders honest absence for those domains.
-    """
+def _load_exemplar_clauses(org_clauses: dict[str, dict]) -> list[dict]:
+    """Approved exemplars gated by domain, similarity, and stored maturity."""
     rows = _sb_get(
-        "disclosure_clause?select=domain_id,normalized_text,raw_text,exemplar_status"
+        "disclosure_clause?select=clause_id,domain_id,category,category_v2,normalized_text,raw_text,"
+        "embedding,transparency_score,is_exemplar,exemplar_status"
         "&is_exemplar=eq.true&exemplar_status=eq.approved"
     )
-    slug_map = _domain_id_to_slug()
-    out: list[dict] = []
-    seen: set[str] = set()
-    for r in rows:
-        did = r.get("domain_id")
-        slug = slug_map.get(did or "")
-        if not slug or slug in seen:
-            continue
-        text = (r.get("normalized_text") or r.get("raw_text") or "").strip()
-        if not text:
-            continue
-        out.append({
-            "domain": slug,
-            "clause_text": text,
-            "maturity_note": "",
-            "sme_cleaned": True,  # exemplar_status=approved → de-id-passed, SME-gated
-        })
-        seen.add(slug)
-    return out
+    return select_comparators(org_clauses, rows, _domain_id_to_slug())
+
+
+def _load_report_clause_rows(notice_id: str) -> tuple[list[dict], dict[str, dict]]:
+    """One report-layer clause read, scoped through live ``notice_section``.
+
+    Live-schema introspection on 2026-08-21 confirmed that
+    ``disclosure_clause.notice_id`` is absent, so direct notice filtering would
+    silently return no rows. Every report consumer receives this same result.
+    """
+    sections = _sb_get(
+        f"notice_section?select=section_id,title,sequence&notice_id=eq.{notice_id}&order=sequence.asc"
+    )
+    section_map = {str(s.get("section_id")): s for s in sections if s.get("section_id")}
+    section_ids = list(section_map)
+    rows: list[dict] = []
+    for i in range(0, len(section_ids), 40):
+        chunk = section_ids[i:i + 40]
+        id_list = ",".join(f'"{sid}"' for sid in chunk)
+        part = _sb_get(
+            "disclosure_clause?select=clause_id,section_id,domain_id,category,category_v2,"
+            "normalized_text,raw_text,nlp_confidence,nlp_confidence_v2,transparency_score,"
+            "ambiguity_score,embedding,is_noise"
+            f"&section_id=in.({id_list})&limit=2000"
+        )
+        for row in part:
+            section = section_map.get(str(row.get("section_id"))) or {}
+            row["section_title"] = section.get("title")
+            row["section_sequence"] = section.get("sequence")
+            rows.append(row)
+    rows.sort(key=lambda row: (row.get("section_sequence") or 0, str(row.get("clause_id") or "")))
+    return rows, section_map
 
 
 # ── Endpoints ────────────────────────────────────────────────
@@ -415,6 +431,13 @@ def _store_snapshot(assessment_id: str, report_dict: dict) -> str:
     notices = _sb_get(f"privacy_notice?select=organization_id&notice_id=eq.{assessment_id}&limit=1")
     org_id = notices[0]["organization_id"] if notices else ""
 
+    sections_by_number = {
+        section.get("number"): section.get("content", {})
+        for section in report_dict.get("sections", [])
+        if isinstance(section, dict)
+    }
+    benchmark_method = sections_by_number.get(4, {}).get("methodology", {}) or {}
+    extraction_quality = sections_by_number.get(11, {}).get("extraction_quality", {}) or {}
     payload = {
         "snapshot_id": snapshot_id,
         "organization_id": org_id,
@@ -425,6 +448,11 @@ def _store_snapshot(assessment_id: str, report_dict: dict) -> str:
         "payload": json.dumps({
             "cohort_size": report_dict.get("cohort_size", 0),
             "cohort_date": report_dict.get("cohort_date", ""),
+            "population_key": benchmark_method.get("population_key"),
+            "relaxations": benchmark_method.get("relaxations", []),
+            "benchmark_population_version": benchmark_method.get("benchmark_population_version"),
+            "confidence_penalty": benchmark_method.get("confidence_penalty"),
+            "scored_clause_count": extraction_quality.get("scored_clause_count"),
         }),
         "formula_version_set": json.dumps([]),
         "scoring_model_version": settings.scoring_model_version,
@@ -501,24 +529,69 @@ def _enforce_snapshot_prose(
         strings.append(r.get("prose", ""))
 
     checked = 0
+    unresolved: list[str] = []
     for s in strings:
         if s:
+            unresolved.extend(find_unresolved_template_tokens(s))
             guardrail.enforce(s)  # raises GuardrailError on a banned term → fail closed
             checked += 1
 
-    return {"status": "passed", "strings_checked": checked}
+    if unresolved:
+        tokens = sorted(set(unresolved))
+        raise guardrail.GuardrailError(
+            f"Guardrail HARD FAIL — unresolved authored template tokens: {tokens}.",
+            terms=tokens,
+        )
+
+    return {
+        "status": "passed",
+        "strings_checked": checked,
+        "template_tokens": {"status": "passed", "unresolved": []},
+    }
+
+
+def _recommendation_basis_label(finding: dict, selected_laws: set[str]) -> str:
+    """Classify a recommendation's basis from STORED references only — never an
+    LLM guess (RPT-009). Precedence, strongest signal first:
+      1. an obligation in a law the user actually selected  -> scoped requirement
+      2. a regulator enforcement reference                  -> regulator signal
+      3. a peer-benchmark reference                          -> benchmark
+      4. an obligation that exists but is OUTSIDE the selected scope -> general
+         requirement (surfaced distinctly so a real signal is not hidden)
+      5. nothing stored                                     -> honest absence
+    Labels are verdict-free (Hard Rule 1); see the guardrail test matrix.
+    """
+    obligation_jurisdictions: set[str] = set()
+    for ref in finding.get("obligation_refs", []):
+        if isinstance(ref, dict):
+            value = ref.get("jurisdiction") or ref.get("law") or ref.get("code")
+        else:
+            value = ref
+        if value:
+            obligation_jurisdictions.add(str(value))
+    if selected_laws & obligation_jurisdictions:
+        return "Selected-scope requirement context"
+    if finding.get("enforcement_refs"):
+        return "Regulator sensitivity context"
+    if finding.get("benchmark_reference"):
+        return "Peer benchmark context"
+    if obligation_jurisdictions:
+        return "General requirement context (outside selected scope)"
+    return "Basis not recorded"
 
 
 def _assemble_from_live(assessment_id: str) -> ReportPayload:
     """Assemble report from live DB data. Used when no snapshot exists."""
 
     notices = _sb_get(
-        f"privacy_notice?select=notice_id,organization_id"
+        f"privacy_notice?select=notice_id,organization_id,source_url,capture_date,effective_date,"
+        f"notice_version,intake_method,upload_filename"
         f"&notice_id=eq.{assessment_id}&limit=1"
     )
     if not notices:
         notices = _sb_get(
-            f"privacy_notice?select=notice_id,organization_id"
+            f"privacy_notice?select=notice_id,organization_id,source_url,capture_date,effective_date,"
+            f"notice_version,intake_method,upload_filename"
             f"&organization_id=eq.{assessment_id}"
             f"&order=retrieval_date.desc&limit=1"
         )
@@ -529,9 +602,18 @@ def _assemble_from_live(assessment_id: str) -> ReportPayload:
     notice_id = notice["notice_id"]
     org_id = notice["organization_id"]
 
-    orgs = _sb_get(f"organization?select=name,industry,size,geography&organization_id=eq.{org_id}&limit=1")
+    orgs = _sb_get(
+        f"organization?select=name,industry,industry_source,size,public_private,geography,jurisdiction_presence"
+        f"&organization_id=eq.{org_id}&limit=1"
+    )
     org = orgs[0] if orgs else {"name": "Unknown Organization", "industry": "unknown", "size": "", "geography": ""}
     org_name = org["name"]
+    scope_rows = _sb_get(
+        f"assessment_intake_scope?select=organization_name,organization_size,public_private,geography,"
+        f"state_footprint,selected_laws,data_categories,business_practices,provenance"
+        f"&notice_id=eq.{notice_id}&limit=1"
+    )
+    intake_scope = scope_rows[0] if scope_rows else {}
 
     # Scores
     derived = _sb_get(
@@ -548,38 +630,109 @@ def _assemble_from_live(assessment_id: str) -> ReportPayload:
 
     scores, vci_confidence = _extract_scores(derived)
 
+    # One report-layer clause read feeds heatmap, benchmark language, findings,
+    # recommendations, and traceability. Noise semantics match score_notice().
+    clause_rows, _section_map = _load_report_clause_rows(notice_id)
+    slug_map = _domain_id_to_slug()
+    clause_cats = heatmap_counts(clause_rows, slug_map)
+    org_clauses_by_domain = representative_clauses(clause_rows, slug_map)
+    clauses_by_id = {str(row.get("clause_id")): row for row in clause_rows if row.get("clause_id")}
+
     # Findings — sorted by code for determinism
     findings_raw = _sb_get(
-        f"risk_finding?select=finding_type_code,severity,score,domain"
+        f"risk_finding?select=finding_id,finding_type_code,severity,score,domain,confidence_score,"
+        f"formula_version_id,benchmark_deviation_score"
         f"&notice_id=eq.{notice_id}&order=finding_type_code.asc&limit=20"
     )
     if not findings_raw:
         findings_raw = _sb_get(
-            f"risk_finding?select=finding_type_code,severity,score,domain"
+            f"risk_finding?select=finding_id,finding_type_code,severity,score,domain,confidence_score,"
+            f"formula_version_id,benchmark_deviation_score"
             f"&organization_id=eq.{org_id}&order=finding_type_code.asc&limit=20"
         )
 
+    finding_ids = [str(row.get("finding_id")) for row in findings_raw if row.get("finding_id")]
+    finding_clause_map: dict[str, list[str]] = {}
+    if finding_ids:
+        ids = ",".join(f'"{fid}"' for fid in finding_ids)
+        for link in _sb_get(f"finding_clause?select=finding_id,clause_id&finding_id=in.({ids})&limit=2000"):
+            finding_clause_map.setdefault(str(link.get("finding_id")), []).append(str(link.get("clause_id")))
+
+    evidence_by_finding: dict[str, dict] = {}
+    if finding_ids:
+        ids = ",".join(f'"{fid}"' for fid in finding_ids)
+        for row in _sb_get(
+            "recommendation_evidence?select=finding_id,obligation_refs,enforcement_refs,"
+            f"formula_version_id,confidence&assessment_id=eq.{notice_id}&finding_id=in.({ids})&limit=200"
+        ):
+            evidence_by_finding[str(row.get("finding_id"))] = row
+
+    source_reference = notice.get("source_url") or notice.get("upload_filename") or "Not recorded"
     findings: list[dict] = []
     seen_codes: set[str] = set()
     for f in sorted(findings_raw, key=lambda x: x.get("finding_type_code", "")):
         code = f.get("finding_type_code") or ""
         if code and code not in seen_codes:
+            finding_id = str(f.get("finding_id") or "")
+            clause_ids = sorted(set(finding_clause_map.get(finding_id, [])))
+            evidence = []
+            for clause_id in clause_ids:
+                row = clauses_by_id.get(clause_id)
+                if not row:
+                    continue
+                title = row.get("section_title")
+                sequence = row.get("section_sequence")
+                section_reference = title or (f"Section {sequence}" if sequence is not None else "Not recorded")
+                excerpt = str(row.get("raw_text") or row.get("normalized_text") or "")[:500]
+                evidence.append({
+                    "clause_id": clause_id,
+                    "section_reference": section_reference,
+                    "excerpt": excerpt,
+                    "source_reference": source_reference,
+                    "notice_version": notice.get("notice_version"),
+                    "capture_date": notice.get("capture_date"),
+                })
+            frozen = evidence_by_finding.get(finding_id) or {}
+            obligation_refs = frozen.get("obligation_refs") or []
+            enforcement_refs = frozen.get("enforcement_refs") or []
+            if isinstance(obligation_refs, str):
+                try:
+                    obligation_refs = json.loads(obligation_refs)
+                except (TypeError, ValueError):
+                    obligation_refs = []
+            if isinstance(enforcement_refs, str):
+                try:
+                    enforcement_refs = json.loads(enforcement_refs)
+                except (TypeError, ValueError):
+                    enforcement_refs = []
             findings.append({
+                "finding_id": finding_id,
                 "code": code,
                 "domain": f.get("domain", ""),
                 "severity": f.get("severity", "medium"),
                 "score": f.get("score", 0),
+                "confidence": frozen.get("confidence") or f.get("confidence_score"),
+                "formula_version": frozen.get("formula_version_id") or f.get("formula_version_id"),
+                "clause_ids": clause_ids,
+                "evidence": evidence,
+                "obligation_refs": obligation_refs,
+                "enforcement_refs": enforcement_refs,
+                "benchmark_reference": (
+                    {"score": f.get("benchmark_deviation_score"), "formula": "F-003"}
+                    if f.get("benchmark_deviation_score") is not None else None
+                ),
             })
             seen_codes.add(code)
 
     # VCI
     if vci_confidence is not None:
         vci_score = vci_confidence * 100
+        vci_label, vci_guidance = _vci_band(vci_score)
+        vci = {"score": round(vci_score, 1), "label": vci_label, "guidance": vci_guidance}
     else:
-        vci_score = 25.0
-
-    vci_label, vci_guidance = _vci_band(vci_score)
-    vci = {"score": round(vci_score, 1), "label": vci_label, "guidance": vci_guidance}
+        vci_label = "not_recorded"
+        vci = {"score": None, "label": vci_label,
+               "guidance": "Confidence was not recorded for this assessment."}
 
     # Cohort from existing snapshot metadata
     snap_rows = _sb_get(
@@ -602,10 +755,66 @@ def _assemble_from_live(assessment_id: str) -> ReportPayload:
         cohort_size = snap_payload.get("cohort_size", 0)
         cohort_date = (sp.get("created_at") or "")[:10]
         snapshot_id = sp["snapshot_id"]
+        population_key = snap_payload.get("population_key")
+        relaxations = snap_payload.get("relaxations") or []
+        population_version = (
+            snap_payload.get("benchmark_population_version")
+            or sp.get("benchmark_population_version")
+        )
+        confidence_penalty = snap_payload.get("confidence_penalty")
+        stored_scored_clause_count = snap_payload.get("scored_clause_count")
     else:
         cohort_size = 0
         cohort_date = ""
         snapshot_id = ""
+        population_key = None
+        relaxations = []
+        population_version = None
+        confidence_penalty = None
+        stored_scored_clause_count = scores.get("f002", {}).get("lineage", {}).get("total_clauses")
+
+    actual_scored_clause_count = sum(clause_cats.values())
+    if isinstance(stored_scored_clause_count, (int, float)):
+        quality_status = (
+            "mismatch" if int(stored_scored_clause_count) != actual_scored_clause_count
+            else "insufficient" if actual_scored_clause_count == 0
+            else "passed"
+        )
+        extraction_quality = {
+            "status": quality_status,
+            "scored_clause_count": int(stored_scored_clause_count),
+            "report_clause_count": actual_scored_clause_count,
+        }
+    else:
+        extraction_quality = {
+            "status": "insufficient" if actual_scored_clause_count == 0 else "not_recorded",
+            "scored_clause_count": None,
+            "report_clause_count": actual_scored_clause_count,
+        }
+
+    parts = str(population_key or "").split("|") if population_key else []
+    from app.services.intake_options import (
+        BENCHMARK_DIMENSION_LABELS,
+        LOW_CONFIDENCE_COHORT_N,
+        benchmark_relaxation_label,
+    )
+    dimensions = [
+        f"{name}: {value}"
+        for name, value in zip(BENCHMARK_DIMENSION_LABELS, parts)
+        if value
+    ]
+    if dimensions and org.get("industry"):
+        dimensions[0] = f"Industry: {org.get('industry')}"
+    cohort_methodology = {
+        "population_key": population_key,
+        "dimensions": dimensions,
+        "relaxations": [benchmark_relaxation_label(str(value)) for value in relaxations],
+        "benchmark_population_version": population_version,
+        "confidence_penalty": confidence_penalty,
+        "as_of_date": cohort_date,
+        "low_confidence": 0 < cohort_size < LOW_CONFIDENCE_COHORT_N,
+        "low_confidence_threshold": LOW_CONFIDENCE_COHORT_N,
+    } if population_key or population_version else {}
 
     # Narrative — frozen at assembly time
     overall_score = scores.get("f010", {}).get("score", 0)
@@ -639,70 +848,102 @@ def _assemble_from_live(assessment_id: str) -> ReportPayload:
         )
 
     # Load real recommendations from recommendation_library
-    rec_lib = _sb_get("recommendation_library?select=finding_type_code,title,body_template,severity_bucket")
+    rec_lib = _sb_get(
+        "recommendation_library?select=finding_type_code,title,body_template,severity_bucket,source_note"
+    )
     rec_map = {r["finding_type_code"]: r for r in rec_lib}
 
     recommendations = []
     for f in sorted(findings[:5], key=lambda x: x["code"]):
         rec = rec_map.get(f["code"])
         if rec:
+            selected_laws = set(intake_scope.get("selected_laws") or [])
+            basis_label = _recommendation_basis_label(f, selected_laws)
             recommendations.append({
                 "severity": f["severity"],
                 "code": f["code"],
                 "title": rec["title"],
                 "prose": rec["body_template"],
+                "source_note": rec.get("source_note"),
+                "basis_label": basis_label,
+                "evidence": f.get("evidence", []),
+                "obligation_refs": f.get("obligation_refs", []),
+                "enforcement_refs": f.get("enforcement_refs", []),
+                "benchmark_reference": f.get("benchmark_reference"),
             })
         else:
             recommendations.append({
                 "severity": f["severity"],
                 "code": f["code"],
-                "title": f"Address {f['code']} — {f['domain'].replace('_', ' ')}",
-                "prose": f"Review and strengthen {f['domain'].replace('_', ' ')} disclosures to reduce exposure indicators.",
+                "title": f"{f['code']} — authored recommendation unavailable",
+                "prose": "No authored recommendation exists for this finding type yet.",
+                "basis_label": "Basis not recorded",
+                "evidence": f.get("evidence", []),
             })
 
     # Heatmap
     regulators = _sb_get("regulator?select=regulator_id,name,jurisdiction,priority_weights,enforcement_frequency_weight")
-    sections = _sb_get(f"notice_section?select=section_id&notice_id=eq.{notice_id}")
-    sids = [s["section_id"] for s in sections]
-    clause_cats: Counter = Counter()
-    for i in range(0, len(sids), 40):
-        chunk = sids[i:i + 40]
-        id_list = ",".join(f'"{sid}"' for sid in chunk)
-        clauses = _sb_get(f"disclosure_clause?select=category,domain_id&section_id=in.({id_list})&limit=2000")
-        for c in clauses:
-            key = c.get("domain_id") or c.get("category") or "other"
-            clause_cats[key] += 1
-
     heatmap = heatmap_to_serializable(build_regulator_heatmap(regulators, clause_cats))
 
     # M-03: best-practice exemplars come from the approved `disclosure_clause`
     # exemplars (is_exemplar=true, exemplar_status=approved — de-id-passing).
     # A domain with no approved exemplar simply renders honest absence.
-    exemplars = _load_exemplar_clauses()
-
-    # Fetch org's best clause per domain for benchmark comparison
-    org_clauses_by_domain: dict[str, str] = {}
-    for i in range(0, len(sids), 40):
-        chunk = sids[i:i + 40]
-        id_list = ",".join(f'"{sid}"' for sid in chunk)
-        c_rows = _sb_get(
-            f"disclosure_clause?select=category,normalized_text,nlp_confidence"
-            f"&section_id=in.({id_list})&limit=2000"
-        )
-        for c in c_rows:
-            cat = c.get("category", "other")
-            if cat == "other":
-                continue
-            text = c.get("normalized_text", "")
-            conf = c.get("nlp_confidence", 0)
-            # Keep the highest-confidence clause per domain
-            if cat not in org_clauses_by_domain or conf > 0.5:
-                if len(text) > 30:
-                    org_clauses_by_domain[cat] = text[:1000]
+    exemplars = _load_exemplar_clauses(org_clauses_by_domain)
 
     # GRD-001: enforce the guardrail on ALL generated prose before it can enter a
     # snapshot. Fails closed on a banned term; records the real result for lineage.
     guardrail_result = _enforce_snapshot_prose(exec_summary, takeaways, recommendations)
+
+    provenance = intake_scope.get("provenance") or {}
+    if isinstance(provenance, str):
+        try:
+            provenance = json.loads(provenance)
+        except (TypeError, ValueError):
+            provenance = {}
+
+    def _scope_item(key: str, value, fallback_source: str = "not_recorded") -> dict:
+        return {"value": value, "provenance": provenance.get(key, fallback_source)}
+
+    assessment_scope = {
+        "source": _scope_item(
+            "source", notice.get("source_url") or notice.get("upload_filename"), "captured"
+        ),
+        "notice_version": _scope_item("notice_version", notice.get("notice_version"), "captured"),
+        "capture_date": _scope_item("capture_date", notice.get("capture_date"), "captured"),
+        "effective_date": _scope_item("effective_date", notice.get("effective_date"), "captured"),
+        "intake_method": _scope_item("intake_method", notice.get("intake_method"), "captured"),
+        "organization_name": _scope_item(
+            "organization_name", intake_scope.get("organization_name") or org_name,
+            "inferred" if not intake_scope.get("organization_name") else "user_declared",
+        ),
+        "organization_size": _scope_item(
+            "organization_size", intake_scope.get("organization_size") or org.get("size"),
+            "inferred" if not intake_scope.get("organization_size") else "user_declared",
+        ),
+        "public_private": _scope_item(
+            "public_private", intake_scope.get("public_private") or org.get("public_private"),
+            "inferred" if not intake_scope.get("public_private") else "user_declared",
+        ),
+        "geography": _scope_item(
+            "geography", intake_scope.get("geography") or org.get("geography"),
+            "inferred" if not intake_scope.get("geography") else "user_declared",
+        ),
+        "industry": _scope_item(
+            "industry", org.get("industry"),
+            "user_declared" if org.get("industry_source") == "user_provided" else "inferred",
+        ),
+        "cohort_definition": _scope_item(
+            "cohort_definition", cohort_methodology.get("dimensions"), "stored_benchmark"
+        ),
+        "state_footprint": _scope_item(
+            "state_footprint",
+            intake_scope.get("state_footprint") or org.get("jurisdiction_presence"),
+            "inferred" if not intake_scope.get("state_footprint") else "user_declared",
+        ),
+        "selected_laws": _scope_item("selected_laws", intake_scope.get("selected_laws")),
+        "data_categories": _scope_item("data_categories", intake_scope.get("data_categories")),
+        "business_practices": _scope_item("business_practices", intake_scope.get("business_practices")),
+    }
 
     return assemble_report(
         assessment_id=assessment_id,
@@ -720,4 +961,7 @@ def _assemble_from_live(assessment_id: str) -> ReportPayload:
         snapshot_id=snapshot_id,
         org_clauses_by_domain=org_clauses_by_domain,
         guardrail_result=guardrail_result,
+        extraction_quality=extraction_quality,
+        cohort_methodology=cohort_methodology,
+        assessment_scope=assessment_scope,
     )

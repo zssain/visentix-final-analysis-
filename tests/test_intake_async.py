@@ -101,6 +101,59 @@ async def test_idempotent_submit_returns_same_job_no_duplicate():
 
 
 @pytest.mark.anyio
+async def test_idempotency_conflict_race_does_not_schedule_duplicate_pipeline():
+    """Both requests can pass the first lookup; the unique-index loser must not run."""
+    scheduled = {"count": 0}
+
+    async def fake_find(_key):
+        return None
+
+    async def fake_create(**_kwargs):
+        return {"job_id": "race-winner", "status": "running", "stage": "extracting",
+                "_idempotent_replay": True}
+
+    def capture_task(coro):
+        scheduled["count"] += 1
+        coro.close()
+
+    transport = ASGITransport(app=app)
+    with patch.object(A.intake_jobs, "find_by_idempotency_key", fake_find), \
+         patch.object(A.intake_jobs, "create_job", fake_create), \
+         patch.object(A.asyncio, "create_task", capture_task):
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            response = await client.post(
+                "/assessments/async",
+                data={"text": "A privacy notice.", "idempotency_key": "same-key"},
+                headers=_hdr("customer"),
+            )
+    assert response.status_code == 202
+    assert response.json() == {
+        "assessment_id": "race-winner", "status": "running",
+        "stage": "extracting", "idempotent_replay": True,
+    }
+    assert scheduled["count"] == 0
+
+
+@pytest.mark.anyio
+async def test_job_store_marks_unique_conflict_as_idempotent_replay():
+    from app.services.intake import jobs
+
+    class Conflict:
+        status_code = 409
+
+    async def fake_post(_table, _payload):
+        return Conflict()
+
+    existing = {"job_id": "winner", "status": "queued", "stage": "queued"}
+    with patch.object(jobs, "supabase_rest_post", fake_post), \
+         patch.object(jobs, "find_by_idempotency_key", return_value=existing):
+        result = await jobs.create_job(
+            organization_id=ORG, created_by="u", idempotency_key="same-key")
+    assert result["job_id"] == "winner"
+    assert result["_idempotent_replay"] is True
+
+
+@pytest.mark.anyio
 async def test_runner_records_stages_and_completes():
     stages = []
     completed = {}

@@ -47,6 +47,17 @@ class _Resp:
         return self._data
 
 
+@pytest.fixture(autouse=True)
+def _clean_rate_limit_buckets():
+    """The SEC-005 limiter is in-process and keyed per user/IP, so requests made
+    by OTHER test modules in the same run count against /bulk/jobs' quota.
+    Reset around each test (same pattern as tests/test_sec005_ratelimit.py)."""
+    from app.services import ratelimit
+    ratelimit.reset()
+    yield
+    ratelimit.reset()
+
+
 # ── AC-6: single scoring path (no forked scorer) ─────────────
 
 def test_single_scoring_path_reuses_reassessment_kernel():

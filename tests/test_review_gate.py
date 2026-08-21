@@ -26,6 +26,13 @@ from app.services.review import (
 
 # ── Helpers ──────────────────────────────────────────────────
 
+# UUID-shaped synthetic ids — assessment_id columns enforce a UUID CHECK
+# (migration 0047). Must stay in sync with _TEST_IDS in app/services/review.py
+# so reset_reviews() cleans them from the DB.
+ASSESS_1 = "aaaaaaaa-0000-4000-8000-000000000001"
+A1 = "aaaaaaaa-0000-4000-8000-0000000000a1"
+
+
 def _make_token(sub: str = "test-user", email: str = "test@example.com") -> str:
     now = int(time.time())
     return pyjwt.encode(
@@ -54,52 +61,52 @@ def _clean():
 # ── Status model ─────────────────────────────────────────────
 
 def test_initial_status_is_draft():
-    review = get_or_create_review("assess-1")
+    review = get_or_create_review(ASSESS_1)
     assert review.status == AssessmentStatus.DRAFT
 
 
 def test_first_action_moves_to_in_review():
-    submit_finding_action("assess-1", "f1", FindingAction.CONFIRM)
-    review = get_or_create_review("assess-1")
+    submit_finding_action(ASSESS_1, "f1", FindingAction.CONFIRM)
+    review = get_or_create_review(ASSESS_1)
     assert review.status == AssessmentStatus.IN_REVIEW
 
 
 def test_approve_moves_to_approved():
-    submit_finding_action("assess-1", "f1", FindingAction.CONFIRM)
-    approve_assessment("assess-1", "sme-user")
-    review = get_or_create_review("assess-1")
+    submit_finding_action(ASSESS_1, "f1", FindingAction.CONFIRM)
+    approve_assessment(ASSESS_1, "sme-user")
+    review = get_or_create_review(ASSESS_1)
     assert review.status == AssessmentStatus.APPROVED
 
 
 def test_cannot_modify_after_approval():
-    submit_finding_action("assess-1", "f1", FindingAction.CONFIRM)
-    approve_assessment("assess-1", "sme-user")
+    submit_finding_action(ASSESS_1, "f1", FindingAction.CONFIRM)
+    approve_assessment(ASSESS_1, "sme-user")
     with pytest.raises(ValueError, match="approved"):
-        submit_finding_action("assess-1", "f2", FindingAction.CONFIRM)
+        submit_finding_action(ASSESS_1, "f2", FindingAction.CONFIRM)
 
 
 def test_cannot_double_approve():
-    approve_assessment("assess-1", "sme-user")
+    approve_assessment(ASSESS_1, "sme-user")
     with pytest.raises(ValueError, match="already approved"):
-        approve_assessment("assess-1", "sme-user")
+        approve_assessment(ASSESS_1, "sme-user")
 
 
 # ── Finding actions persist ──────────────────────────────────
 
 def test_confirm_persists():
-    fr = submit_finding_action("a1", "f1", FindingAction.CONFIRM, reviewer_id="sme-1")
+    fr = submit_finding_action(A1, "f1", FindingAction.CONFIRM, reviewer_id="sme-1")
     assert fr.action == FindingAction.CONFIRM
     assert fr.reviewer_id == "sme-1"
 
 
 def test_edit_persists():
-    fr = submit_finding_action("a1", "f1", FindingAction.EDIT,
+    fr = submit_finding_action(A1, "f1", FindingAction.EDIT,
                                 edited_fields={"severity": "medium"})
     assert fr.edited_fields == {"severity": "medium"}
 
 
 def test_dismiss_persists():
-    fr = submit_finding_action("a1", "f1", FindingAction.DISMISS)
+    fr = submit_finding_action(A1, "f1", FindingAction.DISMISS)
     assert fr.action == FindingAction.DISMISS
 
 
@@ -111,8 +118,8 @@ def test_dismissed_finding_excluded():
         {"finding_id": "f2", "code": "RT-003", "domain": "retention"},
         {"finding_id": "f3", "code": "AI-004", "domain": "ai"},
     ]
-    submit_finding_action("a1", "f2", FindingAction.DISMISS)
-    active = get_active_findings("a1", findings)
+    submit_finding_action(A1, "f2", FindingAction.DISMISS)
+    active = get_active_findings(A1, findings)
     codes = [f["code"] for f in active]
     assert "SH-002" in codes
     assert "RT-003" not in codes  # dismissed
@@ -121,9 +128,9 @@ def test_dismissed_finding_excluded():
 
 def test_edited_finding_reflects_changes():
     findings = [{"finding_id": "f1", "code": "SH-002", "severity": "high"}]
-    submit_finding_action("a1", "f1", FindingAction.EDIT,
+    submit_finding_action(A1, "f1", FindingAction.EDIT,
                            edited_fields={"severity": "medium"})
-    active = get_active_findings("a1", findings)
+    active = get_active_findings(A1, findings)
     assert active[0]["severity"] == "medium"
 
 
@@ -131,21 +138,21 @@ def test_edited_finding_reflects_changes():
 
 def test_gate_strict_blocks_customer_before_approval():
     set_gate_mode(GateMode.STRICT)
-    can_view, banner = customer_can_view("assess-1")
+    can_view, banner = customer_can_view(ASSESS_1)
     assert can_view is False
 
 
 def test_gate_strict_allows_after_approval():
     set_gate_mode(GateMode.STRICT)
-    approve_assessment("assess-1", "sme")
-    can_view, banner = customer_can_view("assess-1")
+    approve_assessment(ASSESS_1, "sme")
+    can_view, banner = customer_can_view(ASSESS_1)
     assert can_view is True
     assert banner == ""
 
 
 def test_gate_instant_draft_shows_with_banner():
     set_gate_mode(GateMode.INSTANT_DRAFT)
-    can_view, banner = customer_can_view("assess-1")
+    can_view, banner = customer_can_view(ASSESS_1)
     assert can_view is True
     assert "DRAFT" in banner
     assert "pending expert review" in banner.lower()
@@ -153,15 +160,15 @@ def test_gate_instant_draft_shows_with_banner():
 
 def test_gate_instant_draft_no_banner_after_approval():
     set_gate_mode(GateMode.INSTANT_DRAFT)
-    approve_assessment("assess-1", "sme")
-    can_view, banner = customer_can_view("assess-1")
+    approve_assessment(ASSESS_1, "sme")
+    can_view, banner = customer_can_view(ASSESS_1)
     assert can_view is True
     assert banner == ""
 
 
 def test_gate_client_reviews_shows_with_banner():
     set_gate_mode(GateMode.CLIENT_REVIEWS)
-    can_view, banner = customer_can_view("assess-1")
+    can_view, banner = customer_can_view(ASSESS_1)
     assert can_view is True
     assert "DRAFT" in banner
 
@@ -195,7 +202,7 @@ async def test_finding_action_via_route():
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as c:
             r = await c.post(
-                "/review/finding/assess-1/f1",
+                f"/review/finding/{ASSESS_1}/f1",
                 headers=ctx["headers"],
                 json={"action": "confirm"},
             )
@@ -209,7 +216,7 @@ async def test_approve_via_route():
     with ctx["mock"]:
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as c:
-            r = await c.post("/review/assess-1/approve", headers=ctx["headers"])
+            r = await c.post(f"/review/{ASSESS_1}/approve", headers=ctx["headers"])
             assert r.status_code == 200
             assert r.json()["status"] == "approved"
 
@@ -221,7 +228,7 @@ async def test_customer_blocked_in_strict_mode():
     with ctx["mock"]:
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as c:
-            r = await c.get("/reports/assess-1", headers=ctx["headers"])
+            r = await c.get(f"/reports/{ASSESS_1}", headers=ctx["headers"])
             assert r.status_code == 403
 
 
@@ -235,7 +242,7 @@ async def test_customer_sees_draft_banner_in_instant_mode():
     with ctx["mock"]:
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as c:
-            r = await c.get("/reports/assess-1", headers=ctx["headers"])
+            r = await c.get(f"/reports/{ASSESS_1}", headers=ctx["headers"])
             assert r.status_code == 200
             assert "draft_banner" in r.json()
             assert "DRAFT" in r.json()["draft_banner"]

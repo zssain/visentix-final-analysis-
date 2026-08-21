@@ -37,6 +37,12 @@ from app.services.review import (
 
 # ── Fixtures ──────────────────────────────────────────────────
 
+# UUID-shaped synthetic id — assessment_id columns enforce a UUID CHECK
+# (migration 0047). Must stay in sync with _TEST_IDS in app/services/review.py
+# so reset_reviews() cleans it from the DB.
+ASSESS_1 = "aaaaaaaa-0000-4000-8000-000000000001"
+
+
 @pytest.fixture(autouse=True)
 def _clean():
     reset_reviews()
@@ -119,16 +125,16 @@ def test_should_not_present_very_low():
 # ── VCI review gate (VICBNF-010) ─────────────────────────────
 
 def test_flag_low_vci_object():
-    flag_low_vci_object("assess-1", "regulatory_exposure", 35.0, 45.0)
-    pending = get_low_vci_objects("assess-1")
+    flag_low_vci_object(ASSESS_1, "regulatory_exposure", 35.0, 45.0)
+    pending = get_low_vci_objects(ASSESS_1)
     assert len(pending) == 1
     assert pending[0]["object_type"] == "regulatory_exposure"
     assert pending[0]["vci_score"] == 35.0
 
 
 def test_low_vci_banner():
-    flag_low_vci_object("assess-1", "regulatory_exposure", 30.0, 40.0)
-    banner = get_analyst_review_banner("assess-1")
+    flag_low_vci_object(ASSESS_1, "regulatory_exposure", 30.0, 40.0)
+    banner = get_analyst_review_banner(ASSESS_1)
     assert banner is not None
     assert "pending analyst review" in banner.lower()
     assert "Regulatory Exposure" in banner
@@ -140,16 +146,16 @@ def test_no_banner_when_vci_sufficient():
 
 
 def test_clear_low_vci_object():
-    flag_low_vci_object("assess-1", "transparency", 45.0, 30.0)
-    assert len(get_low_vci_objects("assess-1")) == 1
-    clear_low_vci_object("assess-1", "transparency")
-    assert len(get_low_vci_objects("assess-1")) == 0
+    flag_low_vci_object(ASSESS_1, "transparency", 45.0, 30.0)
+    assert len(get_low_vci_objects(ASSESS_1)) == 1
+    clear_low_vci_object(ASSESS_1, "transparency")
+    assert len(get_low_vci_objects(ASSESS_1)) == 0
 
 
 def test_banner_gone_after_clearing():
-    flag_low_vci_object("assess-1", "transparency", 45.0, 30.0)
-    clear_low_vci_object("assess-1", "transparency")
-    assert get_analyst_review_banner("assess-1") is None
+    flag_low_vci_object(ASSESS_1, "transparency", 45.0, 30.0)
+    clear_low_vci_object(ASSESS_1, "transparency")
+    assert get_analyst_review_banner(ASSESS_1) is None
 
 
 # ── White-label feed endpoint (VICBNF-009) ───────────────────

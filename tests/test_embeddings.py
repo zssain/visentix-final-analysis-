@@ -12,6 +12,10 @@ CONFIG = dotenv_values(os.path.join(os.path.dirname(__file__), "..", ".env"))
 URL = CONFIG["SUPABASE_URL"]
 KEY = CONFIG["SUPABASE_SERVICE_ROLE_KEY"]
 HEADERS = {"apikey": KEY, "Authorization": f"Bearer {KEY}", "Prefer": "count=exact"}
+# Row fetches must NOT send Prefer: count=exact — it forces PostgREST to run a
+# full COUNT(*) alongside a LIMIT-1 fetch, which is what times out (57014) on
+# the ~700k-row disclosure_clause table under suite load.
+ROW_HEADERS = {"apikey": KEY, "Authorization": f"Bearer {KEY}"}
 
 
 def _get_rows(query: str, timeout: int = 20):
@@ -22,7 +26,7 @@ def _get_rows(query: str, timeout: int = 20):
     last = None
     for attempt in range(4):
         try:
-            r = httpx.get(f"{URL}/rest/v1/{query}", headers=HEADERS, timeout=timeout)
+            r = httpx.get(f"{URL}/rest/v1/{query}", headers=ROW_HEADERS, timeout=timeout)
             if r.status_code in (200, 206):
                 body = r.json()
                 if isinstance(body, list):

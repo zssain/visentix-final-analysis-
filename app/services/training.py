@@ -25,7 +25,15 @@ log = logging.getLogger(__name__)
 _TABLE = "training_label"
 # Synthetic assessment ids used by tests — reset_labels() cleans these from the
 # DB so live unit tests stay isolated. Also cleans anything captured this process.
-_TEST_IDS = {"a1", "a2", "assess-1", "assess-2"}
+# UUID-shaped ids satisfy the assessment_id UUID CHECK (migration 0047); the
+# legacy string ids remain so pre-0047 leaked rows are still cleaned up.
+_TEST_IDS = {
+    "a1", "a2", "assess-1", "assess-2",
+    "aaaaaaaa-0000-4000-8000-0000000000a1",
+    "aaaaaaaa-0000-4000-8000-0000000000a2",
+    "aaaaaaaa-0000-4000-8000-000000000001",
+    "aaaaaaaa-0000-4000-8000-000000000002",
+}
 _touched: set[str] = set()
 
 

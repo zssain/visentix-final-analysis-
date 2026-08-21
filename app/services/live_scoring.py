@@ -247,6 +247,9 @@ async def score_and_persist(
                 "vci": vci,
                 "defaults_used": defaults_used,
                 "relaxations": relaxations,
+                "population_key": pop_key,
+                "benchmark_population_version": pop_version,
+                "confidence_penalty": confidence_penalty,
                 "live_profile_computed": True,
             }),
             "formula_version_set": json.dumps(
@@ -265,9 +268,11 @@ async def score_and_persist(
 
         # ── i) Persist findings ───────────────────────────────
         finding_rows = []
+        finding_clause_rows = []
         for f in findings:
+            finding_id = str(uuid4())
             finding_rows.append({
-                "finding_id": str(uuid4()),
+                "finding_id": finding_id,
                 "organization_id": organization_id,
                 "notice_id": notice_id,
                 "finding_type_code": f["code"],
@@ -280,6 +285,10 @@ async def score_and_persist(
                 "scoring_model_version": settings.scoring_model_version,
                 "source_corpus_version": settings.source_corpus_version,
             })
+            finding_clause_rows.extend(
+                {"finding_id": finding_id, "clause_id": clause_id}
+                for clause_id in (f.get("clause_ids") or [])
+            )
 
         if finding_rows:
             r = await client.post(
@@ -289,6 +298,14 @@ async def score_and_persist(
             )
             if r.status_code >= 400:
                 log.warning("risk_finding insert failed: %d %s", r.status_code, r.text[:200])
+            elif finding_clause_rows:
+                rel = await client.post(
+                    f"{SB}/rest/v1/finding_clause",
+                    headers={**headers, "Content-Type": "application/json", "Prefer": "return=minimal"},
+                    json=finding_clause_rows,
+                )
+                if rel.status_code >= 400:
+                    log.warning("finding_clause insert failed: %d %s", rel.status_code, rel.text[:200])
 
         # ── j) Log summary ────────────────────────────────────
         log.info(

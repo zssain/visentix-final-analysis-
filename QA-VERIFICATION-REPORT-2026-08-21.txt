@@ -1,0 +1,981 @@
+================================================================================
+VISENTIX — FULL QA VERIFICATION REPORT + MANUAL TESTING GUIDE
+================================================================================
+Date:      2026-08-21
+Branch:    F01-F05-qa-remediation
+Audited against:
+  - Visentix One-Time Report QA Review 2026-08-18  (RPT-001 … RPT-016)
+  - Visentix Privacy Notice Intake QA Review 2026-08-18  (INT-01 … INT-11)
+Method:    6 independent code-audit passes with file:line evidence, cross-checked
+           against the live test suite (NOT the repo's own audit doc claims).
+
+VERIFICATION ENVIRONMENT (all run this session, live Supabase DB):
+  Backend:   ./.venv/bin/pytest          -> 1163 passed, 15 skipped, 0 failed
+             (was 1143; +20 new Bucket A test cases, all green)
+  Frontend:  npx tsc -b                  -> clean
+             npx vitest run              -> 94/94 passed (11 files)
+             npm run lint                -> clean
+             npm run build               -> clean (763KB chunk warning only)
+  DB:        migration 0048 applied + ledger-recorded 2026-08-21 09:41 UTC
+             (was the FINAL-AUDIT blocker; checksum test now passes)
+
+BUCKET A UPDATE (2026-08-21): RPT-005, RPT-008, RPT-009 moved PARTIAL->RESOLVED;
+  test nits on RPT-001/002/004/010/016 closed. See Part 4 and the summary table.
+
+LEGEND:  [RESOLVED] fully resolved   [PARTIAL] partially resolved
+         [OPEN] not resolved         [UNVERIFIED] unable to verify
+
+================================================================================
+PART 1 — REPORT QA FINDINGS (RPT-001 … RPT-016)
+================================================================================
+
+--------------------------------------------------------------------------------
+RPT-001 (Critical) — Benchmark math internally inconsistent
+--------------------------------------------------------------------------------
+Original issue: Page 2 showed 86.8th percentile while page 4 showed top-quartile
+threshold 80.3 vs company score 72.3 — three numbers from different measures
+(F-010 overall vs F-003/F-011 PGMS) plotted as one.
+
+STATUS: [RESOLVED]
+
+What was checked:
+- app/services/report/assembly.py:135-149 — Section 4 org_score AND
+  top_quartile_score now both come from F-003's lineage (same PGMS measure);
+  percentile from F-011. No F-010 mixing. measure_label explicitly says
+  "Governance Maturity (PGMS)".
+- app/services/report/renderer.py:702-776 — bars labelled "Your {measure} score"
+  / "Peer top-quartile {measure} threshold"; formula IDs (F-003, F-011) carried.
+- web/src/report/sections/BenchmarkIntelligence.tsx:9-51 — React matches PDF.
+- Missing lineage -> honest absence ("Insufficient peer data"), never a silent
+  fallback to the overall score.
+Tests: tests/test_qa_report_integrity.py::
+  test_section4_uses_pgms_lineage_and_missing_lineage_is_honest_absence;
+  test_integration_report_pipeline.py::test_full_rich_notice_flows...;
+  test_report_design.py::test_absence_states_render_not_fabricated_numbers.
+
+Remaining nit CLOSED (Bucket A, 2026-08-21): new guard test
+  test_section4_percentile_threshold_invariant_holds_and_ignores_f010 sets F-010
+  to a trap value inconsistent with the PGMS lineage and asserts Section 4
+  sources org_score from F-003 (not F-010) so the (percentile>=75) <=>
+  (org_score>=top_quartile) biconditional holds.
+
+--------------------------------------------------------------------------------
+RPT-002 (Critical) — Benchmark-language examples semantically mismatched
+--------------------------------------------------------------------------------
+Original issue: Page 8 paired AI/automated-decisions with an accessibility
+clause, retention with a cookie clause, sensitive data with IP-address language,
+cross-border with EFT payments. First-approved-row selection with no gates.
+
+STATUS: [RESOLVED]
+
+What was checked:
+- app/services/report/clause_data.py:107-159 select_comparators() enforces ALL:
+  is_exemplar=true AND exemplar_status='approved' (Hard Rule 8 kept), same-domain
+  taxonomy match, cosine similarity >= SIMILARITY_FLOOR (0.30, governed constant
+  from app/services/scoring/similarity.py:18), and exemplar maturity signal
+  (transparency_score) >= org clause's. Missing embedding -> similarity None ->
+  SUPPRESSED (honest absence, never "show anyway").
+- app/services/report/assembly.py:192-213 — Section 8 now iterates the ORG's
+  disclosed domains (org_clauses_by_domain), not the exemplar corpus. Domain
+  with no acceptable comparator renders the org clause + honest note.
+- sme_cleaned_available (assembly.py:211) true only when >=1 genuine comparison.
+- scripts/audit_exemplar_domains.py — read-only mis-filed-exemplar audit
+  (GET-only; immutability proven by test).
+Tests: test_qa_report_integrity.py::test_comparator_gate_is_domain_similarity_
+  maturity_and_approval_strict; ::test_exemplar_audit_reports_misfiled_domain_
+  without_mutation; test_report_assembly.py::test_section8_shows_cleaned_
+  exemplars; test_exemplar_review.py (2); test_integration_report_pipeline.py::
+  test_no_exemplars_preserves_org_language_with_honest_absence.
+
+Remaining nit CLOSED (Bucket A, 2026-08-21): new test
+  test_comparator_suppressed_when_embedding_missing covers both the org-side and
+  exemplar-side missing-embedding suppression paths. Content caveat unchanged:
+  the SME still must re-review the ~16 approved exemplars themselves (process
+  item, not code).
+
+--------------------------------------------------------------------------------
+RPT-003 (Critical) — Regulatory exposure scored without clause evidence
+--------------------------------------------------------------------------------
+Original issue: Exposure 32.1 displayed while 0 of 72 domain x regulator cells
+had clause evidence; density keyed by domain_id but looked up by slug, and the
+synthetic floor rendered in the same colours as real evidence.
+
+STATUS: [RESOLVED]
+
+What was checked:
+- app/services/report/clause_data.py:36-41 heatmap_counts() keys the density
+  Counter by canonical taxonomy SLUG; app/routers/reports.py:607,871 feeds it
+  to build_regulator_heatmap. Key mismatch gone.
+- app/services/scoring/heatmap.py:29-39,104-113 — HeatmapCell.evidenced bool
+  derived from clause_density > 0; serialized (line 141). Intensity math and
+  the 0.1 floor UNCHANGED (Hard Rule 3 respected).
+- renderer.py:780-790,853-874 — unevidenced cells render heat-na; legend in
+  plain English; computed caption "N of M cells backed by clause evidence"
+  (never hardcoded).
+- web/src/report/sections/RegulatorExposure.tsx:19-24,76-94 — React matches.
+Tests: test_heatmap.py:58-73 (2 tests); test_qa_report_integrity.py::
+  test_clause_mapping_keeps_other_in_denominator_and_marks_evidence;
+  ::test_heatmap_render_counts_real_evidence_and_neutralizes_empty_cells.
+
+--------------------------------------------------------------------------------
+RPT-004 (Critical) — Disclosure maturity conflicts with missing clause capture
+--------------------------------------------------------------------------------
+Original issue: Maturity 96.8 while page 8 said "No clause captured" everywhere;
+report read clauses through a different, silently-failing DB path than scoring;
+"highest-confidence per domain" was actually last-wins.
+
+STATUS: [RESOLVED]
+
+What was checked:
+- app/routers/reports.py:238-266 _load_report_clause_rows() — ONE canonical
+  clause read feeds every report consumer (note: live schema has no
+  disclosure_clause.notice_id, so it is scoped via notice_section FK — verified
+  and documented in code).
+- clause_data.py:31-41 substantive_rows() — same is_noise filter as scoring
+  (pipeline.py:68).
+- clause_data.py:44-79 — genuine max-wins on nlp_confidence with deterministic
+  clause_id tie-break; length gate applied as pre-filter.
+- reports.py:746-763 data-quality gate: stored scored-clause count (from F-002
+  lineage) vs report-layer count -> status passed | mismatch | insufficient.
+  assembly.py:80,117-135 — mismatch/insufficient SUPPRESSES disclosure maturity,
+  org_score, benchmark deviation, transparency, ai_transparency (set to None,
+  honest-absence rendering). Gate outcome recorded in Section 3/4/11 lineage as
+  a real value.
+Tests: test_qa_report_integrity.py::test_empty_clause_quality_suppresses_parse_
+  dependent_metrics_and_renders_notice; ::test_representative_clause_is_true_
+  max_wins; ::test_representative_clause_excludes_noise_short_text_and_breaks_
+  ties_stably; integration full-rich + sparse-notice tests.
+
+Remaining nit CLOSED (Bucket A, 2026-08-21): new test
+  test_mismatch_extraction_quality_also_suppresses_parse_dependent_metrics
+  covers the "mismatch" branch (counts diverge, both nonzero) suppressing
+  maturity/benchmark exactly like the "insufficient" branch.
+
+--------------------------------------------------------------------------------
+RPT-005 (Critical) — Required source traceability not delivered
+--------------------------------------------------------------------------------
+Original issue: Pages 6 and 11 explicitly said per-finding notice-section
+references are unavailable; formula IDs replaced (not supplemented) evidence.
+
+STATUS: [RESOLVED] — confidence-fallback honesty gap fixed 2026-08-21 (Bucket A)
+
+What was checked (delivered):
+- assembly.py:166-179 — findings carry clause_ids, evidence[] (clause_id,
+  section_reference, excerpt), obligation_refs, enforcement_refs,
+  formula_version.
+- renderer.py:1126-1157 _sec_traceability — real per-finding lineage table:
+  Finding -> Clause -> Section -> Excerpt -> Source -> Formula -> Confidence,
+  with per-finding honest absence ("No stored clause reference for this
+  finding"). Blanket caveat strings ("...are not carried in this snapshot")
+  are GONE from the codebase (grep-verified).
+- Frozen snapshots stay byte-identical; no re-assembly at render
+  (test_pdf_determinism.py, test_f05_evidence.py both pass).
+- web/src/report/sections/FindingsTable.tsx + Traceability.tsx match.
+
+FIXED (Bucket A, 2026-08-21):
+- assembly.py no longer falls back to the global VCI label; a finding with no
+  stored per-finding confidence now carries None -> renders honest "Not
+  recorded" in both PDF and React. New guard test:
+  test_finding_without_confidence_shows_honest_absence_not_global_vci.
+Tests: test_pdf_determinism.py, test_f05_evidence.py,
+  test_qa_report_integrity.py:201-218 + new guard, integration pipeline tests.
+
+--------------------------------------------------------------------------------
+RPT-006 (High) — Configured assessment scope not visible in the report
+--------------------------------------------------------------------------------
+STATUS: [RESOLVED]
+
+What was checked:
+- reports.py:892-931 — scope loaded from assessment_intake_scope (table live as
+  of today) with per-field provenance (user_declared / inferred / captured /
+  not_recorded).
+- assembly.py:82-91 — assessment_scope (15 keys: source, notice version,
+  capture date, org profile, industry, cohort definition, selected laws,
+  data categories, practices...) threaded into the report.
+- renderer.py:486-518 — Cover front-matter renders a 3-column scope table
+  (Input / Value / Source), honest "Not recorded" for absent values. Frozen
+  into the snapshot + content hash. Legacy assessments -> honest absence.
+- web/src/report/sections/Cover.tsx:69-78 — React matches.
+Tests: test_qa_report_integrity.py:217 (scope + "user declared" rendering),
+  :220-228 (scope in content hash; volatile date excluded).
+
+--------------------------------------------------------------------------------
+RPT-007 (High) — Peer cohort not sufficiently defined
+--------------------------------------------------------------------------------
+STATUS: [RESOLVED]
+
+What was checked:
+- population.py:305-314 returns population_key, relaxations,
+  benchmark_population_version, confidence_penalty — now THREADED (reports.py
+  ~145-160 -> assembly.py:152 "methodology") instead of dropped.
+- renderer.py:745-768 — methodology block: dimensions in plain English
+  (Industry + 6 tiers), peer count, as-of date, population version, relaxation
+  statement ("Cohort widening... confidence is reduced"), low-confidence label
+  driven by governed LOW_CONFIDENCE_COHORT_N config.
+- BenchmarkIntelligence.tsx:98-117 — React methodology card + low-confidence
+  warning.
+Tests: test_integration_report_pipeline.py::test_tiny_cohort_propagates_named_
+  low_confidence_methodology; ::test_full_rich_notice...; content-hash test.
+
+--------------------------------------------------------------------------------
+RPT-008 (High) — Recommendations contain templating defects ("For each use case ()")
+--------------------------------------------------------------------------------
+STATUS: [RESOLVED] — parametrized template sweep added 2026-08-21 (Bucket A)
+
+What was checked (delivered):
+- renderer.py:306-318 _strip_placeholders removes {token}, emptied "()" AND
+  "[]", dangling connectors, and normalizes whitespace.
+- renderer.py:321-325 find_unresolved_template_tokens() detector (pure).
+- reports.py:507-550 _enforce_snapshot_prose — unresolved tokens FAIL CLOSED
+  in the same pre-assembly gate as the banned-term guardrail (single gate, no
+  parallel mini-guardrail).
+- Real result recorded in Section 11 lineage:
+  {"template_tokens": {"status": ..., "unresolved": [...]}} — surfaced in
+  Traceability.tsx:69 ("Template-token gate: ...").
+- Customer text with literal braces (JSON-like) does NOT trip the detector —
+  explicitly tested (test_qa_report_integrity.py:172-186); token regex remains
+  {lowercase_identifier} only.
+
+FIXED (Bucket A, 2026-08-21):
+- New parametrized test test_every_authored_template_strips_clean runs over
+  EVERY body_template in scripts/ingest/update_findings.py::RECOMMENDATIONS and
+  asserts the stripped output has no "{", "}", empty "()", or unresolved token.
+Tests: test_report_design.py:221-236; test_guardrail_report_path.py:28-72;
+  test_qa_report_integrity.py:172-186 + new parametrized sweep.
+
+--------------------------------------------------------------------------------
+RPT-009 (High) — Recommendations need evidence + legal/best-practice separation
+--------------------------------------------------------------------------------
+STATUS: [RESOLVED] — out-of-scope state + basis test matrix added 2026-08-21 (Bucket A)
+
+What was checked (delivered):
+- reports.py:822 — SELECT now includes source_note; :852 surfaces it; React
+  renders "Authored source note: ..." or honest "No authored source citation
+  is recorded."
+- reports.py:854 — triggering finding's clause evidence attached per rec.
+- reports.py:830-846 — basis classification derived ONLY from stored refs
+  (no LLM): selected_laws ∩ obligation jurisdictions -> "Selected-scope
+  requirement context"; enforcement_refs -> "Regulator sensitivity context";
+  benchmark_reference -> "Peer benchmark context"; else honest
+  "Basis not recorded". Labels are verdict-free (guardrail-asserted in test).
+- No-library-entry fallback: honest stub "No authored recommendation exists for
+  this finding type yet." — no silent generic prose (Hard Rule 2 respected).
+
+FIXED (Bucket A, 2026-08-21):
+- Basis logic extracted to a pure helper reports.py::_recommendation_basis_label
+  (behaviour-preserving) and given a new 5th state, "General requirement context
+  (outside selected scope)", so an obligation that exists but is outside the
+  selected laws is surfaced distinctly instead of collapsing to "Basis not
+  recorded".
+- New parametrized 5-way basis matrix test
+  (test_recommendation_basis_classification_matrix); new label added to the
+  guardrail-copy sweep.
+Tests: test_qa_report_integrity.py:201-218, :238-241 (guardrail compliance) +
+  new matrix + new label in the guardrail sweep.
+
+--------------------------------------------------------------------------------
+RPT-010 (High) — Score direction difficult to interpret
+--------------------------------------------------------------------------------
+STATUS: [RESOLVED]
+
+What was checked:
+- renderer.py:89-100 — single _DASHBOARD_METRICS registry {key,label,inverted}
+  + _direction() emitting exactly the QA-requested phrasing "Maturity — higher
+  is better" / "Exposure — lower is better"; used on cards, bars, and summary.
+- web/src/lib/scoreBands.ts:62-68 metricPolarity()/bandColor() — polarity per
+  formula ID; RiskDashboard.tsx:26-34,95 shows direction under every score.
+Nit CLOSED (Bucket A, 2026-08-21): new guard test
+  test_opposite_direction_metrics_at_equal_value_get_opposite_bands asserts a
+  maturity metric and an exposure metric at the same value band to OPPOSITE
+  colours. Only the PDF-vs-web palette reconciliation (decision B1) remains.
+KNOWN (documented, deliberate): PDF _RAMP hex values differ slightly from the
+TS scoreBands palette — direction/polarity consistent, colour tokens to be
+reconciled via the design-system process (FINAL-AUDIT risk #6). Not silently
+patched, correctly reported instead.
+
+--------------------------------------------------------------------------------
+RPT-011 (Medium) — Prototype benchmark depth reduced (domain-level comparisons)
+--------------------------------------------------------------------------------
+STATUS: [OPEN] — NOT RESOLVED
+
+Evidence: Section 4 payload contains ONLY org-level PGMS score, top-quartile
+threshold, percentile. No domain_benchmarks structure, no per-domain peer
+average / top-quartile anywhere in assembly.py, renderer.py, or React. Section 8
+compares LANGUAGE per domain, not SCORES per domain. Zero tests exist for
+domain-level benchmarks.
+Note: this finding was also never in the remediation prompt series' issue
+inventory (I-1..I-22) — it was scoped out, not forgotten mid-work. Building it
+requires new per-domain peer statistics, which is a formula/spec addition
+(Hard Rule 3 -> expert decision first).
+
+--------------------------------------------------------------------------------
+RPT-012 (Medium) — Compound risk lacks its key differentiator (drivers)
+--------------------------------------------------------------------------------
+STATUS: [RESOLVED]
+
+What was checked:
+- renderer.py:951-988 _sec_compound — reads the risk_scores dict F-008 actually
+  emits, keeps contributors/drivers list back-compat, normalizes both shapes,
+  plain-English driver labels (no raw "ai"/"disclosure" keys), deterministic
+  sort (score desc, then name), correlation multiplier + plain-language
+  explanation, honest empty state preserved. compute_f008 itself UNCHANGED.
+- CompoundRisk.tsx:11-13,85-87 — React matches.
+Tests: test_f008_f014.py:13-26; test_qa_report_integrity.py::test_compound_
+  drivers_findings_recommendations_traceability_and_scope_render.
+
+--------------------------------------------------------------------------------
+RPT-013 (Medium) — Enforcement intelligence under-explained
+--------------------------------------------------------------------------------
+STATUS: [PARTIAL] — leaning OPEN
+
+Delivered: per-finding enforcement references DO render in the EvidenceStack
+drawer (web/src/report/sections/EvidenceStack.tsx:67-76 — "Enforcement
+precedent (resolved records only)" with regulator, year, similarity). That
+satisfies the QA's "or evidence reference" alternative at the per-finding level.
+NOT delivered: no aggregated enforcement-correlation section; no F-004 card on
+the Risk Dashboard (RiskDashboard.tsx:28-33 omits F-004); the heatmap's
+enforcement-frequency weighting is not explained to the reader; no tests.
+Note: also outside the remediation prompt series' issue inventory.
+
+--------------------------------------------------------------------------------
+RPT-014 (Medium) — Report visually polished but too sparse
+--------------------------------------------------------------------------------
+STATUS: [PARTIAL] — materially improved as a byproduct of other fixes
+
+Now present: extraction-quality alerts (S3), cohort methodology (S4), top-5
+regulator drivers + coverage caption (S5), per-finding clause excerpts (S6),
+compound drivers + multiplier (S7), full lineage table (S11), scope front
+matter (Cover). Remaining sparseness is now editorial choice, not missing
+evidence. Final judgment belongs to the QA reviewer against the prototype.
+
+--------------------------------------------------------------------------------
+RPT-015 (Medium) — Next-steps / product handoff missing
+--------------------------------------------------------------------------------
+STATUS: [OPEN] — NOT RESOLVED
+
+Evidence: assembly.py builds exactly 12 sections; Section 12 (Trend & Emerging
+Risk) is last. Grep for next-steps/handoff content across app/services/report/
+and web/src/report/sections/ returns nothing. The prototype's operational
+next-steps page (prioritize highs, validate with counsel, re-run after
+remediation, convert to monitored/GRC) does not exist.
+Note: also outside the remediation prompt series' issue inventory. Low build
+cost (static authored section) but the copy is SME-owned (register rules).
+
+--------------------------------------------------------------------------------
+RPT-016 (Low) — Terminology / capitalization normalization
+--------------------------------------------------------------------------------
+STATUS: [RESOLVED]
+
+What was checked:
+- renderer.py:76-108 — _DOMAIN_LABELS canonical map ("AI & Automated
+  Decisions", "Tracking & Cookies", "Cross-Border Transfers"); _domain_html()
+  used at every render site (heat grid, drivers, findings, language, reduction
+  priorities). No naive .replace('_',' ').title() remains in label paths.
+- Grep for the QA's defective strings ("Ai Automated Decisions", "Tracking
+  Cookies", "Cross Border") across the codebase: ZERO occurrences.
+- web/src/lib/domainLabels.ts provides the shared frontend labels.
+Nit CLOSED (Bucket A, 2026-08-21): new test
+  test_taxonomy_labels_are_controlled_never_naive_titlecase renders a report and
+  asserts the QA-named defective strings ("Ai Automated Decisions", "Tracking
+  Cookies", "Cross Border") never appear while the controlled labels do.
+
+================================================================================
+PART 2 — INTAKE QA FINDINGS (INT-01 … INT-11)
+================================================================================
+
+INT-01 Organization profile ................................ [RESOLVED]
+  UI: Intake.tsx:450-464 (name, size band, public/private, geography — options
+  fetched from server config). Backend: assessments.py:385-393 validation,
+  :676-682 persisted to assessment_intake_scope with per-field provenance.
+  Frozen into report (reports.py:895-915).
+  Tests: test_arch001a_intake_filters.py:166-189; Intake.test.tsx:79-114.
+
+INT-02 State footprint vs selected laws .................... [RESOLVED]
+  Two distinct controls with explanatory copy ("WHERE YOU HAVE CONSUMERS OR
+  OPERATE" vs "LAWS TO INCLUDE IN THIS ASSESSMENT"), two distinct backend
+  fields/columns (state_footprint, selected_laws), both frozen separately.
+  Legacy `jurisdictions` still accepted as fallback (backward compatible).
+  Tests: test_arch001a:147-163 (distinct even when disjoint/identical).
+
+INT-03 Data categories (Critical) .......................... [RESOLVED]
+  Vocabulary from config/org_profile_weights.json DSI_CATEGORY_WEIGHTS via
+  intake_options.py:146-147 (drift impossible: scoring reads same config).
+  Unknown value -> 422 with helpful message. user_declared provenance stored.
+  Tests: test_arch001a:204-220; test_intake_async.py:89-100.
+
+INT-04 Business practices (Critical) ....................... [RESOLVED]
+  Vocabulary merges AIGMS_CLAUSE_TYPE_MAP keys + taxonomy practices
+  (intake_options.py:150-156). Validated (422 on unknown), persisted with
+  provenance, frozen into report scope.
+  Tests: test_arch001a:204-220, :224-232.
+
+INT-05 Benchmark criteria visibility ....................... [RESOLVED]
+  Analysis-scope panel shows the proposed cohort pre-submission; industries
+  restricted to cohort-backed set; post-result shows cohort_size, population
+  version, and relaxations. Proof-of-consumption test exists (industry choice
+  changes cohort key — test_arch001a:39-45).
+
+INT-06 Role / assessment-purpose selector .................. [OPEN — deliberate]
+  No UI control and no backend field. This matches the remediation rule "do
+  NOT build a control that goes nowhere": the selector was consciously
+  deferred, not forgotten. Needs a product decision + backend field first.
+
+INT-07 Pre-analysis methodology/confidence cues ............ [PARTIAL]
+  Cohort criteria ARE visible pre-submission and the scope panel notes that
+  confidence/cohort size come with the result. A methodology link/summary
+  BEFORE submission does not exist. Small, deliberate-looking gap.
+
+INT-08 Review-scope confirmation step ...................... [RESOLVED]
+  Two-step flow: "Review scope" -> review panel (data-testid=intake-review)
+  summarising every input -> "Confirm and analyse". Analysis cannot start
+  without confirmation. Test: Intake.test.tsx:99-114.
+
+INT-09 Deliverable statement ............................... [RESOLVED]
+  Pre-submission: "Your deliverable includes an on-screen report and a
+  shareable PDF." (data-testid=intake-deliverable). Post-completion: "Ready
+  for on-screen review and PDF sharing."
+
+INT-10 Selections preserved in snapshot .................... [RESOLVED]
+  assessment_intake_scope (migration 0048, UNIQUE(notice_id), RLS on, applied
+  live today) written once per notice with idempotent 409 handling
+  (assessments.py:454-487); read back and frozen into the report snapshot with
+  provenance. Immutability respected (Hard Rule 6).
+  Tests: test_arch001a:166-189; test_qa_report_integrity.py:115-135.
+
+INT-11 Submission queue with real statuses ................. [RESOLVED]
+  Multiple submissions; per-item queue rows with status chip + server-
+  authoritative stage labels; polling GET /assessments/{id}/status with
+  bounded backoff (1.2s->4s cap, 5-min wall clock guard); honest failed state
+  (no fake spinner); org-scoped (cross-org 403, missing 404); idempotency key
+  replay returns the same job (a real double-schedule race was found AND fixed
+  during remediation, with regression tests).
+  Tests: test_intake_async.py:156-239.
+
+BACKWARD COMPATIBILITY: URL-only submission verified end-to-end — every new
+field is Optional; empty fields skip writes; legacy `jurisdictions` still
+works. (test_arch001a + Intake.test.tsx)
+
+================================================================================
+PART 3 — QA DOC ALIGNMENT TABLES (then vs now)
+================================================================================
+
+Prototype element               | QA status (Aug 18) | Now
+--------------------------------+--------------------+---------------------------
+Cover / branding                | Strong             | Strong (+ scope table)
+Executive Summary               | Strong             | Strong
+Overall Risk Dashboard          | Strong/Partial     | Strong (direction labels)
+Benchmark Intelligence          | Partial            | Partial (org-level fixed;
+                                |                    |  domain-level still absent
+                                |                    |  = RPT-011)
+Regulator Exposure Analysis     | Partial/Concern    | Strong (evidence-keyed,
+                                |                    |  honest cells + caption)
+Disclosure Intelligence Findings| Partial            | Strong (clause evidence)
+Compound Risk Analysis          | Partial            | Strong (drivers + cm)
+Benchmark Language Comparisons  | Fail               | Strong (gated retrieval)*
+Trend & Emerging Risk           | Strong             | Strong
+Strategic Recommendations       | Partial            | Strong-/Partial (basis +
+                                |                    |  citations in; edge state
+                                |                    |  + tests missing)
+Risk Reduction / Severity       | Strong             | Strong
+Source Traceability             | Partial            | Strong-/Partial (real
+                                |                    |  lineage table; confidence
+                                |                    |  fallback gap)
+Next Steps                      | Missing            | STILL MISSING (RPT-015)
+
+* mechanism fixed; exemplar CONTENT still needs SME re-review (process item).
+
+Key requirement                  | QA status | Now
+---------------------------------+-----------+------------------------------
+Configurable one-time engine     | Partial   | Pass (scope collected+surfaced)
+Executive-ready PDF export       | Pass      | Pass
+Benchmark selection/explainability| Partial  | Pass (cohort methodology shown)
+Evidence and traceability        | Fail      | Pass- (per-finding lineage in;
+                                 |           |  confidence-fallback gap)
+Confidence labels                | Pass/Part | Pass (suppression via VCI + the
+                                 |           |  new extraction-quality gate;
+                                 |           |  missing-VCI default bug fixed)
+US-focused legal/regulatory      | Partial   | Pass (footprint vs selected laws
+                                 |           |  distinct + visible in report)
+Reusable/versioned intelligence  | Partial   | Pass (formula IDs + population
+                                 |           |  version + scope frozen)
+No unsupported legal conclusions | Partial   | Pass (basis labels guardrail-
+                                 |           |  tested; no verdict language)
+
+QA "Recommended Priority Order" (8 dev actions):
+ 1 Fix clause extraction/evidence lineage ......... DONE
+ 2 Correct percentile vs top-quartile logic ....... DONE
+ 3 Fix benchmark-language retrieval ............... DONE (mechanism)
+ 4 Regulator scores evidence-based/classified ..... DONE
+ 5 Show intake configuration in PDF ............... DONE
+ 6 Remove template defects, tie recs to evidence .. DONE (one test class to add)
+ 7 Restore domain-level benchmarks + drivers ...... HALF (drivers yes,
+                                                    domain benchmarks NO)
+ 8 Score labeling / terminology / density ......... DONE
+
+================================================================================
+PART 4 — REGRESSIONS & NEW ISSUES CHECK
+================================================================================
+
+BUCKET A CLOSEOUT (2026-08-21) — code + tests added this session:
+- RPT-005: assembly.py per-finding confidence no longer falls back to the global
+  VCI label; absent -> None -> honest "Not recorded". (1 code change, 1 test)
+- RPT-009: basis logic extracted to reports.py::_recommendation_basis_label
+  (behaviour-preserving) + new 5th state "General requirement context (outside
+  selected scope)". (1 refactor, 1 code change, 1 matrix test, +1 guardrail case)
+- RPT-008: parametrized sweep over every RECOMMENDATIONS body_template. (1 test)
+- RPT-010/001/002/004/016: guard/regression tests added (no code change needed).
+- Net: +20 backend test cases; 1163 passed / 0 failed; frontend still 94/94,
+  tsc/lint/build clean. No formula/weight/threshold touched; assembly change is
+  presentation-plumbing; the reports.py extraction is behaviour-preserving.
+
+Regressions introduced by the remediation: NONE FOUND.
+- Full backend suite: 1163 passed / 0 failed against the live DB.
+- Byte-identity (PDF determinism), tenant isolation, guardrail, SSRF, rate
+  limiting, RLS, gate_mode, approve_and_freeze: all untouched and green.
+- git diff over scoring/profiling: no formula/weight/threshold changes
+  (heatmap gained only the additive `evidenced` metadata field).
+
+Real defects found AND fixed during the remediation itself (with regression
+tests): (a) intake idempotency double-schedule race; (b) missing-VCI rendered
+as a fabricated default (25 / 0) instead of honest absence.
+
+Issues found and fixed in THIS session (test infrastructure, not product):
+1. Test fixtures used non-UUID assessment ids, violating the live UUID CHECK
+   from migration 0047 (28 failures) — fixtures updated to UUID-shaped
+   constants, synced with _TEST_IDS cleanup hooks in review.py/training.py.
+2. Snapshot seeding violated the new report_snapshot->organization FK
+   (migration 0045) — test now references a real corpus org.
+3. `Prefer: count=exact` on row fetches forced full COUNT(*) over the 694k-row
+   disclosure_clause table -> statement timeouts misread as "corpus data lost"
+   (the corpus is intact: 694,220 rows). Helpers fixed to fail loudly and not
+   count when only nonemptiness is asserted.
+4. In-process SEC-005 rate limiter accumulated across test modules -> false
+   429s in test_f19_bulk; added the established reset fixture.
+5. Migration 0048 was authored but never applied live -> applied + recorded
+   via the idempotent runner (user-approved). The intake-scope feature now
+   actually persists in production.
+
+Watch item (ops, not code): PostgREST's ~8s statement timeout makes exact
+counts on disclosure_clause fragile under load. If any PRODUCTION path issues
+count=exact against that table it will hit the same wall — worth an audit.
+
+================================================================================
+PART 5 — MANUAL WEB-APP TESTING GUIDE
+================================================================================
+
+SETUP (all tests):
+  Backend:  ./.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+  Frontend: cd web && npm run dev        (open the printed URL, usually
+            http://localhost:5173)
+  Accounts: one CUSTOMER user, one SME user, one ADMIN user (Supabase auth).
+            A second customer account in a DIFFERENT organization is needed for
+            the cross-tenant test.
+  Gate mode: default is STRICT (expert_review) — customer cannot see a report
+            until an SME approves. Keep it strict unless a test says otherwise.
+  Test notice URL: any real public privacy-policy URL (e.g. a retailer's
+            /privacy page). Have 2-3 different URLs ready.
+
+--------------------------------------------------------------------------------
+Test 1: URL-only intake still works (backward compatibility)
+--------------------------------------------------------------------------------
+Preconditions: Customer account, gate mode strict.
+Steps:
+ 1. Open the Intake page (sidebar: Intake).
+ 2. Stay on the URL tab. Paste a privacy-notice URL. Fill NOTHING else —
+    no industry, no profile, no categories.
+ 3. Click "Review scope" — observe the review panel appears and shows honest
+    minimal scope (unset fields absent or marked as not provided).
+ 4. Click "Confirm and analyse".
+ 5. Watch the submission queue row progress through server stage labels
+    (Queued… Fetching… Extracting… …).
+Expected: Submission accepted (202-style async), job completes or lands at
+  awaiting-review; no crash, no forced fields.
+Failure signs: validation error demanding the new optional fields; queue stuck
+  with no stage changes; frontend exception.
+
+--------------------------------------------------------------------------------
+Test 2: Full intake — org profile, footprint vs laws, categories, practices
+--------------------------------------------------------------------------------
+Preconditions: Customer account.
+Steps:
+ 1. Intake page. Enter a notice URL.
+ 2. Open "Organization profile": enter a name; pick a size band, public/private,
+    geography. Confirm every dropdown is POPULATED FROM THE SERVER (no empty
+    dropdowns; options look like config vocabulary, e.g. size bands).
+ 3. Open the footprint section ("WHERE YOU HAVE CONSUMERS OR OPERATE") and
+    select e.g. CA + NY. Open the laws section ("LAWS TO INCLUDE IN THIS
+    ASSESSMENT") and select a DIFFERENT set, e.g. TX only. Read the helper
+    copy — it must explain the footprint/scope distinction in plain English.
+ 4. Select 2-3 data categories and 2-3 business practices.
+ 5. Verify the Analysis Scope panel reflects EVERY choice, including the
+    proposed benchmark cohort ("<Industry> peers").
+ 6. Click "Review scope" -> confirm the review panel lists all of it ->
+    "Confirm and analyse".
+Expected: Job runs; later, the report's cover Assessment Scope table shows all
+  entered values labelled "user declared", with footprint and selected laws as
+  SEPARATE rows carrying your two different sets.
+Failure signs: footprint and laws merged into one value; any entered value
+  missing from the report scope or labelled "inferred"; hardcoded dropdown
+  options that don't match server config.
+
+--------------------------------------------------------------------------------
+Test 3: Invalid intake values rejected (API negative test)
+--------------------------------------------------------------------------------
+Preconditions: Customer auth token (grab from browser devtools -> request
+  headers, or use the app's session).
+Steps (terminal):
+ 1. POST to /assessments/async with a valid URL but
+    data_categories=made_up_category.
+    curl -X POST http://127.0.0.1:8000/assessments/async \
+      -H "Authorization: Bearer <token>" \
+      -F "url=https://example.com/privacy" -F "data_categories=made_up_category"
+ 2. Repeat with business_practices=nonsense and organization_size=gigantic.
+Expected: HTTP 422 each time, with an error message NAMING the valid options.
+Failure signs: 200/202 accepted; opaque 500; error without valid-option list.
+
+--------------------------------------------------------------------------------
+Test 4: Deliverable statement + review gate (INT-08/09)
+--------------------------------------------------------------------------------
+Preconditions: Customer account.
+Steps:
+ 1. Intake page with any URL entered.
+ 2. BEFORE submitting, locate the deliverable text: "Your deliverable includes
+    an on-screen report and a shareable PDF."
+ 3. Try to trigger analysis WITHOUT the review step — there must be no direct
+    "analyse" path; the primary button should be "Review scope".
+ 4. Click "Review scope", then WITHOUT confirming, edit a field (e.g. change
+    industry) — re-open review and confirm the summary updated.
+ 5. Confirm and analyse.
+Expected: Analysis starts only after explicit confirmation; deliverable
+  statement visible pre-submission.
+Failure signs: submission fires without the review panel; stale values in the
+  review summary; no PDF expectation stated.
+
+--------------------------------------------------------------------------------
+Test 5: Submission queue — multiple jobs, honest statuses, failure state
+--------------------------------------------------------------------------------
+Preconditions: Customer account; 2 valid notice URLs + 1 junk URL
+  (e.g. https://thisdomain-definitely-does-not-exist-12345.com/privacy).
+Steps:
+ 1. Submit notice A. Immediately submit notice B (don't wait).
+ 2. Observe: TWO independent queue rows, each with its own status chip and
+    stage label, updating independently.
+ 3. Submit the junk URL.
+ 4. Watch its row: it must reach a FAILED state with an error message — not an
+    endless spinner.
+ 5. Refresh the page mid-processing: queue state should recover from the
+    server (jobs keep progressing server-side).
+ 6. Duplicate action: resubmit notice A identically right after submitting it.
+Expected: Two+ rows tracked independently; failed job shows failure honestly;
+  statuses come from GET /assessments/{id}/status (check the network tab);
+  identical resubmission does not create runaway duplicate processing
+  (idempotency), and polling stops after completion/failure (no infinite
+  network requests — bounded backoff, 5-min cap).
+Failure signs: one row overwrites another; spinner forever on the failed job;
+  fabricated progress (stages advancing while network shows errors); polling
+  that never stops.
+
+--------------------------------------------------------------------------------
+Test 6: Strict gate — customer blocked until SME approves (permissions)
+--------------------------------------------------------------------------------
+Preconditions: Gate mode strict; a completed (scored) assessment; customer +
+  SME accounts.
+Steps:
+ 1. As CUSTOMER, try to open the report for the fresh assessment.
+ 2. Expect a block/403-style state (no report content leaks).
+ 3. Log in as SME -> Review Queue -> open the assessment; confirm/dismiss at
+    least one finding; approve the assessment.
+ 4. As CUSTOMER, reload the report.
+Expected: Blocked before approval; visible after; no DRAFT banner after
+  approval.
+Failure signs: customer sees the report (or any scores) pre-approval; SME
+  approval doesn't unlock; dismissed finding still appears in the report.
+
+--------------------------------------------------------------------------------
+Test 7: Cross-tenant isolation (security)
+--------------------------------------------------------------------------------
+Preconditions: Customer A (org A) with a completed report; customer B in a
+  DIFFERENT org.
+Steps:
+ 1. As customer A, open the report; copy its URL (contains the assessment id).
+ 2. Log out. Log in as customer B. Paste the URL.
+ 3. Also try customer B's token directly against
+    GET /assessments/<A's-id>/status and GET /reports/<A's-id> (curl).
+Expected: 403/404 every time; zero content leakage.
+Failure signs: any of A's data visible to B.
+
+--------------------------------------------------------------------------------
+Test 8: Report Section 4 — benchmark coherence (RPT-001)
+--------------------------------------------------------------------------------
+Preconditions: An approved report.
+Steps:
+ 1. Open the report -> Benchmark Intelligence section.
+ 2. Note the three numbers: your score, top-quartile threshold, percentile.
+ 3. Verify the labels NAME the measure (e.g. "Governance Maturity (PGMS)") —
+    NOT a bare "Your overall score".
+ 4. Sanity-check coherence: if percentile >= 75 then your score must be >= the
+    threshold; if percentile < 75 your score must be below it.
+ 5. Compare with the Cover/Executive Summary overall score — it may legitimately
+    DIFFER from Section 4's score (different measures, both labelled).
+Expected: The three Section-4 numbers are mutually consistent and the measure
+  is named.
+Failure signs: percentile 86 with score below threshold (the original bug);
+  a bar labelled "overall score" showing a non-overall value.
+
+--------------------------------------------------------------------------------
+Test 9: Cohort methodology (RPT-007)
+--------------------------------------------------------------------------------
+Preconditions: Approved report.
+Steps:
+ 1. Benchmark Intelligence section -> find the "Peer-cohort methodology" block.
+ 2. Verify it shows: the defining dimensions (industry + tiers in plain
+    English), peer count, as-of date, population version.
+ 3. If the cohort was widened, a plain-language relaxation statement must
+    appear ("Cohort widening: ... confidence is reduced").
+ 4. If peer count is tiny (<10), a LOW-CONFIDENCE label must show.
+Expected: A reader can answer "who are these N peers and why".
+Failure signs: bare "n=94" with no definition; raw tier codes like
+  "rss_tier=2" leaking; hardcoded peer counts.
+
+--------------------------------------------------------------------------------
+Test 10: Regulator heatmap honesty (RPT-003)
+--------------------------------------------------------------------------------
+Preconditions: Approved report from a notice with clauses in only SOME domains
+  (most real notices qualify).
+Steps:
+ 1. Open Regulator Exposure.
+ 2. Check the caption: "N of 72 cells are backed by clause evidence…" — N must
+    be > 0 for a real notice and must NOT be hardcoded (compare two different
+    notices' reports: N should differ).
+ 3. Find a domain your notice clearly does NOT cover — its cells must render
+    in the neutral/na style with the legend explaining "no clause from your
+    notice maps to this domain", NOT in a risk colour.
+ 4. Domains your notice does cover must show coloured, evidenced cells.
+Expected: Visual distinction between evidence-backed and baseline cells; honest
+  counts.
+Failure signs: all 72 cells coloured while the caption says 0 evidenced (the
+  original contradiction); identical N across different notices.
+
+--------------------------------------------------------------------------------
+Test 11: Compound-risk drivers (RPT-012)
+--------------------------------------------------------------------------------
+Steps:
+ 1. Open Compound Risk Analysis in an approved report.
+ 2. Verify a driver breakdown renders (e.g. Regulatory exposure, Benchmark
+    position, Disclosure gap...) sorted by contribution, in plain English —
+    NEVER raw keys like "ai".
+ 3. Verify the correlation multiplier appears with a one-line explanation.
+ 4. Reload the page — ordering must be identical (deterministic).
+Expected: Real drivers; no "Driver breakdown not recorded" on a normal report.
+Failure signs: the empty state on a scored report; raw key names; order
+  changing between loads.
+
+--------------------------------------------------------------------------------
+Test 12: Findings evidence + traceability (RPT-005)
+--------------------------------------------------------------------------------
+Steps:
+ 1. Open Disclosure Findings. For a finding, expand its evidence: it must show
+    the clause excerpt (your notice's actual words) + section reference.
+ 2. Open Source Traceability (S11): verify a real table
+    Finding -> Clause -> Section -> Excerpt -> Source -> Formula -> Confidence,
+    IN ADDITION to the formula-version table and guardrail receipt.
+ 3. Confirm the old blanket caveat ("notice-section references are not
+    carried") appears NOWHERE.
+ 4. If some finding genuinely lacks a clause ref, IT alone shows an absence
+    note; others still show evidence.
+ 5. KNOWN GAP CHECK: for a finding without stored per-finding confidence, the
+    confidence column may currently show the global VCI label rather than
+    "not recorded" — note it if you see it (open item).
+Expected: Per-finding evidence; per-finding absence; excerpts are verbatim and
+  HTML-escaped (no rendered markup if the notice contained tags).
+Failure signs: blanket caveat; findings table with zero clause references on a
+  well-parsed notice; excerpt rendering as live HTML.
+
+--------------------------------------------------------------------------------
+Test 13: Benchmark language comparisons (RPT-002)
+--------------------------------------------------------------------------------
+Steps:
+ 1. Open Benchmark Language Comparison.
+ 2. Rows must correspond to domains YOUR notice discloses (compare with the
+    findings/domains elsewhere in the report). A domain you don't disclose must
+    NOT get a row.
+ 3. Where a peer example shows, read both texts: they must be about the SAME
+    topic (retention example actually about retention, etc.).
+ 4. Where no credible comparator exists, expect your clause + an honest
+    "no comparable approved peer language" note — not a mismatched example.
+Expected: Same-domain, plausible comparators or honest absence.
+Failure signs: any topic mismatch (the original accessibility-vs-AI class of
+  error); rows full of "No clause captured" for domains you never disclosed.
+
+--------------------------------------------------------------------------------
+Test 14: Recommendations basis + citations (RPT-009)
+--------------------------------------------------------------------------------
+Steps:
+ 1. Open Strategic Recommendations.
+ 2. Each rec should show: an authored source note (legal citation) OR the
+    honest "No authored source citation is recorded"; its triggering clause
+    evidence; a basis label (Selected-scope requirement context / Regulator
+    sensitivity context / Peer benchmark context / Basis not recorded).
+ 3. Confirm the basis labels contain NO verdict words (compliant, violation,
+    unlawful...).
+ 4. Scan the full text for empty "()" and "{tokens}" — none may appear.
+Expected: Evidence-tied, classified, verdict-free recommendations.
+Failure signs: "For each use case ()" style defects; a rec claiming legal
+  requirement without your selected laws; verdict vocabulary.
+
+--------------------------------------------------------------------------------
+Test 15: Assessment scope in the report (RPT-006 / INT-10)
+--------------------------------------------------------------------------------
+Steps:
+ 1. Open the report Cover for the Test-2 assessment.
+ 2. Verify the scope table: notice URL, capture date, intake method, industry,
+    cohort definition, footprint states, selected laws, categories, practices —
+    each with a provenance label ("user declared" for what you entered).
+ 3. For an OLD assessment created before these features: open its report —
+    missing scope fields must read "Not recorded", never invented values.
+ 4. Approve+freeze, then pull the report twice (download the PDF twice):
+    byte-identical files (same checksum: `shasum file1.pdf file2.pdf`).
+Expected: Full scope with provenance; honest absence on legacy; deterministic
+  frozen output.
+Failure signs: scope missing; provenance wrong (entered values marked
+  inferred); PDFs differ between pulls.
+
+--------------------------------------------------------------------------------
+Test 16: Direction labels + taxonomy labels (RPT-010/016)
+--------------------------------------------------------------------------------
+Steps:
+ 1. Open the Risk Dashboard. EVERY metric must carry "Maturity — higher is
+    better" or "Exposure — lower is better".
+ 2. Verify colour semantics: a LOW maturity score and a LOW exposure score must
+    NOT share the same colour meaning (low maturity = bad = warm colour; low
+    exposure = good = teal/positive).
+ 3. Scan the whole report (and PDF) for "Ai Automated Decisions",
+    "Tracking Cookies", "Cross Border" — must not appear; correct forms are
+    "AI & Automated Decisions", "Tracking & Cookies", "Cross-Border Transfers".
+Expected: Unambiguous direction; controlled taxonomy everywhere.
+Failure signs: unlabelled 14.5 next to 32.1; mangled Title Case labels.
+
+--------------------------------------------------------------------------------
+Test 17: Sparse/thin notice — honest degradation (RPT-004)
+--------------------------------------------------------------------------------
+Preconditions: Paste-text intake with a deliberately thin "notice"
+  (2-3 sentences mentioning only cookies).
+Steps:
+ 1. Submit via the Paste Text tab; complete the flow.
+ 2. In the report: maturity/benchmark figures must be suppressed or carry a
+    visible extraction-quality warning — NOT a high maturity score.
+ 3. The heatmap must show most cells unevidenced; Section 8 only 1-2 rows.
+Expected: The report says the data is thin instead of pretending it parsed.
+Failure signs: maturity 90+ with "no clause captured" rows anywhere (the
+  original headline contradiction).
+
+--------------------------------------------------------------------------------
+Test 18: Session/navigation robustness (edge cases)
+--------------------------------------------------------------------------------
+Steps:
+ 1. Mid-intake (fields filled, not submitted), hit browser Back then Forward —
+    check nothing submits by itself.
+ 2. Submit a job, immediately log out, log back in — queue state must recover
+    from the server; the job kept processing.
+ 3. Kill the backend (Ctrl-C uvicorn) while the UI is polling — the queue row
+    must degrade honestly (error/retry state), not fake progress. Restart the
+    backend; polling should recover or the row should allow retry.
+ 4. Narrow the window to phone width on Intake + report pages — controls remain
+    reachable/labelled (a11y attributes: tab lists, aria-labels).
+Expected: No phantom submissions; server-authoritative recovery; honest
+  network-failure states.
+Failure signs: duplicate submissions from navigation; spinners surviving a
+  dead backend; unreachable controls on mobile width.
+
+================================================================================
+PART 6 — FINAL SUMMARY TABLE
+================================================================================
+
+| Issue / Requirement            | Status      | Evidence / Verification                                    | Manual Test | Remaining Action                                    |
+|--------------------------------|-------------|------------------------------------------------------------|-------------|-----------------------------------------------------|
+| RPT-001 benchmark math         | RESOLVED    | assembly.py:135-149; PGMS-lineage + invariant guard test   | Test 8      | — (Bucket A: invariant test added)                 |
+| RPT-002 language comparators   | RESOLVED    | clause_data.py:107-159 4-gate; 7 tests + embedding-null    | Test 13     | SME re-review of exemplar content (process)         |
+| RPT-003 heatmap evidence       | RESOLVED    | heatmap.py evidenced flag; renderer heat-na + caption      | Test 10     | —                                                   |
+| RPT-004 maturity vs capture    | RESOLVED    | unified read path; max-wins; quality gate + mismatch test  | Test 17     | — (Bucket A: mismatch-branch test added)           |
+| RPT-005 source traceability    | RESOLVED    | per-finding lineage table; caveats gone; conf=honest abs   | Test 12     | — (Bucket A: confidence fallback fixed)             |
+| RPT-006 assessment scope       | RESOLVED    | Cover scope table w/ provenance; frozen in hash            | Test 15     | —                                                   |
+| RPT-007 cohort definition      | RESOLVED    | methodology block: dims/version/relaxations/low-conf       | Test 9      | —                                                   |
+| RPT-008 template defects       | RESOLVED    | strip+detector+fail-closed gate; template sweep test added | Test 14     | — (Bucket A: parametrized sweep added)             |
+| RPT-009 rec evidence/basis     | RESOLVED    | source_note+evidence+stored-ref basis; 5-state + matrix     | Test 14     | — (Bucket A: out-of-scope state + matrix added)    |
+| RPT-010 score direction        | RESOLVED    | single registry + direction strings + polarity colors      | Test 16     | Palette reconciliation only (decision B1)           |
+| RPT-011 domain-level benchmarks| OPEN        | Section 4 has no per-domain peer data; zero tests          | —           | Needs spec/formula decision (expert) then build     |
+| RPT-012 compound drivers       | RESOLVED    | risk_scores normalized; labels; cm; deterministic          | Test 11     | —                                                   |
+| RPT-013 enforcement explanation| PARTIAL     | per-finding EvidenceStack refs only; no aggregate section  | Test 12     | Decide: aggregate F-004 section/dashboard card      |
+| RPT-014 report density         | PARTIAL     | all sections materially denser (evidence/methodology)      | Tests 8-15  | QA-reviewer judgment vs prototype                   |
+| RPT-015 next-steps page        | OPEN        | no section 13 / next-steps content exists                  | —           | SME-authored copy + small render section            |
+| RPT-016 taxonomy labels        | RESOLVED    | _DOMAIN_LABELS map; defective-string regression test added | Test 16     | — (Bucket A: regression test added)                |
+| INT-01 org profile             | RESOLVED    | Intake.tsx:450-464; validated; persisted w/ provenance     | Test 2      | —                                                   |
+| INT-02 footprint vs laws       | RESOLVED    | two controls, two columns, both frozen                     | Test 2      | —                                                   |
+| INT-03 data categories         | RESOLVED    | config-driven vocab; 422 on invalid; provenance            | Tests 2,3   | —                                                   |
+| INT-04 business practices      | RESOLVED    | config-driven vocab; 422 on invalid; provenance            | Tests 2,3   | —                                                   |
+| INT-05 benchmark visibility    | RESOLVED    | pre-submission cohort display; consumption-proof test      | Test 2      | —                                                   |
+| INT-06 role/purpose selector   | OPEN        | deliberately deferred (no backend field to serve it)       | —           | Product decision + backend field first              |
+| INT-07 methodology cues        | PARTIAL     | cohort shown pre-submit; no methodology link               | Test 2      | Add short methodology link/summary pre-submission   |
+| INT-08 review-scope step       | RESOLVED    | two-step Review->Confirm; tested                           | Test 4      | —                                                   |
+| INT-09 deliverable statement   | RESOLVED    | pre-submit PDF statement (testid intake-deliverable)       | Test 4      | —                                                   |
+| INT-10 snapshot preservation   | RESOLVED    | 0048 table (live), idempotent persist, frozen in report    | Test 15     | —                                                   |
+| INT-11 submission queue        | RESOLVED    | multi-job queue; real status endpoint; race fixed          | Test 5      | Optional: relaxation-disclosure UI test             |
+
+TOTALS (after Bucket A, 2026-08-21): 21 fully resolved · 3 partial · 3 open ·
+        0 unable-to-verify-blind (INT-06 counted as open-by-deliberate-deferral)
+  Was 18/6/3 before Bucket A. RPT-005/008/009 moved PARTIAL->RESOLVED.
+  Remaining PARTIAL: RPT-013, RPT-014, INT-07.  OPEN: RPT-011, RPT-015, INT-06.
+
+================================================================================
+PART 7 — BOTTOM LINE
+================================================================================
+
+OVERALL COMPLETION (after Bucket A, 2026-08-21): ~90% of the two QA documents is
+genuinely closed with file-level evidence and green tests (21 of 27 findings
+fully resolved, up from 18). All 5 Critical report findings and both Critical
+intake findings are resolved. What remains is 3 scoped-out features (RPT-011,
+RPT-015, INT-06) and 3 narrow items needing YOUR decision (RPT-013, RPT-014,
+INT-07) — see QA-REMAINING-WORK-BUCKETS.txt. Nothing contradicts the QA
+documents, and no fix was cosmetic-only.
+
+STILL UNRESOLVED (needs decisions or new work):
+ 1. RPT-011 — domain-level benchmark comparisons (needs per-domain peer
+    statistics = spec/formula decision first, Hard Rule 3).
+ 2. RPT-015 — operational Next Steps page (SME-owned copy; small build).
+ 3. INT-06 — role/purpose selector (product decision + backend field).
+ 4. RPT-013 — aggregated enforcement-correlation view (partial today).
+
+COULD NOT FULLY VERIFY (needs a human/SME, not code):
+ - Whether the ~16 approved exemplars' CONTENT is genuinely top-quartile for
+   their domains (the retrieval gate is fixed; the corpus needs SME review).
+ - Classifier accuracy overall: 0/200 gold-set clauses labelled, 0 SME review
+   actions (INTELLIGENCE-QUALITY.md). The pipeline is now provably honest;
+   the intelligence it carries is still unvalidated by a human expert. This is
+   the single biggest remaining risk before external delivery.
+ - OD-10/11/12 governance decisions (F-005 presence proxy, F-002 severity
+   semantics, Section-4 measure) are registered proposals awaiting the expert.
+
+NEW BUGS / REGRESSIONS FOUND: none in product code this session. Five test-
+infrastructure defects found and fixed earlier (Part 4). Two real production
+defects (idempotency race, fabricated missing-VCI default) had already been
+caught and fixed during remediation with regression tests. Bucket A added the
+RPT-005 confidence-fallback honesty fix + the RPT-009 out-of-scope basis state,
+plus test coverage — no regressions (1163 passed / 0 failed).
+
+HIGHEST-PRIORITY MANUAL RETESTS (in order):
+ 1. Test 17 — sparse-notice honest degradation (the QA's headline contradiction)
+ 2. Test 10 — heatmap evidence counts
+ 3. Test 8  — Section-4 benchmark coherence
+ 4. Test 13 — language comparator sanity
+ 5. Test 12 — per-finding traceability
+ 6. Test 6/7 — gate + tenant isolation (safety)
+
+RECOMMENDED TESTING ORDER FOR THE WHOLE GUIDE:
+ Setup -> 1 -> 2 -> 3 -> 4 -> 5 (intake layer)
+ -> 6 -> 7 (permissions/safety)
+ -> 8 -> 9 -> 10 -> 11 -> 12 -> 13 -> 14 -> 15 -> 16 (report layer)
+ -> 17 (adversarial) -> 18 (robustness)
+
+================================================================================
+END OF REPORT
+================================================================================

@@ -20,17 +20,22 @@ export function RiskDashboard({ content }: { content: ReportSection["content"] }
   const frozenDate   = (content.date         as string | undefined) ?? "—";
   const cohortSize   = (content.cohort_size  as number | undefined) ?? 0;
   const cohortDate   = (content.cohort_date  as string | undefined) ?? "—";
-  const vci          = (content.vci_score    as number | undefined) ?? 0;
+  const vci          = content.vci_score as number | undefined;
   const assessmentId = (content.assessment_id as string | undefined) ?? "";
 
+  // One registry drives color and explanatory direction for every consumer.
   const metrics = [
-    { name: "Overall",        value: content.overall_intelligence as number, fid: "F-010" },
-    { name: "Regulatory",     value: content.regulatory_exposure  as number, fid: "F-002" },
-    { name: "Disclosure",     value: content.disclosure_maturity  as number, fid: "F-005" },
-    { name: "Transparency",   value: content.transparency         as number, fid: "F-006" },
-    { name: "AI Transparency",value: content.ai_transparency      as number, fid: "F-007" },
-    { name: "Compound Risk",  value: content.compound_risk        as number, fid: "F-008" },
+    { name: "Overall", value: content.overall_intelligence as number | undefined, fid: "F-010", direction: "Maturity — higher is better" },
+    { name: "Regulatory", value: content.regulatory_exposure as number | undefined, fid: "F-002", direction: "Exposure — lower is better" },
+    { name: "Disclosure", value: content.disclosure_maturity as number | undefined, fid: "F-005", direction: "Maturity — higher is better" },
+    { name: "Transparency", value: content.transparency as number | undefined, fid: "F-006", direction: "Maturity — higher is better" },
+    { name: "AI Transparency", value: content.ai_transparency as number | undefined, fid: "F-007", direction: "Maturity — higher is better" },
+    { name: "Compound Risk", value: content.compound_risk as number | undefined, fid: "F-008", direction: "Exposure — lower is better" },
   ];
+  const chartMetrics = metrics
+    .filter(m => typeof m.value === "number")
+    .map(m => ({ ...m, value: m.value as number }));
+  const quality = content.extraction_quality as { status?: string } | undefined;
 
   return (
     <div data-testid="section-3" className="report-section">
@@ -39,7 +44,7 @@ export function RiskDashboard({ content }: { content: ReportSection["content"] }
       {/* Chart */}
       <div style={{ width: "100%", height: 280 }} className="chart-container">
         <ResponsiveContainer>
-          <BarChart data={metrics} layout="vertical" margin={{ left: 110, right: 24 }}>
+          <BarChart data={chartMetrics} layout="vertical" margin={{ left: 110, right: 24 }}>
             <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 11 }} />
             <YAxis type="category" dataKey="name" width={108} tick={{ fontSize: 12 }} />
             <Tooltip
@@ -47,7 +52,7 @@ export function RiskDashboard({ content }: { content: ReportSection["content"] }
               contentStyle={{ fontSize: "0.82rem", borderRadius: 6 }}
             />
             <Bar dataKey="value" isAnimationActive={false} radius={[0, 4, 4, 0]}>
-              {metrics.map((m, i) => (
+              {chartMetrics.map((m, i) => (
                 /* Polarity-aware: maturity metrics (Overall, Disclosure,
                    Transparency, AI) color by the maturity scale; exposure
                    metrics (Regulatory, Compound) by the exposure scale. */
@@ -57,6 +62,9 @@ export function RiskDashboard({ content }: { content: ReportSection["content"] }
           </BarChart>
         </ResponsiveContainer>
       </div>
+      {(quality?.status === "mismatch" || quality?.status === "insufficient") && <div style={{ marginTop: 10, padding: "10px 12px", border: "1px solid var(--gold)", color: "#7a5c20" }}>
+        {quality.status === "mismatch" ? "The stored scoring record and the clauses available to this report do not agree." : "No substantive notice clauses are available to support parse-dependent measures."} Parse-dependent maturity and benchmark values are withheld pending review.
+      </div>}
       <div style={{ fontSize: "0.74rem", color: "var(--text-muted)", marginTop: 4 }}>
         Color shows standing — teal good · gold developing · red needs attention. Maturity scores read
         higher-is-better; exposure scores lower-is-better.
@@ -84,8 +92,9 @@ export function RiskDashboard({ content }: { content: ReportSection["content"] }
                 <InfoButton assessmentId={assessmentId} elementType="score" elementKey={FID_TO_FKEY[m.fid] ?? m.fid} label={m.name} />
               )}
             </div>
-            <ScoreCell
-              value={m.value ?? 0}
+            <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginBottom: 4 }}>{m.direction}</div>
+            {typeof m.value === "number" ? <ScoreCell
+              value={m.value}
               formulaId={m.fid}
               formulaDesc={formulaDescs[m.fid] ?? ""}
               inputs={[
@@ -99,14 +108,14 @@ export function RiskDashboard({ content }: { content: ReportSection["content"] }
               cohortSize={cohortSize}
               cohortDate={cohortDate}
               size="md"
-            />
+            /> : <span style={{ color: "var(--text-muted)" }}>Not recorded</span>}
           </div>
         ))}
       </div>
 
       <div style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 10 }}>
-        <span style={{ fontSize: "0.82rem", color: "var(--text-muted)" }}>VCI {vci?.toFixed(1)}</span>
-        <VciBadge label={content.vci_label as string} />
+        <span style={{ fontSize: "0.82rem", color: "var(--text-muted)" }}>VCI {typeof vci === "number" ? vci.toFixed(1) : "—"}</span>
+        {typeof vci === "number" && <VciBadge label={content.vci_label as string} />}
         <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontStyle: "italic" }}>
           Click any score to view its lineage
         </span>

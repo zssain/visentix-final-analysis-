@@ -20,6 +20,8 @@ interface Beam {
     pulseSpeed: number;
 }
 
+const OPACITY_MAP = { subtle: 0.5, medium: 0.75, strong: 1.0 } as const;
+
 function createBeam(width: number, height: number): Beam {
     const angle = -35 + Math.random() * 10;
     // Brand hues: Teal (170), Gold (38), Executive Blue/Cyan (205)
@@ -48,12 +50,6 @@ export function BeamsBackground({
     const beamsRef = useRef<Beam[]>([]);
     const animationFrameRef = useRef<number>(0);
     const MINIMUM_BEAMS = 20;
-
-    const opacityMap = {
-        subtle: 0.5,
-        medium: 0.75,
-        strong: 1.0,
-    };
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -116,7 +112,7 @@ export function BeamsBackground({
             const pulsingOpacity =
                 beam.opacity *
                 (0.8 + Math.sin(beam.pulse) * 0.2) *
-                opacityMap[intensity];
+                OPACITY_MAP[intensity];
 
             const gradient = ctx.createLinearGradient(0, 0, 0, beam.length);
 

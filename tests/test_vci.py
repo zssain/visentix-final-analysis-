@@ -54,6 +54,16 @@ def test_vci_just_above_threshold():
     assert r.suppress is False
 
 
+@pytest.mark.parametrize("confidence, expected_score", [(0.40, 40.0), (0.59, 59.0)])
+def test_vci_caution_band_boundaries_are_not_suppressed(confidence, expected_score):
+    r = compute_vci(nlp_confidence=confidence, benchmark_confidence=confidence,
+                    regulatory_confidence=confidence, enforcement_confidence=confidence,
+                    source_reliability=confidence)
+    assert r.score == expected_score
+    assert r.suppress is False
+    assert r.label == "moderate"
+
+
 def test_vci_components_stored():
     r = compute_vci(nlp_confidence=0.8, benchmark_confidence=0.6,
                     regulatory_confidence=0.7, enforcement_confidence=0.5,

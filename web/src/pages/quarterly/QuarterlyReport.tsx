@@ -179,7 +179,10 @@ function AdminPanel({ onPublished }: { onPublished: () => void }) {
   const load = useCallback(async () => {
     try { setSnapshots(await api.get("/admin/quarterly")); } catch { /* ignore */ }
   }, []);
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    const initialLoad = window.setTimeout(() => { void load(); }, 0);
+    return () => window.clearTimeout(initialLoad);
+  }, [load]);
 
   const build = async () => {
     setBusy(true);
@@ -204,7 +207,7 @@ function AdminPanel({ onPublished }: { onPublished: () => void }) {
     try {
       const blob = await api.getBlob(`/admin/quarterly/${id}.pdf`);
       const url = URL.createObjectURL(blob);
-      if (w) w.location.href = url; else window.location.href = url;
+      if (w) w.location.href = url; else window.location.assign(url);
       setTimeout(() => URL.revokeObjectURL(url), 60_000);
     } catch (e) {
       if (w) w.close();

@@ -91,6 +91,7 @@ APPLY_NOW = [
     "0045_org_notice_fks.sql",                   # DATA-004 — org/notice FKs (NOT VALID, data-safe); prod apply = external step (then audit + VALIDATE)
     "0046_reapply_notice_rls_policies.sql",      # SEC-008 — re-apply 0011's notice-table RLS policies absent in live schema (ledger drift); prod apply = external step
     "0047_assessment_id_uuid_check.sql",         # DB-002 — CHECK assessment_id is UUID-shaped (NOT VALID, data-safe); type→uuid+FK is a staged external step
+    "0048_assessment_intake_scope.sql",           # F01 INT-10 — immutable per-notice declared scope + provenance (additive, RLS-on)
 ]
 
 # ── DB-001: migration numbering & ordering (documented) ──────────────────────
@@ -102,7 +103,7 @@ APPLY_NOW = [
 #   0011_live_assessment_isolation / 0011_local_users (UNTRACKED) / 0011_reference_corpus
 #   0012_finding_content / 0012_versioning_metadata ; 0013_clause_taxonomy_v2 / 0013_enforcement_extra_cols
 # RULE FOR NEW MIGRATIONS: use the next strictly-increasing zero-padded integer with
-# NO collision against any existing prefix (next free is 0048), append to APPLY_NOW.
+# NO collision against any existing prefix (next free is 0049), append to APPLY_NOW.
 # A clean monotonic renumber is only safe on a fresh, never-deployed DB.
 
 # NOT tracked: paste bundles, the ambiguous local_users migration, and the

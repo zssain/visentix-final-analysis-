@@ -170,11 +170,14 @@ export function ReviewQueue() {
   }, []);
 
   useEffect(() => {
-    loadQueue();
-    // Load real training stats
-    api.get("/admin/training-stats")
-      .then((data) => { if (data && typeof data === "object") setTrainingStats(data as typeof trainingStats); })
-      .catch(() => {});
+    const initialLoad = window.setTimeout(() => {
+      void loadQueue();
+      // Load real training stats
+      void api.get("/admin/training-stats")
+        .then((data) => { if (data && typeof data === "object") setTrainingStats(data as typeof trainingStats); })
+        .catch(() => {});
+    }, 0);
+    return () => window.clearTimeout(initialLoad);
   }, [loadQueue]);
 
   // Reset the per-finding editing state (local only).

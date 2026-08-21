@@ -51,6 +51,28 @@ def test_grid_dimensions():
         assert len(row.cells) == 8
 
 
+def test_zero_regulators_is_honest_empty_grid():
+    assert build_regulator_heatmap([], SAMPLE_CLAUSES) == []
+
+
+def test_empty_priority_weights_produce_unevidenced_zero_baselines():
+    rows = build_regulator_heatmap([
+        {"regulator_id": "EMPTY", "name": "No stored priorities", "jurisdiction": "US",
+         "enforcement_frequency_weight": 0.5, "priority_weights": {}}
+    ], Counter())
+    assert len(rows) == 1 and len(rows[0].cells) == 8
+    assert all(cell.intensity == 0 and cell.evidenced is False for cell in rows[0].cells)
+
+
+def test_domain_absent_from_regulator_weights_is_neutral_when_unevidenced():
+    rows = build_regulator_heatmap([
+        {"regulator_id": "ONE", "name": "One priority", "jurisdiction": "US",
+         "enforcement_frequency_weight": 0.5, "priority_weights": {"retention": 0.7}}
+    ], Counter())
+    sharing = next(cell for cell in rows[0].cells if cell.domain == "data_sharing")
+    assert sharing.rpw == 0 and sharing.intensity == 0 and sharing.evidenced is False
+
+
 def test_grid_with_9_regulators():
     """With 9 regulators, grid is 9×8."""
     regs = [{"regulator_id": f"REG-{i}", "name": f"Reg {i}", "jurisdiction": "US",

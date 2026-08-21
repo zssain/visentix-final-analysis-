@@ -96,7 +96,10 @@ export function BulkAnalysis() {
     catch (e) { if (e instanceof ApiError && e.status === 403) showFlash("Bulk screening requires an analyst or admin role."); }
   }, [showFlash]);
 
-  useEffect(() => { loadJobs(); }, [loadJobs]);
+  useEffect(() => {
+    const initialLoad = window.setTimeout(() => { void loadJobs(); }, 0);
+    return () => window.clearTimeout(initialLoad);
+  }, [loadJobs]);
 
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
 
@@ -279,13 +282,15 @@ function ResultsGrid({ jobId, onBack, showFlash }: { jobId: string; onBack: () =
 
   useEffect(() => {
     let cancelled = false;
-    load().then(status => {
-      if (cancelled) return;
-      if (status === "running" || status === "queued") {
-        pollRef.current = setInterval(async () => { const s = await load(); if (s !== "running" && s !== "queued" && pollRef.current) clearInterval(pollRef.current); }, 5000);
-      }
-    });
-    return () => { cancelled = true; if (pollRef.current) clearInterval(pollRef.current); };
+    const initialLoad = window.setTimeout(() => {
+      void load().then(status => {
+        if (cancelled) return;
+        if (status === "running" || status === "queued") {
+          pollRef.current = setInterval(async () => { const s = await load(); if (s !== "running" && s !== "queued" && pollRef.current) clearInterval(pollRef.current); }, 5000);
+        }
+      });
+    }, 0);
+    return () => { cancelled = true; window.clearTimeout(initialLoad); if (pollRef.current) clearInterval(pollRef.current); };
   }, [load]);
 
   const exportCsv = async () => {
@@ -358,7 +363,7 @@ function ResultsGrid({ jobId, onBack, showFlash }: { jobId: string; onBack: () =
       <div className="bulk-filters">
         {DOMAINS.map(d => (
           <button key={d} className={`bulk-chip ${domainFilter.has(d) ? "on" : ""}`} aria-pressed={domainFilter.has(d)}
-                  onClick={() => setDomainFilter(prev => { const n = new Set(prev); n.has(d) ? n.delete(d) : n.add(d); return n; })}>
+                  onClick={() => setDomainFilter(prev => { const n = new Set(prev); if (n.has(d)) n.delete(d); else n.add(d); return n; })}>
             {DOMAIN_LABEL[d]}
           </button>
         ))}

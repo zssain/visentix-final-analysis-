@@ -128,12 +128,19 @@ def test_approve_with_clean_text_passes():
 # ── Section 8 rendering ──────────────────────────────────────
 
 def _build_report(exemplars):
+    # Section 8 is now org-axis driven: peer language may only compare against a
+    # domain actually present in the assessed notice.
+    org_clauses = {
+        exemplar["domain"]: {"clause_id": f"org-{index}", "text": "Stored organization clause."}
+        for index, exemplar in enumerate(exemplars)
+    }
     return assemble_report(
         assessment_id="test", org_name="TestCo",
         scores={"f010": {"score": 50}},
         findings=[], vci={"label": "moderate"},
         narrative_exec="Summary.", narrative_takeaways=[], narrative_recommendations=[],
         exemplars=exemplars, enforcement_heatmap=[],
+        org_clauses_by_domain=org_clauses,
     )
 
 

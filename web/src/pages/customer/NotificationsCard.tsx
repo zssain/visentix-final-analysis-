@@ -32,7 +32,10 @@ export function NotificationsCard() {
     } catch { /* honest empty defaults */ }
   }, [orgId]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    const initialLoad = window.setTimeout(() => { void load(); }, 0);
+    return () => window.clearTimeout(initialLoad);
+  }, [load]);
 
   if (!orgId) return null;
 

@@ -76,7 +76,15 @@ _reviews: dict[str, AssessmentReview] = {}
 _gate_mode_cache: GateMode | None = None
 
 # Synthetic ids used by tests — reset_reviews() cleans these from the DB.
-_TEST_IDS = {"a1", "a2", "assess-1", "assess-2"}
+# UUID-shaped ids satisfy the assessment_id UUID CHECK (migration 0047); the
+# legacy string ids remain so pre-0047 leaked rows are still cleaned up.
+_TEST_IDS = {
+    "a1", "a2", "assess-1", "assess-2",
+    "aaaaaaaa-0000-4000-8000-0000000000a1",
+    "aaaaaaaa-0000-4000-8000-0000000000a2",
+    "aaaaaaaa-0000-4000-8000-000000000001",
+    "aaaaaaaa-0000-4000-8000-000000000002",
+}
 _touched: set[str] = set()
 
 

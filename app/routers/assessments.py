@@ -161,6 +161,13 @@ async def create_assessment(
     organization_name: Optional[str] = Form(None),
     industry: Optional[str] = Form(None),
     jurisdictions: Optional[str] = Form(None),
+    organization_size: Optional[str] = Form(None),
+    public_private: Optional[str] = Form(None),
+    geography: Optional[str] = Form(None),
+    state_footprint: Optional[str] = Form(None),
+    selected_laws: Optional[str] = Form(None),
+    data_categories: Optional[str] = Form(None),
+    business_practices: Optional[str] = Form(None),
     file: Optional[UploadFile] = File(None),
 ):
     """Create a new assessment from URL, PDF upload, or raw text.
@@ -174,7 +181,11 @@ async def create_assessment(
     return await run_assessment_intake(
         user=user, url=url, text=text, organization_id=organization_id,
         organization_name=organization_name, industry=industry,
-        jurisdictions=jurisdictions, file=file,
+        jurisdictions=jurisdictions, organization_size=organization_size,
+        public_private=public_private, geography=geography,
+        state_footprint=state_footprint, selected_laws=selected_laws,
+        data_categories=data_categories, business_practices=business_practices,
+        file=file,
     )
 
 
@@ -194,7 +205,9 @@ class _UploadShim:
 
 async def _run_intake_job(
     job_id: str, *, user, url, text, organization_id, organization_name,
-    industry=None, jurisdictions=None, file_bytes=None, file_name=None,
+    industry=None, jurisdictions=None, organization_size=None, public_private=None,
+    geography=None, state_footprint=None, selected_laws=None, data_categories=None,
+    business_practices=None, file_bytes=None, file_name=None,
 ) -> None:
     """Background runner: drive the intake core, recording server-side progress
     and the final outcome on the assessment_job row. Never raises."""
@@ -206,7 +219,11 @@ async def _run_intake_job(
         result = await run_assessment_intake(
             user=user, url=url, text=text, organization_id=organization_id,
             organization_name=organization_name, industry=industry,
-            jurisdictions=jurisdictions, file=upload, on_stage=on_stage,
+            jurisdictions=jurisdictions, organization_size=organization_size,
+            public_private=public_private, geography=geography,
+            state_footprint=state_footprint, selected_laws=selected_laws,
+            data_categories=data_categories, business_practices=business_practices,
+            file=upload, on_stage=on_stage,
         )
         await intake_jobs.complete_job(
             job_id, assessment_id=result.get("assessment_id"), result=result)
@@ -227,6 +244,13 @@ async def create_assessment_async(
     organization_name: Optional[str] = Form(None),
     industry: Optional[str] = Form(None),
     jurisdictions: Optional[str] = Form(None),
+    organization_size: Optional[str] = Form(None),
+    public_private: Optional[str] = Form(None),
+    geography: Optional[str] = Form(None),
+    state_footprint: Optional[str] = Form(None),
+    selected_laws: Optional[str] = Form(None),
+    data_categories: Optional[str] = Form(None),
+    business_practices: Optional[str] = Form(None),
     idempotency_key: Optional[str] = Form(None),
     file: Optional[UploadFile] = File(None),
 ):
@@ -253,13 +277,22 @@ async def create_assessment_async(
 
     # ARCH-001A: validate filters up front so a bad value fails at submit (422),
     # not silently inside the background job.
-    _validate_filters(industry, _parse_jurisdictions(jurisdictions))
+    _validate_filters(
+        industry, _parse_jurisdictions(jurisdictions),
+        organization_size=organization_size, public_private=public_private,
+        geography=geography, state_footprint=_parse_csv(state_footprint),
+        selected_laws=_parse_csv(selected_laws), data_categories=_parse_csv(data_categories),
+        business_practices=_parse_csv(business_practices),
+    )
 
     org_for_job = user.organization_id if user.role == "customer" else organization_id
     job = await intake_jobs.create_job(
         organization_id=org_for_job, created_by=user.user_id,
         idempotency_key=idempotency_key)
     job_id = job["job_id"]
+    if job.get("_idempotent_replay"):
+        return {"assessment_id": job_id, "status": job["status"],
+                "stage": job["stage"], "idempotent_replay": True}
 
     # Buffer the upload now — the UploadFile is closed once we return the 202.
     file_bytes = await file.read() if file else None
@@ -268,6 +301,9 @@ async def create_assessment_async(
     asyncio.create_task(_run_intake_job(
         job_id, user=user, url=url, text=text, organization_id=organization_id,
         organization_name=organization_name, industry=industry, jurisdictions=jurisdictions,
+        organization_size=organization_size, public_private=public_private, geography=geography,
+        state_footprint=state_footprint, selected_laws=selected_laws,
+        data_categories=data_categories, business_practices=business_practices,
         file_bytes=file_bytes, file_name=file_name))
 
     return {"assessment_id": job_id, "status": "queued", "stage": "queued"}
@@ -308,7 +344,7 @@ def _parse_csv(raw: Optional[str]) -> list[str]:
     """Accept a comma-separated (or single) field → clean, order-preserving list."""
     if not raw:
         return []
-    return [v.strip() for v in raw.split(",") if v.strip()]
+    return list(dict.fromkeys(v.strip() for v in raw.split(",") if v.strip()))
 
 
 # Back-compat alias — jurisdictions were the first multi-value field (ARCH-001A).
@@ -322,7 +358,13 @@ def _parse_industries(raw: Optional[str]) -> list[str]:
     return _parse_csv(raw)
 
 
-def _validate_filters(industry: Optional[str], jurisdictions: list[str]) -> None:
+def _validate_filters(
+    industry: Optional[str], jurisdictions: list[str], *,
+    organization_size: Optional[str] = None, public_private: Optional[str] = None,
+    geography: Optional[str] = None, state_footprint: list[str] | None = None,
+    selected_laws: list[str] | None = None, data_categories: list[str] | None = None,
+    business_practices: list[str] | None = None,
+) -> None:
     """Reject unknown filter values rather than passing junk downstream (ARCH-001A).
 
     `industry` accepts a single value or a comma-separated multi-select; every
@@ -334,16 +376,37 @@ def _validate_filters(industry: Optional[str], jurisdictions: list[str]) -> None
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail=f"Unknown industry: {ind!r}. Choose one of the listed industries or 'unknown'.",
             )
-    for j in jurisdictions:
+    for j in [*jurisdictions, *(state_footprint or []), *(selected_laws or [])]:
         if not _iopt.is_valid_jurisdiction(j):
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail=f"Unknown jurisdiction: {j!r}.",
             )
+    scalar_checks = [
+        (organization_size, _iopt.is_valid_size, "organization size"),
+        (public_private, _iopt.is_valid_public_private, "public/private value"),
+        (geography, _iopt.is_valid_geography, "geography"),
+    ]
+    for value, validator, label in scalar_checks:
+        if value and not validator(value):
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                                detail=f"Unknown {label}: {value!r}. Choose a listed option.")
+    allowed_categories = set(_iopt.data_category_values())
+    for value in data_categories or []:
+        if value not in allowed_categories:
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                                detail=f"Unknown data category: {value!r}. Choose a listed option.")
+    allowed_practices = set(_iopt.business_practice_values())
+    for value in business_practices or []:
+        if value not in allowed_practices:
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                                detail=f"Unknown business practice: {value!r}. Choose a listed option.")
 
 
 async def _apply_intake_filters(
-    org_id: str, industry: Optional[str], jurisdictions: list[str]
+    org_id: str, industry: Optional[str], jurisdictions: list[str], *,
+    organization_size: Optional[str] = None, public_private: Optional[str] = None,
+    geography: Optional[str] = None, state_footprint: list[str] | None = None,
 ) -> bool:
     """Write user-declared industry + jurisdictions onto the org row, with honest
     provenance (ARCH-001A). Blank fields are left untouched (never clobbered).
@@ -370,13 +433,57 @@ async def _apply_intake_filters(
             patch["industry_id"] = industry_id
             patch["sub_industry"] = sub_industry
             patch["industry_source"] = "user_provided"
-    if jurisdictions:
-        patch["jurisdiction_presence"] = jurisdictions
+    # New contract: factual footprint drives RSS. Legacy callers that only send
+    # `jurisdictions` keep their historical behavior for backward compatibility.
+    footprint = state_footprint or jurisdictions
+    if footprint:
+        patch["jurisdiction_presence"] = footprint
+    if organization_size:
+        patch["size"] = organization_size
+    if public_private:
+        patch["public_private"] = public_private
+    if geography:
+        patch["geography"] = geography
 
     if not patch:
         return False
     await supabase_rest_patch("organization", f"organization_id=eq.{org_id}", patch)
     return True
+
+
+async def _persist_intake_scope(
+    notice_id: str, org_id: str, *, organization_name: Optional[str],
+    organization_size: Optional[str], public_private: Optional[str],
+    geography: Optional[str], state_footprint: list[str], selected_laws: list[str],
+    data_categories: list[str], business_practices: list[str],
+) -> None:
+    """Freeze optional declared inputs once per notice (migration 0048)."""
+    values = {
+        "organization_name": organization_name,
+        "organization_size": organization_size,
+        "public_private": public_private,
+        "geography": geography,
+        "state_footprint": state_footprint or None,
+        "selected_laws": selected_laws or None,
+        "data_categories": data_categories or None,
+        "business_practices": business_practices or None,
+    }
+    if not any(value not in (None, [], "") for value in values.values()):
+        return
+    provenance = {
+        key: "user_declared" if value not in (None, [], "") else "not_recorded"
+        for key, value in values.items()
+    }
+    response = await supabase_rest_post(
+        "assessment_intake_scope",
+        {"notice_id": notice_id, "organization_id": org_id, **values, "provenance": provenance},
+    )
+    # Scope is frozen per notice. An idempotent replay may meet the unique key,
+    # but it must never merge new values into the already-recorded scope.
+    if response.status_code == 409:
+        return
+    if response.status_code >= 400:
+        raise RuntimeError(f"assessment intake scope persist failed: HTTP {response.status_code}")
 
 
 async def run_assessment_intake(
@@ -388,6 +495,13 @@ async def run_assessment_intake(
     organization_name: Optional[str] = None,
     industry: Optional[str] = None,
     jurisdictions: Optional[str] = None,
+    organization_size: Optional[str] = None,
+    public_private: Optional[str] = None,
+    geography: Optional[str] = None,
+    state_footprint: Optional[str] = None,
+    selected_laws: Optional[str] = None,
+    data_categories: Optional[str] = None,
+    business_practices: Optional[str] = None,
     file: Optional[UploadFile] = None,
     on_stage=None,
 ):
@@ -408,7 +522,16 @@ async def run_assessment_intake(
 
     # ── 0. VALIDATE INTAKE FILTERS (ARCH-001A) — fail fast, before any work ──
     jurisdictions_list = _parse_jurisdictions(jurisdictions)
-    _validate_filters(industry, jurisdictions_list)
+    footprint_list = _parse_csv(state_footprint)
+    selected_laws_list = _parse_csv(selected_laws)
+    data_categories_list = _parse_csv(data_categories)
+    business_practices_list = _parse_csv(business_practices)
+    _validate_filters(
+        industry, jurisdictions_list, organization_size=organization_size,
+        public_private=public_private, geography=geography,
+        state_footprint=footprint_list, selected_laws=selected_laws_list,
+        data_categories=data_categories_list, business_practices=business_practices_list,
+    )
 
     # ── 1. EXTRACT ────────────────────────────────────────────
     extracted_text: str | None = None
@@ -520,7 +643,10 @@ async def run_assessment_intake(
     # Write the user-declared industry + jurisdictions onto the org BEFORE scoring
     # so compute_ic / compute_rss / build_population consume the real values. A
     # changed scoring input forces a fresh (versioned) profile below.
-    profile_inputs_changed = await _apply_intake_filters(org_id, industry, jurisdictions_list)
+    profile_inputs_changed = await _apply_intake_filters(
+        org_id, industry, jurisdictions_list, organization_size=organization_size,
+        public_private=public_private, geography=geography, state_footprint=footprint_list,
+    )
 
     # ── 3. DECOMPOSE ─────────────────────────────────────────
     await _stage("segmenting")
@@ -546,6 +672,13 @@ async def run_assessment_intake(
         upload_filename=upload_filename,
         upload_mime=upload_mime,
         upload_file_hash=upload_file_hash,
+    )
+    await _persist_intake_scope(
+        notice_id, org_id, organization_name=organization_name,
+        organization_size=organization_size, public_private=public_private,
+        geography=geography, state_footprint=footprint_list,
+        selected_laws=selected_laws_list or jurisdictions_list,
+        data_categories=data_categories_list, business_practices=business_practices_list,
     )
 
     # ── 6. SCORE (live scoring — Prompt 6 adds the module) ───
@@ -609,6 +742,14 @@ async def run_assessment_intake(
             "unknown" if response["industry"] == _iopt.UNKNOWN_INDUSTRY else "user_provided")
     if jurisdictions_list:
         response["jurisdictions"] = jurisdictions_list
+    if footprint_list:
+        response["state_footprint"] = footprint_list
+    if selected_laws_list:
+        response["selected_laws"] = selected_laws_list
+    if data_categories_list:
+        response["data_categories"] = data_categories_list
+    if business_practices_list:
+        response["business_practices"] = business_practices_list
 
     return response
 

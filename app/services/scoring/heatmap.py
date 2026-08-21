@@ -35,6 +35,7 @@ class HeatmapCell:
     clause_density: float  # 0–1: fraction of notice clauses in this domain
     f004_boost: float  # 0–1: enforcement correlation boost for this domain
     vci: float  # confidence for this cell
+    evidenced: bool  # true only when this notice contributes clause evidence
 
 
 @dataclass
@@ -108,6 +109,7 @@ def build_regulator_heatmap(
                 clause_density=round(density, 4),
                 f004_boost=round(f004_boost, 4),
                 vci=round(cell_vci, 4),
+                evidenced=density > 0,
             ))
 
         rows.append(HeatmapRow(
@@ -136,6 +138,7 @@ def heatmap_to_serializable(rows: list[HeatmapRow]) -> list[dict]:
                     "clause_density": c.clause_density,
                     "f004_boost": c.f004_boost,
                     "vci": c.vci,
+                    "evidenced": c.evidenced,
                 }
                 for c in row.cells
             ],

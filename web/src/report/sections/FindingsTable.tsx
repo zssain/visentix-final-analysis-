@@ -4,6 +4,7 @@ import { IntelligenceMark } from "../../components/IntelligenceMark";
 import { CodexTooltip } from "../../components/CodexTooltip";
 import { InfoButton } from "../explain";
 import { EvidenceStack } from "./EvidenceStack";
+import { domainLabel } from "../../lib/domainLabels";
 import type { ReportSection } from "../types";
 
 interface Finding {
@@ -11,7 +12,8 @@ interface Finding {
   domain: string;
   severity: string;
   score: number;
-  confidence: string;
+  confidence: string | number;
+  evidence?: { clause_id?: string; section_reference?: string; excerpt?: string }[];
   finding_code?: string;
   advisor_lede?: string;
   advisor_body?: string;
@@ -62,8 +64,9 @@ export function FindingsTable({ content }: { content: ReportSection["content"] }
             const isOpen = expanded === f.id;
             // Real VCI parsed from the finding's confidence, or honest absence —
             // never a fabricated 75 (DATA-003).
-            const parsedVci = Number(f.confidence?.replace("%", ""));
-            const vci = Number.isFinite(parsedVci) && f.confidence?.trim() ? parsedVci : undefined;
+            const confidenceText = f.confidence === undefined || f.confidence === null ? "" : String(f.confidence);
+            const parsedVci = Number(confidenceText.replace("%", ""));
+            const vci = Number.isFinite(parsedVci) && confidenceText.trim() ? parsedVci : undefined;
             return (
               <Fragment key={f.id}>
                 <tr style={{ borderBottom: "1px solid var(--border)" }}>
@@ -73,8 +76,8 @@ export function FindingsTable({ content }: { content: ReportSection["content"] }
                       {assessmentId && <InfoButton assessmentId={assessmentId} elementType="finding" elementKey={code} label={code} />}
                     </div>
                   </td>
-                  <td style={{ ...td, textTransform: "capitalize" }}>
-                    {f.domain.replace(/_/g, " ")}
+                  <td style={td}>
+                    {domainLabel(f.domain)}
                   </td>
                   <td style={td}>
                     <span className={`badge ${severityBadgeClass(f.severity)}`}>
@@ -85,7 +88,7 @@ export function FindingsTable({ content }: { content: ReportSection["content"] }
                     {f.score?.toFixed(1)}
                   </td>
                   <td style={{ ...td, color: "var(--text-muted)", fontSize: "0.82rem" }}>
-                    {vci !== undefined ? f.confidence : "Not recorded"}
+                    {vci !== undefined ? confidenceText : "Not recorded"}
                   </td>
                   <td style={td}>
                     <button
@@ -109,7 +112,7 @@ export function FindingsTable({ content }: { content: ReportSection["content"] }
                         snapshotId={snapshotId}
                         frozenDate={frozenDate}
                         exposureScore={f.score}
-                        cohortPercentile={f.percentile ?? 50}
+                        cohortPercentile={f.percentile}
                         vci={vci}
                         formulaId="F-002"
                         formulaDesc={(content.formula_descs as Record<string, string> | undefined)?.["F-002"] ?? ""}
@@ -120,6 +123,14 @@ export function FindingsTable({ content }: { content: ReportSection["content"] }
                         lineageRefs={f.lineage_refs}
                       />
                       {assessmentId && <EvidenceStack assessmentId={assessmentId} findingId={f.id} />}
+                      <div style={{ marginTop: 12, fontSize: "0.82rem", color: "var(--text-secondary)" }}>
+                        {(f.evidence ?? []).length > 0 ? (f.evidence ?? []).map((ev, i) => (
+                          <blockquote key={i} style={{ margin: "8px 0", padding: "8px 12px", borderLeft: "3px solid var(--gold)" }}>
+                            <strong>{ev.section_reference ?? ev.clause_id ?? "Stored clause"}</strong>
+                            <div>{ev.excerpt ?? "Excerpt not recorded"}</div>
+                          </blockquote>
+                        )) : <em>No triggering clause reference is stored for this finding.</em>}
+                      </div>
                     </td>
                   </tr>
                 )}

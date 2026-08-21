@@ -53,10 +53,17 @@ def _rest(method, path, prefer=None, json=None):
 
 
 def _seed_snapshot() -> str:
-    """Insert a minimal report_snapshot; return its snapshot_id."""
+    """Insert a minimal report_snapshot; return its snapshot_id.
+
+    report_snapshot.organization_id has an FK to organization (migration 0045),
+    so reference a real corpus org instead of a random uuid (same pattern as
+    tests/test_f02_ingestion_foundation.py — organization is read-mostly).
+    """
     h = {**get_service_headers(), "Content-Type": "application/json", "Prefer": "return=representation"}
+    org = httpx.get(f"{settings.supabase_url}/rest/v1/organization?select=organization_id&limit=1",
+                    headers=get_service_headers(), timeout=15).json()[0]["organization_id"]
     r = httpx.post(f"{settings.supabase_url}/rest/v1/report_snapshot", headers=h, timeout=15, json={
-        "organization_id": str(uuid.uuid4()),
+        "organization_id": org,
         "notice_id": str(uuid.uuid4()),
         "payload": {"section": "test", "value": 42},
         "formula_version_set": {"F-010": "1"},
@@ -73,7 +80,8 @@ def _delete_snapshot(sid: str):
 def test_approve_freeze_kill_leaves_state_draft():
     """Failure between approval and freeze (bogus snapshot) → nothing commits;
     the assessment stays cleanly un-approved."""
-    aid = f"assess-kill-{uuid.uuid4().hex[:8]}"
+    # UUID-shaped: assessment_id columns enforce a UUID CHECK (migration 0047).
+    aid = str(uuid.uuid4())
     submit_finding_action(aid, "f1", FindingAction.CONFIRM, reviewer_id="sme-1")  # -> in_review
     R._clear_caches()
     bogus = str(uuid.uuid4())
@@ -88,7 +96,8 @@ def test_approve_freeze_kill_leaves_state_draft():
 
 def test_approve_freeze_success_commits_both():
     """With a real snapshot, approval AND freeze commit together."""
-    aid = f"assess-ok-{uuid.uuid4().hex[:8]}"
+    # UUID-shaped: assessment_id columns enforce a UUID CHECK (migration 0047).
+    aid = str(uuid.uuid4())
     sid = _seed_snapshot()
     try:
         submit_finding_action(aid, "f1", FindingAction.CONFIRM, reviewer_id="sme-1")
@@ -111,7 +120,8 @@ async def test_state_survives_restart():
     """Create review state + labels + gate mode via the API, simulate a process
     restart (fresh instances = caches cleared, DB untouched), and assert
     everything is still there and gate mode is unchanged."""
-    aid = f"assess-restart-{uuid.uuid4().hex[:8]}"
+    # UUID-shaped: assessment_id columns enforce a UUID CHECK (migration 0047).
+    aid = str(uuid.uuid4())
     transport = ASGITransport(app=app)
 
     with _profile("admin"):

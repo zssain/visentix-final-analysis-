@@ -84,13 +84,28 @@ _DOMAIN_LABELS = {
     "tracking_cookies": "Tracking &amp; Cookies",
 }
 
+# One polarity registry drives dashboard colour and direction copy. ``inverted``
+# is the existing renderer convention: higher values are better when true.
+_DASHBOARD_METRICS = (
+    {"key": "overall_intelligence", "label": "Overall Intelligence", "inverted": True},
+    {"key": "disclosure_maturity", "label": "Disclosure Maturity", "inverted": True},
+    {"key": "transparency", "label": "Transparency", "inverted": True},
+    {"key": "ai_transparency", "label": "AI Governance", "inverted": True},
+    {"key": "regulatory_exposure", "label": "Regulatory Exposure", "inverted": False},
+    {"key": "compound_risk", "label": "Compound Risk", "inverted": False},
+)
+
+
+def _direction(inverted: bool) -> str:
+    return "Maturity — higher is better" if inverted else "Exposure — lower is better"
+
 def _domain_html(dom) -> str:
     """Safe, human display name for a taxonomy domain. _DOMAIN_LABELS values are
-    already entity-escaped; unknown domains are title-cased and escaped."""
+    already entity-escaped; unknown domains are escaped without guessing a label."""
     lbl = _DOMAIN_LABELS.get(dom)
     if lbl:
         return lbl
-    return _esc((dom or "").replace("_", " ").title())
+    return _esc(dom or "")
 
 
 _SECTION_KICKERS = {
@@ -296,10 +311,18 @@ def _strip_placeholders(text: str) -> str:
         return ""
     out = _PLACEHOLDER_CLAUSE_RE.sub("", text)  # "use of {x}," → "use,"
     out = _PLACEHOLDER_RE.sub("", out)          # any remaining bare {token}
+    out = re.sub(r"\s*(?:\(\s*\)|\[\s*\])", "", out)  # emptied () / []
     out = re.sub(r"\s+([,.;:)])", r"\1", out)   # " ," → ","
     out = re.sub(r"([(])\s+", r"\1", out)       # "( " → "("
     out = re.sub(r"\s{2,}", " ", out)           # collapse doubled spaces
     return out.strip()
+
+
+def find_unresolved_template_tokens(text: str) -> list[str]:
+    """Return unresolved authored-template tokens without mutating the prose."""
+    if not isinstance(text, str):
+        return []
+    return sorted(set(_PLACEHOLDER_RE.findall(text)))
 
 
 def _esc(text) -> str:
@@ -460,6 +483,39 @@ def _render_cover(section: ReportSection) -> str:
     else:
         logo = ('<div class="cover-logo" style="font-size:24pt;font-weight:bold;'
                 'letter-spacing:2px;color:#fff;">VISENTIX</div>')
+    scope = c.get("assessment_scope") or {}
+    scope_html = ""
+    if scope:
+        rows = ""
+        labels = {
+            "source": "Assessed source", "notice_version": "Notice version",
+            "capture_date": "Capture date", "effective_date": "Effective date",
+            "intake_method": "Intake method", "organization_name": "Organization",
+            "organization_size": "Organization size", "public_private": "Ownership type",
+            "geography": "Geography", "industry": "Industry",
+            "cohort_definition": "Peer cohort", "state_footprint": "State footprint",
+            "selected_laws": "Selected legal scope", "data_categories": "Data categories",
+            "business_practices": "Business practices",
+        }
+        for key, label in labels.items():
+            item = scope.get(key)
+            if isinstance(item, dict):
+                value, provenance = item.get("value"), item.get("provenance")
+            else:
+                value, provenance = item, None
+            if isinstance(value, list):
+                value = ", ".join(str(v) for v in value)
+            display = _esc(value) if value not in (None, "", []) else "Not recorded"
+            prov = _esc(provenance or "not recorded").replace("_", " ")
+            rows += (f'<tr><th>{_esc(label)}</th><td>{display}</td>'
+                     f'<td><span class="caption">{prov}</span></td></tr>')
+        scope_html = (
+            '<section class="scope-front"><div class="sec-kicker">Assessment configuration</div>'
+            '<h1>Assessment Scope</h1>'
+            '<table class="data-table"><tr><th>Input</th><th>Value</th><th>Source</th></tr>'
+            f'{rows}</table><div class="caption">Unconfirmed values are shown as assumptions; '
+            'legacy assessments are not back-filled.</div></section>'
+        )
     return f"""<section class="cover">
   <div class="cover-panel"></div>
   <div class="cover-accent"></div>
@@ -474,7 +530,7 @@ def _render_cover(section: ReportSection) -> str:
   </table></div>
   <div class="cover-badge"><b>CONFIDENTIAL</b> &middot; This report contains proprietary
     Visentix intelligence and is intended solely for the use of the named recipient.</div>
-</section>"""
+</section>{scope_html}"""
 
 
 def _render_back_cover(report: ReportPayload) -> str:
@@ -585,50 +641,60 @@ def _sec_dashboard(c: dict) -> str:
     exposure = c.get("regulatory_exposure")
     vci = c.get("vci_score")
 
+    metric_by_key = {m["key"]: m for m in _DASHBOARD_METRICS}
     gauges = (
         f'<table class="gauge-row"><tr>'
-        f'<td>{_gauge(overall, "Overall Intelligence", invert=True)}</td>'
-        f'<td>{_gauge(exposure, "Regulatory Exposure", invert=False)}</td>'
-        f'<td>{_gauge(vci, "Confidence (VCI)", invert=True)}</td>'
+        f'<td>{_gauge(overall, "Overall Intelligence · higher is better", invert=metric_by_key["overall_intelligence"]["inverted"])}</td>'
+        f'<td>{_gauge(exposure, "Regulatory Exposure · lower is better", invert=metric_by_key["regulatory_exposure"]["inverted"])}</td>'
+        f'<td>{_gauge(vci, "Confidence (VCI) · higher is stronger", invert=True)}</td>'
         f'</tr></table>'
     )
 
     # Metric strip (4 cards)
-    strip_defs = [
-        ("Disclosure Maturity", c.get("disclosure_maturity"), True),
-        ("AI Governance", c.get("ai_transparency"), True),
-        ("Transparency", c.get("transparency"), True),
-        ("Enforcement Sensitivity", c.get("regulatory_exposure"), False),
-    ]
+    quality = c.get("extraction_quality") or {}
+    quality_notice = ""
+    if quality.get("status") in {"mismatch", "insufficient"}:
+        detail = (
+            "The stored scoring record and the clauses available to this report do not agree."
+            if quality.get("status") == "mismatch"
+            else "No substantive notice clauses are available to support parse-dependent measures."
+        )
+        quality_notice = (
+            '<div class="callout callout--alert"><div class="co-title">Extraction review needed</div>'
+            f'<div>{detail} '
+            'Parse-dependent maturity and benchmark values are withheld pending review.</div></div>'
+        )
+
+    strip_defs = [metric_by_key[key] for key in (
+        "disclosure_maturity", "ai_transparency", "transparency", "regulatory_exposure"
+    )]
     cards = ""
-    for label, val, inv in strip_defs:
+    for metric in strip_defs:
+        label, val, inv = metric["label"], c.get(metric["key"]), metric["inverted"]
+        direction = _direction(inv)
         if _num(val) is None:
             cards += (f'<td><div class="metric-card"><div class="metric-label">{label}</div>'
-                      f'<div class="metric-value absent">Not recorded</div></div></td>')
+                      f'<div class="metric-value absent">Not recorded</div>'
+                      f'<div class="caption">{direction}</div></div></td>')
         else:
             color = _ramp_hex(val, inv)
             cards += (f'<td><div class="metric-card" style="border-top:3pt solid {color};">'
                       f'<div class="metric-label">{label}</div>'
-                      f'<div class="metric-value">{val:.1f}</div></div></td>')
+                      f'<div class="metric-value">{val:.1f}</div>'
+                      f'<div class="caption">{direction}</div></div></td>')
     strip = f'<table class="strip" style="margin-top:12pt;"><tr>{cards}</tr></table>'
 
     # Risk dimension summary bars
-    bar_defs = [
-        ("Overall Intelligence", c.get("overall_intelligence"), True),
-        ("Disclosure Maturity", c.get("disclosure_maturity"), True),
-        ("Transparency", c.get("transparency"), True),
-        ("AI Governance", c.get("ai_transparency"), True),
-        ("Regulatory Exposure", c.get("regulatory_exposure"), False),
-        ("Compound Risk", c.get("compound_risk"), False),
-    ]
     bars = ""
-    for label, val, inv in bar_defs:
+    for metric in _DASHBOARD_METRICS:
+        label, val, inv = metric["label"], c.get(metric["key"]), metric["inverted"]
         fill = f"f-{_ramp_key(val, inv)}" if _num(val) is not None else "f-muted"
-        bars += _bar(_esc(label), val, fill)
+        direction = _direction(inv)
+        bars += _bar(f"{_esc(label)} <span class=\"caption\">{direction}</span>", val, fill)
     bars_html = (f'<h3 style="margin-top:14pt;color:#12365B;font-size:10pt;">'
                  f'Risk Dimension Summary</h3>{bars}')
 
-    return gauges + strip + bars_html
+    return quality_notice + gauges + strip + bars_html
 
 
 # ── Section 4: Benchmark Intelligence ───────────────────────────────────────
@@ -638,6 +704,8 @@ def _sec_benchmark(c: dict) -> str:
     org_score = c.get("org_score")
     tq = c.get("top_quartile_score")
     peer_n = c.get("peer_n")
+    measure = _esc(c.get("measure_label") or "Governance Maturity (PGMS)")
+    methodology = c.get("methodology") or {}
 
     # Percentile marker bar
     if _num(percentile) is None:
@@ -646,7 +714,7 @@ def _sec_benchmark(c: dict) -> str:
     else:
         left = _pct(percentile)
         pbar = (
-            f'<div class="bar-compare"><div class="bl">Percentile ranking '
+            f'<div class="bar-compare"><div class="bl">{measure} percentile ranking '
             f'({_esc(_ordinal(percentile))})</div>'
             f'<div class="pmark-track"><div class="pmark" style="left:{left}%;"></div>'
             f'<div class="pmark-lbl" style="left:{left}%;">{percentile:.1f}</div></div>'
@@ -655,13 +723,13 @@ def _sec_benchmark(c: dict) -> str:
 
     # Overall vs top-quartile (real: F-003 lineage)
     head = ('<h3 style="margin-top:14pt;color:#12365B;font-size:10pt;">'
-            'Maturity Dimension Comparison</h3>')
+            f'{measure} Comparison</h3>')
     if _num(org_score) is not None and _num(tq) is not None:
         legend = ('<div class="legend"><span class="sw" style="background:#12365B;"></span>Your score'
                   '<span class="sw" style="background:#2FB3A0;"></span>Top quartile</div>')
         cmp_bars = (
-            _bar("Your overall score", org_score, "f-navy")
-            + _bar("Peer top-quartile threshold", tq, "f-teal")
+            _bar(f"Your {measure} score · higher is better", org_score, "f-navy")
+            + _bar(f"Peer top-quartile {measure} threshold", tq, "f-teal")
         )
         peer_note = (f'<div class="caption">Top-quartile threshold computed over '
                      f'{int(peer_n)} weighted peers (F-003).</div>'
@@ -674,9 +742,37 @@ def _sec_benchmark(c: dict) -> str:
             "reports only the benchmarks it can substantiate — no industry average is "
             "estimated where peer data is absent.")
 
+    method_html = ""
+    if methodology:
+        dimensions = methodology.get("dimensions") or []
+        if isinstance(dimensions, dict):
+            dimensions = [f"{k}: {v}" for k, v in dimensions.items() if v not in (None, "")]
+        dim_text = ", ".join(str(d) for d in dimensions) if dimensions else "Not recorded"
+        version = methodology.get("benchmark_population_version") or "Not recorded"
+        as_of = methodology.get("as_of_date") or c.get("cohort_date") or "Not recorded"
+        relaxations = methodology.get("relaxations") or []
+        relax_text = ""
+        if relaxations:
+            readable = ", ".join(str(x).replace("_", " ") for x in relaxations)
+            relax_text = (f'<p><b>Cohort widening:</b> {_esc(readable)}. '
+                          'Confidence is reduced to reflect the broader comparison.</p>')
+        low = ('<span class="chip chip-moderate">LOW-CONFIDENCE COHORT</span>'
+               if methodology.get("low_confidence") else "")
+        method_html = (
+            '<div class="callout callout--insight"><div class="co-title">Peer-cohort methodology</div>'
+            f'<p><b>Dimensions:</b> {_esc(dim_text)}.</p><p><b>Population version:</b> '
+            f'{_esc(version)} · <b>as of:</b> {_esc(as_of)}. {low}</p>{relax_text}</div>'
+        )
+    else:
+        method_html = _empty_state("Cohort methodology not recorded",
+                                   "No stored peer-population definition is available for this assessment.")
+
     cohort = _esc(c.get("cohort_label", ""))
     cn = f'<div class="snapline">{cohort}</div>' if cohort else ""
-    return pbar + head + dims + cn
+    formula_ids = c.get("formula_ids") or {}
+    lineage = (f'<div class="caption">Comparison: {_esc(formula_ids.get("comparison", "F-003"))} · '
+               f'percentile: {_esc(formula_ids.get("percentile", "F-011"))}.</div>')
+    return pbar + head + dims + method_html + lineage + cn
 
 
 # ── Section 5: Regulator Exposure ───────────────────────────────────────────
@@ -752,7 +848,11 @@ def _sec_regulator(c: dict) -> str:
                 row_html += '<td class="heat-na">&middot;</td>'
                 continue
             intensity = _num(cell.get("intensity"))
-            evidenced = (_num(cell.get("clause_density")) or 0.0) > 0.0
+            # New snapshots carry the explicit flag. Density fallback preserves
+            # deterministic rendering of older frozen snapshots.
+            evidenced = cell.get("evidenced")
+            if not isinstance(evidenced, bool):
+                evidenced = (_num(cell.get("clause_density")) or 0.0) > 0.0
             band = _heat_band(intensity, evidenced)
             if evidenced and intensity is not None:
                 evidenced_cells += 1
@@ -768,7 +868,7 @@ def _sec_regulator(c: dict) -> str:
         f'<div class="heat-legend">'
         f'<span class="sw heat-l1"></span>Low<span class="sw heat-l2"></span>Moderate'
         f'<span class="sw heat-l3"></span>High<span class="sw heat-l4"></span>Elevated'
-        f'<span class="sw heat-na"></span>No clause evidence</div>'
+        f'<span class="sw heat-na"></span>Regulator baseline — no clause from your notice maps to this domain</div>'
         f'<div class="caption" style="margin-top:3pt;">Coverage: {evidenced_cells} of {total_cells} '
         f'domain&times;regulator cells backed by clause evidence in this notice; hatched cells carry '
         f'no evidence and are left uncoloured.</div>'
@@ -807,6 +907,18 @@ def _sec_findings(c: dict) -> str:
         sev_cls = f"sev-{sev}" if sev in {"high", "medium", "low"} else ""
         chip_cls = {"high": "chip-high", "medium": "chip-moderate", "low": "chip-low"}.get(sev, "chip-na")
         conf = _esc(f.get("confidence", "") or "Not recorded")
+        evidence = f.get("evidence") or []
+        if evidence:
+            evidence_html = "".join(
+                '<div class="caption" style="margin-top:4pt;">'
+                f'<b>Clause {_esc(item.get("clause_id") or "Not recorded")}</b>'
+                f'{" · " + _esc(item.get("section_reference")) if item.get("section_reference") else ""}'
+                f'<div class="quote you">{_esc(item.get("excerpt") or "")}</div></div>'
+                for item in evidence
+            )
+        else:
+            evidence_html = ('<div class="caption" style="margin-top:4pt;">'
+                             'No triggering clause reference is stored for this finding.</div>')
         rows += (
             f'<div class="finding-row {sev_cls}">'
             f'<div class="fr-main"><span class="fr-id">{_esc(f.get("id", ""))}</span> '
@@ -815,11 +927,9 @@ def _sec_findings(c: dict) -> str:
             f'&nbsp; Confidence: {conf}</div></div>'
             f'<div class="fr-side"><div class="fr-score">{_fmt(f.get("score"))}</div>'
             f'<div class="caption">exposure</div></div>'
-            f'</div>'
+            f'</div>{evidence_html}</div>'
         )
-    note = ('<div class="caption" style="margin-top:4pt;">Notice-section clause references '
-            'are not carried in this snapshot and are intentionally omitted rather than estimated.</div>')
-    return head + rows + note
+    return head + rows
 
 
 # ── Section 7: Compound Risk ────────────────────────────────────────────────
@@ -838,13 +948,28 @@ def _sec_compound(c: dict) -> str:
         f'<div>Compound risk reflects how individual exposures reinforce one another. '
         f'A higher score means findings cluster into a larger combined regulatory surface.</div></div>'
     )
-    # Drivers from lineage contributors, if present
+    # Drivers from both the current F-008 shape (risk_scores dict) and older
+    # snapshot producer shapes (contributors/drivers list).
     contributors = lineage.get("contributors") or lineage.get("drivers") or []
+    risk_scores = lineage.get("risk_scores") or {}
+    if isinstance(risk_scores, dict) and risk_scores:
+        contributors = [
+            {"domain": name, "score": value}
+            for name, value in sorted(
+                risk_scores.items(),
+                key=lambda item: (-(float(item[1]) if isinstance(item[1], (int, float)) else -1.0), str(item[0])),
+            )
+        ]
+    driver_labels = {
+        "regulatory": "Regulatory Exposure", "benchmark": "Benchmark Deviation",
+        "disclosure": "Disclosure Maturity Gap", "ai": "AI Transparency Gap",
+    }
     if isinstance(contributors, list) and contributors:
         items = ""
         for d in contributors[:5]:
             if isinstance(d, dict):
-                label = _esc(d.get("code") or d.get("domain") or "")
+                raw_label = d.get("code") or d.get("domain") or ""
+                label = _esc(driver_labels.get(raw_label, raw_label))
                 extra = _fmt(d.get("score"), "", 1)
                 items += f'<li><b>{label}</b>{f" — {extra}" if extra else ""}</li>'
             else:
@@ -854,26 +979,32 @@ def _sec_compound(c: dict) -> str:
     else:
         drivers = _empty_state("Driver breakdown not recorded",
                                "The compound-risk lineage did not enumerate contributing findings.")
+    multiplier = lineage.get("cm")
+    multiplier_html = ""
+    if _num(multiplier) is not None:
+        multiplier_html = (
+            f'<div class="caption">Correlation multiplier: {float(multiplier):.2f}. '
+            'The multiplier reflects how related exposure signals can reinforce one another.</div>'
+        )
     impact = (
         f'<div class="callout callout--alert"><div class="co-title">Compound Risk Impact</div>'
         f'<div>At a {level.lower()} compound level, remediating the highest-severity findings '
         f'first yields the largest reduction in combined exposure.</div></div>'
     )
-    return alert + drivers + impact
+    return alert + drivers + multiplier_html + impact
 
 
 # ── Section 8: Benchmark Language Comparison ────────────────────────────────
 
 def _sec_language(c: dict) -> str:
     entries = c.get("entries", []) or []
-    if not c.get("sme_cleaned_available") or not entries:
+    if not entries:
         return _empty_state(
             "Language benchmarking pending",
-            "This section compares your notice language against SME-approved, de-identified "
-            "peer exemplars. No approved exemplar is available for your domains yet.")
+            "No substantive notice clause is available for a domain comparison.")
     rows = ""
     for e in entries:
-        dom = _esc((e.get("domain", "") or "").replace("_", " ").title())
+        dom = _domain_html(e.get("domain", ""))
         your_text = _prose(e.get("your_text", ""))
         peer_text = _prose(e.get("exemplar_text", ""))
         note = _prose(e.get("maturity_note", ""))
@@ -882,11 +1013,11 @@ def _sec_language(c: dict) -> str:
                      '<div class="quote you"><div class="qh">Your notice language</div>'
                      '<span class="absent">No clause captured for this domain.</span></div>')
         if peer_text:
-            peer_cell = (f'<div class="quote peer"><div class="qh">Top-quartile benchmark example</div>'
+            peer_cell = (f'<div class="quote peer"><div class="qh">Approved peer comparator</div>'
                          f'{peer_text}{f"<div class=\"caption\" style=\"margin-top:4pt;\">{note}</div>" if note else ""}</div>')
         else:
-            peer_cell = ('<div class="quote peer"><div class="qh">Top-quartile benchmark example</div>'
-                         '<span class="absent">No SME-approved exemplar for this domain yet.</span></div>')
+            peer_cell = ('<div class="quote peer"><div class="qh">Approved peer comparator</div>'
+                         '<span class="absent">No comparable approved peer language is available for this domain.</span></div>')
         rows += (f'<div class="lang-domain">{dom}</div>'
                  f'<table class="lang-cmp"><tr><td>{your_cell}</td><td>{peer_cell}</td></tr></table>')
     return rows
@@ -906,11 +1037,26 @@ def _sec_recommendations(c: dict) -> str:
         gcolor = _RAMP.get({"high": "high", "medium": "moderate", "low": "low"}.get(sev, "moderate"))
         title = _prose(r.get("title", "")) or _prose(r.get("prose", ""))[:80]
         body = _prose(r.get("prose", ""))
+        basis = _esc(r.get("basis_label") or "Basis not recorded")
+        citation = _esc(r.get("source_note") or "")
+        evidence = r.get("evidence") or []
+        evidence_html = ""
+        if evidence:
+            first = evidence[0]
+            evidence_html = (
+                '<div class="caption"><b>Notice evidence:</b> '
+                f'{_esc(first.get("section_reference") or first.get("clause_id") or "Stored clause")}'
+                f' — {_esc(first.get("excerpt") or "")}</div>'
+            )
+        citation_html = (f'<div class="caption"><b>Authored source note:</b> {citation}</div>'
+                         if citation else '<div class="caption">No authored source citation is recorded.</div>')
         rows += (
             f'<div class="rec-row"><div class="rec-ic">{_glyph("arrow", gcolor)}</div>'
             f'<div class="rec-bd"><div class="rec-title">{title} '
             f'<span class="chip {chip_cls}">{_esc(sev).upper()}</span></div>'
-            f'<div class="rec-body">{body}</div></div></div>'
+            f'<div class="rec-body">{body}</div>'
+            f'<div class="caption"><b>Basis:</b> {basis}</div>{evidence_html}{citation_html}'
+            f'</div></div>'
         )
     return rows
 
@@ -925,7 +1071,7 @@ def _sec_reduction(c: dict) -> str:
     def col(title: str, cls: str, items: list) -> str:
         if items:
             lis = "".join(
-                f'<li>Strengthen {_esc((it.get("domain", "") or "").replace("_", " "))} '
+                f'<li>Strengthen {_domain_html(it.get("domain", ""))} '
                 f'disclosure <span class="caption">({_esc(it.get("code", ""))})</span></li>'
                 for it in items
             )
@@ -967,12 +1113,49 @@ def _sec_traceability(c: dict) -> str:
         f'<span class="caption">(GRD-001/002 — the real outcome recorded for this snapshot, '
         f'never a default).</span></p>'
     )
+    token_result = c.get("template_tokens") or {}
+    token_status = _esc(token_result.get("status") or "not_recorded")
+    token_receipt = (
+        f'<p>Template-token gate: <span class="chip {"chip-low" if token_status == "passed" else "chip-na"}">'
+        f'{token_status.upper()}</span></p>'
+    )
+    quality = c.get("extraction_quality") or {}
+    quality_status = _esc(quality.get("status") or "not_recorded")
+    quality_receipt = f'<p>Clause read agreement: <b>{quality_status.replace("_", " ")}</b>.</p>'
+
+    evidence_rows = ""
+    for finding in c.get("finding_evidence") or []:
+        evidence = finding.get("evidence") or []
+        if not evidence:
+            evidence_rows += (
+                f'<tr><td>{_esc(finding.get("id") or "")}</td>'
+                '<td colspan="6"><span class="absent">No stored clause reference for this finding.</span></td></tr>'
+            )
+            continue
+        for item in evidence:
+            evidence_rows += (
+                f'<tr><td>{_esc(finding.get("id") or "")}</td>'
+                f'<td>{_esc(item.get("clause_id") or "")}</td>'
+                f'<td>{_esc(item.get("section_reference") or "Not recorded")}</td>'
+                f'<td>{_esc(item.get("excerpt") or "")}</td>'
+                f'<td>{_esc(item.get("source_reference") or "Not recorded")}</td>'
+                f'<td>{_esc(finding.get("formula_version") or "Not recorded")}</td>'
+                f'<td>{_esc(finding.get("confidence") or "Not recorded")}</td></tr>'
+            )
+    evidence_body = evidence_rows or (
+        '<tr><td colspan="7"><span class="absent">No finding evidence is recorded.</span></td></tr>'
+    )
+    finding_table = (
+        '<h3 style="margin-top:10pt;color:#12365B;font-size:10pt;">Finding evidence lineage</h3>'
+        '<table class="data-table"><tr><th>Finding</th><th>Clause</th><th>Section</th>'
+        '<th>Excerpt</th><th>Source</th><th>Formula</th><th>Confidence</th></tr>'
+        f'{evidence_body}'
+        '</table>'
+    )
     note = _prose(c.get("note", ""))
     snapline = f'<div class="snapline">{note}</div>' if note else (
         f'<div class="snapline">Snapshot {snap}.</div>')
-    caveat = ('<div class="caption" style="margin-top:4pt;">Per-finding notice-section page '
-              'references are not carried in this snapshot and are omitted rather than estimated.</div>')
-    return table + receipt + snapline + caveat
+    return table + receipt + token_receipt + quality_receipt + finding_table + snapline
 
 
 # ── Section 12: Trend & Emerging Risk ───────────────────────────────────────

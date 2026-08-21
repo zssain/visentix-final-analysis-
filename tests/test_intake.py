@@ -1,5 +1,8 @@
 """Intake tests — SSRF, HTML cleaning, size limits, decomposition, classification."""
 
+import socket
+from unittest.mock import patch
+
 import pytest
 
 from app.services.intake.ssrf import SSRFError, validate_url
@@ -61,7 +64,9 @@ def test_ssrf_blocks_file():
 
 
 def test_ssrf_allows_public_https():
-    url = validate_url("https://example.com/privacy")
+    public = [(socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP, "", ("93.184.216.34", 443))]
+    with patch("app.services.intake.ssrf.socket.getaddrinfo", return_value=public):
+        url = validate_url("https://example.com/privacy")
     assert url == "https://example.com/privacy"
 
 
@@ -350,3 +355,21 @@ def test_decompose_deterministic():
     cats1 = [c.category for c in r1.clauses]
     cats2 = [c.category for c in r2.clauses]
     assert cats1 == cats2
+
+
+@pytest.mark.parametrize("text, expected_fragment", [
+    ("We collect an email address to provide the requested service.", "email address"),
+    ("نحن نجمع عنوان البريد الإلكتروني لتقديم الخدمة المطلوبة. 🔒", "البريد"),
+    ("אנו אוספים כתובת דוא״ל כדי לספק את השירות המבוקש. 🔐", "כתובת"),
+    ("We collect email\u200b addresses and retain them for account support. ✅", "retain"),
+])
+def test_decompose_unicode_and_single_sentence_preserves_customer_text(text, expected_fragment):
+    notice = decompose(text)
+    assert notice.clauses
+    assert expected_fragment in " ".join(clause.raw_text for clause in notice.clauses)
+
+
+def test_every_clause_noise_has_specific_preserved_but_excluded_outcome():
+    notice = decompose("# Privacy Policy\n\nUpdated January 2026\n\nTable of Contents")
+    assert notice.clauses
+    assert all(clause.is_noise for clause in notice.clauses)

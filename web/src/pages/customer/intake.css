@@ -70,6 +70,21 @@
   color: var(--text);
   resize: vertical;
 }
+.intake-field select {
+  width: 100%; border: 1.5px solid var(--border); border-radius: var(--radius);
+  padding: 10px 14px; background: var(--soft-white); color: var(--text);
+}
+.intake-details { width: 100%; border-top: 1px solid var(--border); padding: 10px 0; }
+.intake-details summary { cursor: pointer; color: var(--navy); font-weight: 700; margin-bottom: 10px; }
+.intake-detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.intake-deliverable, .intake-review { margin: 10px 20px; padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius); font-size: .84rem; }
+.intake-review { border-color: var(--gold); background: rgba(200,164,106,.08); }
+.intake-queue { padding: 20px; border-bottom: 1px solid var(--border); }
+.intake-queue h2 { font-family: var(--font-display); color: var(--navy); margin-bottom: 12px; }
+.intake-queue-row { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-top: 1px solid var(--border); }
+.intake-queue-row > div { display: flex; flex-direction: column; gap: 4px; font-size: .8rem; }
+.intake-queue-row a { color: var(--exec-blue); font-weight: 700; }
+.queue-error { color: var(--red); }
 .intake-field input:focus, .intake-field textarea:focus {
   border-color: var(--exec-blue);
   box-shadow: 0 0 0 3px rgba(0,95,163,0.1);

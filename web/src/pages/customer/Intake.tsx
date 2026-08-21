@@ -10,7 +10,6 @@
  *   sections, clauses, content_hash
  */
 import { useState, useCallback, useRef, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { api } from "../../lib/api";
 import { maturityBand } from "../../lib/scoreBands";
 import { PageHeader } from "../../components/PageHeader";
@@ -20,6 +19,16 @@ import "../../components/furniture.css";
 
 type Step = "idle" | "submitting" | "done" | "error";
 type InputMode = "url" | "text" | "upload";
+type QueueStatus = "queued" | "processing" | "ready" | "failed";
+
+interface QueueItem {
+  jobId: string;
+  label: string;
+  status: QueueStatus;
+  stage: string;
+  assessmentId?: string;
+  error?: string;
+}
 
 // QA-011: server-authoritative pipeline stages → customer-register labels.
 const STAGE_LABELS: Record<string, string> = {
@@ -86,7 +95,6 @@ interface AssessmentResult {
 }
 
 export function Intake() {
-  const navigate = useNavigate();
   const [mode, setMode]         = useState<InputMode>("url");
   const [urlVal, setUrlVal]     = useState("");
   const [textVal, setTextVal]   = useState("");
@@ -98,6 +106,8 @@ export function Intake() {
   const [stage, setStage]       = useState<string>("queued");
   const [elapsedSec, setElapsedSec] = useState(0);
   const [canRetry, setCanRetry] = useState(false);
+  const [reviewing, setReviewing] = useState(false);
+  const [queue, setQueue] = useState<QueueItem[]>([]);
 
   // ARCH-001A: intake filters. Options come from the engine's real vocabulary
   // (GET /config/intake-options) so they can't drift from what scoring understands.
@@ -106,19 +116,40 @@ export function Intake() {
   // Industry is now a multi-select (checkbox dropdown); the FIRST real pick is the
   // primary benchmark cohort server-side. Empty array = not selected.
   const [industries, setIndustries] = useState<string[]>([]);
-  const [jurisdictions, setJurisdictions] = useState<string[]>([]);
   const [industryOpts, setIndustryOpts] = useState<IndustryOpt[]>([]);
   const [jurisdictionOpts, setJurisdictionOpts] = useState<JurisdictionOpt[]>([]);
   const [unknownIndustry, setUnknownIndustry] = useState<string>("unknown");
+  const [organizationName, setOrganizationName] = useState("");
+  const [organizationSize, setOrganizationSize] = useState("");
+  const [publicPrivate, setPublicPrivate] = useState("");
+  const [geography, setGeography] = useState("");
+  const [stateFootprint, setStateFootprint] = useState<string[]>([]);
+  const [selectedLaws, setSelectedLaws] = useState<string[]>([]);
+  const [dataCategories, setDataCategories] = useState<string[]>([]);
+  const [businessPractices, setBusinessPractices] = useState<string[]>([]);
+  const [sizeOpts, setSizeOpts] = useState<MSDOption[]>([]);
+  const [publicPrivateOpts, setPublicPrivateOpts] = useState<MSDOption[]>([]);
+  const [geographyOpts, setGeographyOpts] = useState<MSDOption[]>([]);
+  const [footprintOpts, setFootprintOpts] = useState<MSDOption[]>([]);
+  const [dataCategoryOpts, setDataCategoryOpts] = useState<MSDOption[]>([]);
+  const [practiceOpts, setPracticeOpts] = useState<MSDOption[]>([]);
 
   useEffect(() => {
     let alive = true;
     api.get("/config/intake-options")
-      .then((o: { industries: IndustryOpt[]; jurisdictions: JurisdictionOpt[]; unknown_industry?: string }) => {
+      .then((o: { industries: IndustryOpt[]; jurisdictions: JurisdictionOpt[]; unknown_industry?: string;
+        organization_sizes?: MSDOption[]; public_private?: MSDOption[]; geographies?: MSDOption[];
+        state_footprint?: MSDOption[]; data_categories?: MSDOption[]; business_practices?: MSDOption[] }) => {
         if (!alive) return;
         setIndustryOpts(o.industries ?? []);
         setJurisdictionOpts(o.jurisdictions ?? []);
         if (o.unknown_industry) setUnknownIndustry(o.unknown_industry);
+        setSizeOpts(o.organization_sizes ?? []);
+        setPublicPrivateOpts(o.public_private ?? []);
+        setGeographyOpts(o.geographies ?? []);
+        setFootprintOpts(o.state_footprint ?? []);
+        setDataCategoryOpts(o.data_categories ?? []);
+        setPracticeOpts(o.business_practices ?? []);
       })
       .catch(() => { /* options unavailable — filters stay empty (honest degradation) */ });
     return () => { alive = false; };
@@ -137,41 +168,44 @@ export function Intake() {
   const industryLabel = (v: string) => industryChoices.find(o => o.value === v)?.label ?? v;
 
   const isProcessing = step === "submitting";
-  const filtersBlank = industries.length === 0 && jurisdictions.length === 0;
+  const filtersBlank = industries.length === 0 && selectedLaws.length === 0 && stateFootprint.length === 0;
 
   // QA-011 polling machinery. The idempotency key is stable across retries of the
   // SAME submission, so a retry resumes the existing job (no duplicate assessment).
   const idempotencyKey = useRef<string>("");
   const startedAt = useRef<number>(0);
-  const pollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pollTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   const elapsedTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const cancelled = useRef(false);
 
   const stopTimers = useCallback(() => {
-    if (pollTimer.current) { clearTimeout(pollTimer.current); pollTimer.current = null; }
+    for (const timer of pollTimers.current.values()) clearTimeout(timer);
+    pollTimers.current.clear();
     if (elapsedTimer.current) { clearInterval(elapsedTimer.current); elapsedTimer.current = null; }
   }, []);
 
   // Clean up timers if the user navigates away mid-processing.
   useEffect(() => () => { cancelled.current = true; stopTimers(); }, [stopTimers]);
 
-  const finishWithResult = useCallback((res: AssessmentResult) => {
-    stopTimers();
+  const finishWithResult = useCallback((jobId: string, res: AssessmentResult) => {
+    const timer = pollTimers.current.get(jobId);
+    if (timer) clearTimeout(timer);
+    pollTimers.current.delete(jobId);
     setResult(res);
-    setStep("done");
-    if (res.scoring_error) return;               // let the user read the error
-    const delay = res.content_warning ? 4000 : 1500;
-    setTimeout(() => navigate(`/reports/${res.assessment_id}`), delay);
-  }, [navigate, stopTimers]);
+    setStep("idle");
+    setQueue(items => items.map(item => item.jobId === jobId
+      ? { ...item, status: res.scoring_error ? "failed" : "ready", stage: "complete",
+          assessmentId: res.assessment_id, error: res.scoring_error }
+      : item));
+  }, []);
 
-  const pollStatus = useCallback(async (jobId: string, intervalMs: number) => {
+  const pollStatus = useCallback(async function pollStatusLoop(jobId: string, intervalMs: number, submittedAt: number) {
     if (cancelled.current) return;
     // Overall wall-clock guard → recoverable timeout (never an infinite spinner).
-    if (Date.now() - startedAt.current > POLL_MAX_WALL_MS) {
-      stopTimers();
-      setStep("error");
-      setCanRetry(true);
-      setErrorMsg("This is taking longer than expected. You can keep waiting by retrying — your place in line is kept.");
+    if (Date.now() - submittedAt > POLL_MAX_WALL_MS) {
+      setQueue(items => items.map(item => item.jobId === jobId
+        ? { ...item, status: "failed", error: "Processing is taking longer than expected; the server job remains available." }
+        : item));
       return;
     }
     try {
@@ -181,27 +215,29 @@ export function Intake() {
       };
       if (cancelled.current) return;
       setStage(s.stage || s.status);
+      setQueue(items => items.map(item => item.jobId === jobId
+        ? { ...item, status: s.status === "queued" ? "queued" : "processing", stage: s.stage || s.status }
+        : item));
       if (s.status === "complete" && s.result) {
-        finishWithResult(s.result);
+        finishWithResult(jobId, s.result);
         return;
       }
       if (s.status === "failed") {
-        stopTimers();
-        setStep("error");
-        setCanRetry(true);
-        setErrorMsg(s.error || "Processing failed. Please try again.");
+        setQueue(items => items.map(item => item.jobId === jobId
+          ? { ...item, status: "failed", stage: s.stage || "failed", error: s.error || "Processing failed." }
+          : item));
         return;
       }
       const next = Math.min(intervalMs + 400, POLL_MAX_MS);
-      pollTimer.current = setTimeout(() => pollStatus(jobId, next), next);
+      pollTimers.current.set(jobId, setTimeout(() => pollStatusLoop(jobId, next, submittedAt), next));
     } catch (err: unknown) {
       // A transient poll error shouldn't kill the run — retry a few times within
       // the wall-clock budget; a hard auth error is handled by the api layer.
       const next = Math.min(intervalMs + 800, POLL_MAX_MS);
-      pollTimer.current = setTimeout(() => pollStatus(jobId, next), next);
+      pollTimers.current.set(jobId, setTimeout(() => pollStatusLoop(jobId, next, submittedAt), next));
       void err;
     }
-  }, [finishWithResult, stopTimers]);
+  }, [finishWithResult]);
 
   // Friendly client-side pre-check. The server re-validates by magic bytes and
   // is the source of truth; this just fails fast with a plain-English message.
@@ -228,7 +264,6 @@ export function Intake() {
     if (mode === "upload" && !fileVal) return;
 
     cancelled.current = false;
-    stopTimers();
     setStep("submitting");
     setResult(null);
     setErrorMsg("");
@@ -258,7 +293,14 @@ export function Intake() {
       // Industry is comma-separated (multi-select); the server treats the first
       // entry as the primary benchmark cohort.
       if (industries.length) formData.append("industry", industries.join(","));
-      if (jurisdictions.length) formData.append("jurisdictions", jurisdictions.join(","));
+      if (organizationName) formData.append("organization_name", organizationName);
+      if (organizationSize) formData.append("organization_size", organizationSize);
+      if (publicPrivate) formData.append("public_private", publicPrivate);
+      if (geography) formData.append("geography", geography);
+      if (stateFootprint.length) formData.append("state_footprint", stateFootprint.join(","));
+      if (selectedLaws.length) formData.append("selected_laws", selectedLaws.join(","));
+      if (dataCategories.length) formData.append("data_categories", dataCategories.join(","));
+      if (businessPractices.length) formData.append("business_practices", businessPractices.join(","));
       formData.append("idempotency_key", idempotencyKey.current);
 
       const sub = await api.postForm("/assessments/async", formData) as {
@@ -266,18 +308,30 @@ export function Intake() {
       };
       if (cancelled.current) return;
       setStage(sub.stage || sub.status || "queued");
-      pollStatus(sub.assessment_id, POLL_MIN_MS);
+      const label = mode === "url" ? urlVal : mode === "upload" ? (fileVal?.name ?? "Uploaded document") : "Pasted notice";
+      setQueue(items => [...items.filter(item => item.jobId !== sub.assessment_id), {
+        jobId: sub.assessment_id, label, status: "queued", stage: sub.stage || "queued",
+      }]);
+      setStep("idle");
+      if (elapsedTimer.current) { clearInterval(elapsedTimer.current); elapsedTimer.current = null; }
+      setReviewing(false);
+      idempotencyKey.current = "";
+      pollStatus(sub.assessment_id, POLL_MIN_MS, Date.now());
     } catch (err: unknown) {
-      stopTimers();
+      if (elapsedTimer.current) { clearInterval(elapsedTimer.current); elapsedTimer.current = null; }
       setStep("error");
       setCanRetry(true);
       setErrorMsg(err instanceof Error ? err.message : "Could not submit the notice.");
     }
-  }, [mode, urlVal, textVal, fileVal, industries, jurisdictions, pollStatus, stopTimers]);
+  }, [mode, urlVal, textVal, fileVal, industries, organizationName, organizationSize,
+    publicPrivate, geography, stateFootprint, selectedLaws, dataCategories,
+    businessPractices, pollStatus]);
 
-  // A new submission (inputs changed) should get a fresh idempotency key; a retry
-  // of the same inputs keeps it. Clear the key whenever the inputs change.
-  useEffect(() => { idempotencyKey.current = ""; }, [mode, urlVal, textVal, fileVal, industries, jurisdictions]);
+  // A new submission (inputs changed) gets a fresh idempotency key. The review
+  // panel remains open and updates live, so the user can verify changed values.
+  useEffect(() => { idempotencyKey.current = ""; }, [mode, urlVal, textVal, fileVal,
+    industries, organizationName, organizationSize, publicPrivate, geography, stateFootprint,
+    selectedLaws, dataCategories, businessPractices]);
 
   return (
     <div>
@@ -390,19 +444,72 @@ export function Intake() {
             <span className="intake-field-help">Determines your peer benchmark cohort (first selection is primary).</span>
           </div>
 
+          <details className="intake-details" open>
+            <summary>Organization profile</summary>
+            <div className="intake-detail-grid">
+              <div className="intake-field"><label htmlFor="organization-name">Organization name</label>
+                <input id="organization-name" value={organizationName} onChange={e => setOrganizationName(e.target.value)} disabled={isProcessing} /></div>
+              <div className="intake-field"><label htmlFor="organization-size">Organization size</label>
+                <select id="organization-size" value={organizationSize} onChange={e => setOrganizationSize(e.target.value)} disabled={isProcessing}>
+                  <option value="">Not specified</option>{sizeOpts.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select></div>
+              <div className="intake-field"><label htmlFor="public-private">Ownership</label>
+                <select id="public-private" value={publicPrivate} onChange={e => setPublicPrivate(e.target.value)} disabled={isProcessing}>
+                  <option value="">Not specified</option>{publicPrivateOpts.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select></div>
+              <div className="intake-field"><label htmlFor="geography">Geography</label>
+                <select id="geography" value={geography} onChange={e => setGeography(e.target.value)} disabled={isProcessing}>
+                  <option value="">Not specified</option>{geographyOpts.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select></div>
+            </div>
+          </details>
+
+          <details className="intake-details" open>
+            <summary>Footprint and assessment scope</summary>
           <div className="intake-field">
-            <label id="intake-jurisdictions-label">STATE PRIVACY LAWS</label>
+            <label id="intake-footprint-label">WHERE YOU HAVE CONSUMERS OR OPERATE</label>
             <MultiSelectDropdown
-              testId="intake-jurisdictions"
-              ariaLabel="State privacy laws"
-              placeholder="Select state privacy laws…"
-              options={jurisdictionChoices}
-              selected={jurisdictions}
-              onChange={setJurisdictions}
+              testId="intake-footprint"
+              ariaLabel="State footprint"
+              placeholder="Select footprint states…"
+              options={footprintOpts}
+              selected={stateFootprint}
+              onChange={setStateFootprint}
               disabled={isProcessing}
             />
-            <span className="intake-field-help">Sets which regulators and state-law exposure apply.</span>
+            <span className="intake-field-help">This factual footprint informs regulatory scrutiny.</span>
           </div>
+
+          <div className="intake-field">
+            <label id="intake-selected-laws-label">LAWS TO INCLUDE IN THIS ASSESSMENT</label>
+            <MultiSelectDropdown
+              testId="intake-selected-laws"
+              ariaLabel="Selected legal scope"
+              placeholder="Select assessment laws…"
+              options={jurisdictionChoices}
+              selected={selectedLaws}
+              onChange={setSelectedLaws}
+              disabled={isProcessing}
+            />
+            <span className="intake-field-help">This controls the requested assessment scope; it does not change your factual footprint.</span>
+          </div>
+          </details>
+
+          <details className="intake-details">
+            <summary>Data and business practices</summary>
+            <div className="intake-field">
+              <label>DATA CATEGORIES PROCESSED</label>
+              <MultiSelectDropdown testId="intake-data-categories" ariaLabel="Data categories processed"
+                placeholder="Select data categories…" options={dataCategoryOpts} selected={dataCategories}
+                onChange={setDataCategories} disabled={isProcessing} />
+            </div>
+            <div className="intake-field">
+              <label>BUSINESS PRACTICES</label>
+              <MultiSelectDropdown testId="intake-business-practices" ariaLabel="Business practices"
+                placeholder="Select business practices…" options={practiceOpts} selected={businessPractices}
+                onChange={setBusinessPractices} disabled={isProcessing} />
+            </div>
+          </details>
 
           {filtersBlank && (
             <p className="intake-filters-note" data-testid="intake-filters-note">
@@ -418,30 +525,54 @@ export function Intake() {
           <div className="intake-scope-title">Analysis scope</div>
           <ul className="intake-scope-list">
             <li>
+              <span>Organization profile</span>
+              <strong>{[
+                organizationName || "name not specified",
+                sizeOpts.find(o => o.value === organizationSize)?.label ?? organizationSize,
+                publicPrivateOpts.find(o => o.value === publicPrivate)?.label ?? publicPrivate,
+                geographyOpts.find(o => o.value === geography)?.label ?? geography,
+              ].filter(Boolean).join(" · ")}</strong>
+            </li>
+            <li>
               <span>Benchmark cohort</span>
               <strong>{realIndustries.length
                 ? `${industryLabel(realIndustries[0])} peers${realIndustries.length > 1 ? ` (+${realIndustries.length - 1} more selected)` : ""}`
                 : "broad cohort (industry not specified)"}</strong>
             </li>
             <li>
-              <span>Regulatory / state-law exposure</span>
-              <strong>{jurisdictions.length
-                ? jurisdictions.map(c => jurisdictionOpts.find(o => o.value === c)?.label ?? c).join(", ")
-                : "general US exposure (no states selected)"}</strong>
+              <span>State footprint</span>
+              <strong>{stateFootprint.length
+                ? stateFootprint.map(c => jurisdictionOpts.find(o => o.value === c)?.label ?? c).join(", ")
+                : "not confirmed"}</strong>
             </li>
             <li>
-              <span>Declared by you</span>
-              <strong>{[industries.length && "industry", jurisdictions.length && "state laws"].filter(Boolean).join(", ") || "nothing yet"}</strong>
+              <span>Selected legal scope</span>
+              <strong>{selectedLaws.length
+                ? selectedLaws.map(c => jurisdictionOpts.find(o => o.value === c)?.label ?? c).join(", ")
+                : "not specified"}</strong>
             </li>
             <li>
-              <span>Detected from the notice</span>
-              <strong>data categories &amp; practices (tracking, sharing, AI, retention…) — inferred during analysis</strong>
+              <span>Declared data and practices</span>
+              <strong>{[...dataCategories, ...businessPractices].length
+                ? [...dataCategories, ...businessPractices].join(", ")
+                : "not confirmed; report will label notice-based inferences"}</strong>
             </li>
           </ul>
           <p className="intake-scope-foot">
             Confidence and cohort size are shown with the result; small cohorts are disclosed and may be broadened.
           </p>
         </div>
+
+        <p className="intake-deliverable" data-testid="intake-deliverable">
+          Your deliverable includes an on-screen report and a shareable PDF.
+        </p>
+
+        {reviewing && (
+          <div className="intake-review" data-testid="intake-review">
+            <strong>Review assessment scope</strong>
+            <p>Confirm the notice source, organization profile, footprint, selected legal scope, data categories, business practices, and proposed peer cohort shown above.</p>
+          </div>
+        )}
 
         {/* QA-012: honest processing / retention / confidentiality disclosure. Wording
             matches the owner-approved privacy notice (decision-log 2026-07-28); no
@@ -458,12 +589,12 @@ export function Intake() {
         <div className="intake-actions">
           <button
             className="btn btn-primary"
-            onClick={handleSubmit}
-            disabled={isProcessing || step === "done"}
+            onClick={() => reviewing ? void handleSubmit() : setReviewing(true)}
+            disabled={isProcessing}
             aria-busy={isProcessing}
             id="intake-submit-btn"
           >
-            {isProcessing ? "Processing…" : "Analyse Notice"}
+            {isProcessing ? "Adding to queue…" : reviewing ? "Confirm and analyse" : "Review scope"}
           </button>
           {canRetry && step === "error" && (
             <button
@@ -490,7 +621,22 @@ export function Intake() {
 
       {/* ─── RIGHT PANE: Results ─── */}
       <div className="intake-right">
-        {step === "idle" && (
+        {queue.length > 0 && (
+          <section className="intake-queue" aria-label="Submission queue" data-testid="submission-queue">
+            <h2>Submission queue</h2>
+            {queue.map(item => (
+              <div className={`intake-queue-row status-${item.status}`} key={item.jobId}>
+                <div><strong>{item.label}</strong><span>{STAGE_LABELS[item.stage] ?? item.stage}</span></div>
+                <div>
+                  <span className="chip">{item.status}</span>
+                  {item.status === "ready" && item.assessmentId && <a href={`/reports/${item.assessmentId}`}>View report</a>}
+                  {item.status === "failed" && <span className="queue-error">{item.error}</span>}
+                </div>
+              </div>
+            ))}
+          </section>
+        )}
+        {step === "idle" && queue.length === 0 && (
           <div className="intake-empty">
             <div className="intake-empty-icon">◉</div>
             <p className="intake-empty-msg">
@@ -517,7 +663,7 @@ export function Intake() {
           </div>
         )}
 
-        {step === "done" && result && (
+        {result && (
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
 
             {/* Content warning (amber box) */}
@@ -651,9 +797,7 @@ export function Intake() {
             {/* Normal CTA — only when no scoring error (redirect is pending) */}
             {!result.scoring_error && (
               <div style={{ textAlign: "center", color: "var(--text-muted)", fontSize: "0.82rem" }}>
-                {result.content_warning
-                  ? "Redirecting to report in a few seconds…"
-                  : "Redirecting to report…"}
+                Ready for on-screen review and PDF sharing. Use “View report” in the queue.
               </div>
             )}
           </div>
