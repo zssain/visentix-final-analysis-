@@ -2,9 +2,17 @@ import { useEffect, useState } from "react";
 import { api } from "../../lib/api";
 import { PageHeader } from "../../components/PageHeader";
 import { JobsPanel } from "./JobsPanel";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { X } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { AnimatedNumber } from "@/components/ui/animated-number";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { cn } from "@/lib/utils";
 import { StatusDot } from "@/components/StatusDot";
-import { Alert } from "@/components/ui/alert";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface TrainingStats {
   total_labels: number;
@@ -108,174 +116,132 @@ export function AdminConsole() {
         title="Admin Console"
         description="System health, database record counts, the gate-mode policy that controls when customers see drafts, batch operations, and training-label statistics."
         actions={
-          <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.78rem", fontWeight: 600, color: health ? "var(--emerald)" : "var(--red)" }}>
+          <Badge variant={health ? "verified" : "standing-bad"} className="gap-1.5">
             <StatusDot state={health ? "live" : "stopped"} />
             {health ? "System active" : "API offline"}
-          </div>
+          </Badge>
         }
       />
 
-      <div className="content-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, alignItems: "start" }}>
-        
+      <div className="grid items-start gap-6 lg:grid-cols-2">
+
         {/* ── LEFT COLUMN ── */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+        <div className="flex flex-col gap-6">
           
           {/* System Health */}
-          <Card style={{ padding: 24 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-              <h2 style={{ fontSize: "1.1rem", fontWeight: 700, color: "var(--navy)" }}>
-                System Health
-              </h2>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.78rem", fontWeight: 600, color: "var(--emerald)" }}>
-                <StatusDot /> System active
-              </div>
-            </div>
-
-            <div className="stats-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-              <Card className="stat-card" style={{ background: "var(--soft-white)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: 16 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <Card>
+            <CardHeader>
+              <CardTitle>System Health</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-4 sm:grid-cols-2">
+              <div className="rounded-lg border bg-muted/40 p-4">
+                <div className="flex items-center gap-2">
                   <StatusDot state={health ? "live" : "stopped"} />
-                  <div className="stat-value" style={{ color: health ? "var(--emerald)" : "var(--red)", fontSize: "1.25rem", fontWeight: 700 }}>
+                  <div className={cn("font-data text-xl font-bold",
+                    health ? "text-[var(--standing-good)]" : "text-[var(--standing-bad)]")}>
                     {health ? "Healthy" : "Offline"}
                   </div>
                 </div>
-                <div className="stat-label" style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: 4, fontWeight: 500 }}>API Status</div>
-              </Card>
+                <div className="mt-1 text-xs text-muted-foreground">API Status</div>
+              </div>
 
-              <Card className="stat-card" style={{ background: "var(--soft-white)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: 16 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div className="rounded-lg border bg-muted/40 p-4">
+                <div className="flex items-center gap-2">
                   <StatusDot state={health?.ollama === "ok" ? "live" : "stopped"} />
-                  <div className="stat-value" style={{ color: health?.ollama === "ok" ? "var(--emerald)" : "var(--red)", fontSize: "1.25rem", fontWeight: 700 }}>
+                  <div className={cn("font-data text-xl font-bold",
+                    health?.ollama === "ok" ? "text-[var(--standing-good)]" : "text-[var(--standing-bad)]")}>
                     {health?.ollama === "ok" ? "Connected" : "Offline"}
                   </div>
                 </div>
-                <div className="stat-label" style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: 4, fontWeight: 500 }}>Ollama (LLM)</div>
-              </Card>
-            </div>
+                <div className="mt-1 text-xs text-muted-foreground">Ollama (LLM)</div>
+              </div>
+            </CardContent>
           </Card>
 
           {/* Database Overview */}
-          <Card style={{ overflow: "hidden" }}>
-            <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border)", background: "var(--soft-white)" }}>
-              <h2 style={{ fontSize: "1rem", fontWeight: 700, color: "var(--navy)" }}>
-                Database Overview
-              </h2>
-              <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: 2 }}>
-                Live record counts fetched from Supabase
-              </p>
-            </div>
-            <div style={{ maxHeight: "380px", overflowY: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                <thead>
-                  <tr style={{ background: "var(--soft-white)", borderBottom: "1px solid var(--border)" }}>
-                    <th style={{ padding: "10px 16px", textAlign: "left", fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-muted)" }}>Table</th>
-                    <th style={{ padding: "10px 16px", textAlign: "right", fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-muted)" }}>Row Count</th>
-                  </tr>
-                </thead>
-                <tbody>
+          <Card className="gap-0 overflow-hidden py-0">
+            <CardHeader className="border-b bg-muted/40 py-4">
+              <CardTitle className="text-base">Database Overview</CardTitle>
+              <CardDescription>Live record counts fetched from Supabase</CardDescription>
+            </CardHeader>
+            <div className="max-h-95 overflow-y-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Table</TableHead>
+                    <TableHead className="text-right">Row Count</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {Object.entries(rowCounts).length > 0 ? (
                     Object.entries(rowCounts).map(([table, count]) => (
-                      <tr key={table} style={{ borderBottom: "1px solid var(--border)" }}>
-                        <td style={{ padding: "10px 16px", fontSize: "0.85rem", color: "var(--text)", fontWeight: 500 }}>
-                          {table.replace(/_/g, " ")}
-                        </td>
-                        <td className="font-data tabular-nums" style={{ padding: "10px 16px", textAlign: "right", fontWeight: 600, fontSize: "0.85rem", color: "var(--navy)" }}>
+                      <TableRow key={table}>
+                        <TableCell className="font-medium capitalize">{table.replace(/_/g, " ")}</TableCell>
+                        <TableCell className="text-right font-data tabular-nums font-semibold">
                           {typeof count === "number" ? count.toLocaleString() : count}
-                        </td>
-                      </tr>
+                        </TableCell>
+                      </TableRow>
                     ))
                   ) : (
-                    <tr>
-                      <td colSpan={2} style={{ padding: "20px", textAlign: "center", color: "var(--text-muted)" }}>
+                    <TableRow>
+                      <TableCell colSpan={2} className="py-6 text-center text-muted-foreground">
                         No inventory data available.
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   )}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
           </Card>
 
         </div>
 
         {/* ── RIGHT COLUMN ── */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-          
+        <div className="flex flex-col gap-6">
+
           {/* Gate Mode Configuration */}
-          <Card style={{ padding: 24 }}>
-            <h2 style={{ fontSize: "1.1rem", fontWeight: 700, marginBottom: 4, color: "var(--navy)" }}>
-              Global Gate Mode
-            </h2>
-            <p style={{ color: "var(--text-secondary)", fontSize: "0.8rem", marginBottom: 16 }}>
-              Configure customer access permission tiers for draft assessments.
-            </p>
+          <Card>
+            <CardHeader>
+              <CardTitle>Global Gate Mode</CardTitle>
+              <CardDescription>Configure customer access permission tiers for draft assessments.</CardDescription>
+            </CardHeader>
+            <CardContent>
 
             {gateModeStatus && (
-              <Alert style={{
-                marginBottom: 16,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between"
-              }}>
-                <span>{gateModeStatus}</span>
-                <button
-                  onClick={() => setGateModeStatus(null)}
-                  style={{ background: "transparent", color: "inherit", fontWeight: 700, fontSize: "0.9rem", border: "none" }}
-                >
-                  ×
-                </button>
+              <Alert className="mb-4 flex items-center justify-between gap-3">
+                <AlertDescription>{gateModeStatus}</AlertDescription>
+                <Button variant="ghost" size="icon" className="size-6 shrink-0"
+                  onClick={() => setGateModeStatus(null)} aria-label="Dismiss">
+                  <X />
+                </Button>
               </Alert>
             )}
 
             {gateModeError && (
-              <Alert style={{
-                marginBottom: 16, border: "1px solid var(--red)", color: "var(--red)",
-                display: "flex", alignItems: "center", justifyContent: "space-between"
-              }}>
-                <span>{gateModeError}</span>
-                <button
-                  onClick={() => setGateModeError(null)}
-                  style={{ background: "transparent", color: "inherit", fontWeight: 700, fontSize: "0.9rem", border: "none" }}
-                >
-                  ×
-                </button>
+              <Alert variant="destructive" className="mb-4 flex items-center justify-between gap-3">
+                <AlertDescription>{gateModeError}</AlertDescription>
+                <Button variant="ghost" size="icon" className="size-6 shrink-0"
+                  onClick={() => setGateModeError(null)} aria-label="Dismiss">
+                  <X />
+                </Button>
               </Alert>
             )}
 
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div role="radiogroup" aria-label="Gate mode" className="flex flex-col gap-3">
               {[
-                {
-                  id: "instant_draft",
-                  title: "Instant Draft (Default)",
-                  desc: "Customers view report drafts immediately marked with a gold watermark.",
-                  color: "var(--gold)"
-                },
-                {
-                  id: "strict",
-                  title: "Strict Mode",
-                  desc: "Customers view nothing until approved by an SME reviewer.",
-                  color: "var(--navy)"
-                },
-                {
-                  id: "client_reviews",
-                  title: "Client Reviews",
-                  desc: "Clients can inspect the draft and leave feedback/comments.",
-                  color: "var(--exec-blue)"
-                }
+                { id: "instant_draft", title: "Instant Draft (Default)",
+                  desc: "Customers view report drafts immediately marked with a gold watermark." },
+                { id: "strict", title: "Strict Mode",
+                  desc: "Customers view nothing until approved by an SME reviewer." },
+                { id: "client_reviews", title: "Client Reviews",
+                  desc: "Clients can inspect the draft and leave feedback/comments." },
               ].map(mode => (
                 <label
                   key={mode.id}
-                  style={{
-                    display: "flex",
-                    alignItems: "flex-start",
-                    gap: 12,
-                    padding: "14px 16px",
-                    border: `1px solid ${gateMode === mode.id ? "var(--exec-blue)" : "var(--border)"}`,
-                    background: gateMode === mode.id ? "rgba(0, 95, 163, 0.03)" : "white",
-                    borderRadius: "var(--radius)",
-                    cursor: "pointer",
-                    transition: "all 0.18s"
-                  }}
+                  className={cn(
+                    "flex cursor-pointer items-start gap-3 rounded-lg border p-4 transition-colors",
+                    gateMode === mode.id ? "border-ring bg-accent/50" : "hover:bg-accent/30"
+                  )}
                 >
                   <input
                     type="radio"
@@ -283,141 +249,140 @@ export function AdminConsole() {
                     value={mode.id}
                     checked={gateMode === mode.id}
                     onChange={() => handleGateModeChange(mode.id as "strict" | "instant_draft" | "client_reviews")}
-                    style={{ marginTop: 3 }}
+                    className="mt-1 accent-[var(--primary)]"
                   />
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 700, fontSize: "0.88rem", color: "var(--navy)", display: "flex", alignItems: "center", gap: 8 }}>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 text-sm font-semibold">
                       {mode.title}
-                      {gateMode === mode.id && (
-                        <span style={{ fontSize: "0.65rem", background: mode.color, color: "white", padding: "1px 6px", borderRadius: 4, textTransform: "uppercase", fontWeight: 700 }}>
-                          Active
-                        </span>
-                      )}
+                      {gateMode === mode.id && <Badge className="text-[10px] uppercase">Active</Badge>}
                     </div>
-                    <div style={{ fontSize: "0.78rem", color: "var(--text-secondary)", marginTop: 2 }}>
-                      {mode.desc}
-                    </div>
+                    <div className="mt-0.5 text-sm text-muted-foreground">{mode.desc}</div>
                   </div>
                 </label>
               ))}
             </div>
+            </CardContent>
           </Card>
 
           {/* System Operations — M-14: real batch re-assessment trigger */}
-          <Card style={{ padding: 24 }}>
-            <h2 style={{ fontSize: "1.1rem", fontWeight: 700, marginBottom: 4, color: "var(--navy)" }}>
-              System Operations
-            </h2>
-            <p style={{ color: "var(--text-secondary)", fontSize: "0.8rem", marginBottom: 16 }}>
-              Re-run the scoring pipeline over every stored notice for an organization.
-              Each run writes new snapshots and returns a run identifier for the audit trail.
-            </p>
+          <Card>
+            <CardHeader>
+              <CardTitle>System Operations</CardTitle>
+              <CardDescription>
+                Re-run the scoring pipeline over every stored notice for an organization.
+                Each run writes new snapshots and returns a run identifier for the audit trail.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-3">
+              <div className="flex gap-2">
+                <Input
+                  type="text"
+                  value={batchOrg}
+                  onChange={e => setBatchOrg(e.target.value)}
+                  placeholder="Organization ID"
+                  aria-label="Organization ID"
+                />
+                <Button onClick={handleTriggerBatch} disabled={batchRunning || !batchOrg.trim()}>
+                  {batchRunning ? "Running…" : "Run assessment batch"}
+                </Button>
+              </div>
 
-            <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-              <input
-                type="text"
-                value={batchOrg}
-                onChange={e => setBatchOrg(e.target.value)}
-                placeholder="Organization ID"
-                style={{
-                  flex: 1, padding: "8px 12px", fontSize: "0.82rem",
-                  border: "1px solid var(--border)", borderRadius: "var(--radius)",
-                }}
-              />
-              <button
-                onClick={handleTriggerBatch}
-                disabled={batchRunning || !batchOrg.trim()}
-                style={{
-                  padding: "8px 16px", fontSize: "0.82rem", fontWeight: 700,
-                  background: batchRunning || !batchOrg.trim() ? "var(--border)" : "var(--exec-blue)",
-                  color: "white", border: "none", borderRadius: "var(--radius)",
-                  cursor: batchRunning || !batchOrg.trim() ? "default" : "pointer",
-                }}
-              >
-                {batchRunning ? "Running…" : "Run assessment batch"}
-              </button>
-            </div>
+              {batchError && (
+                <Alert variant="destructive"><AlertDescription>{batchError}</AlertDescription></Alert>
+              )}
 
-            {batchError && (
-              <Alert style={{ border: "1px solid var(--red)", color: "var(--red)", fontSize: "0.8rem" }}>
-                {batchError}
-              </Alert>
-            )}
-
-            {batchResult && (
-              <Alert style={{ fontSize: "0.8rem" }}>
-                <div style={{ fontWeight: 700, marginBottom: 4 }}>
-                  Run {batchResult.run_id.slice(0, 8)} — {batchResult.outcome}
-                </div>
-                <div className="font-data tabular-nums" style={{ color: "var(--text-secondary)" }}>
-                  {batchResult.scored} scored · {batchResult.failed} failed · {batchResult.requested} requested
-                </div>
-              </Alert>
-            )}
+              {batchResult && (
+                <Alert>
+                  <AlertDescription>
+                    {/* Run id is machinery: the OUTCOME leads, the truncated id
+                        follows as a reference (DDR-011). */}
+                    <span className="font-semibold">{batchResult.outcome}</span>
+                    <span className="ml-1.5 font-data text-muted-foreground">
+                      run {batchResult.run_id.slice(0, 8)}
+                    </span>
+                    <span className="mt-1 block font-data tabular-nums text-muted-foreground">
+                      {batchResult.scored} scored · {batchResult.failed} failed · {batchResult.requested} requested
+                    </span>
+                  </AlertDescription>
+                </Alert>
+              )}
+            </CardContent>
           </Card>
 
           {/* Training stats */}
-          <Card style={{ padding: 24 }}>
-            <h2 style={{ fontSize: "1.1rem", fontWeight: 700, marginBottom: 4, color: "var(--navy)" }}>
-              Training Label Stats
-            </h2>
-            <p style={{ color: "var(--text-secondary)", fontSize: "0.8rem", marginBottom: 20 }}>
-              Audit labels captured from SME review queue confirmations and overrides.
-            </p>
-
+          <Card>
+            <CardHeader>
+              <CardTitle>Training Label Stats</CardTitle>
+              <CardDescription>
+                Audit labels captured from SME review queue confirmations and overrides.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
             {loading ? (
-              <div style={{ padding: 40, textAlign: "center", color: "var(--text-muted)" }}>
-                <div style={{
-                  width: 32, height: 32, border: "3px solid var(--border)",
-                  borderTopColor: "var(--exec-blue)", borderRadius: "50%",
-                  animation: "spin 0.7s linear infinite", margin: "0 auto 12px"
-                }} />
-                Loading stats...
+              <div className="flex flex-col gap-3">
+                <Skeleton className="h-8 w-full" />
+                <Skeleton className="h-2 w-full" />
+                <div className="grid grid-cols-3 gap-3">
+                  {[0,1,2].map(i => <Skeleton key={i} className="h-16" />)}
+                </div>
               </div>
             ) : (
-              <div>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 12 }}>
-                  <span style={{ fontSize: "0.85rem", fontWeight: 600, color: "var(--text-secondary)" }}>Total Labels</span>
-                  <span className="font-data tabular-nums" style={{ fontSize: "1.8rem", fontWeight: 700, color: "var(--navy)" }}>
-                    {actualStats.total_labels}
+              <div className="flex flex-col gap-6">
+                <div className="flex items-baseline justify-between">
+                  <span className="text-sm font-semibold text-muted-foreground">Total Labels</span>
+                  <span className="font-data text-3xl font-bold tabular-nums">
+                    <AnimatedNumber value={actualStats.total_labels} />
                   </span>
                 </div>
 
-                {/* Segmented bar graph of actions proportion */}
-                <div style={{ display: "flex", height: 8, borderRadius: 4, overflow: "hidden", background: "var(--border)", marginBottom: 24 }}>
-                  <div style={{ width: `${(actualStats.by_action.confirm / (actualStats.total_labels || 1)) * 100}%`, background: "var(--teal)" }} title="Confirmed" />
-                  <div style={{ width: `${(actualStats.by_action.edit / (actualStats.total_labels || 1)) * 100}%`, background: "var(--gold)" }} title="Edited" />
-                  <div style={{ width: `${(actualStats.by_action.dismiss / (actualStats.total_labels || 1)) * 100}%`, background: "var(--red)" }} title="Dismissed" />
+                {/* Part-to-whole: one stacked bar, not three charts. Colours name
+                    the ACTION taken, not a standing — a dismissal is not "bad". */}
+                <div
+                  className="flex h-2 overflow-hidden rounded-full bg-border"
+                  role="img"
+                  aria-label={`${actualStats.by_action.confirm} confirmed, ${actualStats.by_action.edit} edited, ${actualStats.by_action.dismiss} dismissed`}
+                >
+                  <div style={{ width: `${(actualStats.by_action.confirm / (actualStats.total_labels || 1)) * 100}%`, background: "var(--chart-3)" }} />
+                  <div style={{ width: `${(actualStats.by_action.edit / (actualStats.total_labels || 1)) * 100}%`, background: "var(--chart-1)" }} />
+                  <div style={{ width: `${(actualStats.by_action.dismiss / (actualStats.total_labels || 1)) * 100}%`, background: "var(--muted-foreground)" }} />
                 </div>
 
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 24 }}>
-                  <div style={{ background: "var(--soft-white)", borderRadius: "var(--radius)", padding: "10px 12px", border: "1px solid var(--border)" }}>
-                    <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Confirmed</div>
-                    <div className="font-data tabular-nums" style={{ fontSize: "1.2rem", fontWeight: 700, color: "var(--teal)" }}>{actualStats.by_action.confirm}</div>
-                  </div>
-                  <div style={{ background: "var(--soft-white)", borderRadius: "var(--radius)", padding: "10px 12px", border: "1px solid var(--border)" }}>
-                    <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Edited</div>
-                    <div className="font-data tabular-nums" style={{ fontSize: "1.2rem", fontWeight: 700, color: "var(--gold)" }}>{actualStats.by_action.edit}</div>
-                  </div>
-                  <div style={{ background: "var(--soft-white)", borderRadius: "var(--radius)", padding: "10px 12px", border: "1px solid var(--border)" }}>
-                    <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Dismissed</div>
-                    <div className="font-data tabular-nums" style={{ fontSize: "1.2rem", fontWeight: 700, color: "var(--red)" }}>{actualStats.by_action.dismiss}</div>
-                  </div>
+                <div className="grid grid-cols-3 gap-3">
+                  {[
+                    { label: "Confirmed", value: actualStats.by_action.confirm, dot: "var(--chart-3)" },
+                    { label: "Edited",    value: actualStats.by_action.edit,    dot: "var(--chart-1)" },
+                    { label: "Dismissed", value: actualStats.by_action.dismiss, dot: "var(--muted-foreground)" },
+                  ].map(a => (
+                    <div key={a.label} className="rounded-lg border bg-muted/40 p-3">
+                      <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                        <span className="size-2 rounded-full" style={{ background: a.dot }} aria-hidden="true" />
+                        {a.label}
+                      </div>
+                      <div className="font-data text-xl font-bold tabular-nums">
+                        <AnimatedNumber value={a.value} />
+                      </div>
+                    </div>
+                  ))}
                 </div>
 
-                <div style={{ marginBottom: 20 }}>
-                  <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground" style={{ marginBottom: 10 }}>Breakdown by Domain</div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                <div>
+                  <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    Breakdown by Domain
+                  </div>
+                  <div className="flex flex-col gap-2.5">
                     {Object.entries(actualStats.by_domain).map(([domain, count]) => {
                       const pct = (count / (actualStats.total_labels || 1)) * 100;
                       return (
                         <div key={domain}>
-                          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.78rem", color: "var(--text-secondary)", marginBottom: 3 }}>
-                            <span>{domain.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())}</span>
-                            <span className="font-data tabular-nums" style={{ fontWeight: 600 }}>{count}</span>
+                          <div className="mb-1 flex justify-between text-sm text-muted-foreground">
+                            <span className="capitalize">{domain.replace(/_/g, " ")}</span>
+                            <span className="font-data font-semibold tabular-nums">{count}</span>
                           </div>
-                          <div style={{ height: 4, background: "var(--border)", borderRadius: 2, overflow: "hidden" }}>
-                            <div style={{ height: "100%", width: `${pct}%`, background: "var(--exec-blue)", borderRadius: 2 }} />
+                          <div className="h-1 overflow-hidden rounded-sm bg-border">
+                            <div
+                              className="h-full rounded-sm transition-[width] duration-700 ease-out motion-reduce:transition-none"
+                              style={{ width: `${pct}%`, background: "var(--chart-3)" }}
+                            />
                           </div>
                         </div>
                       );
@@ -426,18 +391,23 @@ export function AdminConsole() {
                 </div>
 
                 <div>
-                  <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground" style={{ marginBottom: 8 }}>Labels Collected Over Time</div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  <div className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    Labels Collected Over Time
+                  </div>
+                  <dl className="flex flex-col gap-1.5 text-sm">
                     {Object.entries(actualStats.by_month).map(([month, count]) => (
-                      <div key={month} style={{ display: "flex", justifyContent: "space-between", fontSize: "0.78rem", color: "var(--text-secondary)" }}>
-                        <span>{month}</span>
-                        <span className="font-data tabular-nums" style={{ fontWeight: 600, color: "var(--navy)" }}>{count} label{count !== 1 ? "s" : ""}</span>
+                      <div key={month} className="flex justify-between">
+                        <dt className="text-muted-foreground">{month}</dt>
+                        <dd className="font-data font-semibold tabular-nums">
+                          {count} label{count !== 1 ? "s" : ""}
+                        </dd>
                       </div>
                     ))}
-                  </div>
+                  </dl>
                 </div>
               </div>
             )}
+            </CardContent>
           </Card>
 
         </div>
@@ -445,13 +415,6 @@ export function AdminConsole() {
       </div>
 
       <JobsPanel />
-
-      <style>{`
-        @keyframes spin { to { transform: rotate(360deg); } }
-        @media (max-width: 900px) {
-          .content-grid { grid-template-columns: 1fr !important; }
-        }
-      `}</style>
 
     </div>
   );
