@@ -10,6 +10,13 @@
 - ~~**Notice rewrite prompts**~~ — **graduated to [`02-features/F14-notice-rewrite-prompts.md`](../02-features/F14-notice-rewrite-prompts.md)** (2026-07-16). Trust Language Studio shell shipped on mock patterns; authored pattern library + SME sign-off still pending.
 - ~~**Vendor due diligence mode**~~ — **graduated to [`02-features/F16-vendor-due-diligence.md`](../02-features/F16-vendor-due-diligence.md)** (2026-07-16). Intake→risk-approval→procurement-summary workflow shipped on mock vendors; vendor pipeline + persistence still pending.
 
+- **Living assessment — the report that keeps up** (owner, 2026-08-31). Today a report is a frozen artifact: true on the day it was cut, quietly staler every week after. The idea is a deliverable that *stays current* — the notice is re-checked on the monitoring cadence, and when it materially moves the customer is told, in the same plain register as the report, what changed and why it matters. Three parts, and the third is the commercial one:
+  - **Report-over-report comparison.** Given two frozen snapshots of the same organization, show what moved: which bands changed, which findings closed or opened, which cohort shifted underneath them. Design constraint: this is a **new derived view over two immutable snapshots**, never a mutation of either (Hard Rule 6) — and the two may carry different formula and benchmark versions, so a diff must disclose when a move is the organization changing versus the method changing. That distinction is the hard part and is unsolved here.
+  - **Improvement narrative.** "Here is what you changed and what it moved" — the loop that turns an assessment into a relationship. Depends on the comparison above plus multi-snapshot history.
+  - **Subscription alerts.** Notify on the moves a customer has opted into. The delivery machinery already exists (F07 scheduler, email/webhook, org-scoped, HMAC-signed) and is deliberately **suppressed until an expert sets F-013 severity thresholds** — so this is a subscription/preference layer on top of a built pipeline, not new plumbing. Any "what to notify about" threshold remains expert-owned.
+
+  Promotion path: this is a feature spec's worth of work (likely an F07 extension plus a new comparison spec), and it needs the formula/benchmark-version-drift question answered before it can be specced honestly.
+
 ## Medium-term (R4–R5)
 
 - **Insurance underwriting API** — batch scoring, exposure tiers, underwriting memos (V3 use case).

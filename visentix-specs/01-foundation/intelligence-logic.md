@@ -1,6 +1,6 @@
 # Intelligence Logic — Classification, Benchmarking, Scoring
 
-**Version:** 1.6 · 2026-08-18 · Consolidates VICBNF v2.0, the Derived Intelligence Catalog v1, and the Intelligence Engine Framework. All weights are **initial policy settings**, configurable in `formula_version` / lookup tables, subject to calibration governance — never hardcoded.
+**Version:** 1.7 · 2026-08-31 · Consolidates VICBNF v2.0, the Derived Intelligence Catalog v1, and the Intelligence Engine Framework. All weights are **initial policy settings**, configurable in `formula_version` / lookup tables, subject to calibration governance — never hardcoded.
 
 ## 1. Pipeline (Porter value chain)
 
@@ -18,9 +18,17 @@
 | **EHP** Enforcement History | tier + 0–100 | None 0 / Limited 1–25 / Moderate 26–50 / Significant 51–75 / High 76–100 |
 | **AIGMS** AI Governance | 0–100 | AI use 20% + Profiling transparency 20% + Automated decision 20% + Training data 15% + Consumer controls 15% + Artifacts 10% |
 
+**Customer-facing names (PROPOSED — OD-14).** The acronyms above are internal. `design-system.md` §4 forbids a house acronym as the label a customer reads, so each dimension needs one governed plain-English name, used identically on every surface and in every deliverable. Proposed, **pending expert confirmation — do not ship these strings until OD-14 closes**: IC → "Industry"; RSS → "Regulatory attention"; PGMS → "Privacy programme maturity"; OSI → "Organizational scale"; DSI → "Data sensitivity"; EHP → "Enforcement history"; AIGMS → "AI governance maturity". The acronym may still appear as a secondary reference in the lineage drawer and methodology. No formula, weight, or tier changed by this naming.
+
 ## 3. Notice classification scores
 
 Completeness (expected clauses present / expected), Transparency (transparent/relevant clauses), Ambiguity (ambiguous terms/total), Readability (Flesch-Kincaid + adjustments), Rights, Retention, Sharing, AI disclosure scores. **Score bands:** 90–100 Leading / 75–89 Mature / 60–74 Developing / 40–59 Lagging / 0–39 Deficient.
+
+**Presentation rule — the band is the message.** These bands (not the raw figure) are what a customer-facing surface leads with: a move from 60 to 70 is not a meaningful statement to a reader, a move from *Developing* to *Mature* is. The number remains stored, frozen, lineage-bearing, and reachable (lineage drawer, hover, traceability section) — it is demoted in the visual hierarchy, never deleted or rounded away. See `design-system.md` §2 "the band leads; the number follows". **Band cut-points are unchanged by this rule.**
+
+**Peer-position vocabulary (PROPOSED — OD-14).** A band says how mature a disclosure is; it does not say *how the organization sits against its peers*, which is the question Visentix exists to answer. Benchmarked surfaces therefore state peer position in plain comparative words drawn from **one** governed vocabulary, never coined per-screen. Proposed vocabulary and cut-points, **all values are a proposal pending expert calibration — do not implement until OD-14 closes**: *well below average* / *below average* / *about average* / *above average* / *well above average*, mapped from the organization's F-011 Benchmark Percentile within its weighted peer cohort. The percentile cut-points for each word are **expert-owned and not proposed here** — no cut-point may be invented in code or copy (Hard Rule 3). Every comparative statement carries its cohort n, as-of date, and the low-confidence label when the cohort is small (§5), and is suppressed entirely below `LOW_CONFIDENCE_COHORT_N`.
+
+**Cohort statements are paraphrased, but never fabricated.** Customer-facing gap language is deliberately general and directional — "most organizations like yours disclose a retention period" reads better than a decimal, and it is honest about the interpretive width of the underlying match. The paraphrase governs the **wording only**: any figure that appears (a share, a count, a percentile) is the real live-queried value with its cohort n and as-of date, and a paraphrase may never round toward a more flattering or more alarming claim than the stored value supports. Bucketed phrasing ("about half", "most", "a small minority") is permitted **only** from an expert-governed bucket map applied to a real figure — Hard Rule 7 is unchanged and no illustrative or placeholder share may appear anywhere.
 
 ## 4. Clause taxonomy (semantic DNA)
 
@@ -113,7 +121,26 @@ Governance rules for how *derived intelligence* — every `derived_data_item` ob
 | **DIR-009** | *Reserved. No live reference; no source text in the repo — confirm before use.* | — |
 | **DIR-010** | Reproducibility: every published number is reproducible from its stored snapshot + formula version + benchmark version; a frozen snapshot regenerates identically. | F12; roadmap "reproducible from stored snapshot"; Hard Rule 6 |
 
-## 13. Changelog
+## 13. Risk horizons — how far away a signal is (PROPOSED, OD-15)
+
+A privacy signal is not one thing. A bill that may never pass, a law in force today, a regulator that has actually acted, and a plaintiff's bar that is actively suing are four different distances from an organization, and flattening them into one "risk" number misleads. This section names the horizons so that every surface can say *when* a signal bites, not just how big it is.
+
+> ⚠️ **PROPOSED — expert confirmation required (OD-15).** The horizon set below is a structuring proposal from owner feedback. It introduces **no formula, weight, threshold, or finding code**, and nothing here feeds a score until an expert-approved formula version says so. Horizons are **context and sequencing** — the same standing as obligations (§4, "exposure context, not scores"). Do not wire a horizon into F-002/F-004/F-008/F-010 on the strength of this section.
+
+| Horizon | What it is | Backing data (already in schema) | Register |
+|---|---|---|---|
+| **Emerging** | A bill or rulemaking under consideration — not law, may never be | *no live table — see OD-15* | "under consideration", "would apply if enacted" — never stated as an obligation |
+| **Scheduled** | Enacted, with an effective date not yet reached | `obligation.effective_date` in the future | "takes effect [date]" |
+| **Current** | Law in force today | `obligation` with a reached `effective_date` | the existing obligation register (§4) |
+| **Demonstrated** | A regulator has actually acted in this area | `enforcement_record` (resolved only, per F05/F07) | "regulators have acted on…" |
+| **Contested** | Private litigation is active in this area | `litigation_event` | "has been the subject of private litigation" — never a prediction of outcome |
+
+**Open modelling questions for OD-15** (do not resolve unilaterally): whether pre-law bills get their own table or ride `obligation` with a status flag; whether Demonstrated and Contested are horizons or an orthogonal *evidence strength* axis; and whether horizon ordering ever influences ranking of findings and recommendations, which would be a scoring change requiring a formula version.
+
+**Guardrail note.** Horizon language is squarely in verdict-adjacent territory. A horizon describes the **landscape**, never the organization's legal position: "this area is under active enforcement" is intelligence; "you are exposed to enforcement" is a verdict dressed as one. Every horizon statement passes the same banned-term filter as all other generated prose.
+
+## 14. Changelog
+- 1.7 (2026-08-31): **Owner feedback pass — presentation register and risk horizons.** §2 adds **PROPOSED customer-facing plain-English dimension names** (OD-14) so house acronyms stop being customer labels. §3 adds the **band-leads-the-number presentation rule** (cut-points unchanged), the **PROPOSED peer-position comparative vocabulary** (OD-14 — words proposed, percentile cut-points expressly left to the expert, nothing implementable yet), and the **paraphrase-but-never-fabricate rule** for cohort statements (Hard Rule 7 restated, not relaxed). New **§13 Risk horizons** (PROPOSED, OD-15) naming Emerging / Scheduled / Current / Demonstrated / Contested as *context and sequencing only* — no formula, weight, threshold, or finding code, and nothing feeding a score. Source: owner (product) verbal notes.
 - 1.6 (2026-08-18): **§4 — Phase 2 taxonomy note (breach + sector laws).** Added the code-level `security` domain slug backing `security_practices_disclosure`, surfacing via a **proposed** finding **SEC-006** (needs expert confirmation before `DOMAIN_TO_FINDING` is wired); mapped `biometric_disclosure`/`consumer_health_data_disclosure` → SEC-002 and `data_broker_disclosure` → SH-002. No formula, weight, or scoring change — obligations stay exposure context, not scores. Companion to schema.md §2.4 (v1.3.9). Source: operator decision (Phase 2).
 - 1.5 (2026-07-28): §5 records that the **dynamic population and demo-cohort job share one CQS eligibility gate** (F03 AC-5), and the honest **operational note** that both currently use the `open_web`-notice freshness proxy (excluding the CQS-failing 2019 Princeton corpus) until per-org `corpus_quality.cqs` is populated; CQS hold-outs are disclosed on the cohort label. No weight/threshold/taxonomy change — a Rule-6 consistency fix surfaced by the Stage-3 rehearsal. Source: engineer.
 - 1.4 (2026-07-27): §5 records the **OD-05 low-confidence cohort floor** `LOW_CONFIDENCE_COHORT_N = 10` (Decided ai_reviewed, pending human owner confirmation) — no weight/threshold/taxonomy change; codifies the existing constant's home. Phase-1 pilot-readiness pass.

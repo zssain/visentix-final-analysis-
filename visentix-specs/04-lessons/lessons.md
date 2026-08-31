@@ -17,7 +17,10 @@ When someone asks "why does the spec insist on X?" — the answer should be find
 
 | L-008 | 2026-07 | 38 of 56 public tables shipped with RLS disabled → the Supabase anon key could read them via PostgREST (proven: organization 26,690 rows, notice_section 540,912 rows) | RLS was never a migration-governance rule; tables created without `ENABLE ROW LEVEL SECURITY` inherit Supabase's default anon/authenticated grants and are exposed through PostgREST | Migration 0042 (ENABLE RLS + REVOKE anon/authenticated on all 38, deny-by-default); schema.md §5.2 rule 4; `tests/test_rls_enabled.py` asserts rowsecurity=true on every public table; `db/migrations/_TEMPLATE.sql` checklist; anon+service keys rotated | CI guard + Spec | Open (until PR merged) |
 
-<!-- Append new rows above this line. Next ID: L-009 -->
+| L-009 | 2026-08 | A named measure ("Overall") did not read the same across the report — the same score presented with different precision/label depending on the surface, so a reader could not tell whether two mentions were the same number | Rounding and label choice were made per-section instead of once at the source; no rule said a named measure must be identical everywhere | design-system §2 "one name, one number"; F05 AC-12 (identical value, band, label and color on Cover / Dashboard / sections / PDF / monitoring hero for one snapshot) | Spec | Open (until the AC-12 check exists in the test gate) |
+| L-010 | 2026-08 | Bare 0–100 scores were the headline on customer surfaces; a reader cannot act on "60 → 70", and the precision implied a confidence the method does not claim | Presentation inherited the engine's internal resolution; no rule separated *what is computed* from *what is shown* | intelligence-logic §3 presentation rule + design-system §2 "the band leads; the number follows"; F05 AC-11 | Spec | Open (until AC-11 ships) |
+
+<!-- Append new rows above this line. Next ID: L-011 -->
 
 ## How a row gets here (the loop)
 1. Incident filed or pattern spotted by the weekly audit (`logs/audits/`).

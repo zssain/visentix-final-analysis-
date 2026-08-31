@@ -61,15 +61,15 @@ A normalized corpus already lives in Supabase. You did not create it and you mus
 6. **Snapshots are immutable; scores are never overwritten.** Re-scoring writes a new versioned row. Never mutate an existing `report_snapshot` or recompute frozen report content at render time — reports must regenerate identically from their stored snapshot.
 7. **Honest numbers.** Cohort n is always live-queried with its as-of date; small cohorts carry the low-confidence label; NEVER print fabricated scale (no "1,250+ notices analyzed" style claims anywhere, including marketing copy in the repo). Empty/low-data states say so plainly ("baseline established"), never fake data.
 8. **De-identification is server-enforced.** Approval paths for reusable language must re-validate de-id on the server; client-side checks are advisory only.
-9. **Register-appropriate language.** Customer-facing screens: plain English, no security jargon, no attack-class names. Internal SME screens may use expert terminology.
+9. **Register-appropriate language.** Customer-facing screens: plain English, no security jargon, no attack-class names, and **no house acronym as the label a customer reads** (RSS, PGMS, OSI, DSI, AIGMS, EHP, VCI, CQS, F-0xx, DIR-0xx) — an acronym may appear only as a secondary reference after a plain-English name, or inside the lineage drawer / Methodology / Codex. Finding codes stay as chips with their Codex tooltip; externally-owned acronyms a privacy reader uses (CCPA, GDPR, FTC) are fine. Customer-facing prose also describes position and opportunity rather than deficiency in the reader — without hiding a real gap. Internal SME screens may use expert terminology.
 <!-- END GENERATED: HARD RULES -->
 
 <!-- BEGIN GENERATED: CURRENT VERSIONS (source: 01-foundation changelogs) -->
 ## Current versions
 - schema.md: v1.3.10 (2026-08-21)
-- business-logic.md: v1.2 (2026-07-15)
-- intelligence-logic.md: v1.6 (2026-08-18)
-- design-system.md: v1.4 (2026-07-27)
+- business-logic.md: v1.3 (2026-08-31)
+- intelligence-logic.md: v1.7 (2026-08-31)
+- design-system.md: v1.5 (2026-08-31)
 - Formula registry: F-001–F-014 (see intelligence-logic.md §7)
 - Score bands: see web/src/lib/scoreBands.ts (single source of truth)
 - LOW_CONFIDENCE_COHORT_N: 10
