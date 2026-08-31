@@ -33,6 +33,8 @@ const S_TRUST     = import.meta.env.VITE_SURFACE_TRUST === "true";
 const S_CROSSWALK = import.meta.env.VITE_SURFACE_CROSSWALK === "true";
 const S_QUARTERLY = import.meta.env.VITE_SURFACE_QUARTERLY !== "false";
 
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import { AuthProvider, useAuth } from "./auth/AuthProvider";
 import { ProtectedRoute }        from "./auth/ProtectedRoute";
 import { ExplainProvider }       from "./report/explain/ExplainContext";
@@ -92,7 +94,19 @@ function NavLink({ to, label, children, onClick }: { to: string; label?: string;
   // Mark as active if pathname starts with this route (except "/" which is exact)
   const active = to === "/" ? location.pathname === "/" : location.pathname.startsWith(to);
   return (
-    <Link to={to} className={`nav-link ${active ? "active" : ""}`} aria-label={label ?? undefined} onClick={onClick}>
+    <Link
+      to={to}
+      aria-current={active ? "page" : undefined}
+      className={cn(
+        "flex items-center gap-2.5 rounded-md px-3 h-9 text-sm font-medium transition-colors no-underline",
+        "[&>svg]:size-[17px] [&>svg]:shrink-0",
+        active
+          ? "bg-sidebar-primary text-sidebar-primary-foreground"
+          : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+      )}
+      aria-label={label ?? undefined}
+      onClick={onClick}
+    >
       {children}
     </Link>
   );
@@ -122,37 +136,47 @@ function AppRoutes() {
   const closeNav = () => setNavOpen(false);
 
   return (
-    <div className="app-layout">
+    <div className="flex min-h-screen bg-background">
       {session && (
         <>
           {/* Mobile top bar — hamburger + brand; hidden on desktop where the
               sidebar is always visible. */}
-          <div className="mobile-topbar">
+          <div className="md:hidden fixed top-0 inset-x-0 z-40 h-14 flex items-center gap-3 px-4 bg-sidebar border-b border-sidebar-border">
             <button
-              className="nav-hamburger"
+              className="inline-flex items-center justify-center size-9 rounded-md text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
               aria-label={navOpen ? "Close menu" : "Open menu"}
               aria-expanded={navOpen}
               onClick={() => setNavOpen(o => !o)}
             >
               {navOpen ? "✕" : "☰"}
             </button>
-            <img src="/wordmark logo for dark background.png" alt="Visentix" className="nav-logo" />
+            <img src="/wordmark logo for white background.png" alt="Visentix" className="h-6 w-auto" />
           </div>
 
           {/* Drawer backdrop (mobile only, when open) */}
-          {navOpen && <div className="side-backdrop" onClick={closeNav} aria-hidden="true" />}
+          {navOpen && <div className="md:hidden fixed inset-0 z-40 bg-black/40" onClick={closeNav} aria-hidden="true" />}
 
           {/* Sidebar nav — grouped so the growing route list stays scannable.
               Nav labels match each page's title/eyebrow so "where am I" is never ambiguous.
               Maskable surfaces show only when their build flag is on AND role allows. */}
-          <nav className={`side-nav ${navOpen ? "open" : ""}`} role="navigation" aria-label="Main navigation">
-            <div className="side-brand">
-              <img src="/wordmark logo for dark background.png" alt="Visentix" className="nav-logo" />
+          <nav
+            className={cn(
+              "fixed md:sticky top-0 z-50 h-screen w-64 shrink-0 flex flex-col",
+              "bg-sidebar border-r border-sidebar-border",
+              "transition-transform duration-200 ease-out md:transition-none",
+              "motion-reduce:transition-none",
+              navOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+            )}
+            role="navigation"
+            aria-label="Main navigation"
+          >
+            <div className="h-16 flex items-center px-5 border-b border-sidebar-border shrink-0">
+              <img src="/wordmark logo for white background.png" alt="Visentix" className="h-7 w-auto" />
             </div>
 
-            <div className="side-links">
-              <div className="side-group">
-                <div className="side-group-label">Workspace</div>
+            <div className="flex-1 overflow-y-auto px-3 py-4 flex flex-col gap-6">
+              <div className="flex flex-col gap-0.5">
+                <div className="px-3 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Workspace</div>
                 <NavLink to="/assessments" onClick={closeNav}><Activity size={17} aria-hidden /> Monitor</NavLink>
                 <NavLink to="/intake" onClick={closeNav}><FilePlus2 size={17} aria-hidden /> Intake</NavLink>
                 {S_REWRITE && (role === "sme" || role === "admin") && (
@@ -166,8 +190,8 @@ function AppRoutes() {
                 )}
               </div>
 
-              <div className="side-group">
-                <div className="side-group-label">Intelligence</div>
+              <div className="flex flex-col gap-0.5">
+                <div className="px-3 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Intelligence</div>
                 {S_QUARTERLY && (
                   <NavLink to="/quarterly" onClick={closeNav}><Newspaper size={17} aria-hidden /> Quarterly</NavLink>
                 )}
@@ -182,14 +206,14 @@ function AppRoutes() {
               </div>
 
               {S_PARTNER && role === "partner_admin" && (
-                <div className="side-group">
-                  <div className="side-group-label">Partner</div>
+                <div className="flex flex-col gap-0.5">
+                  <div className="px-3 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Partner</div>
                   <NavLink to="/partner" onClick={closeNav}><Handshake size={17} aria-hidden /> Partner Workspace</NavLink>
                 </div>
               )}
               {role === "admin" && (
-                <div className="side-group">
-                  <div className="side-group-label">Administration</div>
+                <div className="flex flex-col gap-0.5">
+                  <div className="px-3 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Administration</div>
                   <NavLink to="/admin" onClick={closeNav}><Settings size={17} aria-hidden /> Admin</NavLink>
                   {S_PARTNER && (
                     <NavLink to="/partner" onClick={closeNav}><Handshake size={17} aria-hidden /> Partner</NavLink>
@@ -202,23 +226,24 @@ function AppRoutes() {
             </div>
 
             {/* User area pinned to the bottom */}
-            <div className="side-user">
-              <span className="nav-role">{role ?? ""}</span>
-              <button
+            <div className="shrink-0 border-t border-sidebar-border p-3 flex items-center justify-between gap-2">
+              <span className="text-xs font-medium capitalize text-muted-foreground truncate">{role ?? ""}</span>
+              <Button
                 onClick={signOut}
-                className="nav-signout"
+                variant="ghost"
+                size="sm"
                 id="nav-signout-btn"
                 aria-label="Sign out"
               >
                 Sign Out
-              </button>
+              </Button>
             </div>
           </nav>
         </>
       )}
 
-      <div className="app-main">
-      <div className={fullBleed ? "" : "main-content"}>
+      <div className="flex-1 min-w-0 flex flex-col pt-14 md:pt-0">
+      <div className={fullBleed ? "" : "mx-auto w-full max-w-[1400px] px-5 py-7 md:px-8 md:py-8"}>
         <Routes>
           {/* Public */}
           <Route path="/login" element={<Login />} />
