@@ -8,6 +8,7 @@
  */
 import { useState } from "react";
 import { PageHeader } from "../../components/PageHeader";
+import { MockBadge } from "@/components/MockBadge";
 import { FlashNotice } from "../../components/FlashNotice";
 import { CodexTooltip } from "../../components/CodexTooltip";
 import { useFlash } from "../../lib/useFlash";
@@ -35,7 +36,10 @@ export function VendorDueDiligence() {
         eyebrow="Vendors"
         title="Vendor Due Diligence"
         description="Screen a vendor's public privacy notice, review the exposure intelligence with evidence, and record your own procurement decision."
-        actions={<Button onClick={() => showFlash("Add vendor — intake→assessment pipeline wired later (M-28).")}>+ Add vendor</Button>}
+        actions={<>
+          <MockBadge id="M-28" />
+          <Button onClick={() => showFlash("Add vendor — intake→assessment pipeline wired later (M-28).")}>+ Add vendor</Button>
+        </>}
       />
 
       <FlashNotice message={flash} />

@@ -11,6 +11,7 @@ import { Link } from "react-router-dom";
 import { TRUST_METRICS, DATA_COMMITMENTS, LINEAGE_FIELDS } from "./mockData";
 import "./trust.css";
 import { Card } from "@/components/ui/card";
+import { MockBadge } from "@/components/MockBadge";
 
 export function TrustCenter() {
   // AC-3: never render a metric without a source note.
@@ -29,7 +30,13 @@ export function TrustCenter() {
         </p>
       </div>
 
-      {/* Trust metrics strip (M-27) */}
+      {/* Trust metrics strip (M-27).
+          This page is PUBLIC, so an unlabelled illustrative figure here is a
+          false claim about our own system on the surface whose entire job is
+          trust. The badge wording is owner sign-off pending (see F15 / the
+          mock tracker); it is shown rather than withheld because unlabelled is
+          strictly worse than imperfectly labelled. */}
+      <div className="mb-3"><MockBadge id="M-27" /></div>
       <div className="tc-metrics">
         {metrics.map(m => (
           <div key={m.label} className="tc-metric">

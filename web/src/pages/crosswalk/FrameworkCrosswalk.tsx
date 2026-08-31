@@ -9,6 +9,7 @@
  */
 import { Fragment, useState } from "react";
 import { PageHeader } from "../../components/PageHeader";
+import { MockBadge } from "@/components/MockBadge";
 import { CodexTooltip } from "../../components/CodexTooltip";
 import {
   FRAMEWORKS, DOMAINS, MAPPINGS, cellMappings, type FrameworkId,
@@ -39,6 +40,7 @@ export function FrameworkCrosswalk() {
         eyebrow="Crosswalk"
         title="Framework Crosswalk"
         description="How Visentix's disclosure domains and finding codes relate to the frameworks you already report against. Descriptive references — not compliance determinations."
+        actions={<MockBadge id="M-25" />}
       />
 
       {/* Descriptive-only guardrail banner (AC-5) */}

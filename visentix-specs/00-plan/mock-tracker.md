@@ -1,11 +1,19 @@
 # MOCK TRACKER — the MVP mock-closure punch list
 
-**Version:** 2.1 · 2026-07-27
+**Version:** 2.2 · 2026-08-31
 **Authority:** this is the live, canonical tracker of every mock in the product. It replaces the `MOCK TRACKER` section of the archived `docs/old-docs/UI_SPEC.md`. `00-plan/mvp-completion-plan.md` Workstream A drives these to closure; each feature spec's Mocks section points here.
 
 **Rule (unchanged):** every mock must be replaced with real data before shipping to a real client. Never display a hardcoded score, cohort `n`, snapshot ID, or count. Status values: **Open** (still mocked) · **In progress** · **Replaced** (real data wired, verified).
 
 **Definition of done:** every row below `Replaced`, and `grep` for hardcoded `S-2041`, `n=30`, `142 / 31 / 12` returns nothing (Workstream A exit gate).
+
+**Until a mock is Replaced, its surface must say so.** Every screen that imports a `mockData` module renders `<MockBadge id="M-xx"/>` naming its tracker row. The badge sits at **surface** level (panel/page), not on each figure — a badge on every number is noise, a badge on the panel is a fact. Enforced by `scripts/check_mocks.py`, which fails if a `mockData` importer carries no badge, if a badge names an id that is not in this table, or if a badge names a row already marked Replaced. An unlabelled illustrative figure in an artifact a customer forwards is indistinguishable from a fabricated one (Hard Rule 7).
+
+| Badged surface | Mock | Route |
+|---|---|---|
+| Framework Crosswalk | M-25 | `/crosswalk` |
+| Public Trust Center | M-27 | `/trust` — **public; badge wording needs owner sign-off** |
+| Vendor Due Diligence | M-28 | `/vendors` |
 
 | ID | Feature | Screen | What's mocked | Real source | Status | Removal plan |
 |---|---|---|---|---|---|---|
@@ -26,7 +34,7 @@
 | M-15 | F12→F21 | Quarterly Report reader page | ~~Publication snapshot id + cover corpus counts (orgs / industries / jurisdictions / clauses) hardcoded in `mockData.ts`~~ | Frozen `quarterly_snapshot` + `quarterly_metric` (S4-001..004), DIR-010 | **Replaced** | 2026-07-28 (F21): real `quarterly_snapshot`/`quarterly_metric` (migration 0040), corpus counts are the stored S4-001..004 metric values; snapshot frozen + immutable (service guard + DB trigger); `mockData.ts` deleted. |
 | M-16 | F12→F21 | Quarterly Report reader page | ~~Five named Intelligence Indicators + QoQ deltas hardcoded~~ | Market-average aggregates per `formula_version` | **Replaced (v1 subset)** | 2026-07-28 (F21): **DMI (S4-005) + AI Transparency (S4-006)** computed as confidence/industry-weighted market averages; **QoQ deltas + ESI/CRI/CRCS deferred** (baseline = no prior snapshot; consumer-rights/exposure indices need a live formula / expert sign-off — see F21 deferred list). |
 | M-17 | F12→F21 | Quarterly Report reader page | Section aggregates — industry rankings, regulator activity, AI-governance trend, disclosure trends, compound patterns | Corpus aggregation from `derived_data_item` / F-012 deltas | **Replaced (v1 subset)** | 2026-07-28 (F21): **Top disclosure gaps** (finding frequencies) + **enforcement theme shares (S4-018, resolved-only)** live. Industry rankings / regulator grid / AI 6-quarter trend / compound patterns **deferred** with named inputs (F21). |
-| M-18 | F12 | Quarterly Report reader page | Benchmark Spotlight excerpts hardcoded | SME-approved + de-identified exemplars above the minimum-sample threshold (F06 pipeline) | Open (deferred by F21) | Needs enough SME-approved de-identified exemplars per domain ≥ n=10 (currently 9 approved, several domain-mismatched) — see F21 deferred list |
+| M-18 | F12 | Quarterly Report reader page | ~~Benchmark Spotlight excerpts hardcoded~~ | SME-approved + de-identified exemplars above the minimum-sample threshold (F06 pipeline) | **Replaced (superseded by F21)** | Verified 2026-08-31: the F12 mock screen no longer exists. `QuarterlyReport.tsx` is the F21 real UI and fetches from `/quarterly` + `/admin/quarterly`; no hardcoded excerpt remains. The exemplar-threshold work it was waiting on is tracked in F21's deferred list, not here |
 | M-19 | F11→F20 | Partner Portal | ~~Partner contract + client workspaces (usage, status, branding flags) hardcoded in `mockData.ts`~~ | `partner` + `partner_workspace` (migration 0039), scope-isolated by `partner_id` claim (DIR-005) | **Replaced** | 2026-07-28 (F20): real tenancy — `partner_admin` role + `partner_id` claim (mirrors `organization_id` in `auth.py`); `POST/GET /partner/workspaces` resolve through the one-workspace-wraps-one-client bridge; cross-partner invisible (tested). `mockData.ts` deleted. |
 | M-20 | F11→F20 | Partner Portal | ~~API keys + per-contract usage / rate limits~~ | `partner_api_key` (hash only) + `feed_access_log` | **Replaced** | 2026-07-28 (F20): `POST/GET/DELETE /partner/api-keys` — plaintext returned once, only sha256 hash stored, immediate revocation; feed auth hash-compares the `X-Partner-Key` header; every served feed call logged. (Per-contract rate limits still future work.) |
 | M-21 | F11→F20 | Partner Portal | ~~Anonymized feed catalog (schema, refresh, permitted-use, VCI, suppression flag)~~ | Per-cohort aggregates from `derived_data_item`, min-sample suppressed (DIR-006 / OD-05 n=10) | **Replaced** | 2026-07-28 (F20): `/feed/white-label` reshaped to `(industry × object_type)` aggregates — `organization_id` removed, `population_n` added, `n<10` suppressed server-side, same population exclusions as the benchmark/quarterly cohort (CQS-eligible, non-rehearsal, live), `schema_version` bumped to `vicbnf-3.0.0`. |
