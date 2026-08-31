@@ -278,3 +278,85 @@ async def test_gate_mode_route_not_shadowed_by_dynamic_id():
     body = r.json()
     assert body == {"mode": "strict"}      # not a review object
     assert "assessment_id" not in body
+
+
+# ── FUNC-001 / F06 AC-3: the gate must actually gate ─────────
+#
+# Two defects made the review gate fail open, and these are their regressions.
+#
+#  1. The workbench fetched `GET /findings/`, which for an SME returns EVERY
+#     organization's findings ordered by score and capped at 200, then filtered
+#     client-side by notice_id. An assessment outside that global top-200
+#     rendered an empty finding list — while Approve stayed live.
+#  2. approve_assessment never checked whether findings had been reviewed, so a
+#     report could be frozen as client-shippable with nothing read.
+
+@pytest.mark.anyio
+async def test_approve_refused_while_findings_are_unreviewed():
+    """STRICT is the spec's expert_review and the default: approval must be
+    refused (409) while any finding still has no decision."""
+    set_gate_mode(GateMode.STRICT)
+    ctx = _auth("sme")
+    unreviewed = str(uuid4())
+
+    async def fake_rest_get(table, **kw):
+        class R:
+            @staticmethod
+            def json():
+                return [{"finding_id": unreviewed}] if table == "risk_finding" else []
+        return R()
+
+    with ctx["mock"], patch("app.db.supabase_rest_get", new=fake_rest_get):
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as c:
+            r = await c.post(f"/review/{ASSESS_1}/approve", headers=ctx["headers"])
+    assert r.status_code == 409, r.text
+    body = r.json()["detail"]
+    assert body["error"] == "findings_pending_review"
+    assert unreviewed in body["pending_finding_ids"]
+
+
+@pytest.mark.anyio
+async def test_review_findings_are_scoped_to_the_assessment_and_carry_real_citations():
+    """The per-assessment endpoint filters on notice_id (never a global top-N)
+    and cites clauses through `finding_clause` — never 'a clause in the same
+    domain'. A finding with no linked clause reports honest absence."""
+    ctx = _auth("sme")
+    fid, cited = str(uuid4()), str(uuid4())
+    seen: dict[str, str] = {}
+
+    async def fake_rest_get(table, **kw):
+        seen[table] = kw.get("filters", "")
+        rows = {
+            "risk_finding": [
+                {"finding_id": fid, "finding_type_code": "RT-003", "domain": "retention"},
+                {"finding_id": "no-evidence", "finding_type_code": "SH-002", "domain": "data_sharing"},
+            ],
+            "finding_clause": [{"finding_id": fid, "clause_id": cited}],
+            "disclosure_clause": [{"clause_id": cited, "raw_text": "We keep data for 24 months.",
+                                   "category": "retention"}],
+        }.get(table, [])
+
+        class R:
+            @staticmethod
+            def json():
+                return rows
+        return R()
+
+    with ctx["mock"], patch("app.db.supabase_rest_get", new=fake_rest_get):
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as c:
+            r = await c.get(f"/review/{ASSESS_1}/findings", headers=ctx["headers"])
+
+    assert r.status_code == 200, r.text
+    data = r.json()
+    # Scoped by assessment — not a platform-wide list trimmed by score.
+    assert f"notice_id=eq.{ASSESS_1}" in seen["risk_finding"]
+    by_code = {f["finding_type_code"]: f for f in data["findings"]}
+    assert by_code["RT-003"]["evidence"][0]["clause_id"] == cited
+    assert "24 months" in by_code["RT-003"]["evidence"][0]["text"]
+    # Honest absence — never padded with an unrelated same-domain clause.
+    assert by_code["SH-002"]["evidence"] == []
+    assert data["total_count"] == 2
+    assert data["reviewed_count"] == 0
+    assert data["all_reviewed"] is False

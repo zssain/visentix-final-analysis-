@@ -69,7 +69,28 @@ async def approve(
     assessment_id: str,
     user: AuthenticatedUser = require_role("sme", "admin"),
 ):
-    """Approve an assessment, freezing the customer-visible snapshot."""
+    """Approve an assessment, freezing the customer-visible snapshot.
+
+    F06 AC-3 — the gate must actually gate. Under STRICT (the spec's
+    `expert_review`, and the default), approval is REFUSED while any finding is
+    still undecided. This was previously unenforced: approve committed the freeze
+    without ever asking whether the findings had been reviewed, so the control
+    that makes a report client-shippable passed assessments nobody had read.
+    """
+    if get_gate_mode() == GateMode.STRICT:
+        pending = await _unreviewed_findings(assessment_id)
+        if pending:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail={
+                    "error": "findings_pending_review",
+                    "message": (
+                        f"{len(pending)} finding(s) still need a decision before this "
+                        "assessment can be approved."
+                    ),
+                    "pending_finding_ids": pending,
+                },
+            )
     try:
         review = approve_assessment(assessment_id, user.user_id)
     except ValueError as e:
@@ -212,6 +233,107 @@ async def approve_exemplar(
 # static-path routes above (/queue, /gate-mode, /exemplars). FastAPI matches in
 # registration order — a GET /{assessment_id} declared earlier would swallow
 # GET /review/gate-mode and GET /review/exemplars (Stage-3 routing fix).
+async def _unreviewed_findings(assessment_id: str) -> list[str]:
+    """Finding ids for this assessment with no SME decision recorded.
+
+    A finding that exists in the database but carries no decision is exactly the
+    case the old code could not see, because it never fetched per-assessment
+    findings at all (see review_findings below).
+    """
+    from app.db import supabase_rest_get
+    r = await supabase_rest_get(
+        "risk_finding", select="finding_id",
+        filters=f"notice_id=eq.{assessment_id}", limit=500)
+    ids = [str(row["finding_id"]) for row in (r.json() or []) if row.get("finding_id")]
+    review = get_or_create_review(assessment_id)
+    return [fid for fid in ids
+            if not (review.finding_reviews.get(fid) and review.finding_reviews[fid].action)]
+
+
+@router.get("/{assessment_id}/findings")
+async def review_findings(
+    assessment_id: str,
+    user: AuthenticatedUser = require_role("sme", "admin"),
+):
+    """Findings for ONE assessment, each with its real cited clause evidence and
+    the SME's current decision.
+
+    Why this exists (FUNC-001): the workbench previously called `GET /findings/`,
+    which for an SME returns every organization's findings ordered by score and
+    capped at 200, then filtered client-side by notice_id. An assessment whose
+    findings fell outside that global top-200 rendered as an EMPTY finding list
+    while the Approve button stayed live — the review gate could pass an
+    assessment whose findings were never shown. This endpoint is scoped to the
+    one assessment and is not truncated by anyone else's scores.
+
+    Evidence comes from the `finding_clause` link table — the same citation the
+    report uses — never "some clause in the same domain".
+    """
+    from app.db import supabase_rest_get
+
+    r = await supabase_rest_get(
+        "risk_finding",
+        select="finding_id,finding_type_code,severity,score,domain,confidence_score,"
+               "notice_id,formula_version_id,benchmark_deviation_score",
+        filters=f"notice_id=eq.{assessment_id}",
+        limit=500,
+    )
+    findings = r.json() or []
+
+    finding_ids = [str(f["finding_id"]) for f in findings if f.get("finding_id")]
+    clause_map: dict[str, list[str]] = {}
+    if finding_ids:
+        ids = ",".join(f'"{fid}"' for fid in finding_ids)
+        lr = await supabase_rest_get(
+            "finding_clause", select="finding_id,clause_id",
+            filters=f"finding_id=in.({ids})", limit=2000)
+        for link in lr.json() or []:
+            clause_map.setdefault(str(link["finding_id"]), []).append(str(link["clause_id"]))
+
+    clause_ids = sorted({cid for ids_ in clause_map.values() for cid in ids_})
+    clauses: dict[str, dict] = {}
+    if clause_ids:
+        chunk = ",".join(f'"{c}"' for c in clause_ids)
+        cr = await supabase_rest_get(
+            "disclosure_clause", select="clause_id,raw_text,normalized_text,category,category_v2",
+            filters=f"clause_id=in.({chunk})", limit=2000)
+        for row in cr.json() or []:
+            clauses[str(row["clause_id"])] = row
+
+    review = get_or_create_review(assessment_id)
+    out = []
+    for f in sorted(findings, key=lambda x: str(x.get("finding_type_code") or "")):
+        fid = str(f.get("finding_id") or "")
+        fr = review.finding_reviews.get(fid)
+        evidence = []
+        for cid in clause_map.get(fid, []):
+            row = clauses.get(cid)
+            if not row:
+                continue
+            evidence.append({
+                "clause_id": cid,
+                "text": row.get("raw_text") or row.get("normalized_text") or "",
+                "domain": row.get("category_v2") or row.get("category"),
+            })
+        out.append({
+            **f,
+            # Honest absence: a finding with no linked clause says so; it is never
+            # backfilled with an unrelated clause from the same domain.
+            "evidence": evidence,
+            "decision": fr.action.value if fr and fr.action else None,
+        })
+
+    reviewed = sum(1 for f in out if f["decision"])
+    return {
+        "assessment_id": assessment_id,
+        "status": review.status.value,
+        "findings": out,
+        "reviewed_count": reviewed,
+        "total_count": len(out),
+        "all_reviewed": len(out) > 0 and reviewed == len(out),
+    }
+
+
 @router.get("/{assessment_id}")
 async def review_assessment(
     assessment_id: str,

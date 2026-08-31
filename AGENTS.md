@@ -82,7 +82,7 @@ A normalized corpus already lives in Supabase. You did not create it and you mus
 - F03 — Organization Profiling, Benchmark Populations & Normalization — shipped (deterministic profiler 4.0A + normalization 4.0B)
 - F04 — Scoring, Findings & Confidence Engine — shipped
 - F05 — Report Generation (12 Sections, Snapshots, PDF) — shipped (section gaps per MVP plan Workstream B)
-- F06 — SME Workbench & Review Gate — shipped (M-04 counters wired to real `/admin/training-stats`; queue actions pending)
+- F06 — SME Workbench & Review Gate — shipped — queue, per-finding decisions, approve gating and exemplar de-identification all wired to real endpoints (2026-08-31)
 - F07 — Continuous Monitoring Dashboard (Hero) — shipped (R1) — Dashboard is real-data (assessments + stats); the monitoring hero (trend sparkline, change feed, alert center) is built and wired to live endpoints (M-06/M-07/M-08 Replaced 2026-07-27)
 - F08 — Finding Codex & Methodology Pages — shipped (M-11 replaced — Codex reads the real `/findings/codex` route)
 - F09 — Admin Console — shipped (gate mode + batch trigger real; M-13/M-14 Replaced 2026-07-27)

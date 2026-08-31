@@ -1,640 +1,485 @@
 /**
- * SME Workbench v2 — three-pane layout
+ * SME Workbench — the review gate.
  *
- * Left:   Source clause + de-id checker (PII detected → category label → Redact)
- * Center: Auto-finding + Analyst metric grid + Confirm / Edit / Dismiss
- * Right:  Advisor Note editor + Codex reference
+ * This is the control that makes a report client-shippable (business-logic §5),
+ * so its first duty is that nothing it shows is a lie. The rewrite fixed four
+ * defects that made it look like a review tool while the gate stood open:
  *
- * All data is loaded from the real backend:
- *   GET  /review/queue                          → pending review items
- *   GET  /findings/                             → findings (filtered by notice_id === assessment_id)
- *   GET  /assessments/{aid}/clauses             → source clause text (matched by finding domain)
- *   GET  /findings/codex                        → finding-type titles
- *   POST /review/finding/{aid}/{fid}            → per-finding confirm/edit/dismiss
- *   POST /review/{aid}/approve                  → finalize review, freeze snapshot
+ *  1. Findings were loaded from `GET /findings/` — every organization's findings,
+ *     ordered by score, capped at 200, then filtered client-side. An assessment
+ *     outside that global top-200 showed ZERO findings while Approve stayed live.
+ *     Now: `GET /review/{id}/findings`, scoped to the one assessment.
+ *  2. The "source clause" was whichever clause happened to share the finding's
+ *     domain — so an SME judged a finding against text that was not its evidence,
+ *     under a heading that said "Source". Now: the real `finding_clause`
+ *     citations, or explicit absence.
+ *  3. "Replace all with [REDACTED]" set local state, called no endpoint, and then
+ *     displayed "✓ All PII replaced". Nothing was ever saved. De-identification
+ *     now lives in its own tab and drives the real, server-validated exemplar
+ *     endpoints; the finding pane shows evidence read-only.
+ *  4. Approve committed the freeze without asking whether findings were reviewed
+ *     (F06 AC-3 unenforced). The server now refuses with 409; this surfaces it
+ *     and disables the button with a reason.
  *
- * Exposure / VCI / Percentile are NOT recorded per-finding by any API, so they
- * render honest absence ("—" / "not recorded") — never a fabricated number.
- *
- * Training label counts loaded from /admin/training-stats API.
+ * Layout follows the actual job: pick an assessment → work through its findings →
+ * approve. The queue is its own column instead of being buried inside the middle
+ * pane, which is what made the old screen unreadable.
  */
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { api, ApiError } from "../../lib/api";
-import { CodexTooltip }   from "../../components/CodexTooltip";
-import { IntelligenceMark } from "../../components/IntelligenceMark";
+import { CodexTooltip } from "../../components/CodexTooltip";
 import { PageHeader } from "../../components/PageHeader";
 import "../../components/furniture.css";
+import "./workbench.css";
+
+const NR = "—"; // honest absence — never a fabricated value (DATA-003)
 
 interface ReviewItem {
   assessment_id: string;
   status: string;
   finding_reviews: Record<string, unknown>;
-  approved_by: string;
-  approved_at?: string;
 }
 
-// Shape returned by GET /findings/ (see app/routers/findings.py list_findings)
+interface Evidence {
+  clause_id: string;
+  text: string;
+  domain?: string | null;
+}
+
 interface Finding {
   finding_id: string;
   finding_type_code: string;
   severity: string;
-  score: number | null;
+  score?: number | null;
   domain: string;
-  confidence_score: number | null;
-  notice_id: string;
+  confidence_score?: number | null;
+  benchmark_deviation_score?: number | null;
+  evidence: Evidence[];
+  decision: "confirm" | "edit" | "dismiss" | null;
 }
 
-// Shape returned by GET /assessments/{id}/clauses (see app/routers/assessments.py list_clauses)
-interface Clause {
-  clause_id: string;
-  raw_text: string;
+interface FindingsResponse {
+  findings: Finding[];
+  reviewed_count: number;
+  total_count: number;
+  all_reviewed: boolean;
+}
+
+interface ExemplarCandidate {
+  id: string;
   domain: string;
+  clause_text: string;
+  maturity_note?: string | null;
+  sme_cleaned: boolean;
 }
 
-// Honest-absence marker for any metric the API does not record.
-const NR = "—";
+type Mode = "findings" | "exemplars";
 
-interface PiiToken { token: string; category: "name" | "email" | "url" | "custom"; start: number; end: number; }
-
-function detectPii(text: string): PiiToken[] {
-  const tokens: PiiToken[] = [];
-  // Email
-  const emailRe = /[\w.+-]+@[\w.-]+\.\w+/g;
-  let m;
-  while ((m = emailRe.exec(text)) !== null)
-    tokens.push({ token: m[0], category: "email", start: m.index, end: m.index + m[0].length });
-  // URL
-  const urlRe = /https?:\/\/[\w./-]+/g;
-  while ((m = urlRe.exec(text)) !== null)
-    tokens.push({ token: m[0], category: "url", start: m.index, end: m.index + m[0].length });
-  // Simple name heuristic (two capitalised words)
-  const nameRe = /[A-Z][a-z]+ [A-Z][a-z]+/g;
-  while ((m = nameRe.exec(text)) !== null) {
-    if (!tokens.some(t => t.start === m!.index))
-      tokens.push({ token: m[0], category: "name", start: m.index, end: m.index + m[0].length });
-  }
-  return tokens.sort((a, b) => a.start - b.start);
-}
-
-function ClauseDisplay({ text, redacted }: { text: string; redacted: boolean }) {
-  const tokens = detectPii(text);
-  if (tokens.length === 0 || redacted) {
-    const displayText = redacted
-      ? tokens.reduce((t, tok) => t.replace(tok.token, "[REDACTED]"), text)
-      : text;
-    return <span>{displayText}</span>;
-  }
-
-  const parts: React.ReactNode[] = [];
-  let pos = 0;
-  tokens.forEach((tok, i) => {
-    if (tok.start > pos) parts.push(<span key={`text-${i}`}>{text.slice(pos, tok.start)}</span>);
-    parts.push(
-      <span key={`tok-${i}`} title={`${tok.category} detected`}>
-        <span style={{
-          borderBottom: "2px solid var(--red)", color: "var(--red)",
-          fontWeight: 600, position: "relative", cursor: "help",
-        }}>
-          🔒 {tok.token}
-        </span>
-        <span style={{
-          display: "inline-block", fontSize: "0.62rem", fontWeight: 700,
-          textTransform: "uppercase", letterSpacing: "0.07em",
-          background: "rgba(248,113,113,0.12)", color: "#b91c1c",
-          border: "1px solid rgba(248,113,113,0.3)",
-          padding: "0 5px", borderRadius: 3, marginLeft: 3,
-          verticalAlign: "middle",
-        }}>[{tok.category}]</span>
-      </span>
-    );
-    pos = tok.end;
-  });
-  if (pos < text.length) parts.push(<span key="tail">{text.slice(pos)}</span>);
-  return <>{parts}</>;
+function fmt(v: number | null | undefined, digits = 1): string {
+  return typeof v === "number" && Number.isFinite(v) ? v.toFixed(digits) : NR;
 }
 
 function severityBadgeClass(severity: string): string {
-  const s = (severity || "").toLowerCase();
-  if (s === "high") return "badge-high";
-  if (s === "medium") return "badge-gold";
-  if (s === "low") return "badge-draft";
-  return "badge-draft";
+  switch ((severity || "").toLowerCase()) {
+    case "severe":
+    case "high": return "badge-high";
+    case "moderate": return "badge-moderate";
+    case "low": return "badge-low";
+    default: return "badge-draft";
+  }
 }
 
-function fmtScore(v: number | null | undefined): string {
-  return v === null || v === undefined || Number.isNaN(v) ? NR : String(v);
-}
-
-function fmtConfidence(v: number | null | undefined): string {
-  return v === null || v === undefined || Number.isNaN(v) ? NR : `${v}%`;
+/** Reading aid only — the authoritative de-id check runs server-side on submit. */
+function piiHints(text: string): string[] {
+  const hits: string[] = [];
+  if (/[\w.+-]+@[\w-]+\.[\w.]+/.test(text)) hits.push("email");
+  if (/https?:\/\/\S+|www\.\S+/.test(text)) hits.push("url");
+  if (/\b\d{3}[-.\s]?\d{3}[-.\s]?\d{4}\b/.test(text)) hits.push("phone");
+  return hits;
 }
 
 export function ReviewQueue() {
-  const [queue, setQueue] = useState<ReviewItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [selected, setSelected] = useState<ReviewItem | null>(null);
-
-  // Findings for the selected assessment
-  const [findings, setFindings] = useState<Finding[]>([]);
-  const [findingIdx, setFindingIdx] = useState(0);
-  const [clauses, setClauses] = useState<Clause[]>([]);
-  const [detailLoading, setDetailLoading] = useState(false);
-  const [detailError, setDetailError] = useState<string | null>(null);
-
-  const [redacted, setRedacted] = useState(false);
-  const [advisorLede, setAdvisorLede] = useState("");
-  const [advisorBody, setAdvisorBody] = useState("");
-  const [action, setAction] = useState<"confirm" | "edit" | "dismiss" | null>(null);
-  const [savingFinding, setSavingFinding] = useState(false);
-  const [approving, setApproving] = useState(false);
+  const [mode, setMode] = useState<Mode>("findings");
   const [banner, setBanner] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
   const [trainingStats, setTrainingStats] = useState({ confirmed: 0, edited: 0, dismissed: 0 });
 
-  const currentFinding: Finding | null = findings[findingIdx] ?? null;
+  // ── Findings review ──────────────────────────────────────────────────────
+  const [queue, setQueue] = useState<ReviewItem[]>([]);
+  const [queueLoading, setQueueLoading] = useState(true);
+  const [selected, setSelected] = useState<ReviewItem | null>(null);
+  const [detail, setDetail] = useState<FindingsResponse | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState<string | null>(null);
+  const [findingIdx, setFindingIdx] = useState(0);
+  const [advisorLede, setAdvisorLede] = useState("");
+  const [advisorBody, setAdvisorBody] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [approving, setApproving] = useState(false);
 
-  // Best-effort clause text for the current finding: first substantive clause in
-  // the finding's domain. If none, honest absence — never invented clause text.
-  const clauseForFinding = currentFinding
-    ? clauses.find(c => c.domain === currentFinding.domain) ?? null
-    : null;
-  const clauseText = clauseForFinding?.raw_text ?? "";
-  const piiTokens  = clauseText ? detectPii(clauseText) : [];
-  const hasPii     = piiTokens.length > 0 && !redacted;
+  // ── Exemplar de-identification ───────────────────────────────────────────
+  const [exemplars, setExemplars] = useState<ExemplarCandidate[]>([]);
+  const [exLoading, setExLoading] = useState(false);
+  const [exSelected, setExSelected] = useState<ExemplarCandidate | null>(null);
+  const [cleanText, setCleanText] = useState("");
+  const [maturityNote, setMaturityNote] = useState("");
+  const [exBusy, setExBusy] = useState(false);
+
+  const current: Finding | null = detail?.findings[findingIdx] ?? null;
 
   const loadQueue = useCallback(() => {
-    setLoading(true);
+    setQueueLoading(true);
     return api.get("/review/queue")
-      .then((data) => setQueue(Array.isArray(data) ? (data as ReviewItem[]) : []))
-      .catch((err) => { if (err instanceof ApiError && err.status === 401) return; setQueue([]); })
-      .finally(() => setLoading(false));
+      .then(d => setQueue(Array.isArray(d) ? (d as ReviewItem[]) : []))
+      .catch(err => { if (!(err instanceof ApiError && err.status === 401)) setQueue([]); })
+      .finally(() => setQueueLoading(false));
   }, []);
 
   useEffect(() => {
-    const initialLoad = window.setTimeout(() => {
-      void loadQueue();
-      // Load real training stats
-      void api.get("/admin/training-stats")
-        .then((data) => { if (data && typeof data === "object") setTrainingStats(data as typeof trainingStats); })
-        .catch(() => {});
-    }, 0);
-    return () => window.clearTimeout(initialLoad);
+    void loadQueue();
+    void api.get("/admin/training-stats")
+      .then(s => {
+        const t = s as { confirmed?: number; edited?: number; dismissed?: number } | null;
+        if (t) setTrainingStats({ confirmed: t.confirmed ?? 0, edited: t.edited ?? 0, dismissed: t.dismissed ?? 0 });
+      })
+      .catch(() => { /* counters stay at their last real value; never invented */ });
   }, [loadQueue]);
 
-  // Reset the per-finding editing state (local only).
-  const resetDecision = useCallback(() => {
-    setAction(null);
-    setAdvisorLede("");
-    setAdvisorBody("");
-    setRedacted(false);
-  }, []);
-
-  // Load a selected assessment's real findings + clauses.
-  const selectItem = useCallback((item: ReviewItem) => {
-    setSelected(item);
-    setFindingIdx(0);
-    setFindings([]);
-    setClauses([]);
-    setDetailError(null);
-    setBanner(null);
-    resetDecision();
+  const loadFindings = useCallback((assessmentId: string, keepIdx = false) => {
     setDetailLoading(true);
-    Promise.all([
-      api.get("/findings/").catch(() => [] as unknown),
-      api.get(`/assessments/${item.assessment_id}/clauses`).catch(() => ({ clauses: [] })),
-    ])
-      .then(([allFindings, clauseResp]) => {
-        const list = Array.isArray(allFindings) ? (allFindings as Finding[]) : [];
-        setFindings(list.filter(f => f.notice_id === item.assessment_id));
-        const cl = (clauseResp as { clauses?: Clause[] } | null)?.clauses ?? [];
-        setClauses(Array.isArray(cl) ? cl : []);
+    setDetailError(null);
+    return api.get(`/review/${assessmentId}/findings`)
+      .then(d => {
+        const data = d as FindingsResponse;
+        setDetail(data);
+        if (!keepIdx) {
+          // Land on the first finding that still needs a decision.
+          const next = data.findings.findIndex(f => !f.decision);
+          setFindingIdx(next >= 0 ? next : 0);
+        }
       })
-      .catch((err) => {
+      .catch(err => {
         if (err instanceof ApiError && err.status === 401) return;
-        setDetailError("Could not load findings for this assessment. Try again.");
+        setDetail(null);
+        setDetailError("Could not load this assessment's findings. Nothing was approved.");
       })
       .finally(() => setDetailLoading(false));
-  }, [resetDecision]);
+  }, []);
 
-  // Persist a per-finding decision, then advance to the next finding.
-  const submitFinding = useCallback(async () => {
-    if (!selected || !currentFinding || !action || savingFinding) return;
-    setSavingFinding(true);
+  const selectItem = useCallback((item: ReviewItem) => {
+    setSelected(item);
     setBanner(null);
-    const edited_fields =
-      action === "edit"
-        ? { advisor_lede: advisorLede, advisor_body: advisorBody }
-        : (advisorLede || advisorBody)
-          ? { advisor_lede: advisorLede, advisor_body: advisorBody }
-          : undefined;
+    setAdvisorLede("");
+    setAdvisorBody("");
+    void loadFindings(item.assessment_id);
+  }, [loadFindings]);
+
+  const decide = useCallback(async (action: "confirm" | "edit" | "dismiss") => {
+    if (!selected || !current || saving) return;
+    setSaving(true);
+    setBanner(null);
+    const edited_fields = (action === "edit" || advisorLede || advisorBody)
+      ? { advisor_lede: advisorLede, advisor_body: advisorBody }
+      : undefined;
     try {
       await api.post(
-        `/review/finding/${selected.assessment_id}/${currentFinding.finding_id}`,
+        `/review/finding/${selected.assessment_id}/${current.finding_id}`,
         { action, ...(edited_fields ? { edited_fields } : {}) },
       );
-      setBanner({ kind: "ok", text: `${action.toUpperCase()} saved for ${currentFinding.finding_id}` });
-      resetDecision();
-      // Advance to the next undecided finding (or stay on the last one).
-      setFindingIdx(i => Math.min(i + 1, Math.max(findings.length - 1, 0)));
+      setAdvisorLede("");
+      setAdvisorBody("");
+      // Re-read from the server so progress and decisions are never inferred.
+      await loadFindings(selected.assessment_id, true);
+      setFindingIdx(i => Math.min(i + 1, Math.max((detail?.findings.length ?? 1) - 1, 0)));
+      setTrainingStats(s => ({
+        confirmed: s.confirmed + (action === "confirm" ? 1 : 0),
+        edited: s.edited + (action === "edit" ? 1 : 0),
+        dismissed: s.dismissed + (action === "dismiss" ? 1 : 0),
+      }));
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : "Save failed";
-      setBanner({ kind: "err", text: `Could not save finding decision: ${msg}` });
+      setBanner({ kind: "err", text: `Could not save that decision: ${err instanceof ApiError ? err.message : "save failed"}` });
     } finally {
-      setSavingFinding(false);
+      setSaving(false);
     }
-  }, [selected, currentFinding, action, savingFinding, advisorLede, advisorBody, findings.length, resetDecision]);
+  }, [selected, current, saving, advisorLede, advisorBody, loadFindings, detail]);
 
-  // Finalize the review: approve the assessment, refresh the queue, advance.
-  const submitReview = useCallback(async () => {
+  const approve = useCallback(async () => {
     if (!selected || approving) return;
     setApproving(true);
     setBanner(null);
     try {
       await api.post(`/review/${selected.assessment_id}/approve`);
-      setBanner({ kind: "ok", text: `Assessment ${selected.assessment_id} approved` });
-      const approvedId = selected.assessment_id;
-      // Refresh the queue and move to the next item.
-      const data = await api.get("/review/queue").catch(() => [] as unknown);
-      const next = (Array.isArray(data) ? (data as ReviewItem[]) : []).filter(
-        i => i.assessment_id !== approvedId,
-      );
-      setQueue(next);
-      if (next.length > 0) {
-        selectItem(next[0]);
-      } else {
-        setSelected(null);
-        setFindings([]);
-        setClauses([]);
-        resetDecision();
-      }
+      setBanner({ kind: "ok", text: `Approved — the snapshot for ${selected.assessment_id.slice(0, 8)}… is frozen.` });
+      const remaining = queue.filter(i => i.assessment_id !== selected.assessment_id);
+      setQueue(remaining);
+      setSelected(null);
+      setDetail(null);
+      void loadQueue();
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : "Approve failed";
-      setBanner({ kind: "err", text: `Could not approve assessment: ${msg}` });
+      // The server is authoritative on the gate; surface its reason verbatim.
+      const msg = err instanceof ApiError ? err.message : "approval failed";
+      setBanner({ kind: "err", text: `Not approved — ${msg}` });
+      if (selected) void loadFindings(selected.assessment_id, true);
     } finally {
       setApproving(false);
     }
-  }, [selected, approving, selectItem, resetDecision]);
+  }, [selected, approving, queue, loadQueue, loadFindings]);
+
+  // ── Exemplars ────────────────────────────────────────────────────────────
+  const loadExemplars = useCallback(() => {
+    setExLoading(true);
+    return api.get("/review/exemplars")
+      .then(d => setExemplars(Array.isArray(d) ? (d as ExemplarCandidate[]) : []))
+      .catch(() => setExemplars([]))
+      .finally(() => setExLoading(false));
+  }, []);
+
+  useEffect(() => { if (mode === "exemplars") void loadExemplars(); }, [mode, loadExemplars]);
+
+  const pickExemplar = useCallback((ex: ExemplarCandidate) => {
+    setExSelected(ex);
+    setCleanText(ex.clause_text ?? "");
+    setMaturityNote(ex.maturity_note ?? "");
+    setBanner(null);
+  }, []);
+
+  const saveClean = useCallback(async () => {
+    if (!exSelected || exBusy) return;
+    setExBusy(true);
+    setBanner(null);
+    try {
+      await api.post(`/review/exemplar/${exSelected.id}/clean`, {
+        cleaned_text: cleanText, maturity_note: maturityNote,
+      });
+      setBanner({ kind: "ok", text: "Cleaned text saved — the server verified it carries no identifying tokens." });
+      await loadExemplars();
+    } catch (err) {
+      // A rejection here is the de-id guarantee doing its job; show it plainly.
+      setBanner({ kind: "err", text: err instanceof ApiError ? err.message : "Could not save cleaned text." });
+    } finally {
+      setExBusy(false);
+    }
+  }, [exSelected, exBusy, cleanText, maturityNote, loadExemplars]);
+
+  const approveExemplar = useCallback(async () => {
+    if (!exSelected || exBusy) return;
+    setExBusy(true);
+    setBanner(null);
+    try {
+      await api.post(`/review/exemplar/${exSelected.id}/approve`);
+      setBanner({ kind: "ok", text: "Exemplar approved and available to the benchmark-language comparison." });
+      setExSelected(null);
+      await loadExemplars();
+    } catch (err) {
+      setBanner({ kind: "err", text: err instanceof ApiError ? err.message : "Could not approve this exemplar." });
+    } finally {
+      setExBusy(false);
+    }
+  }, [exSelected, exBusy, loadExemplars]);
+
+  const hints = useMemo(() => piiHints(cleanText), [cleanText]);
 
   return (
     <div>
       <PageHeader
         eyebrow="Workbench"
         title="SME Workbench"
-        description="Review each machine finding before it reaches the client: confirm it, edit its language, or dismiss it — and author the Advisor Note. Every decision is saved as a training label."
+        description="Decide every machine finding before it reaches a client — confirm, edit or dismiss — then approve the assessment. Every decision is saved as a training label."
         actions={
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
-            <span className="badge badge-gold">
-              {loading ? NR : queue.length} pending in queue
-            </span>
-            <div style={{ display: "flex", gap: 12, fontSize: "0.78rem", color: "var(--text-muted)", flexWrap: "wrap" }}>
-              <span style={{ color: "var(--teal)", fontWeight: 700 }}>✓ {trainingStats.confirmed}</span>
-              <span style={{ color: "var(--exec-blue)", fontWeight: 700 }}>✎ {trainingStats.edited}</span>
-              <span style={{ color: "var(--red)", fontWeight: 700 }}>✕ {trainingStats.dismissed}</span>
+          <div className="wb-header-stats">
+            <span className="badge badge-gold">{queueLoading ? NR : queue.length} pending</span>
+            <div className="wb-counters">
+              <span title="Confirmed">✓ {trainingStats.confirmed}</span>
+              <span title="Edited">✎ {trainingStats.edited}</span>
+              <span title="Dismissed">✕ {trainingStats.dismissed}</span>
             </div>
           </div>
         }
       />
 
+      <div className="wb-tabs" role="tablist" aria-label="Workbench mode">
+        <button role="tab" aria-selected={mode === "findings"} className={mode === "findings" ? "active" : ""}
+          onClick={() => setMode("findings")}>Findings review</button>
+        <button role="tab" aria-selected={mode === "exemplars"} className={mode === "exemplars" ? "active" : ""}
+          onClick={() => setMode("exemplars")}>Exemplar de-identification</button>
+      </div>
+
       {banner && (
-        <div
-          role="status"
-          className={`notice-box ${banner.kind === "err" ? "red" : "teal"}`}
-          style={{ marginBottom: 12 }}
-          data-testid="workbench-banner"
-        >
+        <div role="status" data-testid="workbench-banner"
+          className={`notice-box ${banner.kind === "err" ? "red" : "teal"}`} style={{ marginBottom: 14 }}>
           {banner.text}
         </div>
       )}
 
-      {/* Three-pane workbench */}
-      <div className="workbench-grid" style={{
-        display: "grid", gridTemplateColumns: "1fr 1fr 1fr",
-        gap: 16, alignItems: "start",
-      }}>
-
-        {/* ── LEFT: Source clause ── */}
-        <div className="card" style={{ overflow: "visible" }}>
-          <div className="card-head">
-            <div className="section-label">Source Clause</div>
-            <div style={{ display: "flex", gap: 8, marginTop: 6, flexWrap: "wrap" }}>
-              {currentFinding ? (
-                <>
-                  <span className="code-chip" style={{ fontSize: "0.7rem" }} data-testid="clause-code">
-                    {clauseForFinding?.clause_id ?? NR}
-                  </span>
-                  <span className="domain-eyebrow">{currentFinding.domain.replace(/_/g, " ")}</span>
-                </>
-              ) : (
-                <span className="domain-eyebrow">no finding selected</span>
-              )}
-            </div>
-          </div>
-
-          <div style={{ padding: "14px 16px", fontSize: "0.88rem", lineHeight: 1.7, color: "var(--text)", minHeight: 120 }}>
-            {!selected ? (
-              <span style={{ color: "var(--text-muted)" }}>
-                Select an item from the review queue to view its source clause text and run the PII de-identification checker.
-              </span>
-            ) : detailLoading ? (
-              <span style={{ color: "var(--text-muted)" }}>Loading source clause…</span>
-            ) : clauseText ? (
-              <ClauseDisplay text={clauseText} redacted={redacted} />
-            ) : (
-              <span style={{ color: "var(--text-muted)" }} data-testid="clause-absent">
-                Source clause text not recorded for this finding's domain.
-              </span>
-            )}
-          </div>
-
-          {hasPii && (
-            <div style={{
-              margin: "0 16px 14px",
-              padding: "10px 14px",
-              background: "rgba(248,113,113,0.06)",
-              border: "1px solid rgba(248,113,113,0.25)",
-              borderRadius: "var(--radius)",
-            }}>
-              <div style={{ fontSize: "0.75rem", fontWeight: 700, color: "#b91c1c", marginBottom: 4 }}>
-                🔒 PII detected — {piiTokens.length} token{piiTokens.length > 1 ? "s" : ""} flagged
-              </div>
-              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
-                {piiTokens.map((tok, i) => (
-                  <span key={i} style={{
-                    fontSize: "0.7rem", fontWeight: 700,
-                    background: "rgba(248,113,113,0.12)", color: "#b91c1c",
-                    border: "1px solid rgba(248,113,113,0.3)",
-                    padding: "2px 8px", borderRadius: 4,
-                  }}>[{tok.category}]</span>
-                ))}
-              </div>
-              <button
-                className="btn btn-danger btn-sm"
-                onClick={() => setRedacted(true)}
-                id="redact-all-btn"
-              >
-                Replace all with [REDACTED]
-              </button>
-            </div>
-          )}
-
-          {redacted && (
-            <div className="notice-box teal" style={{ margin: "0 16px 14px" }}>
-              ✓ All PII replaced with [REDACTED]
-            </div>
-          )}
-
-          {clauseForFinding && (
-            <div style={{ padding: "10px 16px", borderTop: "1px solid var(--border)" }}>
-              <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
-                Source: <span style={{ fontFamily: "var(--font-data)", fontWeight: 600 }}>
-                  {currentFinding?.domain.replace(/_/g, " ")} &gt; {clauseForFinding.clause_id}
-                </span>
-              </span>
-            </div>
-          )}
-        </div>
-
-        {/* ── CENTER: Auto-finding ── */}
-        <div className="card" style={{ overflow: "visible" }}>
-          <div className="card-head">
-            <div className="section-label">Auto Finding</div>
-          </div>
-          <div style={{ padding: "14px 16px" }}>
-            {/* Queue list */}
-            <div style={{ marginBottom: 14 }}>
-              <div className="section-label" style={{ marginBottom: 6 }}>Review Queue</div>
-              {loading ? (
-                <div style={{ color: "var(--text-muted)", fontSize: "0.82rem" }}>Loading queue…</div>
+      {mode === "findings" ? (
+        <div className="wb-grid">
+          {/* ── Queue ── */}
+          <aside className="card wb-queue">
+            <div className="card-head"><div className="section-label">Awaiting review</div></div>
+            <div className="wb-queue-body">
+              {queueLoading ? (
+                <p className="wb-muted">Loading queue…</p>
               ) : queue.length === 0 ? (
-                <div
-                  style={{ padding: "16px 0", textAlign: "center", color: "var(--text-muted)", fontSize: "0.82rem" }}
-                  data-testid="queue-empty"
-                >
-                  All caught up — no assessments pending review
-                </div>
-              ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                  {queue.map(item => (
-                    <button
-                      key={item.assessment_id}
-                      onClick={() => selectItem(item)}
-                      data-testid={`queue-item-${item.assessment_id}`}
-                      style={{
-                        display: "flex", justifyContent: "space-between", alignItems: "center",
-                        padding: "8px 10px", borderRadius: "var(--radius)",
-                        border: `1px solid ${selected?.assessment_id === item.assessment_id ? "var(--navy)" : "var(--border)"}`,
-                        background: selected?.assessment_id === item.assessment_id ? "rgba(9,35,79,0.04)" : "white",
-                        cursor: "pointer", textAlign: "left",
-                      }}
-                    >
-                      <span style={{ fontFamily: "var(--font-data)", fontSize: "0.75rem", color: "var(--navy)" }}>
-                        {item.assessment_id}
-                      </span>
-                      <span className={`badge ${item.status === "in_review" ? "badge-gold" : "badge-draft"}`} style={{ fontSize: "0.65rem" }}>
-                        {item.status.replace(/_/g, " ")}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              )}
+                <p className="wb-muted" data-testid="queue-empty">All caught up — nothing is waiting for review.</p>
+              ) : queue.map(item => (
+                <button key={item.assessment_id} onClick={() => selectItem(item)}
+                  data-testid={`queue-item-${item.assessment_id}`}
+                  className={`wb-queue-item ${selected?.assessment_id === item.assessment_id ? "sel" : ""}`}>
+                  <span className="wb-qid">{item.assessment_id.slice(0, 8)}…</span>
+                  <span className={`badge ${item.status === "in_review" ? "badge-gold" : "badge-draft"}`}>
+                    {item.status.replace(/_/g, " ")}
+                  </span>
+                </button>
+              ))}
             </div>
+          </aside>
 
-            {/* Selected finding detail */}
+          {/* ── Review surface ── */}
+          <section className="card wb-review">
             {!selected ? (
-              <div style={{ color: "var(--text-muted)", fontSize: "0.82rem", padding: "12px 0" }}>
-                Select a queue item to review its findings.
-              </div>
+              <div className="wb-empty">Choose an assessment to begin reviewing its findings.</div>
             ) : detailLoading ? (
-              <div style={{ color: "var(--text-muted)", fontSize: "0.82rem", padding: "12px 0" }}>Loading findings…</div>
+              <div className="wb-empty">Loading findings…</div>
             ) : detailError ? (
               <div className="notice-box red" data-testid="detail-error">{detailError}</div>
-            ) : findings.length === 0 ? (
-              <div
-                style={{ color: "var(--text-muted)", fontSize: "0.82rem", padding: "12px 0" }}
-                data-testid="no-findings"
-              >
-                No machine findings recorded for this assessment.
+            ) : !detail || detail.total_count === 0 ? (
+              <div className="wb-empty" data-testid="no-findings">
+                No findings are recorded for this assessment. Nothing can be approved until the
+                pipeline has produced findings — this is not the same as "everything passed".
               </div>
-            ) : currentFinding ? (
+            ) : current ? (
               <>
-                {/* Finding header */}
-                <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 6 }}>
-                  <CodexTooltip code={currentFinding.finding_type_code} />
-                  <span className={`badge ${severityBadgeClass(currentFinding.severity)}`} data-testid="finding-severity">
-                    {currentFinding.severity || NR}
+                <div className="wb-finding-head">
+                  <CodexTooltip code={current.finding_type_code} />
+                  <span className={`badge ${severityBadgeClass(current.severity)}`} data-testid="finding-severity">
+                    {current.severity || NR}
                   </span>
-                  <span style={{ marginLeft: "auto", fontSize: "0.72rem", color: "var(--text-muted)" }}>
-                    Finding {findingIdx + 1} of {findings.length}
-                  </span>
-                </div>
-                <div
-                  style={{ fontWeight: 700, fontSize: "0.9rem", color: "var(--navy)", marginBottom: 12, fontFamily: "var(--font-data)" }}
-                  data-testid="finding-id"
-                >
-                  {currentFinding.finding_id}
+                  {current.decision && (
+                    <span className="badge badge-approved" data-testid="finding-decision">
+                      {current.decision}ed
+                    </span>
+                  )}
+                  <span className="wb-count">Finding {findingIdx + 1} of {detail.total_count}</span>
                 </div>
 
-                {/* Mini metric grid — honest absence where the API does not record a metric */}
-                <div style={{
-                  display: "grid", gridTemplateColumns: "1fr 1fr",
-                  gap: 1, background: "var(--border)",
-                  border: "1px solid var(--border)", borderRadius: "var(--radius)", marginBottom: 16,
-                }}>
-                  {[
-                    { label: "Score", value: fmtScore(currentFinding.score) },
-                    { label: "Confidence", value: fmtConfidence(currentFinding.confidence_score) },
-                    { label: "Exposure", value: NR },      // not recorded per-finding by the API
-                    { label: "Percentile", value: NR },    // not recorded per-finding by the API
-                  ].map(mtc => (
-                    <div key={mtc.label} style={{ background: "white", padding: "10px 12px" }}>
-                      <div className="micro-label" style={{ marginBottom: 2 }}>{mtc.label}</div>
-                      <div style={{ fontFamily: "var(--font-data)", fontVariantNumeric: "tabular-nums", fontSize: "1.1rem", fontWeight: 700, color: "var(--navy)" }}>{mtc.value}</div>
-                    </div>
+                {/* Cited evidence — the real finding_clause links, or absence. */}
+                <div className="wb-block">
+                  <div className="section-label">Cited clause{current.evidence.length > 1 ? "s" : ""}</div>
+                  {current.evidence.length === 0 ? (
+                    <p className="wb-muted" data-testid="no-evidence">
+                      No clause is linked to this finding. Judge it on the finding definition alone,
+                      or dismiss it — no substitute text is shown.
+                    </p>
+                  ) : current.evidence.map(ev => (
+                    <blockquote key={ev.clause_id} className="wb-clause" data-testid="cited-clause">
+                      <p>{ev.text || <span className="wb-muted">Clause text not recorded.</span>}</p>
+                      <cite className="code-chip">{ev.clause_id}</cite>
+                    </blockquote>
                   ))}
                 </div>
 
-                {/* Confirm / Edit / Dismiss */}
-                <div className="section-label" style={{ marginBottom: 8 }}>Finding Actions</div>
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  <button
-                    className={`btn btn-sm ${action === "confirm" ? "btn-teal" : "btn-outline"}`}
-                    onClick={() => setAction("confirm")}
-                    disabled={hasPii || savingFinding}
-                    title={hasPii ? "Resolve PII before confirming" : undefined}
-                    id="finding-confirm-btn"
-                  >
-                    ✓ Confirm
-                  </button>
-                  <button
-                    className={`btn btn-sm ${action === "edit" ? "btn-primary" : "btn-outline"}`}
-                    onClick={() => setAction("edit")}
-                    disabled={savingFinding}
-                    id="finding-edit-btn"
-                  >
-                    ✎ Edit
-                  </button>
-                  <button
-                    className={`btn btn-sm ${action === "dismiss" ? "btn-danger" : "btn-outline"}`}
-                    onClick={() => setAction("dismiss")}
-                    disabled={savingFinding}
-                    id="finding-dismiss-btn"
-                  >
-                    ✕ Dismiss
-                  </button>
+                <div className="wb-metrics">
+                  <div><span>Score</span><strong>{fmt(current.score)}</strong></div>
+                  <div><span>Confidence</span><strong>{fmt(current.confidence_score, 2)}</strong></div>
+                  <div><span>Benchmark deviation</span><strong>{fmt(current.benchmark_deviation_score)}</strong></div>
+                  <div><span>Domain</span><strong>{current.domain?.replace(/_/g, " ") || NR}</strong></div>
                 </div>
-                {hasPii && (
-                  <p style={{ fontSize: "0.72rem", color: "var(--red)", marginTop: 6, fontWeight: 600 }}>
-                    🔒 Resolve PII in source clause before confirming
-                  </p>
-                )}
-                {action && (
-                  <div className={`notice-box ${action === "dismiss" ? "red" : "teal"}`} style={{ marginTop: 10 }}>
-                    Action: <strong>{action.toUpperCase()}</strong> — label saved when you record the decision
+
+                <div className="wb-block">
+                  <div className="section-label">Advisor note (optional)</div>
+                  <input className="wb-input" placeholder="Lede — one sentence"
+                    value={advisorLede} onChange={e => setAdvisorLede(e.target.value)} />
+                  <textarea className="wb-input" rows={3} placeholder="Body"
+                    value={advisorBody} onChange={e => setAdvisorBody(e.target.value)} />
+                </div>
+
+                <div className="wb-actions">
+                  <button className="btn btn-primary btn-sm" disabled={saving} onClick={() => decide("confirm")}>Confirm</button>
+                  <button className="btn btn-outline btn-sm" disabled={saving} onClick={() => decide("edit")}>Save edit</button>
+                  <button className="btn btn-danger btn-sm" disabled={saving} onClick={() => decide("dismiss")}>Dismiss</button>
+                  <span className="wb-nav">
+                    <button className="btn btn-outline btn-xs" disabled={findingIdx === 0}
+                      onClick={() => setFindingIdx(i => Math.max(0, i - 1))}>← Prev</button>
+                    <button className="btn btn-outline btn-xs" disabled={findingIdx >= detail.total_count - 1}
+                      onClick={() => setFindingIdx(i => Math.min(detail.total_count - 1, i + 1))}>Next →</button>
+                  </span>
+                </div>
+
+                <div className="wb-approve">
+                  <div className="wb-progress">
+                    <div className="wb-progress-bar">
+                      <div style={{ width: `${(detail.reviewed_count / Math.max(detail.total_count, 1)) * 100}%` }} />
+                    </div>
+                    <span>{detail.reviewed_count} of {detail.total_count} decided</span>
                   </div>
-                )}
-                <div style={{ marginTop: 10 }}>
-                  <button
-                    className="btn btn-primary btn-sm"
-                    onClick={submitFinding}
-                    disabled={!action || savingFinding || hasPii}
-                    id="finding-record-btn"
-                  >
-                    {savingFinding ? "Saving…" : "Record Decision"}
+                  <button className="btn btn-primary" data-testid="approve-btn"
+                    disabled={approving || !detail.all_reviewed} onClick={approve}>
+                    {approving ? "Approving…" : "Approve assessment"}
                   </button>
+                  {!detail.all_reviewed && (
+                    <span className="wb-muted" data-testid="approve-blocked">
+                      Every finding needs a decision first — the server refuses approval otherwise.
+                    </span>
+                  )}
                 </div>
               </>
             ) : null}
-          </div>
+          </section>
         </div>
-
-        {/* ── RIGHT: Advisor Note editor ── */}
-        <div className="card" style={{ overflow: "visible" }}>
-          <div className="card-head">
-            <div className="section-label">Advisor Note Editor</div>
-          </div>
-          <div style={{ padding: "14px 16px", display: "flex", flexDirection: "column", gap: 12 }}>
-            <div>
-              <label className="micro-label" style={{ display: "block", marginBottom: 5 }}>
-                Italic lede (Fraunces)
-              </label>
-              <textarea
-                rows={3}
-                value={advisorLede}
-                onChange={e => setAdvisorLede(e.target.value)}
-                placeholder="Write the opening italic sentence in exposure/maturity language…"
-                style={{
-                  width: "100%", border: "1.5px solid var(--border)", borderRadius: "var(--radius)",
-                  padding: "10px 12px", fontSize: "0.88rem", fontFamily: "Fraunces, serif",
-                  fontStyle: "italic", resize: "vertical", background: "var(--soft-white)",
-                }}
-                id="advisor-lede-input"
-              />
+      ) : (
+        /* ── Exemplar de-identification — real, server-validated ── */
+        <div className="wb-grid">
+          <aside className="card wb-queue">
+            <div className="card-head"><div className="section-label">Candidates</div></div>
+            <div className="wb-queue-body">
+              {exLoading ? <p className="wb-muted">Loading candidates…</p>
+                : exemplars.length === 0 ? <p className="wb-muted" data-testid="exemplars-empty">No exemplar candidates are awaiting de-identification.</p>
+                : exemplars.map(ex => (
+                  <button key={ex.id} onClick={() => pickExemplar(ex)}
+                    className={`wb-queue-item ${exSelected?.id === ex.id ? "sel" : ""}`}
+                    data-testid={`exemplar-${ex.id}`}>
+                    <span className="wb-qid">{ex.domain?.replace(/_/g, " ") || NR}</span>
+                    <span className="badge badge-draft">{ex.id.slice(0, 6)}…</span>
+                  </button>
+                ))}
             </div>
-            <div>
-              <label className="micro-label" style={{ display: "block", marginBottom: 5 }}>
-                Body
-              </label>
-              <textarea
-                rows={5}
-                value={advisorBody}
-                onChange={e => setAdvisorBody(e.target.value)}
-                placeholder="Expand in exposure / maturity / benchmark language. No legal verdicts."
-                style={{
-                  width: "100%", border: "1.5px solid var(--border)", borderRadius: "var(--radius)",
-                  padding: "10px 12px", fontSize: "0.88rem", resize: "vertical", background: "var(--soft-white)",
-                }}
-                id="advisor-body-input"
-              />
-            </div>
+          </aside>
 
-            {/* Attribution */}
-            <div style={{ background: "var(--soft-white)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "10px 12px" }}>
-              <div className="micro-label">Attribution</div>
-              <div style={{ fontWeight: 700, fontSize: "0.85rem", color: "var(--navy)" }}>The Visentix Privacy Desk</div>
-              <div style={{ marginTop: 8, borderTop: "1px dashed var(--border)", paddingTop: 8 }}>
-                <div className="micro-label" style={{ marginBottom: 3 }}>Expert Reviewer Slot</div>
-                <div style={{ fontSize: "0.78rem", color: "var(--text-muted)", fontStyle: "italic" }}>Reserved for SME name + credential</div>
+          <section className="card wb-review">
+            {!exSelected ? (
+              <div className="wb-empty">
+                Choose a candidate to de-identify. The server re-validates every submission and
+                refuses text that still carries identifying tokens — the check below is only a
+                reading aid.
               </div>
-            </div>
-
-            {/* Codex reference — driven by the selected finding's type code */}
-            {currentFinding && (
-              <div>
-                <div className="section-label" style={{ marginBottom: 8 }}>Codex Reference</div>
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  <CodexTooltip code={currentFinding.finding_type_code} />
+            ) : (
+              <>
+                <div className="wb-block">
+                  <div className="section-label">Cleaned clause text</div>
+                  <textarea className="wb-input" rows={8} value={cleanText}
+                    onChange={e => setCleanText(e.target.value)} data-testid="exemplar-text" />
+                  {hints.length > 0 && (
+                    <p className="wb-hint" data-testid="pii-hint">
+                      Possible identifiers spotted while typing: {hints.join(", ")}. The server makes
+                      the binding decision on save.
+                    </p>
+                  )}
                 </div>
-              </div>
+                <div className="wb-block">
+                  <div className="section-label">Maturity note</div>
+                  <input className="wb-input" value={maturityNote}
+                    onChange={e => setMaturityNote(e.target.value)} />
+                </div>
+                <div className="wb-actions">
+                  <button className="btn btn-outline btn-sm" disabled={exBusy} onClick={saveClean}
+                    data-testid="exemplar-clean">Check &amp; save cleaned text</button>
+                  <button className="btn btn-primary btn-sm" disabled={exBusy} onClick={approveExemplar}
+                    data-testid="exemplar-approve">Approve exemplar</button>
+                </div>
+              </>
             )}
-
-            <div style={{ display: "flex", gap: 8, paddingTop: 4 }}>
-              <button
-                className="btn btn-primary btn-sm"
-                onClick={submitReview}
-                disabled={!selected || approving}
-                id="workbench-submit-btn"
-              >
-                {approving ? "Approving…" : "Submit Review"}
-              </button>
-              <button
-                className="btn btn-ghost btn-sm"
-                onClick={resetDecision}
-                id="workbench-clear-btn"
-              >
-                Clear
-              </button>
-            </div>
-
-            <IntelligenceMark />
-          </div>
+          </section>
         </div>
-      </div>
-
-      {/* Mobile: stack */}
-      <style>{`
-        @media (max-width: 900px) {
-          .workbench-grid { grid-template-columns: 1fr !important; }
-        }
-      `}</style>
+      )}
     </div>
   );
 }

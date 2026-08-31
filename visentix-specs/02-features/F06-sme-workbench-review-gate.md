@@ -1,6 +1,6 @@
 # F06 — SME Workbench & Review Gate
 
-**Status:** shipped (M-04 counters wired to real `/admin/training-stats`; queue actions pending) · **Release:** R1 · **Depends on:** F04, business-logic.md §5, design-system.md
+**Status:** shipped — queue, per-finding decisions, approve gating and exemplar de-identification all wired to real endpoints (2026-08-31) · **Release:** R1 · **Depends on:** F04, business-logic.md §5, design-system.md
 
 ## Purpose
 The internal three-pane tool where human experts Confirm / Edit / Dismiss findings, author/approve Advisor Note prose, de-identify exemplars, and generate training labels — the quality gate that makes reports client-shippable and the data flywheel for model improvement.
@@ -12,16 +12,22 @@ SME role · `/review` (nav: Workbench). Internal register: expert jargon ("PII d
 Writes: `risk_finding.sme_status`, `training_label`, `disclosure_clause.exemplar_status`, Advisor layer content into snapshot at approval. Reads: review queue (pending findings), `finding_type` (Codex reference panel), training stats.
 
 ## Behavior
-1. **Three panes:** source clause (left, with de-id flags) · auto finding + Analyst metrics (center, Confirm/Edit/Dismiss) · Advisor Note editor (right: Fraunces lede, body, "The Visentix Privacy Desk" attribution — house persona kept for MVP per OD-04 (Decided 2026-07-27, ai_reviewed; revisit at first paying client) — empty reviewer slot, Codex reference).
+0. **Evidence is the finding's real citation.** The clause shown for a finding comes from the `finding_clause` link table — the same citation the report uses. A finding with no linked clause states that plainly; it is **never** backfilled with "a clause in the same domain", which is what previously appeared under a heading reading "Source" (L-014).
+1. **Layout:** queue column beside the review surface (it was previously nested inside the middle pane, which made the three panes read as unrelated) · source clause (with de-id flags) · auto finding + Analyst metrics (center, Confirm/Edit/Dismiss) · Advisor Note editor (right: Fraunces lede, body, "The Visentix Privacy Desk" attribution — house persona kept for MVP per OD-04 (Decided 2026-07-27, ai_reviewed; revisit at first paying client) — empty reviewer slot, Codex reference).
 2. **Gate modes:** `expert_review` holds report approval until queue cleared; `instant_draft` publishes draft immediately (admin-configurable, F09).
-3. **De-identification:** regex checker flags name/email/URL/custom tokens with category labels, lock icon + red underline (legitimate red use #2); approve disabled until clean; one-click replace-all-with-[REDACTED]. Blocks exemplar approval.
+3. **De-identification is its own tab, on the real pipeline.** Exemplar candidates come from `GET /review/exemplars`; the SME edits the cleaned text and submits it to `POST /review/exemplar/{id}/clean`, which **re-validates server-side and refuses text still carrying identifying tokens**; `POST /review/exemplar/{id}/approve` re-validates again. The client-side regex is a **reading aid only and is labelled as such** — it never claims anything was saved. *(Corrected 2026-08-31: de-id was previously a button in the finding pane that set local state, called no endpoint, and then displayed "✓ All PII replaced with [REDACTED]". Nothing was ever persisted. See L-014.)* Per-finding clause evidence is **read-only** — it is the assessed notice's own text, not exemplar material.
 4. **Training labels:** every action recorded; header shows live confirmed/edited/dismissed counters (M-04 → `/api/admin/health` training_stats).
 5. **States:** clean / PII detected / redacted / queue empty ("All findings reviewed. Next batch expected [date].").
 6. Dismissed findings drop from the client report before snapshot approval.
 7. **Eager enqueue:** a completed assessment lands in the review queue the moment scoring finishes — the pipeline creates its `assessment_review` row at completion (`score_and_persist`), never lazily on first open. Under `expert_review`/STRICT this prevents an assessment being orphaned (customer blocked by the gate, yet invisible to the SME).
 
 ## API contracts
-- `GET /api/review/queue` · `POST /api/review/findings/:id/action` {confirm|edit|dismiss, edits} · `POST /api/review/exemplars/:clause_id/deidentify` · `POST /api/review/exemplars/:clause_id/approve` (server re-validates de-id — never trust client) · `GET /api/admin/health` (training_stats).
+- `GET /review/queue` — assessments awaiting review.
+- **`GET /review/{assessment_id}/findings`** — findings for ONE assessment, each with its real `finding_clause` citations and the SME's current decision, plus `reviewed_count` / `total_count` / `all_reviewed`. **The workbench must use this and never `GET /findings/`**, which is platform-wide, score-ordered and capped at 200 — an assessment outside that global cut rendered an empty finding list while Approve stayed live (see L-014).
+- `POST /review/finding/{assessment_id}/{finding_id}` {confirm|edit|dismiss, edited_fields}.
+- `POST /review/{assessment_id}/approve` — **refuses with 409 `findings_pending_review` while any finding is undecided** under STRICT (AC-3).
+- `GET /review/exemplars` · `POST /review/exemplar/{id}/clean` · `POST /review/exemplar/{id}/approve` — server re-validates de-identification on both write paths; the client check is advisory only (Hard Rule 8).
+- `GET /admin/training-stats` (counters).
 
 ## Acceptance criteria
 - AC-1 Approving an exemplar with residual PII is impossible server-side.
@@ -29,6 +35,10 @@ Writes: `risk_finding.sme_status`, `training_label`, `disclosure_clause.exemplar
 - AC-3 In `expert_review` mode a report cannot reach approved status with pending findings.
 - AC-4 Dismissed findings absent from the approved snapshot payload.
 - AC-5 A completed assessment is visible in `GET /review/queue` immediately after scoring, with no prior by-id open (eager enqueue).
+- AC-6 The workbench loads findings from `GET /review/{id}/findings` only; a finding list is never derived from a platform-wide, score-ordered, truncated query.
+- AC-7 A finding's displayed clause is one of its `finding_clause` citations, or an explicit no-evidence statement. No same-domain substitute is ever shown.
+- AC-8 Approving an assessment with any undecided finding returns **409 `findings_pending_review`**; the UI disables Approve and states the reason.
+- AC-9 No client-side control claims data was de-identified. Every de-id write goes to a server endpoint that re-validates and can refuse.
 
 ## Mocks
 See [`00-plan/mock-tracker.md`](../00-plan/mock-tracker.md): **M-04** (training-label counts) and **M-03** (exemplar clause, shared with F05).
@@ -37,6 +47,7 @@ See [`00-plan/mock-tracker.md`](../00-plan/mock-tracker.md): **M-04** (training-
 De-id regex suite (all categories + evasion cases), gate-mode enforcement tests, training-label capture tests, queue action integration tests.
 
 ## Changelog
+- 2026-08-31 (owner-reported — code-bug remediation, SHIPPED): **Four defects that let the review gate fail open.** (1) The workbench loaded `GET /findings/` — every organization's findings, `order=score.desc&limit=200`, filtered client-side — so an assessment outside that global cut showed **zero findings while Approve stayed live**. New `GET /review/{id}/findings`, scoped and untruncated. (2) The "Source" clause was `clauses.find(c => c.domain === finding.domain)` — *a* clause in the same domain, not the finding's evidence. Now the real `finding_clause` citations, with honest absence when none exist. (3) "Replace all with [REDACTED]" set local state, called no endpoint, and displayed "✓ All PII replaced" — de-identification now has its own tab driving the real, server-validated exemplar endpoints. (4) `approve_assessment` never checked whether findings had been reviewed, so **AC-3 was unenforced**; approval now returns 409 under STRICT while any finding is undecided. Layout reworked so the queue sits beside the work rather than inside the middle pane. New AC-6…AC-9; regressions in `tests/test_review_gate.py` and `web/src/test/ReviewQueue.test.tsx`. Specs were already correct — this was implementation divergence (L-014). Source: owner.
 - 2026-07-28 (engineer, Stage-3 rehearsal fix): **Eager SME enqueue.** `score_and_persist` now creates the `assessment_review` row at pipeline completion, so a completed assessment appears in `/review/queue` immediately (new Behavior 7 + AC-5) — the rehearsal found assessments orphaned under STRICT because the row was created lazily on first by-id open. Backfill `scripts/backfill_review_queue.py` (60 pre-existing completed assessments); test `tests/test_live_scoring.py::test_score_and_persist_eager_enqueues_for_sme_review`.
 - 2026-07-27: OD-04 recorded as Decided (ai_reviewed, pending human owner confirmation) — keep the "The Visentix Privacy Desk" house persona for MVP attribution. No behavioral change. Phase-1 pilot-readiness pass.
 - 2026-07-16 (audit): Status trued up — training-label counters verified wired to the real `/admin/training-stats` route (M-04 **Replaced**); queue-action wiring remains pending.
