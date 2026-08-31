@@ -53,7 +53,6 @@ import { Terms }                 from "./pages/legal/Terms";
 import { Footer }                from "./components/Footer";
 import { IntakeJobsProvider }    from "./jobs/IntakeJobsProvider";
 import { JobTracker }            from "./jobs/JobTracker";
-import "./App.css";
 
 // Maskable-surface routes — registered only when the surface is on; the import()
 // (and thus the chunk) vanishes from the bundle when off (see note above).
