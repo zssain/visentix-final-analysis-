@@ -9,7 +9,6 @@
  */
 import { Link } from "react-router-dom";
 import { TRUST_METRICS, DATA_COMMITMENTS, LINEAGE_FIELDS } from "./mockData";
-import "../../components/furniture.css";
 import "./trust.css";
 import { Card } from "@/components/ui/card";
 

@@ -17,7 +17,6 @@ import { useFlash } from "../../lib/useFlash";
 import { api, ApiError } from "../../lib/api";
 import { useAuth } from "../../auth/AuthProvider";
 import "./quarterly.css";
-import "../../components/furniture.css";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 

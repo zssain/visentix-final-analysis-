@@ -20,7 +20,6 @@ import { VciBadge } from "../../report/VciBadge";
 import { useFlash } from "../../lib/useFlash";
 import { scoreBandColor, vciBand } from "../../lib/scoreBands";
 import { api, ApiError } from "../../lib/api";
-import "../../components/furniture.css";
 import "./bulk.css";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";

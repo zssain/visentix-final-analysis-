@@ -13,8 +13,10 @@ import { CodexTooltip } from "../../components/CodexTooltip";
 import {
   FRAMEWORKS, DOMAINS, MAPPINGS, cellMappings, type FrameworkId,
 } from "./mockData";
-import "../../components/furniture.css";
 import "./crosswalk.css";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Info } from "lucide-react";
 
 export function FrameworkCrosswalk() {
   const [activeFw, setActiveFw] = useState<FrameworkId | "all">("all");
@@ -40,14 +42,14 @@ export function FrameworkCrosswalk() {
       />
 
       {/* Descriptive-only guardrail banner (AC-5) */}
-      <div className="guardrail-banner">
-        <span aria-hidden="true" style={{ fontSize: "1.1rem" }}>ⓘ</span>
-        <span>
+      <Alert className="mb-5">
+        <Info />
+        <AlertDescription>
           <b>These are descriptive references, not compliance determinations.</b> A mapping means a domain or
           finding code <i>relates to</i> a framework provision — it does not state that any organisation meets,
           satisfies, or fails it. Citations are references, not legal advice.
-        </span>
-      </div>
+        </AlertDescription>
+      </Alert>
 
       {/* Framework filter (AC-2) */}
       <div className="xw-filters">
@@ -78,7 +80,7 @@ export function FrameworkCrosswalk() {
                   <tr>
                     <td className="xw-domain-cell">
                       <span className="xw-domain-name">
-                        <span className="domain-chip">{d.id}</span>{d.name}
+                        <Badge className="font-data mr-1.5">{d.id}</Badge>{d.name}
                       </span>
                       <button className="xw-domain-toggle" aria-expanded={isOpen} onClick={() => toggleDomain(d.id)}>
                         {isOpen ? "Hide finding codes" : `Show ${d.codes.length} finding codes`}

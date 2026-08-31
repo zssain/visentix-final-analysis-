@@ -4,6 +4,7 @@ import { useAuth } from "../auth/AuthProvider";
 import { BeamsBackground } from "../components/ui/beams-background";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 function roleLanding(role: string): string {
   switch (role) {
@@ -56,12 +57,12 @@ export function Login() {
           <h1>Sign in</h1>
           <p className="login-subtitle">Access the Privacy Intelligence Platform</p>
 
-          {error && <div className="login-error" role="alert">{error}</div>}
+          {error && <Alert variant="destructive" className="mb-5" role="alert"><AlertDescription>{error}</AlertDescription></Alert>}
           
           {infoMessage && (
-            <div className="notice-box gold" style={{ marginBottom: 20 }} role="status">
-              {infoMessage}
-            </div>
+            <Alert className="mb-5" role="status">
+              <AlertDescription>{infoMessage}</AlertDescription>
+            </Alert>
           )}
 
           <form onSubmit={handleSubmit}>

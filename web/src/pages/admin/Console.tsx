@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import { api } from "../../lib/api";
 import { PageHeader } from "../../components/PageHeader";
 import { JobsPanel } from "./JobsPanel";
-import "../../components/furniture.css";
 import { Card } from "@/components/ui/card";
+import { StatusDot } from "@/components/StatusDot";
+import { Alert } from "@/components/ui/alert";
 
 interface TrainingStats {
   total_labels: number;
@@ -108,7 +109,7 @@ export function AdminConsole() {
         description="System health, database record counts, the gate-mode policy that controls when customers see drafts, batch operations, and training-label statistics."
         actions={
           <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.78rem", fontWeight: 600, color: health ? "var(--emerald)" : "var(--red)" }}>
-            <span className="live-dot" style={{ background: health ? "var(--emerald)" : "var(--red)" }} />
+            <StatusDot state={health ? "live" : "stopped"} />
             {health ? "System active" : "API offline"}
           </div>
         }
@@ -126,14 +127,14 @@ export function AdminConsole() {
                 System Health
               </h2>
               <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.78rem", fontWeight: 600, color: "var(--emerald)" }}>
-                <span className="live-dot" /> System active
+                <StatusDot /> System active
               </div>
             </div>
 
             <div className="stats-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
               <Card className="stat-card" style={{ background: "var(--soft-white)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: 16 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <div className="live-dot" style={{ background: health ? "var(--emerald)" : "var(--red)" }} />
+                  <StatusDot state={health ? "live" : "stopped"} />
                   <div className="stat-value" style={{ color: health ? "var(--emerald)" : "var(--red)", fontSize: "1.25rem", fontWeight: 700 }}>
                     {health ? "Healthy" : "Offline"}
                   </div>
@@ -143,7 +144,7 @@ export function AdminConsole() {
 
               <Card className="stat-card" style={{ background: "var(--soft-white)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: 16 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <div className="live-dot" style={{ background: health?.ollama === "ok" ? "var(--emerald)" : "var(--red)" }} />
+                  <StatusDot state={health?.ollama === "ok" ? "live" : "stopped"} />
                   <div className="stat-value" style={{ color: health?.ollama === "ok" ? "var(--emerald)" : "var(--red)", fontSize: "1.25rem", fontWeight: 700 }}>
                     {health?.ollama === "ok" ? "Connected" : "Offline"}
                   </div>
@@ -210,7 +211,7 @@ export function AdminConsole() {
             </p>
 
             {gateModeStatus && (
-              <div className="notice-box teal" style={{
+              <Alert style={{
                 marginBottom: 16,
                 display: "flex",
                 alignItems: "center",
@@ -223,11 +224,11 @@ export function AdminConsole() {
                 >
                   ×
                 </button>
-              </div>
+              </Alert>
             )}
 
             {gateModeError && (
-              <div className="notice-box" style={{
+              <Alert style={{
                 marginBottom: 16, border: "1px solid var(--red)", color: "var(--red)",
                 display: "flex", alignItems: "center", justifyContent: "space-between"
               }}>
@@ -238,7 +239,7 @@ export function AdminConsole() {
                 >
                   ×
                 </button>
-              </div>
+              </Alert>
             )}
 
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -338,20 +339,20 @@ export function AdminConsole() {
             </div>
 
             {batchError && (
-              <div className="notice-box" style={{ border: "1px solid var(--red)", color: "var(--red)", fontSize: "0.8rem" }}>
+              <Alert style={{ border: "1px solid var(--red)", color: "var(--red)", fontSize: "0.8rem" }}>
                 {batchError}
-              </div>
+              </Alert>
             )}
 
             {batchResult && (
-              <div className="notice-box teal" style={{ fontSize: "0.8rem" }}>
+              <Alert style={{ fontSize: "0.8rem" }}>
                 <div style={{ fontWeight: 700, marginBottom: 4 }}>
                   Run {batchResult.run_id.slice(0, 8)} — {batchResult.outcome}
                 </div>
                 <div className="font-data tabular-nums" style={{ color: "var(--text-secondary)" }}>
                   {batchResult.scored} scored · {batchResult.failed} failed · {batchResult.requested} requested
                 </div>
-              </div>
+              </Alert>
             )}
           </Card>
 

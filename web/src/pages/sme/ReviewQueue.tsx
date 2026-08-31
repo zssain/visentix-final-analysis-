@@ -29,11 +29,11 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { api, ApiError } from "../../lib/api";
 import { CodexTooltip } from "../../components/CodexTooltip";
 import { PageHeader } from "../../components/PageHeader";
-import "../../components/furniture.css";
 import "./workbench.css";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const NR = "—"; // honest absence — never a fabricated value (DATA-003)
 
@@ -336,10 +336,10 @@ export function ReviewQueue() {
       </div>
 
       {banner && (
-        <div role="status" data-testid="workbench-banner"
-          className={`notice-box ${banner.kind === "err" ? "red" : "teal"}`} style={{ marginBottom: 14 }}>
-          {banner.text}
-        </div>
+        <Alert role="status" data-testid="workbench-banner"
+          className="mb-3.5" variant={banner.kind === "err" ? "destructive" : "default"}>
+          <AlertDescription>{banner.text}</AlertDescription>
+        </Alert>
       )}
 
       {mode === "findings" ? (
@@ -392,7 +392,7 @@ export function ReviewQueue() {
             ) : detailLoading ? (
               <div className="wb-empty">Loading findings…</div>
             ) : detailError ? (
-              <div className="notice-box red" data-testid="detail-error">{detailError}</div>
+              <Alert variant="destructive" data-testid="detail-error"><AlertDescription>{detailError}</AlertDescription></Alert>
             ) : !detail || detail.total_count === 0 ? (
               <div className="wb-empty" data-testid="no-findings">
                 No findings are recorded for this assessment. Nothing can be approved until the

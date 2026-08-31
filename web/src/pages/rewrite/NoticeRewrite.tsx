@@ -14,7 +14,6 @@ import { PageHeader } from "../../components/PageHeader";
 import { FlashNotice } from "../../components/FlashNotice";
 import { useFlash } from "../../lib/useFlash";
 import { api, ApiError } from "../../lib/api";
-import "../../components/furniture.css";
 import "./rewrite.css";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";

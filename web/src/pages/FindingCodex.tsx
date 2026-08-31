@@ -5,7 +5,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { api } from "../lib/api";
 import { PageHeader } from "../components/PageHeader";
-import "../components/furniture.css";
 import { Card } from "@/components/ui/card";
 
 const DOMAINS = [

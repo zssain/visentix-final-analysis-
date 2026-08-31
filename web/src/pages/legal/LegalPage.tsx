@@ -1,5 +1,4 @@
 import { PageHeader } from "../../components/PageHeader";
-import "../../components/furniture.css";
 
 export type LegalSection = { heading: string; body: string[] };
 

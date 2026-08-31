@@ -14,7 +14,6 @@ import { useFlash } from "../../lib/useFlash";
 import { VciBadge } from "../../report/VciBadge";
 import { scoreBandColor, vciBand, LOW_CONFIDENCE_COHORT_N } from "../../lib/scoreBands";
 import { VENDORS, STATUS_LABEL, type Vendor, type VendorStatus } from "./mockData";
-import "../../components/furniture.css";
 import "./vendors.css";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";

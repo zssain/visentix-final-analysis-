@@ -18,7 +18,6 @@ import { PageHeader } from "../../components/PageHeader";
 import { MultiSelectDropdown, type MSDOption } from "../../components/MultiSelectDropdown";
 import { useIntakeJobs } from "../../jobs/IntakeJobsProvider";
 import "./intake.css";
-import "../../components/furniture.css";
 import { Button } from "@/components/ui/button";
 
 type Step = "idle" | "submitting" | "done" | "error";

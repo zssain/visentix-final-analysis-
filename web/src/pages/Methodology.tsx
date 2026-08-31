@@ -1,5 +1,4 @@
 import { PageHeader } from "../components/PageHeader";
-import "../components/furniture.css";
 import { Card } from "@/components/ui/card";
 
 const FORMULAS = [

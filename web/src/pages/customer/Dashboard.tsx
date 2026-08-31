@@ -23,7 +23,7 @@ const DIRECTION_HINT: Record<string, string> = {
   maturity: "higher is better",
   exposure: "lower is better",
 };
-import "../../components/furniture.css";
+import { StatusDot } from "@/components/StatusDot";
 
 interface Assessment {
   notice_id: string;
@@ -76,7 +76,7 @@ export function CustomerDashboard() {
         description="Real-time privacy intelligence across all assessed notices. Every number comes from the scoring pipeline — nothing is mocked."
         actions={
           <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.78rem", fontWeight: 600, color: "var(--emerald)" }}>
-            <span className="live-dot" /> Live data
+            <StatusDot /> Live data
           </div>
         }
       />
