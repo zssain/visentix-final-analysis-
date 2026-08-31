@@ -1,5 +1,4 @@
 import { ProvenanceRibbon } from "../../components/ProvenanceRibbon";
-import { IntelligenceMark } from "../../components/IntelligenceMark";
 import type { ReportSection } from "../types";
 
 export function Traceability({ content }: { content: ReportSection["content"] }) {
@@ -86,7 +85,6 @@ export function Traceability({ content }: { content: ReportSection["content"] })
       </p>
 
       <div style={{ marginTop: 12 }}>
-        <IntelligenceMark />
       </div>
     </div>
   );

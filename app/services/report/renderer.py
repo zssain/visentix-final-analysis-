@@ -452,6 +452,9 @@ def render_html(report: ReportPayload, branding: dict | None = None) -> str:
     # and nothing else (byte-identical body).
     band = _branding_band(branding)
     body_html = band + "\n".join(body_parts)
+    # Closing bookend before the back cover (revised DDR-007) — kept in the same
+    # order as the web report so PDF parity holds.
+    body_html += _render_disclosure(report)
     back = _render_back_cover(report)
 
     return f"""<!DOCTYPE html>
@@ -531,6 +534,46 @@ def _render_cover(section: ReportSection) -> str:
   <div class="cover-badge"><b>CONFIDENTIAL</b> &middot; This report contains proprietary
     Visentix intelligence and is intended solely for the use of the named recipient.</div>
 </section>{scope_html}"""
+
+
+def _render_disclosure(report: ReportPayload) -> str:
+    """Closing bookend of the revised DDR-007 — PDF parity with the web report.
+
+    The per-surface "Intelligence, not legal advice" mark is replaced by a scope
+    statement at the front and this single Disclosure at the end. Authored static
+    copy, frozen like every other page, and it passes the banned-term filter.
+    It relaxes nothing: the verdict ban, VCI suppression, and exposure-only
+    vocabulary are unchanged.
+    """
+    n = report.cohort_size
+    as_of = _esc(str(report.cohort_date)) if report.cohort_date else ""
+    cohort_clause = (
+        f" (n={n}{f' as of {as_of}' if as_of else ''})"
+        if isinstance(n, int) and n > 0 else ""
+    )
+    return f"""<section class="report-section" id="section-disclosure">
+  <div class="sec-head"><div class="sec-num">&nbsp;</div>
+  <div class="sec-title-wrap"><div class="sec-title">Disclosure</div></div></div>
+  <p><strong>What this report is.</strong> It compares this organization's public privacy
+  notice against the notices of comparable organizations and against published regulatory and
+  enforcement signals, and reports where it stands, how that compares with its peer group, and
+  how much confidence each figure carries. Every number traces to a stored, frozen record and
+  can be reproduced from this snapshot.</p>
+  <p><strong>What it is not.</strong> It is not legal advice and does not state whether any
+  practice meets a legal requirement &mdash; that judgement belongs to qualified counsel who can
+  see the whole picture, including everything a public notice does not show. Visentix reads the
+  published notice, not the systems, contracts, or internal controls behind it, so a strong
+  notice is evidence of strong disclosure rather than proof of strong practice.</p>
+  <p><strong>How to use it.</strong> Treat the comparisons as a prioritization aid: they show
+  where this organization's disclosure differs from its peers and where regulators have been
+  active, which is a good guide to what to look at first. Confidence labels are part of the
+  finding &mdash; a figure marked lower-confidence carries a wider margin and should be weighed
+  accordingly.</p>
+  <p><strong>Limits that apply to every figure here.</strong> Comparisons are drawn from the peer
+  cohort recorded on each section{cohort_clause}; small cohorts are labelled and interpreted with
+  caution. Regulatory sources reflect what was published as of the frozen date on this snapshot
+  and change over time. Where evidence is absent, this report says so rather than estimating.</p>
+</section>"""
 
 
 def _render_back_cover(report: ReportPayload) -> str:

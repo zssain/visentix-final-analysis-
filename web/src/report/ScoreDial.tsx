@@ -47,16 +47,25 @@ export function ScoreDial({ score, vci }: ScoreDialProps) {
         <text x="212" y="130" fontSize="10" fill="#8896A5" fontFamily="'Source Sans 3', sans-serif">100</text>
       </svg>
 
-      <div className="score-dial-value">
+      {/* The figure sits INSIDE the arc (absolutely centred — the old negative
+          margin pulled a two-line uppercase label down over the 0/100 scale
+          hints and collided with them). Below the arc the BAND leads, because
+          "Developing" is what a reader can act on and 62.3 is not
+          (design-system §2). The figure is never removed — it is the arc. */}
+      <div className="score-dial-value" aria-hidden="true">
         <span className="score-dial-num">{clamped.toFixed(1)}</span>
-        <span className="score-dial-label">Overall Privacy Intelligence Score</span>
       </div>
 
-      <div className="score-dial-badges">
-        <span className="score-dial-band" style={{ borderColor: color, color }}>{maturityBand(clamped)}</span>
-        {vci !== undefined && <VciBadge label={vciBand(vci)} guidance={`Visentix Confidence Index ${vci} — how much weight to give this figure (cohort size, source quality, classification certainty)`} />}
+      <div className="score-dial-caption">
+        <span className="score-dial-band-word" style={{ color }}>{maturityBand(clamped)}</span>
+        <span className="score-dial-label">Overall Privacy Intelligence · higher is better</span>
       </div>
-      <div className="score-dial-hint">0–100, benchmarked against the peer cohort · higher is better</div>
+
+      {vci !== undefined && (
+        <div className="score-dial-badges">
+          <VciBadge label={vciBand(vci)} guidance={`Visentix Confidence Index ${vci} — how much weight to give this figure (cohort size, source quality, classification certainty)`} />
+        </div>
+      )}
     </div>
   );
 }

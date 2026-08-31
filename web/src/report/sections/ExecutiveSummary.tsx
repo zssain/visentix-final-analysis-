@@ -1,5 +1,4 @@
 import { CohortLabel } from "../CohortLabel";
-import { IntelligenceMark } from "../../components/IntelligenceMark";
 import type { ReportSection } from "../types";
 
 type Register = "executive" | "practitioner" | "plain";
@@ -79,7 +78,6 @@ export function ExecutiveSummary({ content }: { content: ReportSection["content"
 
       <div style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
         <CohortLabel size={content.cohort_size as number} date={content.cohort_date as string} />
-        <IntelligenceMark />
       </div>
     </div>
   );

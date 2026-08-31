@@ -5,7 +5,6 @@
  * source refs, and narrative provenance badge.
  */
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell } from "recharts";
-import { IntelligenceMark } from "../components/IntelligenceMark";
 
 export interface ExplainPanelProps {
   explanation: Record<string, unknown>;
@@ -249,8 +248,6 @@ export function ExplainPanel({ explanation, kind, label, onClose }: ExplainPanel
         {kind === "finding" && <FindingExplanation explanation={explanation} />}
         {kind === "narrative" && <NarrativeExplanation explanation={explanation} />}
 
-        {/* DDR-007: the lineage/explainability drawer carries the mark */}
-        <div style={{ marginTop: 16 }}><IntelligenceMark /></div>
       </div>
     </div>
   );

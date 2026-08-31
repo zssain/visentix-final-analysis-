@@ -1,6 +1,6 @@
-import { IntelligenceMark } from "../../components/IntelligenceMark";
 import { ScoreCell }    from "../../components/ScoreCell";
 import { domainLabel } from "../../lib/domainLabels";
+import { scoreBandColor } from "../../lib/scoreBands";
 import type { ReportSection } from "../types";
 
 interface HeatmapCell {
@@ -16,11 +16,18 @@ interface RegulatorRow {
   cells: HeatmapCell[];
 }
 
+const HATCH = "repeating-linear-gradient(135deg, #f4f5f7, #f4f5f7 4px, #e3e6ea 4px, #e3e6ea 8px)";
+
+function isEvidenced(cell: HeatmapCell): boolean {
+  return cell.evidenced ?? cell.clause_density > 0;
+}
+
+/** Exposure intensity is a standing judgement — it uses the ONE standing scale,
+ *  never locally redefined colors or a second copy of the band thresholds
+ *  (design-system §2; the previous local copy of 70/45 + teal/gold has been
+ *  removed so a threshold or palette change can never diverge here). */
 function cellColor(cell: HeatmapCell): string {
-  if (!(cell.evidenced ?? cell.clause_density > 0)) return "repeating-linear-gradient(135deg, #f4f5f7, #f4f5f7 4px, #e3e6ea 4px, #e3e6ea 8px)";
-  if (cell.intensity >= 70) return "var(--red)";
-  if (cell.intensity >= 45) return "var(--gold)";
-  return "var(--teal)";
+  return isEvidenced(cell) ? scoreBandColor(cell.intensity) : HATCH;
 }
 
 export function RegulatorExposure({ content }: { content: ReportSection["content"] }) {
@@ -32,6 +39,10 @@ export function RegulatorExposure({ content }: { content: ReportSection["content
   const frozenDate      = (content.date        as string | undefined) ?? "—";
   const cohortSize      = (content.cohort_size as number | undefined) ?? 0;
   const cohortDate      = (content.cohort_date as string | undefined) ?? "—";
+
+  const allCells      = regulators.flatMap(r => r.cells);
+  const evidencedCells = allCells.filter(isEvidenced).length;
+  const domainCount    = regulators[0]?.cells.length ?? 0;
 
   return (
     <div data-testid="section-5" className="report-section">
@@ -61,7 +72,25 @@ export function RegulatorExposure({ content }: { content: ReportSection["content
         </span>
       </div>
 
-      {regulators.length > 0 ? (
+      {regulators.length > 0 && evidencedCells === 0 ? (
+        /* A grid in which NOTHING is evidenced is not a heatmap — it is a wall of
+           dashes that reads as a broken product. The honest thing is to say what
+           happened and why, and not spend a page on an empty lattice (DDR-011).
+           The underlying cells stay in the snapshot and in Traceability. */
+        <div style={{
+          padding: "14px 16px", background: "var(--soft-white)",
+          border: "1px solid var(--border)", borderRadius: "var(--radius)",
+          fontSize: "0.85rem", color: "var(--text-secondary)",
+        }}>
+          <strong>No regulator-domain evidence in this assessment.</strong>
+          <div style={{ marginTop: 6, color: "var(--text-muted)" }}>
+            None of this notice's clauses mapped to a domain that the {regulators.length} tracked
+            regulators publish expectations for, so every cell of the {regulators.length}×{domainCount} grid
+            would be blank. The grid is withheld rather than shown empty. The regulator
+            baselines and the unmapped cells remain in the frozen snapshot.
+          </div>
+        </div>
+      ) : regulators.length > 0 ? (
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr style={{ background: "var(--soft-white)" }}>
@@ -73,8 +102,8 @@ export function RegulatorExposure({ content }: { content: ReportSection["content
             {regulators.map((r) => (
               <tr key={r.regulator_id}>
                 <td style={{ ...td, fontWeight: 600, color: "var(--navy)" }}>{r.regulator_name}<div style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>{r.jurisdiction}</div></td>
-                {r.cells.map(cell => <td key={cell.domain} style={{ ...td, textAlign: "center", background: cellColor(cell), color: (cell.evidenced ?? cell.clause_density > 0) ? "white" : "var(--text-muted)" }}>
-                  {(cell.evidenced ?? cell.clause_density > 0) ? cell.intensity.toFixed(1) : "—"}
+                {r.cells.map(cell => <td key={cell.domain} style={{ ...td, textAlign: "center", background: cellColor(cell), color: isEvidenced(cell) ? "white" : "var(--text-muted)" }}>
+                  {isEvidenced(cell) ? cell.intensity.toFixed(1) : "—"}
                 </td>)}
               </tr>
             ))}
@@ -89,11 +118,10 @@ export function RegulatorExposure({ content }: { content: ReportSection["content
           Regulatory heatmap will appear here once regulator data is populated.
         </div>
       )}
-      {regulators.length > 0 && <div style={{ marginTop: 8, fontSize: "0.75rem", color: "var(--text-muted)" }}>
-        Hatched cells are regulator baselines with no clause from your notice mapped to that domain. {regulators.flatMap(r => r.cells).filter(c => c.evidenced ?? c.clause_density > 0).length} of {regulators.flatMap(r => r.cells).length} cells are backed by notice-clause evidence.
+      {regulators.length > 0 && evidencedCells > 0 && <div style={{ marginTop: 8, fontSize: "0.75rem", color: "var(--text-muted)" }}>
+        Hatched cells are regulator baselines with no clause from your notice mapped to that domain.
+        {" "}{evidencedCells} of {allCells.length} cells are backed by notice-clause evidence.
       </div>}
-      {/* DDR-007: every report section carries the mark */}
-      <div style={{ marginTop: 12 }}><IntelligenceMark /></div>
     </div>
   );
 }

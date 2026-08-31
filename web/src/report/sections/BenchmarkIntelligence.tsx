@@ -1,7 +1,5 @@
-import { BarChart, Bar, XAxis, YAxis, Tooltip, Cell, ResponsiveContainer } from "recharts";
 import { CohortLabel }    from "../CohortLabel";
 import { ScoreCell }      from "../../components/ScoreCell";
-import { IntelligenceMark } from "../../components/IntelligenceMark";
 import { maturityBandColor } from "../../lib/scoreBands";
 import type { ReportSection } from "../types";
 
@@ -21,10 +19,13 @@ export function BenchmarkIntelligence({ content }: { content: ReportSection["con
     dimensions?: string[]; relaxations?: string[]; benchmark_population_version?: number | string;
     as_of_date?: string; low_confidence?: boolean; confidence_penalty?: number;
   } | undefined);
-  const data = [
-    ...(typeof orgScore === "number" ? [{ name: `Your ${measure}`, value: orgScore, fill: maturityBandColor(orgScore) }] : []),
-    ...(typeof topQuartile === "number" ? [{ name: "Peer Top Quartile", value: topQuartile, fill: "#09234F" }] : []),
-  ];
+  // A cohort is what makes a percentile mean anything. With no constructed
+  // cohort there is no peer population to rank against, so a percentile figure
+  // would be a confident-looking number standing on nothing (Hard Rule 7 /
+  // DIR-006). It is withheld rather than printed.
+  const hasCohort = cohortSize > 0;
+  const showPercentile = hasCohort && typeof percentile === "number";
+  const hasPeerMark = hasCohort && typeof topQuartile === "number";
 
   return (
     <div data-testid="section-4" className="report-section">
@@ -32,18 +33,20 @@ export function BenchmarkIntelligence({ content }: { content: ReportSection["con
 
       {/* Percentile + score headline */}
       <div style={{ display: "flex", alignItems: "flex-end", gap: 24, flexWrap: "wrap", marginBottom: 16 }}>
-        <div>
-          <div style={{
-            fontSize: "0.68rem", fontWeight: 700, textTransform: "uppercase",
-            letterSpacing: "0.09em", color: "var(--text-muted)", marginBottom: 4,
-          }}>{measure} Percentile</div>
-          <div style={{
-            fontFamily: "var(--font-data)", fontVariantNumeric: "tabular-nums",
-            fontSize: "2.4rem", fontWeight: 700, color: "var(--navy)", lineHeight: 1,
-          }}>
-            {typeof percentile === "number" ? <>{percentile.toFixed(1)}<span style={{ fontSize: "1rem" }}>th</span></> : "Not recorded"}
+        {showPercentile && (
+          <div>
+            <div style={{
+              fontSize: "0.68rem", fontWeight: 700, textTransform: "uppercase",
+              letterSpacing: "0.09em", color: "var(--text-muted)", marginBottom: 4,
+            }}>{measure} Percentile</div>
+            <div style={{
+              fontFamily: "var(--font-data)", fontVariantNumeric: "tabular-nums",
+              fontSize: "2.4rem", fontWeight: 700, color: "var(--navy)", lineHeight: 1,
+            }}>
+              {percentile!.toFixed(1)}<span style={{ fontSize: "1rem" }}>th</span>
+            </div>
           </div>
-        </div>
+        )}
         <div>
           <div style={{
             fontSize: "0.68rem", fontWeight: 700, textTransform: "uppercase",
@@ -69,29 +72,52 @@ export function BenchmarkIntelligence({ content }: { content: ReportSection["con
         </div>
       </div>
 
-      {/* Chart */}
-      {data.length > 0 ? <div style={{ width: "100%", height: 200 }} className="chart-container">
-        <ResponsiveContainer>
-          <BarChart data={data} barSize={48}>
-            <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-            <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} />
-            <Tooltip
-              formatter={(v) => [`${Number(v).toFixed(1)}`, "Score"]}
-              contentStyle={{ fontSize: "0.82rem", borderRadius: 6 }}
-            />
-            <Bar dataKey="value" isAnimationActive={false} radius={[4, 4, 0, 0]}>
-              {data.map((d, i) => <Cell key={i} fill={d.fill} />)}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
-      </div> : <div style={{ padding: "14px 16px", background: "var(--soft-white)", color: "var(--text-muted)" }}>
-        A stored peer comparison is not available for this assessment.
-      </div>}
+      {/* Position meter — NOT a bar chart.
+          This data is one value against a 0–100 scale with an optional peer
+          reference. A bar chart of a single bar is a named anti-pattern: it
+          spends 200px of axis chrome to say what one marked track says better,
+          and with no peer bar it compares the score against nothing at all.
+          A meter also survives the PDF renderer (static SVG, no animation). */}
+      {typeof orgScore === "number" ? (
+        <figure className="bm-meter" style={{ margin: "18px 0 0" }}>
+          <div className="bm-meter-track" role="img"
+            aria-label={
+              `${measure} ${orgScore.toFixed(1)} out of 100` +
+              (hasPeerMark ? `, peer top quartile ${topQuartile!.toFixed(1)}` : ", no peer reference recorded")
+            }>
+            <div className="bm-meter-fill" style={{
+              width: `${Math.max(0, Math.min(100, orgScore))}%`,
+              background: maturityBandColor(orgScore),
+            }} />
+            {hasPeerMark && (
+              <div className="bm-meter-mark" style={{ left: `${Math.max(0, Math.min(100, topQuartile!))}%` }}>
+                <span className="bm-meter-mark-label">Peer top quartile {topQuartile!.toFixed(1)}</span>
+              </div>
+            )}
+          </div>
+          <div className="bm-meter-scale">
+            <span>0</span>
+            <span style={{ color: maturityBandColor(orgScore), fontWeight: 700 }}>
+              This organization · {orgScore.toFixed(1)}
+            </span>
+            <span>100</span>
+          </div>
+          {!hasPeerMark && (
+            <figcaption className="bm-meter-note">
+              No peer reference is recorded for this assessment, so this shows where the score sits
+              on the scale — not where it sits against comparable organizations.
+            </figcaption>
+          )}
+        </figure>
+      ) : (
+        <div style={{ padding: "14px 16px", background: "var(--soft-white)", color: "var(--text-muted)" }}>
+          A stored peer comparison is not available for this assessment.
+        </div>
+      )}
 
       {/* Honest cohort label */}
       <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
         <CohortLabel size={cohortSize} date={cohortDate} />
-        <IntelligenceMark />
       </div>
 
       {/* Low-confidence label when cohort is small */}

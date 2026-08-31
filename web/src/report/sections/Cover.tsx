@@ -1,4 +1,3 @@
-import { IntelligenceMark } from "../../components/IntelligenceMark";
 import { ScoreDial } from "../ScoreDial";
 import type { ReportSection } from "../types";
 
@@ -78,7 +77,6 @@ export function Cover({ content }: { content: ReportSection["content"] }) {
       </div>}
 
       <div className="cover-footer">
-        <IntelligenceMark />
       </div>
     </div>
   );

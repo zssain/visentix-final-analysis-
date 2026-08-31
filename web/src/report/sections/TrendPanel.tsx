@@ -1,5 +1,4 @@
 import { trendColor } from "../../lib/scoreBands";
-import { IntelligenceMark } from "../../components/IntelligenceMark";
 import type { ReportSection } from "../types";
 
 // Fallback trend data when F-012 Trend Delta has not yet produced real snapshots
@@ -114,8 +113,6 @@ export function TrendPanel({ content }: { content: ReportSection["content"] }) {
           )}
         </>
       )}
-      {/* DDR-007: every report section carries the mark */}
-      <div style={{ marginTop: 12 }}><IntelligenceMark /></div>
     </div>
   );
 }

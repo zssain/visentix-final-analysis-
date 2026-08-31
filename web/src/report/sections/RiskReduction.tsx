@@ -1,4 +1,3 @@
-import { IntelligenceMark } from "../../components/IntelligenceMark";
 import type { ReportSection } from "../types";
 
 interface Priority {
@@ -120,7 +119,6 @@ export function RiskReduction({ content }: { content: ReportSection["content"] }
       )}
 
       <div style={{ marginTop: 14 }}>
-        <IntelligenceMark />
       </div>
     </div>
   );

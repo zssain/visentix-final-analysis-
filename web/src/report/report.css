@@ -94,11 +94,16 @@
 
 /* Score dial (Workstream B item 1) */
 .cover-dial-wrap { display: flex; justify-content: center; margin: 26px 0 8px; }
-.score-dial { display: inline-flex; flex-direction: column; align-items: center; }
+.score-dial { display: inline-flex; flex-direction: column; align-items: center; position: relative; }
 .score-dial svg { display: block; }
+/* Centred inside the arc rather than pulled up by a negative margin — the old
+   approach let the caption overflow onto the 0/100 scale hints. */
 .score-dial-value {
-  display: flex; flex-direction: column; align-items: center;
-  margin-top: -78px; /* nest the number inside the arc */
+  position: absolute;
+  top: 62px;
+  left: 0;
+  right: 0;
+  display: flex; justify-content: center;
   pointer-events: none;
 }
 .score-dial-num {
@@ -109,32 +114,23 @@
   color: #09234F;
   line-height: 1;
 }
-.score-dial-label {
-  font-size: 0.7rem;
-  color: #8896A5;
+.score-dial-caption {
+  display: flex; flex-direction: column; align-items: center;
+  margin-top: 10px;
+}
+.score-dial-band-word {
+  font-size: 1.25rem;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  margin-top: 6px;
-  max-width: 220px;
+  line-height: 1.15;
+}
+.score-dial-label {
+  font-size: 0.72rem;
+  color: #8896A5;
+  margin-top: 3px;
 }
 .score-dial-badges {
   display: flex; align-items: center; gap: 10px;
-  margin-top: 14px;
-}
-.score-dial-band {
-  display: inline-block;
-  padding: 3px 16px;
-  border-radius: 4px;
-  font-size: 0.82rem;
-  font-weight: 700;
-  border: 1.5px solid #09234F;
-  color: #09234F;
-}
-.score-dial-hint {
   margin-top: 10px;
-  font-size: 0.72rem;
-  color: #8896A5;
 }
 
 .cover-scope-block {
@@ -204,4 +200,51 @@
   .cover-hairline, .report-section h2::after, .score-dial svg {
     -webkit-print-color-adjust: exact; print-color-adjust: exact;
   }
+}
+
+/* ── Benchmark position meter (Section 4) ──────────────────────────────────────
+   Replaces a single-bar bar chart: this data is one value against a 0–100 scale
+   with an optional peer reference, which is a meter, not a chart. Static markup
+   only — deterministic for the PDF renderer. */
+.bm-meter-track {
+  position: relative;
+  height: 14px;
+  border-radius: 7px;
+  background: #E4E8ED;
+  overflow: visible;
+}
+.bm-meter-fill {
+  height: 100%;
+  border-radius: 7px;
+}
+.bm-meter-mark {
+  position: absolute;
+  top: -5px;
+  bottom: -5px;
+  width: 2px;
+  background: #09234F;
+}
+.bm-meter-mark-label {
+  position: absolute;
+  left: 6px;
+  top: -16px;
+  white-space: nowrap;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #09234F;
+}
+.bm-meter-scale {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-top: 7px;
+  font-size: 0.72rem;
+  color: #8896A5;
+  font-family: 'Source Sans 3', sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+.bm-meter-note {
+  margin: 8px 0 0;
+  font-size: 0.76rem;
+  color: #8896A5;
 }

@@ -1,7 +1,6 @@
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Cell, ResponsiveContainer } from "recharts";
 import { VciBadge } from "../VciBadge";
 import { ScoreCell } from "../../components/ScoreCell";
-import { IntelligenceMark } from "../../components/IntelligenceMark";
 import { InfoButton } from "../explain";
 import { bandColor, metricPolarity } from "../../lib/scoreBands";
 import type { ReportSection } from "../types";
@@ -119,7 +118,6 @@ export function RiskDashboard({ content }: { content: ReportSection["content"] }
         <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontStyle: "italic" }}>
           Click any score to view its lineage
         </span>
-        <IntelligenceMark />
       </div>
     </div>
   );

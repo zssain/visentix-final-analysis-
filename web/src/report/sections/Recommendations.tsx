@@ -1,4 +1,3 @@
-import { IntelligenceMark } from "../../components/IntelligenceMark";
 import type { ReportSection } from "../types";
 
 interface Rec {
@@ -85,7 +84,6 @@ export function Recommendations({ content }: { content: ReportSection["content"]
       )}
 
       <div style={{ marginTop: 16 }}>
-        <IntelligenceMark />
       </div>
     </div>
   );

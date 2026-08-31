@@ -1,5 +1,4 @@
 import { ScoreCell }      from "../../components/ScoreCell";
-import { IntelligenceMark } from "../../components/IntelligenceMark";
 import { scoreBandColor } from "../../lib/scoreBands";
 import type { ReportSection } from "../types";
 
@@ -87,7 +86,6 @@ export function CompoundRisk({ content }: { content: ReportSection["content"] })
       </p>}
 
       <div style={{ marginTop: 14 }}>
-        <IntelligenceMark />
       </div>
     </div>
   );

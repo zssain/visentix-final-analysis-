@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { CodexTooltip } from "../../components/CodexTooltip";
-import { IntelligenceMark } from "../../components/IntelligenceMark";
 import { domainLabel } from "../../lib/domainLabels";
 import type { ReportSection } from "../types";
 
@@ -232,8 +231,6 @@ export function BenchmarkLanguage({ content }: { content: ReportSection["content
           </div>
         );
       })}
-      {/* DDR-007: every report section carries the mark */}
-      <div style={{ marginTop: 4 }}><IntelligenceMark /></div>
     </div>
   );
 }

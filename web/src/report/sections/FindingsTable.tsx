@@ -1,6 +1,5 @@
 import { Fragment, useState } from "react";
 import { AdvisorNote } from "../../components/AdvisorNote";
-import { IntelligenceMark } from "../../components/IntelligenceMark";
 import { CodexTooltip } from "../../components/CodexTooltip";
 import { InfoButton } from "../explain";
 import { EvidenceStack } from "./EvidenceStack";
@@ -139,8 +138,6 @@ export function FindingsTable({ content }: { content: ReportSection["content"] }
           })}
         </tbody>
       </table>
-      {/* DDR-007: every report section carries the mark */}
-      <div style={{ marginTop: 12 }}><IntelligenceMark /></div>
     </div>
   );
 }
