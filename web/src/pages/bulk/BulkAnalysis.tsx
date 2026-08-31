@@ -382,7 +382,7 @@ function ResultsGrid({ jobId, onBack, showFlash }: { jobId: string; onBack: () =
                 <th className="sortable" onClick={() => setSortKey("overall")}>Overall</th>
                 {DOMAINS.map(d => <th key={d} className="sortable dom" onClick={() => setSortKey(d)} title={DOMAIN_LABEL[d]}>{DOMAIN_LABEL[d]}</th>)}
                 <th className="sortable" onClick={() => setSortKey("cohort")}>Cohort n</th>
-                <th className="sortable" onClick={() => setSortKey("vci")}>VCI</th>
+                <th className="sortable" onClick={() => setSortKey("vci")}>Confidence</th>
                 <th></th>
               </tr>
             </thead>

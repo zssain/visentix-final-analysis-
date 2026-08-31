@@ -24,7 +24,7 @@ function VciComponents({ components }: { components: Record<string, number> }) {
 
   return (
     <div data-testid="vci-components" style={{ width: "100%", height: 160 }}>
-      <h4 style={{ margin: "8px 0 4px" }}>VCI Components</h4>
+      <h4 style={{ margin: "8px 0 4px" }}>What drives this confidence</h4>
       <ResponsiveContainer>
         <BarChart data={data} layout="vertical" margin={{ left: 80 }}>
           <XAxis type="number" domain={[0, 100]} />
@@ -92,7 +92,7 @@ function ScoreExplanation({ explanation }: { explanation: Record<string, unknown
       <InputsTable inputs={inputs} />
 
       <div style={{ margin: "12px 0" }}>
-        <strong>VCI:</strong> {String(confidence.vci)} ({confidence.label as string})
+        <strong>Confidence:</strong> {String(confidence.vci)} ({confidence.label as string})
         <div style={{ fontSize: "0.85em", color: "var(--muted-foreground)" }}>
           {confidence.guidance as string}
         </div>

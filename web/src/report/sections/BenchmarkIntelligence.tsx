@@ -15,7 +15,7 @@ export function BenchmarkIntelligence({ content }: { content: ReportSection["con
   // Honest benchmark bars — a bar renders only when its value is real.
   // A missing peer median must never fall back to an invented 50 (Hard Rule 7).
   const topQuartile = content.top_quartile_score as number | null | undefined;
-  const measure = (content.measure_label as string | undefined) ?? "Governance Maturity (PGMS)";
+  const measure = (content.measure_label as string | undefined) ?? "Privacy programme maturity";
   const methodology = (content.methodology as {
     dimensions?: string[]; relaxations?: string[]; benchmark_population_version?: number | string;
     as_of_date?: string; low_confidence?: boolean; confidence_penalty?: number;

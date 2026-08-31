@@ -18,7 +18,7 @@ interface DeliveriesResponse {
 }
 
 const VCI_TITLE =
-  "Visentix Confidence Index (0–100): how much weight to give this figure.";
+  "Confidence (0–100): how much weight to give this figure — reflects cohort size, source quality, and classification certainty.";
 
 interface TrendPoint {
   snapshot_id: string;
@@ -251,7 +251,7 @@ export function MonitoringHero() {
                       {al.severity ? fmtType(al.severity) : "Escalation"}
                     </span>
                     <span className="font-data tabular-nums" style={{ fontSize: "0.72rem", color: "var(--text-muted)", cursor: "help" }} title={VCI_TITLE}>
-                      VCI {al.vci ?? "—"}
+                      Confidence {al.vci ?? "—"}
                     </span>
                   </div>
                   <div className="font-data tabular-nums" style={{ fontSize: "0.74rem", color: "var(--text-secondary)" }}>

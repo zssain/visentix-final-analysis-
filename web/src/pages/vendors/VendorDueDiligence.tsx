@@ -38,7 +38,7 @@ export function VendorDueDiligence() {
         description="Screen a vendor's public privacy notice, review the exposure intelligence with evidence, and record your own procurement decision."
         actions={<>
           <MockBadge id="M-28" />
-          <Button onClick={() => showFlash("Add vendor — intake→assessment pipeline wired later (M-28).")}>+ Add vendor</Button>
+          <Button onClick={() => showFlash("Adding a vendor is not wired up yet — this screen shows illustrative data.")}>+ Add vendor</Button>
         </>}
       />
 

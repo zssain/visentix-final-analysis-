@@ -74,7 +74,7 @@ export function LineageDrawer({
           <Section label="Confidence">
             <div className="grid grid-cols-2 gap-3">
               <div className="rounded-md border p-3">
-                <div className="text-[11px] uppercase tracking-wider text-muted-foreground">VCI Score</div>
+                <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Confidence</div>
                 {/* Honest absence: an unmeasured confidence is a dash, never a 0. */}
                 <div className="font-data text-xl font-bold" data-testid="lineage-vci">{vci !== undefined ? vci.toFixed(0) : "—"}</div>
                 <div className="text-[11px] text-muted-foreground">Visentix Confidence Index</div>

@@ -141,7 +141,7 @@ export function AdvisorNote({
               {/* VCI */}
               <div className="flex flex-col gap-1">
                 <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                  Confidence (VCI)
+                  Confidence
                 </div>
                 <div className="font-data text-2xl font-bold leading-none" data-testid="advisor-vci">
                   {vci !== undefined
@@ -188,7 +188,7 @@ export function AdvisorNote({
                 <Badge variant="outline">
                   {cohortPercentile !== undefined ? `${cohortPercentile}th percentile` : "Percentile not recorded"} · n={cohortSize}
                 </Badge>
-                <Badge variant="outline">VCI {vci !== undefined ? `${vci}%` : "Not recorded"}</Badge>
+                <Badge variant="outline">Confidence {vci !== undefined ? `${vci}%` : "Not recorded"}</Badge>
               </div>
             </div>
 

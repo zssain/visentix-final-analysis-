@@ -114,7 +114,7 @@ export function RiskDashboard({ content }: { content: ReportSection["content"] }
       </div>
 
       <div style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 10 }}>
-        <span style={{ fontSize: "0.82rem", color: "var(--text-muted)" }}>VCI {typeof vci === "number" ? vci.toFixed(1) : "—"}</span>
+        <span style={{ fontSize: "0.82rem", color: "var(--text-muted)" }}>Confidence {typeof vci === "number" ? vci.toFixed(1) : "—"}</span>
         {typeof vci === "number" && <VciBadge label={content.vci_label as string} />}
         <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontStyle: "italic" }}>
           Click any score to view its lineage

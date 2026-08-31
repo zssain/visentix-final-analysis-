@@ -17,7 +17,8 @@ import { StatTile } from "@/components/ui/stat-tile";
 import { AnimatedNumber } from "@/components/ui/animated-number";
 
 /** Plain-language VCI explainer — shown wherever a VCI number appears. */
-const VCI_TITLE = "Visentix Confidence Index (0–100): how much weight to give this figure — reflects cohort size, source quality, and classification certainty.";
+const VCI_TITLE =
+  "Confidence (0–100): how much weight to give this figure — reflects cohort size, source quality, and classification certainty.";
 
 const DIRECTION_HINT: Record<string, string> = {
   maturity: "higher is better",
