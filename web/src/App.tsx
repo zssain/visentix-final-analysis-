@@ -36,6 +36,8 @@ const S_QUARTERLY = import.meta.env.VITE_SURFACE_QUARTERLY !== "false";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { ThemeProvider } from "@/theme/ThemeProvider";
+import { ThemeToggle } from "@/theme/ThemeToggle";
 import { AuthProvider, useAuth } from "./auth/AuthProvider";
 import { ProtectedRoute }        from "./auth/ProtectedRoute";
 import { ExplainProvider }       from "./report/explain/ExplainContext";
@@ -151,6 +153,7 @@ function AppRoutes() {
               {navOpen ? "✕" : "☰"}
             </button>
             <img src="/wordmark logo for white background.png" alt="Visentix" className="h-6 w-auto" />
+            <div className="ml-auto"><ThemeToggle /></div>
           </div>
 
           {/* Drawer backdrop (mobile only, when open) */}
@@ -228,6 +231,7 @@ function AppRoutes() {
             {/* User area pinned to the bottom */}
             <div className="shrink-0 border-t border-sidebar-border p-3 flex items-center justify-between gap-2">
               <span className="text-xs font-medium capitalize text-muted-foreground truncate">{role ?? ""}</span>
+              <ThemeToggle />
               <Button
                 onClick={signOut}
                 variant="ghost"
@@ -339,7 +343,7 @@ export default function App() {
       <AuthProvider>
         <ExplainProvider>
           <IntakeJobsProvider>
-            <TooltipProvider delayDuration={200}><AppRoutes /></TooltipProvider>
+            <ThemeProvider><TooltipProvider delayDuration={200}><AppRoutes /></TooltipProvider></ThemeProvider>
           </IntakeJobsProvider>
         </ExplainProvider>
       </AuthProvider>

@@ -126,7 +126,7 @@ export function BenchmarkIntelligence({ content }: { content: ReportSection["con
         <div style={{
           marginTop: 10, padding: "8px 12px",
           background: "rgba(200,164,106,0.09)", border: "1px dashed var(--gold)",
-          borderRadius: "var(--radius)", fontSize: "0.78rem", color: "#7a5c20", fontWeight: 600,
+          borderRadius: "var(--radius)", fontSize: "0.78rem", color: "var(--provisional)", fontWeight: 600,
         }}>
           ⚠ Low-confidence benchmarking — cohort size n={cohortSize} is small.
           Percentile figures should be interpreted with caution.

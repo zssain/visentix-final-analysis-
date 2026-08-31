@@ -52,7 +52,7 @@ function InputsTable({ inputs }: { inputs: Record<string, unknown> }) {
   return (
     <table data-testid="inputs-table" style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85em" }}>
       <thead>
-        <tr style={{ background: "#f3f4f6" }}>
+        <tr style={{ background: "var(--muted)" }}>
           <th style={thStyle}>Input</th>
           <th style={thStyle}>Value</th>
         </tr>
@@ -80,7 +80,7 @@ function ScoreExplanation({ explanation }: { explanation: Record<string, unknown
       <div data-testid="formula-sentence" className="explain-formula">
         <strong>Formula:</strong> {explanation.formula_plain as string}
       </div>
-      <div className="explain-version" style={{ fontSize: "0.8em", color: "#6b7280" }}>
+      <div className="explain-version" style={{ fontSize: "0.8em", color: "var(--muted-foreground)" }}>
         Version: {explanation.formula_version as string}
       </div>
 
@@ -93,7 +93,7 @@ function ScoreExplanation({ explanation }: { explanation: Record<string, unknown
 
       <div style={{ margin: "12px 0" }}>
         <strong>VCI:</strong> {String(confidence.vci)} ({confidence.label as string})
-        <div style={{ fontSize: "0.85em", color: "#6b7280" }}>
+        <div style={{ fontSize: "0.85em", color: "var(--muted-foreground)" }}>
           {confidence.guidance as string}
         </div>
       </div>
@@ -128,7 +128,7 @@ function FindingExplanation({ explanation }: { explanation: Record<string, unkno
         <strong>How selected:</strong> {explanation.how_selected as string}
       </div>
 
-      <div style={{ fontSize: "0.8em", color: "#6b7280", margin: "8px 0" }}>
+      <div style={{ fontSize: "0.8em", color: "var(--muted-foreground)", margin: "8px 0" }}>
         Formula version: {explanation.formula_version as string}
       </div>
 
@@ -159,7 +159,7 @@ function NarrativeExplanation({ explanation }: { explanation: Record<string, unk
           const g = (explanation.guardrail as string) ?? "not_recorded";
           const isPass = g === "passed";
           const isAbsent = g === "not_recorded" || !explanation.guardrail;
-          const bg = isPass ? "#dcfce7" : isAbsent ? "#f3f4f6" : "#fef2f2";
+          const bg = isPass ? "#dcfce7" : isAbsent ? "var(--muted)" : "color-mix(in oklab, var(--standing-bad) 8%, var(--card))";
           const fg = isPass ? "#166534" : isAbsent ? "#4b5563" : "#991b1b";
           return (
             <Badge variant="secondary" data-testid="guardrail-badge" className="explain-badge" style={{ background: bg, color: fg, padding: "2px 8px", borderRadius: 4, fontSize: "0.85em", fontWeight: 600, }} title={ isAbsent ? "Guardrail status was not recorded for this snapshot." : undefined }>
@@ -169,7 +169,7 @@ function NarrativeExplanation({ explanation }: { explanation: Record<string, unk
             </Badge>
           );
         })()}
-        <Badge variant="secondary" data-testid="llm-badge" className="explain-badge" style={{ background: "#eff6ff", color: "#1e40af", padding: "2px 8px", borderRadius: 4, fontSize: "0.85em", fontWeight: 600, }}>
+        <Badge variant="secondary" data-testid="llm-badge" className="explain-badge" style={{ background: "color-mix(in oklab, var(--primary) 8%, var(--card))", color: "var(--primary)", padding: "2px 8px", borderRadius: 4, fontSize: "0.85em", fontWeight: 600, }}>
           {explanation.llm_used ? "LLM rephrased" : "Template used"}
         </Badge>
       </div>
@@ -198,12 +198,12 @@ export function ExplainPanel({ explanation, kind, label, onClose }: ExplainPanel
       <div
         className="explain-panel"
         style={{
-          width: 420, maxWidth: "90vw", background: "#fff", height: "100%",
+          width: 420, maxWidth: "90vw", background: "var(--card)", height: "100%",
           overflowY: "auto", padding: "24px 20px", boxShadow: "-2px 0 8px rgba(0,0,0,0.1)",
         }}
       >
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-          <h3 style={{ margin: 0, color: "#0f3460" }}>
+          <h3 style={{ margin: 0, color: "var(--primary)" }}>
             {label ?? (kind === "score" ? "Score" : kind === "finding" ? "Finding" : "Narrative")}
           </h3>
           <button
@@ -211,7 +211,7 @@ export function ExplainPanel({ explanation, kind, label, onClose }: ExplainPanel
             onClick={onClose}
             style={{
               background: "none", border: "none", fontSize: "1.2em",
-              cursor: "pointer", color: "#6b7280",
+              cursor: "pointer", color: "var(--muted-foreground)",
             }}
           >
             &times;

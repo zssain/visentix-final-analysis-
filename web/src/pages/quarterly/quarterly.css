@@ -13,8 +13,8 @@
 /* ── Cover ─────────────────────────────────────────────────────────────── */
 .qr-cover {
   position: relative;
-  background: linear-gradient(155deg, var(--navy) 0%, var(--navy-light) 70%, #0a2a5e 100%);
-  color: #fff;
+  background: linear-gradient(155deg, var(--navy) 0%, var(--navy-light) 70%, var(--primary) 100%);
+  color: var(--card);
   border-radius: var(--radius-xl);
   padding: 48px 44px 40px;
   overflow: hidden;
@@ -42,33 +42,33 @@
   font-family: var(--font-display);
   font-style: italic;
   font-size: 1.05rem;
-  color: rgba(247,248,250,0.82);
+  color: color-mix(in oklab, var(--primary-foreground) 82%, transparent);
   margin-bottom: 30px;
 }
 .qr-cover-stats {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 18px;
-  border-top: 1px solid rgba(255,255,255,0.14);
+  border-top: 1px solid color-mix(in oklab, var(--card) 14%, transparent);
   padding-top: 22px;
 }
 .qr-cover-stat .n {
   font-family: var(--font-data);
   font-variant-numeric: tabular-nums;
   font-size: 1.7rem; font-weight: 700; line-height: 1;
-  color: #fff;
+  color: var(--card);
 }
 .qr-cover-stat .l {
   display: block;
   margin-top: 6px;
   font-size: 0.72rem; letter-spacing: 0.05em; text-transform: uppercase;
-  color: rgba(247,248,250,0.66);
+  color: color-mix(in oklab, var(--primary-foreground) 66%, transparent);
 }
 .qr-cover-foot {
   display: flex; align-items: center; justify-content: space-between;
   flex-wrap: wrap; gap: 12px;
   margin-top: 28px;
-  font-size: 0.78rem; color: rgba(247,248,250,0.6);
+  font-size: 0.78rem; color: color-mix(in oklab, var(--primary-foreground) 60%, transparent);
 }
 .qr-cover-mark {
   font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase;
@@ -211,7 +211,7 @@
 
 /* ── Suppression / low-confidence notice ───────────────────────────────── */
 .qr-suppress {
-  background: rgba(200,164,106,0.08);
+  background: color-mix(in oklab, var(--provisional) 8%, transparent);
   border: 1px dashed var(--gold);
   border-radius: var(--radius);
   padding: 12px 16px;
@@ -239,14 +239,14 @@
 /* ── Back-cover CTA ────────────────────────────────────────────────────── */
 .qr-cta {
   background: var(--navy);
-  color: #fff;
+  color: var(--card);
   border-radius: var(--radius-xl);
   padding: 36px 40px;
   text-align: center;
   margin-top: 44px;
 }
 .qr-cta h2 { font-family: var(--font-display); font-weight: 600; font-size: 1.6rem; margin-bottom: 8px; }
-.qr-cta p  { color: rgba(247,248,250,0.78); font-size: 0.92rem; max-width: 52ch; margin: 0 auto 20px; }
+.qr-cta p  { color: color-mix(in oklab, var(--primary-foreground) 78%, transparent); font-size: 0.92rem; max-width: 52ch; margin: 0 auto 20px; }
 .qr-cta .btn { background: var(--gold); color: var(--navy); font-weight: 700; }
 
 /* ── Responsive ────────────────────────────────────────────────────────── */
@@ -280,7 +280,7 @@
 .qr-corpus { display: flex; gap: 32px; flex-wrap: wrap; margin: 18px 0; }
 .qr-stat-n { font-family: var(--font-data); font-variant-numeric: tabular-nums; font-size: 1.8rem; font-weight: 700; color: var(--exec-blue); }
 .qr-stat-l { font-size: 0.76rem; color: var(--text-muted); }
-.qr-baseline { background: #fef9e7; border: 1px solid #f0c96b; padding: 8px 12px; border-radius: 6px; font-size: 0.82rem; color: #8a6d2f; display: inline-block; }
+.qr-baseline { background: color-mix(in oklab, var(--provisional) 12%, var(--card)); border: 1px solid color-mix(in oklab, var(--provisional) 55%, transparent); padding: 8px 12px; border-radius: 6px; font-size: 0.82rem; color: var(--provisional); display: inline-block; }
 .qr-indicators { display: flex; gap: 18px; flex-wrap: wrap; }
 .qr-ind { border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 22px; }
 .qr-ind-v { font-family: var(--font-data); font-variant-numeric: tabular-nums; font-size: 2rem; font-weight: 700; color: var(--navy); }
@@ -304,7 +304,7 @@
 .qr-admin-table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
 .qr-admin-table th, .qr-admin-table td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); }
 .qr-status { font-size: 0.72rem; font-weight: 700; padding: 3px 9px; border-radius: 999px; }
-.qr-status.st-draft { background: rgba(200,164,106,0.18); color: #8a6d2f; }
-.qr-status.st-approved { background: rgba(85,199,179,0.15); color: #2c8574; }
-.qr-gate.ok { color: #2c8574; font-weight: 700; }
-.qr-gate.bad { color: #c0392b; font-weight: 700; }
+.qr-status.st-draft { background: color-mix(in oklab, var(--provisional) 18%, transparent); color: var(--provisional); }
+.qr-status.st-approved { background: color-mix(in oklab, var(--verified) 15%, transparent); color: var(--verified); }
+.qr-gate.ok { color: var(--verified); font-weight: 700; }
+.qr-gate.bad { color: var(--standing-bad); font-weight: 700; }

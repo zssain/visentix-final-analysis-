@@ -9,7 +9,7 @@
   font-family: 'Source Sans 3', 'Segoe UI', system-ui, sans-serif;
   max-width: 900px;
   margin: 0 auto;
-  color: #1a2035;
+  color: var(--foreground);
   line-height: 1.6;
   position: relative;
 }
@@ -17,19 +17,19 @@
 /* Every section is a quiet white card on the soft-white page — the report
    reads as a bound document, not floating fragments. */
 .report-section {
-  background: #ffffff;
-  border: 1px solid #E4E8ED;
+  background: var(--card);
+  border: 1px solid var(--border);
   border-radius: 12px;
   padding: 28px 32px;
   margin-bottom: 24px;
-  box-shadow: 0 1px 3px rgba(9,35,79,0.05);
+  box-shadow: 0 1px 3px color-mix(in oklab, var(--primary) 5%, transparent);
 }
 
 /* Editorial section headings — Fraunces, quiet gold underline */
 .report-section h2 {
   font-family: 'Fraunces', Georgia, serif;
-  color: #09234F;
-  border-bottom: 1px solid #E4E8ED;
+  color: var(--primary);
+  border-bottom: 1px solid var(--border);
   padding-bottom: 10px;
   margin-bottom: 18px;
   font-size: 1.35rem;
@@ -42,7 +42,7 @@
   position: absolute;
   left: 0; bottom: -1px;
   width: 48px; height: 2px;
-  background: linear-gradient(90deg, #C8A46A, #E8C98A);
+  background: linear-gradient(90deg, var(--provisional), var(--provisional));
   border-radius: 1px;
 }
 
@@ -53,7 +53,7 @@
 }
 .cover-hairline {
   width: 72px; height: 3px;
-  background: linear-gradient(90deg, #C8A46A, #E8C98A);
+  background: linear-gradient(90deg, var(--provisional), var(--provisional));
   margin: 0 auto 22px;
   border-radius: 2px;
 }
@@ -62,14 +62,14 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.18em;
-  color: #8a6a2b;
+  color: var(--provisional);
   margin-bottom: 10px;
 }
 .cover-org-name {
   font-family: 'Fraunces', Georgia, serif;
   font-size: clamp(2.4rem, 6vw, 3.2rem);
   font-weight: 600;
-  color: #09234F;
+  color: var(--primary);
   letter-spacing: -0.02em;
   line-height: 1.05;
   margin-bottom: 14px;
@@ -80,11 +80,11 @@
   justify-content: center;
   flex-wrap: wrap;
   font-size: 0.84rem;
-  color: #64748b;
+  color: var(--muted-foreground);
   margin-bottom: 6px;
 }
 .cover-meta b {
-  color: #8896A5;
+  color: var(--muted-foreground);
   margin-right: 4px;
   font-size: 0.68rem;
   font-weight: 700;
@@ -111,7 +111,7 @@
   font-variant-numeric: tabular-nums;
   font-size: 3rem;
   font-weight: 700;
-  color: #09234F;
+  color: var(--primary);
   line-height: 1;
 }
 .score-dial-caption {
@@ -125,7 +125,7 @@
 }
 .score-dial-label {
   font-size: 0.72rem;
-  color: #8896A5;
+  color: var(--muted-foreground);
   margin-top: 3px;
 }
 .score-dial-badges {
@@ -137,8 +137,8 @@
   text-align: left;
   max-width: 620px;
   margin: 26px auto 0;
-  background: rgba(200,164,106,0.06);
-  border-left: 3px solid #C8A46A;
+  background: color-mix(in oklab, var(--provisional) 6%, transparent);
+  border-left: 3px solid var(--provisional);
   padding: 14px 18px;
   border-radius: 0 6px 6px 0;
 }
@@ -147,12 +147,12 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.09em;
-  color: #7a5c20;
+  color: var(--provisional);
   margin-bottom: 4px;
 }
 .cover-scope-text {
   font-size: 0.84rem;
-  color: #4A5568;
+  color: var(--muted-foreground);
   line-height: 1.6;
 }
 .cover-footer {
@@ -162,10 +162,10 @@
 }
 
 /* Severity tiers */
-.tier-high     { color: #b91c1c; font-weight: 700; }
-.tier-elevated { color: #92400e; font-weight: 700; }
-.tier-moderate { color: #1d4ed8; font-weight: 700; }
-.tier-low      { color: #065f46; font-weight: 700; }
+.tier-high     { color: var(--standing-bad); font-weight: 700; }
+.tier-elevated { color: var(--provisional); font-weight: 700; }
+.tier-moderate { color: var(--primary); font-weight: 700; }
+.tier-low      { color: var(--standing-good); font-weight: 700; }
 
 /* Disable all animations for Playwright PDF capture */
 .chart-container * {
@@ -176,10 +176,10 @@
 /* Report footer */
 .report-footer {
   margin-top: 48px;
-  border-top: 1px solid #D9DDE2;
+  border-top: 1px solid var(--border);
   padding-top: 10px;
   font-size: 0.75rem;
-  color: #8896A5;
+  color: var(--muted-foreground);
   font-family: 'Source Sans 3', sans-serif;
   font-variant-numeric: tabular-nums;
 }
@@ -210,7 +210,7 @@
   position: relative;
   height: 14px;
   border-radius: 7px;
-  background: #E4E8ED;
+  background: var(--border);
   overflow: visible;
 }
 .bm-meter-fill {
@@ -222,7 +222,7 @@
   top: -5px;
   bottom: -5px;
   width: 2px;
-  background: #09234F;
+  background: var(--primary);
 }
 .bm-meter-mark-label {
   position: absolute;
@@ -231,7 +231,7 @@
   white-space: nowrap;
   font-size: 0.68rem;
   font-weight: 700;
-  color: #09234F;
+  color: var(--primary);
 }
 .bm-meter-scale {
   display: flex;
@@ -239,14 +239,14 @@
   align-items: baseline;
   margin-top: 7px;
   font-size: 0.72rem;
-  color: #8896A5;
+  color: var(--muted-foreground);
   font-family: 'Source Sans 3', sans-serif;
   font-variant-numeric: tabular-nums;
 }
 .bm-meter-note {
   margin: 8px 0 0;
   font-size: 0.76rem;
-  color: #8896A5;
+  color: var(--muted-foreground);
 }
 
 /* ── Grouped report parts ─────────────────────────────────────────────────────
@@ -258,17 +258,17 @@
 .report-part-lede {
   margin: 0;
   font-size: 0.92rem;
-  color: #55606D;
+  color: var(--muted-foreground);
   max-width: 68ch;
 }
 .report-subhead {
   font-family: 'Fraunces', Georgia, serif;
   font-size: 1.05rem;
   font-weight: 600;
-  color: #09234F;
+  color: var(--primary);
   margin: 26px 0 10px;
   padding-top: 14px;
-  border-top: 1px solid #E4E8ED;
+  border-top: 1px solid var(--border);
 }
 /* The first sub-heading in a part sits directly under the lede — no extra rule. */
 .report-part-head + div > div:first-child .report-subhead {

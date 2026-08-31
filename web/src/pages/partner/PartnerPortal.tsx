@@ -306,7 +306,7 @@ function FeedTab({ showFlash }: { showFlash: (m: string) => void }) {
 
 // ── Branding tab ─────────────────────────────────────────────
 function BrandingTab({ showFlash }: { showFlash: (m: string) => void }) {
-  const [color, setColor] = useState("#0f3460");
+  const [color, setColor] = useState("var(--primary)");
   const [logo, setLogo] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
 

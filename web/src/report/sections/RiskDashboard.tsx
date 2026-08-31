@@ -62,7 +62,7 @@ export function RiskDashboard({ content }: { content: ReportSection["content"] }
           </BarChart>
         </ResponsiveContainer>
       </div>
-      {(quality?.status === "mismatch" || quality?.status === "insufficient") && <div style={{ marginTop: 10, padding: "10px 12px", border: "1px solid var(--gold)", color: "#7a5c20" }}>
+      {(quality?.status === "mismatch" || quality?.status === "insufficient") && <div style={{ marginTop: 10, padding: "10px 12px", border: "1px solid var(--gold)", color: "var(--provisional)" }}>
         {quality.status === "mismatch" ? "The stored scoring record and the clauses available to this report do not agree." : "No substantive notice clauses are available to support parse-dependent measures."} Parse-dependent maturity and benchmark values are withheld pending review.
       </div>}
       <div style={{ fontSize: "0.74rem", color: "var(--text-muted)", marginTop: 4 }}>

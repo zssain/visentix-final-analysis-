@@ -17,10 +17,10 @@ const VCI_DISPLAY: Record<string, string> = {
 
 const VCI_COLORS: Record<string, string> = {
   "Very High": "#0d6b5c",
-  "High": "#005FA3",
-  "Moderate": "#7a5c20",
-  "Low": "#b91c1c",
-  "Very Low": "#b91c1c",
+  "High": "var(--primary)",
+  "Moderate": "var(--provisional)",
+  "Low": "var(--standing-bad)",
+  "Very Low": "var(--standing-bad)",
 };
 
 interface VciBadgeProps {

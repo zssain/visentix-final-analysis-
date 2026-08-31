@@ -94,7 +94,7 @@ export function Methodology() {
                 padding: "3px 10px", borderRadius: 4,
                 background: "rgba(248,113,113,0.08)",
                 border: "1px solid rgba(248,113,113,0.25)",
-                color: "#b91c1c", fontSize: "0.78rem", fontWeight: 600,
+                color: "var(--standing-bad)", fontSize: "0.78rem", fontWeight: 600,
                 textDecoration: "line-through", opacity: 0.7,
               }}>{t}</span>
             ))}

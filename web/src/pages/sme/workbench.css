@@ -23,10 +23,10 @@
 .wb-queue-item {
   display: flex; justify-content: space-between; align-items: center; gap: 8px;
   padding: 9px 10px; border-radius: var(--radius); border: 1px solid var(--border);
-  background: #fff; cursor: pointer; text-align: left; font: inherit;
+  background: var(--card); cursor: pointer; text-align: left; font: inherit;
 }
 .wb-queue-item:hover { border-color: var(--navy); }
-.wb-queue-item.sel { border-color: var(--navy); background: rgba(9, 35, 79, 0.04); }
+.wb-queue-item.sel { border-color: var(--navy); background: color-mix(in oklab, var(--primary) 4%, transparent); }
 .wb-qid { font-family: var(--font-data); font-size: 0.76rem; color: var(--navy); font-weight: 600; }
 
 .wb-review { padding: 16px 18px; }

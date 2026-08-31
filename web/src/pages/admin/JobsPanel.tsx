@@ -106,7 +106,7 @@ export function JobsPanel() {
         <div style={{
           background: "rgba(200,164,106,0.1)", border: "1px solid var(--gold)",
           borderRadius: "var(--radius)", padding: "10px 14px", marginBottom: 14,
-          fontSize: "0.85rem", color: "#7a5c20", fontWeight: 600,
+          fontSize: "0.85rem", color: "var(--provisional)", fontWeight: 600,
         }}>
           Alert delivery is paused pending severity-threshold approval — {suppressed} event
           {suppressed === 1 ? "" : "s"} held. See the SME review checklist.

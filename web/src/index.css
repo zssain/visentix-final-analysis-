@@ -154,17 +154,17 @@
   }
 
   /* Score-based (the ONLY use of red in the UI) */
-  .badge-high     { background: rgba(248,113,113,0.12); color: #b91c1c; }
-  .badge-elevated { background: rgba(200,164,106,0.15); color: #92400e; }
-  .badge-moderate { background: rgba(85,199,179,0.15);  color: #065f46; }
-  .badge-low      { background: rgba(16,185,129,0.15);  color: #065f46; }
+  .badge-high     { background: color-mix(in oklab, var(--standing-bad) 12%, transparent); color: var(--standing-bad); }
+  .badge-elevated { background: color-mix(in oklab, var(--provisional) 15%, transparent); color: var(--provisional); }
+  .badge-moderate { background: color-mix(in oklab, var(--verified) 15%, transparent);  color: var(--standing-good); }
+  .badge-low      { background: color-mix(in oklab, var(--standing-good) 15%, transparent);  color: var(--standing-good); }
 
   /* Status */
-  .badge-teal     { background: rgba(85,199,179,0.15);  color: #0d6b5c; }
-  .badge-gold     { background: rgba(200,164,106,0.2);  color: #7a5c20; border: 1px dashed var(--gold); }
+  .badge-teal     { background: color-mix(in oklab, var(--verified) 15%, transparent);  color: var(--verified); }
+  .badge-gold     { background: color-mix(in oklab, var(--provisional) 20%, transparent);  color: var(--provisional); border: 1px dashed var(--gold); }
   .badge-navy     { background: var(--navy); color: white; }
-  .badge-draft    { background: rgba(200,164,106,0.12); color: #7a5c20; border: 1px dashed var(--gold); }
-  .badge-approved { background: rgba(85,199,179,0.12);  color: #0d6b5c; border: 1px solid var(--teal); }
+  .badge-draft    { background: color-mix(in oklab, var(--provisional) 12%, transparent); color: var(--provisional); border: 1px dashed var(--gold); }
+  .badge-approved { background: color-mix(in oklab, var(--verified) 12%, transparent);  color: var(--verified); border: 1px solid var(--teal); }
 
   /* Finding code chips — always navy */
   .code-chip {
@@ -218,10 +218,10 @@
   .btn-gold:hover { background: var(--gold-light); }
 
   .btn-outline   { background: transparent; color: var(--navy); border: 1.5px solid var(--border); }
-  .btn-outline:hover { border-color: var(--navy); background: rgba(9,35,79,0.04); }
+  .btn-outline:hover { border-color: var(--navy); background: color-mix(in oklab, var(--primary) 4%, transparent); }
 
   .btn-ghost     { background: transparent; color: var(--text-secondary); }
-  .btn-ghost:hover { background: rgba(9,35,79,0.05); color: var(--navy); }
+  .btn-ghost:hover { background: color-mix(in oklab, var(--primary) 5%, transparent); color: var(--navy); }
 
   .btn-danger    { background: var(--red); color: white; }
   .btn-danger:hover { opacity: 0.9; }
@@ -267,7 +267,7 @@
   /* ─── Tables ──────────────────────────────────────────────────────────────────── */
   table { width: 100%; border-collapse: collapse; }
   table th {
-    background: #F0F2F7;
+    background: var(--muted);
     text-align: left;
     padding: 10px 16px;
     font-weight: 700;
@@ -282,7 +282,7 @@
     border-bottom: 1px solid var(--border);
     font-size: 0.9rem;
   }
-  table tr:hover td { background: rgba(9,35,79,0.02); }
+  table tr:hover td { background: color-mix(in oklab, var(--primary) 2%, transparent); }
 
   /* ─── Page patterns ──────────────────────────────────────────────────────────────
      Shared by Dashboard / Workbench / Console / Codex. Prefer these over inline
@@ -326,9 +326,9 @@
     font-weight: 600;
     border: 1px solid;
   }
-  .notice-box.teal { background: rgba(85,199,179,0.08);  border-color: rgba(85,199,179,0.3);  color: #0d6b5c; }
-  .notice-box.red  { background: rgba(248,113,113,0.06); border-color: rgba(248,113,113,0.25); color: #b91c1c; }
-  .notice-box.gold { background: rgba(200,164,106,0.08); border-color: var(--gold);            color: #7a5c20; }
+  .notice-box.teal { background: color-mix(in oklab, var(--verified) 8%, transparent);  border-color: color-mix(in oklab, var(--verified) 30%, transparent);  color: var(--verified); }
+  .notice-box.red  { background: color-mix(in oklab, var(--standing-bad) 6%, transparent); border-color: color-mix(in oklab, var(--standing-bad) 25%, transparent); color: var(--standing-bad); }
+  .notice-box.gold { background: color-mix(in oklab, var(--provisional) 8%, transparent); border-color: var(--gold);            color: var(--provisional); }
 
   /* ─── Page headers ────────────────────────────────────────────────────────────── */
   .page-header { margin-bottom: 28px; }
@@ -375,7 +375,7 @@
     font-family: var(--font-display);
     font-size: clamp(1.2rem, 4vw, 3rem);
     font-weight: 600;
-    color: rgba(200,164,106,0.12);
+    color: color-mix(in oklab, var(--provisional) 12%, transparent);
     transform: rotate(-35deg);
     pointer-events: none;
     white-space: nowrap;

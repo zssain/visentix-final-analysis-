@@ -45,9 +45,9 @@ function DiffView({ your, exemplar }: { your: string; exemplar: string }) {
     <p style={{ fontSize: "0.85rem", lineHeight: 1.85, color: "var(--text)", margin: 0 }}>
       {segs.map((s, i) => {
         if (s.type === "added")
-          return <span key={i} style={{ background: "rgba(200,164,106,0.22)", color: "#7a5a1e", borderRadius: 2 }}>{s.text}</span>;
+          return <span key={i} style={{ background: "rgba(200,164,106,0.22)", color: "var(--provisional)", borderRadius: 2 }}>{s.text}</span>;
         if (s.type === "removed")
-          return <span key={i} style={{ color: "#9a8f7a", textDecoration: "line-through" }}>{s.text}</span>;
+          return <span key={i} style={{ color: "var(--muted-foreground)", textDecoration: "line-through" }}>{s.text}</span>;
         return <span key={i}>{s.text}</span>;
       })}
     </p>
@@ -91,7 +91,7 @@ export function BenchmarkLanguage({ content }: { content: ReportSection["content
             fontSize: "0.74rem", fontWeight: 600, padding: "5px 12px",
             border: `1px solid ${showDiff ? "var(--gold)" : "var(--border)"}`,
             background: showDiff ? "rgba(200,164,106,0.12)" : "white",
-            color: showDiff ? "#7a5a1e" : "var(--text-secondary)",
+            color: showDiff ? "var(--provisional)" : "var(--text-secondary)",
             borderRadius: "var(--radius)", cursor: "pointer", whiteSpace: "nowrap",
           }}
         >
@@ -100,8 +100,8 @@ export function BenchmarkLanguage({ content }: { content: ReportSection["content
       </div>
       {showDiff && (
         <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginBottom: 14 }}>
-          <span style={{ background: "rgba(200,164,106,0.22)", color: "#7a5a1e", padding: "0 4px", borderRadius: 2 }}>gold</span> = exemplar adds ·{" "}
-          <span style={{ color: "#9a8f7a", textDecoration: "line-through" }}>strike-through</span> = your notice drops
+          <span style={{ background: "rgba(200,164,106,0.22)", color: "var(--provisional)", padding: "0 4px", borderRadius: 2 }}>gold</span> = exemplar adds ·{" "}
+          <span style={{ color: "var(--muted-foreground)", textDecoration: "line-through" }}>strike-through</span> = your notice drops
         </div>
       )}
 

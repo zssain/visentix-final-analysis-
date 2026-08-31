@@ -43,8 +43,8 @@ export function ScoreDial({ score, vci }: ScoreDialProps) {
           <path d={arcPath(120, 120, 96, sweep)} fill="none" stroke={color} strokeWidth="14" strokeLinecap="round" />
         )}
         {/* Scale hints */}
-        <text x="14" y="130" fontSize="10" fill="#8896A5" fontFamily="'Source Sans 3', sans-serif">0</text>
-        <text x="212" y="130" fontSize="10" fill="#8896A5" fontFamily="'Source Sans 3', sans-serif">100</text>
+        <text x="14" y="130" fontSize="10" fill="var(--muted-foreground)" fontFamily="'Source Sans 3', sans-serif">0</text>
+        <text x="212" y="130" fontSize="10" fill="var(--muted-foreground)" fontFamily="'Source Sans 3', sans-serif">100</text>
       </svg>
 
       {/* The figure sits INSIDE the arc (absolutely centred — the old negative

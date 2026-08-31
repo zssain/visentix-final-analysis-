@@ -9,7 +9,7 @@
   cursor: pointer; font-family: inherit;
 }
 .xw-filter:hover { border-color: var(--exec-blue); }
-.xw-filter.on { background: var(--navy); color: #fff; border-color: var(--navy); }
+.xw-filter.on { background: var(--navy); color: var(--card); border-color: var(--navy); }
 .xw-filter:focus-visible { outline: 2px solid var(--exec-blue); outline-offset: 2px; }
 
 /* Matrix — horizontal scroll in its own container (AC-6) */
