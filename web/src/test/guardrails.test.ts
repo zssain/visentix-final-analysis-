@@ -27,6 +27,7 @@ import { RiskReduction } from "../report/sections/RiskReduction";
 import {
   trendColor, scoreBandColor, maturityBandColor, bandColor,
   metricPolarity, maturityBand, NEUTRAL_SCORE_COLOR,
+  STANDING_GOOD, STANDING_MID, STANDING_BAD,
 } from "../lib/scoreBands";
 // quarterly (F12 M-15–M-18) mock removed — replaced by the real F21 quarterly
 // report; its published vocabulary is guarded by backend test_f21_quarterly.py
@@ -135,16 +136,20 @@ describe("F15 AC-2 — trust-center copy is register-appropriate (Hard Rule 9)",
 // ── F12 AC-8: trendColor per-metric polarity ──────────────────
 
 describe("F12 AC-8 — trendColor polarity (DDR-009 + design-system §2)", () => {
-  const TEAL = "#55C7B3", RED = "#F87171", MUTED = "#8896A5";
+  // Asserted against the exported standing constants, not pasted literals: the
+  // point of the test is that IMPROVEMENT is green and worsening is red, not
+  // which hex the palette currently uses. A palette change (OD-13) must not
+  // require editing an assertion — that is how a guard silently rots.
+  const MUTED = "#8896A5";
 
-  it("exposure: falling = improving (teal), rising = worsening (red)", () => {
-    expect(trendColor(-2.5, "exposure")).toBe(TEAL);
-    expect(trendColor(+2.5, "exposure")).toBe(RED);
+  it("exposure: falling = improving (green), rising = worsening (red)", () => {
+    expect(trendColor(-2.5, "exposure")).toBe(STANDING_GOOD);
+    expect(trendColor(+2.5, "exposure")).toBe(STANDING_BAD);
   });
 
-  it("maturity: rising = improving (teal), falling = worsening (red)", () => {
-    expect(trendColor(+2.5, "maturity")).toBe(TEAL);
-    expect(trendColor(-2.5, "maturity")).toBe(RED);
+  it("maturity: rising = improving (green), falling = worsening (red)", () => {
+    expect(trendColor(+2.5, "maturity")).toBe(STANDING_GOOD);
+    expect(trendColor(-2.5, "maturity")).toBe(STANDING_BAD);
   });
 
   it("zero delta is neutral regardless of polarity", () => {
@@ -158,33 +163,43 @@ describe("F12 AC-8 — trendColor polarity (DDR-009 + design-system §2)", () =>
   });
 });
 
-// ── Polarity-aware score coloring (design-system §2 v1.3) ─────
-// Color always carries the same judgement: teal good, gold middling,
-// red poor — whichever direction the metric runs.
+// ── Polarity-aware score coloring (design-system §2 v1.6) ─────
+// Color always carries the same judgement — green good, yellow middling,
+// red poor (OD-13 traffic light) — whichever direction the metric runs.
 
 describe("polarity-aware score coloring — color agrees with meaning", () => {
-  const TEAL = "#55C7B3", GOLD = "#C8A46A", RED = "#F87171";
+  it("the standing scale is exactly three distinct judgements", () => {
+    expect(new Set([STANDING_GOOD, STANDING_MID, STANDING_BAD]).size).toBe(3);
+  });
+
+  it("teal and gold are no longer standing colors (OD-13)", () => {
+    // They keep their non-standing jobs (verified/approved/live; draft/added-diff)
+    // but must never come back as a judgement about a score.
+    const standing = [STANDING_GOOD, STANDING_MID, STANDING_BAD];
+    expect(standing).not.toContain("#55C7B3"); // teal
+    expect(standing).not.toContain("#C8A46A"); // gold
+  });
 
   it("maturity scale: color always agrees with the maturity band label", () => {
     expect(maturityBand(34.9)).toBe("Deficient");
-    expect(maturityBandColor(34.9)).toBe(RED);      // Deficient is never teal
+    expect(maturityBandColor(34.9)).toBe(STANDING_BAD);  // Deficient is never green
     expect(maturityBand(8.8)).toBe("Deficient");
-    expect(maturityBandColor(8.8)).toBe(RED);       // Transparency 8.8 is not "good"
+    expect(maturityBandColor(8.8)).toBe(STANDING_BAD);   // Transparency 8.8 is not "good"
     expect(maturityBand(62.3)).toBe("Developing");
-    expect(maturityBandColor(62.3)).toBe(GOLD);
+    expect(maturityBandColor(62.3)).toBe(STANDING_MID);
     expect(maturityBand(80)).toBe("Mature");
-    expect(maturityBandColor(80)).toBe(TEAL);
+    expect(maturityBandColor(80)).toBe(STANDING_GOOD);
   });
 
-  it("exposure scale unchanged: high exposure red, low exposure teal", () => {
-    expect(scoreBandColor(82.2)).toBe(RED);
-    expect(scoreBandColor(50)).toBe(GOLD);
-    expect(scoreBandColor(17.1)).toBe(TEAL);
+  it("exposure scale: thresholds unchanged, high exposure red, low exposure green", () => {
+    expect(scoreBandColor(82.2)).toBe(STANDING_BAD);
+    expect(scoreBandColor(50)).toBe(STANDING_MID);
+    expect(scoreBandColor(17.1)).toBe(STANDING_GOOD);
   });
 
   it("bandColor dispatches by polarity; unknown polarity is neutral, never a guess", () => {
-    expect(bandColor(34.9, "maturity")).toBe(RED);
-    expect(bandColor(34.9, "exposure")).toBe(TEAL);
+    expect(bandColor(34.9, "maturity")).toBe(STANDING_BAD);
+    expect(bandColor(34.9, "exposure")).toBe(STANDING_GOOD);
     expect(bandColor(34.9, undefined)).toBe(NEUTRAL_SCORE_COLOR);
   });
 

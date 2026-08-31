@@ -1,29 +1,41 @@
 /**
  * Canonical score→color banding — single source of truth.
- * Red is reserved for high exposure only (design token rule, UI_SPEC §0).
- * Hex literals mirror the token palette so the same values work in CSS
- * and in SVG/Recharts `fill` attributes.
+ *
+ * Standing scale (OD-13, owner-decided 2026-08-31): GREEN good · YELLOW
+ * middling · RED poor, for every score regardless of which direction the number
+ * runs. Teal and gold are no longer standing colors — they keep their
+ * non-standing jobs (verified/approved/live; draft/provisional/added-diff).
+ *
+ * The values are deliberately ink-weight rather than pastel: these strings color
+ * NUMBERS and strokes on a near-white surface, and the previous pastels
+ * (#55C7B3 / #C8A46A / #F87171) failed AA as text — a washed-out score is a
+ * legibility bug. Mirrored as --good / --mid / --bad in index.css so the same
+ * judgement reads identically in CSS and in SVG fill attributes.
  */
+export const STANDING_GOOD = "#0E7C57";
+export const STANDING_MID = "#A87400";
+export const STANDING_BAD = "#B42318";
+
 export const SCORE_BAND_HIGH = 70;
 export const SCORE_BAND_ELEVATED = 45;
 
-/** EXPOSURE scores (higher = worse): ≥70 red · ≥45 gold · below teal. */
+/** EXPOSURE scores (higher = worse): ≥70 red · ≥45 yellow · below green. */
 export function scoreBandColor(score: number): string {
-  if (score >= SCORE_BAND_HIGH) return "#F87171";     // red — high exposure
-  if (score >= SCORE_BAND_ELEVATED) return "#C8A46A"; // gold — elevated
-  return "#55C7B3";                                   // teal — lower exposure
+  if (score >= SCORE_BAND_HIGH) return STANDING_BAD;      // high exposure
+  if (score >= SCORE_BAND_ELEVATED) return STANDING_MID;  // elevated
+  return STANDING_GOOD;                                   // lower exposure
 }
 
 /**
  * MATURITY scores (higher = better): color follows the canonical VICBNF
  * maturity bands so the color always agrees with the band label —
- * ≥75 teal (Mature/Leading) · ≥60 gold (Developing) · below red
- * (Lagging/Deficient). "Deficient" is never teal. (design-system §2 v1.3)
+ * ≥75 green (Mature/Leading) · ≥60 yellow (Developing) · below red
+ * (Lagging/Deficient). "Deficient" is never green. (design-system §2 v1.6)
  */
 export function maturityBandColor(score: number): string {
-  if (score >= 75) return "#55C7B3"; // teal — Mature / Leading
-  if (score >= 60) return "#C8A46A"; // gold — Developing
-  return "#F87171";                  // red — Lagging / Deficient
+  if (score >= 75) return STANDING_GOOD; // Mature / Leading
+  if (score >= 60) return STANDING_MID;  // Developing
+  return STANDING_BAD;                   // Lagging / Deficient
 }
 
 /** Neutral navy for metrics whose polarity is unknown — never a guessed judgement. */
@@ -117,5 +129,5 @@ export type MetricPolarity = "exposure" | "maturity";
 export function trendColor(delta: number, polarity: MetricPolarity = "exposure"): string {
   if (delta === 0) return "#8896A5"; // text-muted — no movement
   const improving = polarity === "maturity" ? delta > 0 : delta < 0;
-  return improving ? "#55C7B3" : "#F87171";
+  return improving ? STANDING_GOOD : STANDING_BAD;
 }

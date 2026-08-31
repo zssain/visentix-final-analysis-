@@ -101,11 +101,11 @@ export function CustomerDashboard() {
           </div>
           <div className="stat-cell">
             <span className="stat-key">High exposure</span>
-            <span className="stat-val" style={{ color: "var(--red)" }}>{stats.high_findings ?? "—"}</span>
+            <span className="stat-val" style={{ color: "var(--bad)" }}>{stats.high_findings ?? "—"}</span>
           </div>
           <div className="stat-cell">
             <span className="stat-key">Elevated exposure</span>
-            <span className="stat-val" style={{ color: "var(--gold)" }}>{stats.medium_findings ?? "—"}</span>
+            <span className="stat-val" style={{ color: "var(--mid)" }}>{stats.medium_findings ?? "—"}</span>
           </div>
         </div>
       )}
@@ -118,83 +118,84 @@ export function CustomerDashboard() {
               every monitoring endpoint is unpopulated — F07 surfacing rule. */}
           <MonitoringHero />
 
-          {/* Overall score */}
-          <div className="card" style={{ padding: 24 }}>
-            <div style={{ display: "flex", alignItems: "flex-start", gap: 24, flexWrap: "wrap" }}>
-              <div>
-                <div className="micro-label">Overall Privacy Intelligence Score</div>
-                {overallScore != null ? (
-                  <>
-                    {/* Maturity polarity: higher = better; color agrees with the band label
-                        ("Deficient" is never teal) — design-system §2 v1.3 */}
-                    <div style={{
-                      fontFamily: "var(--font-data)", fontVariantNumeric: "tabular-nums",
-                      fontSize: "3rem", fontWeight: 700, color: maturityBandColor(overallScore),
-                      lineHeight: 1.1,
-                    }}>
-                      {overallScore.toFixed(1)}
-                    </div>
-                    <div style={{ fontSize: "0.82rem", color: "var(--text-muted)", marginTop: 4 }}>
-                      <span style={{ fontWeight: 700, color: maturityBandColor(overallScore) }}>{maturityBand(overallScore)}</span>
-                      {" · "}
-                      <span title={VCI_TITLE} style={{ cursor: "help", textDecoration: "underline dotted" }}>
-                        VCI {((stats?.overall_confidence ?? 0) * 100).toFixed(0)} · {vciBand((stats?.overall_confidence ?? 0) * 100)} confidence
-                      </span>
-                    </div>
-                    <div style={{ fontSize: "0.76rem", color: "var(--text-muted)", marginTop: 4 }}>
-                      0–100, benchmarked against your peer cohort · higher is better
-                    </div>
-                  </>
-                ) : (
-                  <div style={{ fontSize: "1.2rem", color: "var(--text-muted)", marginTop: 8 }}>
-                    No scores computed yet. Submit an assessment via Intake to see real scores.
-                  </div>
-                )}
+          {/* Overall score — the BAND leads, the number follows (design-system §2).
+              "Developing" is what a reader can act on; 71.7 is not. The figure is
+              kept, never removed: it sits beside the band and in full lineage. */}
+          <div className="card" style={{ padding: "16px 20px" }}>
+            <div className="micro-label">Overall Privacy Intelligence</div>
+            {overallScore != null ? (
+              <div style={{ display: "flex", alignItems: "baseline", gap: 12, flexWrap: "wrap", marginTop: 6 }}>
+                <span style={{
+                  fontSize: "1.7rem", fontWeight: 700, lineHeight: 1.1,
+                  color: maturityBandColor(overallScore),
+                }}>
+                  {maturityBand(overallScore)}
+                </span>
+                <span style={{
+                  fontFamily: "var(--font-data)", fontVariantNumeric: "tabular-nums",
+                  fontSize: "1rem", fontWeight: 600, color: "var(--text-secondary)",
+                }}>
+                  {overallScore.toFixed(1)}<span style={{ color: "var(--text-muted)", fontWeight: 500 }}>/100</span>
+                </span>
+                <span
+                  title={VCI_TITLE}
+                  style={{ fontSize: "0.74rem", color: "var(--text-muted)", cursor: "help", textDecoration: "underline dotted" }}
+                >
+                  {vciBand((stats?.overall_confidence ?? 0) * 100)} confidence
+                </span>
+                <span style={{ fontSize: "0.74rem", color: "var(--text-muted)", marginLeft: "auto" }}>
+                  benchmarked against your peer cohort · higher is better
+                </span>
               </div>
-            </div>
+            ) : (
+              <div style={{ fontSize: "0.95rem", color: "var(--text-muted)", marginTop: 6 }}>
+                No scores computed yet. Submit an assessment via Intake to see real scores.
+              </div>
+            )}
           </div>
 
           {/* Domain scorecards — from real data */}
           {stats && stats.domain_scores.length > 0 && (
             <div>
               <div className="section-label" style={{ marginBottom: 4 }}>Score Breakdown</div>
-              {/* Legend: color = judgement, per design-system §2 v1.3 */}
+              {/* Legend: color = judgement, per design-system §2 v1.6 (traffic light) */}
               <div style={{ fontSize: "0.74rem", color: "var(--text-muted)", marginBottom: 10 }}>
-                Color shows standing — <span style={{ color: "var(--teal)", fontWeight: 700 }}>teal good</span> ·{" "}
-                <span style={{ color: "#8a6a2b", fontWeight: 700 }}>gold developing</span> ·{" "}
-                <span style={{ color: "#b91c1c", fontWeight: 700 }}>red needs attention</span>.
-                Each metric notes which direction is better.
+                <span style={{ color: "var(--good)", fontWeight: 700 }}>Green good</span> ·{" "}
+                <span style={{ color: "var(--mid)", fontWeight: 700 }}>yellow needs attention</span> ·{" "}
+                <span style={{ color: "var(--bad)", fontWeight: 700 }}>red poor</span>. Each metric notes which direction is better.
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(215px, 1fr))", gap: 10 }}>
                 {stats.domain_scores.map(ds => {
                   const polarity = metricPolarity(ds.domain);
                   const hasScore = ds.score > 0;
                   const color = hasScore ? bandColor(ds.score, polarity) : "var(--text-muted)";
                   return (
-                    <div key={ds.object_type} className="card" style={{ padding: "12px 16px" }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                        <div>
-                          <div className="micro-label" style={{ marginBottom: 3 }}>
-                            {ds.domain}
-                            {polarity && (
-                              <span style={{ fontWeight: 500, textTransform: "none", letterSpacing: 0, color: "var(--text-muted)", marginLeft: 6 }}>
-                                · {DIRECTION_HINT[polarity]}
-                              </span>
-                            )}
-                          </div>
-                          <div style={{
-                            fontFamily: "var(--font-data)", fontVariantNumeric: "tabular-nums",
-                            fontSize: "1.5rem", fontWeight: 700, color,
-                          }}>
-                            {hasScore ? ds.score.toFixed(1) : "—"}
-                          </div>
-                        </div>
-                        <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", cursor: "help", textDecoration: "underline dotted", textAlign: "right" }} title={VCI_TITLE}>
-                          VCI {((ds.confidence || 0) * 100).toFixed(0)}
-                          <div style={{ fontSize: "0.66rem" }}>{vciBand((ds.confidence || 0) * 100)} confidence</div>
-                        </div>
+                    /* Compact tile: name + direction, figure, confidence as one quiet
+                       chip rather than two repeated lines on every card (DDR-011). */
+                    <div key={ds.object_type} className="card" style={{ padding: "10px 13px" }}>
+                      <div className="micro-label" style={{ marginBottom: 4 }}>
+                        {ds.domain}
+                        {polarity && (
+                          <span style={{ fontWeight: 500, textTransform: "none", letterSpacing: 0, color: "var(--text-muted)", marginLeft: 6 }}>
+                            · {DIRECTION_HINT[polarity]}
+                          </span>
+                        )}
                       </div>
-                      <div style={{ height: 3, background: "var(--border)", borderRadius: 2, marginTop: 8, overflow: "hidden" }}>
+                      <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+                        <span style={{
+                          fontFamily: "var(--font-data)", fontVariantNumeric: "tabular-nums",
+                          fontSize: "1.25rem", fontWeight: 700, color, lineHeight: 1.15,
+                        }}>
+                          {hasScore ? ds.score.toFixed(1) : "—"}
+                        </span>
+                        <span
+                          title={VCI_TITLE}
+                          style={{ fontSize: "0.68rem", color: "var(--text-muted)", cursor: "help", textDecoration: "underline dotted", marginLeft: "auto" }}
+                        >
+                          {vciBand((ds.confidence || 0) * 100).toLowerCase()} conf.
+                        </span>
+                      </div>
+                      <div style={{ height: 3, background: "var(--border)", borderRadius: 2, marginTop: 7, overflow: "hidden" }}>
                         {hasScore && (
                           <div style={{ height: "100%", width: `${Math.min(ds.score, 100)}%`, background: color, borderRadius: 2 }} />
                         )}

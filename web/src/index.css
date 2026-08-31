@@ -24,6 +24,17 @@
   --red:         #F87171;
   --emerald:     #10b981;
 
+  /* Standing scale (OD-13, owner-decided 2026-08-31) — traffic light.
+     These are the ONLY colors that carry judgement about a score. Teal and gold
+     keep their non-standing jobs (verified/approved/live; draft/provisional/
+     added-diff) and no longer say "good" or "middling".
+     Values are chosen to clear AA contrast on Soft White as TEXT, which the old
+     pastel standing colors did not — a washed-out number is a legibility bug,
+     not a style. Single source of truth in code: web/src/lib/scoreBands.ts. */
+  --good:        #0E7C57;
+  --mid:         #A87400;
+  --bad:         #B42318;
+
   /* Semantic aliases */
   --bg:          var(--soft-white);
   --bg-card:     #ffffff;
