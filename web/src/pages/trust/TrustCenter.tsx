@@ -8,7 +8,6 @@
  * numbers only.
  */
 import { Link } from "react-router-dom";
-import { IntelligenceMark } from "../../components/IntelligenceMark";
 import { TRUST_METRICS, DATA_COMMITMENTS, LINEAGE_FIELDS } from "./mockData";
 import "../../components/furniture.css";
 import "./trust.css";
@@ -68,7 +67,6 @@ export function TrustCenter() {
             </ul>
           </div>
         </div>
-        <div style={{ marginTop: 16 }}><IntelligenceMark /></div>
       </section>
 
       {/* 2 · Your data */}

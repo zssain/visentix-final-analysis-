@@ -9,7 +9,6 @@
  */
 import { Fragment, useState } from "react";
 import { PageHeader } from "../../components/PageHeader";
-import { IntelligenceMark } from "../../components/IntelligenceMark";
 import { CodexTooltip } from "../../components/CodexTooltip";
 import {
   FRAMEWORKS, DOMAINS, MAPPINGS, cellMappings, type FrameworkId,
@@ -38,7 +37,6 @@ export function FrameworkCrosswalk() {
         eyebrow="Crosswalk"
         title="Framework Crosswalk"
         description="How Visentix's disclosure domains and finding codes relate to the frameworks you already report against. Descriptive references — not compliance determinations."
-        actions={<IntelligenceMark />}
       />
 
       {/* Descriptive-only guardrail banner (AC-5) */}

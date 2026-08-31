@@ -16,6 +16,8 @@
     "jsx": "react-jsx",
 
     /* shadcn path alias */
+    "baseUrl": ".",
+    "ignoreDeprecations": "6.0",
     "paths": { "@/*": ["./src/*"] },
 
     /* Linting */

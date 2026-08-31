@@ -25,10 +25,10 @@ describe("RegulatorExposure — VCI honest absence (DATA-003)", () => {
       <RegulatorExposure content={{ regulatory_score: 42, tier: "elevated", regulators: [] }} />
     );
     fireEvent.click(screen.getByLabelText(/click to view score lineage/i));
-    const vciLabel = screen.getByText("VCI Score");
-    const valueEl = vciLabel.parentElement?.querySelector(".lm-value");
-    expect(valueEl?.textContent).toBe("—");
-    expect(valueEl?.textContent).not.toContain("75");
+    /* Anchored on a testid, not a class name: the guard is about the VALUE
+       being an honest dash, and must survive a restyle. */
+    expect(screen.getByTestId("lineage-vci").textContent).toBe("—");
+    expect(screen.getByTestId("lineage-vci").textContent).not.toContain("75");
   });
 
   it("renders the real vci_score when present", () => {
@@ -36,9 +36,7 @@ describe("RegulatorExposure — VCI honest absence (DATA-003)", () => {
       <RegulatorExposure content={{ regulatory_score: 42, tier: "elevated", regulators: [], vci_score: 88 }} />
     );
     fireEvent.click(screen.getByLabelText(/click to view score lineage/i));
-    const vciLabel = screen.getByText("VCI Score");
-    const valueEl = vciLabel.parentElement?.querySelector(".lm-value");
-    expect(valueEl?.textContent).toBe("88");
+    expect(screen.getByTestId("lineage-vci").textContent).toBe("88");
   });
 });
 

@@ -15,7 +15,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { PageHeader } from "../../components/PageHeader";
-import { IntelligenceMark } from "../../components/IntelligenceMark";
 import { FlashNotice } from "../../components/FlashNotice";
 import { VciBadge } from "../../report/VciBadge";
 import { useFlash } from "../../lib/useFlash";
@@ -238,7 +237,7 @@ function JobList({ jobs, onOpen, onRefresh }: { jobs: Job[]; onOpen: (id: string
   if (!jobs.length) return <div className="bulk-card"><div className="bulk-empty">No screening jobs yet. Start one with “New screening”.</div></div>;
   return (
     <section className="bulk-card">
-      <div className="bulk-card-head"><span>Screening jobs</span><IntelligenceMark /></div>
+      <div className="bulk-card-head"><span>Screening jobs</span></div>
       <table className="bulk-jobs-table">
         <thead><tr><th>Label</th><th>Status</th><th>Progress</th><th>Created</th><th></th></tr></thead>
         <tbody>

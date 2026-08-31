@@ -1,5 +1,6 @@
-import { useEffect } from "react";
-import "./furniture.css";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 
 interface LineageInput {
   label: string;    // e.g. "C-118"
@@ -19,12 +20,14 @@ interface LineageDrawerProps {
   cohortDate: string;
 }
 
-const TYPE_COLORS: Record<string, string> = {
-  clause:       "#09234F",
-  regulator:    "#005FA3",
-  jurisdiction: "#55C7B3",
-  cohort:       "#C8A46A",
-};
+function Section({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <section className="flex flex-col gap-2">
+      <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</div>
+      {children}
+    </section>
+  );
+}
 
 export function LineageDrawer({
   open, onClose,
@@ -33,121 +36,73 @@ export function LineageDrawer({
   vci, snapshotId, frozenDate,
   cohortSize, cohortDate,
 }: LineageDrawerProps) {
-  // Close on Escape
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
-    document.addEventListener("keydown", handler);
-    return () => document.removeEventListener("keydown", handler);
-  }, [open, onClose]);
-
-  if (!open) return null;
-
+  /* Escape, focus trap, restore-focus and the backdrop are Radix's job now —
+     the hand-rolled version wired only Escape. */
   return (
-    <>
-      {/* Backdrop */}
-      <div
-        className="lineage-backdrop"
-        onClick={onClose}
-        aria-hidden="true"
-      />
+    <Sheet open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
+      <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
+        <SheetHeader>
+          <SheetTitle>Score Lineage</SheetTitle>
+        </SheetHeader>
 
-      {/* Drawer */}
-      <aside
-        className="lineage-drawer"
-        role="complementary"
-        aria-label="Score lineage"
-      >
-        <div className="lineage-drawer-header">
-          <h3>Score Lineage</h3>
-          <button
-            className="lineage-drawer-close"
-            onClick={onClose}
-            aria-label="Close lineage drawer"
-          >
-            ✕
-          </button>
-        </div>
+        <div className="flex flex-col gap-6 px-4 pb-6">
+          <Section label="Formula">
+            <Badge variant="outline" className="font-data w-fit">{formulaId}</Badge>
+            <p className="text-sm text-muted-foreground">{formulaDesc}</p>
+          </Section>
 
-        <div className="lineage-drawer-body">
-          {/* Formula */}
-          <section>
-            <div className="section-label">Formula</div>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-              <span className="lineage-formula-chip">{formulaId}</span>
-            </div>
-            <p className="lineage-formula-desc">{formulaDesc}</p>
-          </section>
+          <Separator />
 
-          {/* Input micro-timeline */}
-          <section>
-            <div className="section-label">Inputs</div>
-            <div className="lineage-micro-timeline">
+          <Section label="Inputs">
+            <div className="flex flex-wrap items-center gap-1.5">
               {inputs.map((inp, i) => (
-                <div key={i} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <div className="lineage-micro-node">
-                    <div
-                      className="node-chip"
-                      style={{
-                        borderColor: TYPE_COLORS[inp.type] ?? "#D9DDE2",
-                        color: TYPE_COLORS[inp.type] ?? "#09234F",
-                        borderWidth: 1,
-                        borderStyle: "solid",
-                      }}
-                    >
-                      {inp.label}
-                    </div>
-                    <div className="node-label">{inp.type}</div>
+                <div key={i} className="flex items-center gap-1.5">
+                  <div className="flex flex-col items-center gap-0.5">
+                    <Badge variant="outline" className="font-data">{inp.label}</Badge>
+                    <span className="text-[10px] capitalize text-muted-foreground">{inp.type}</span>
                   </div>
                   {i < inputs.length - 1 && (
-                    <div className="lineage-micro-arrow" aria-hidden="true">→</div>
+                    <span className="text-muted-foreground pb-3.5" aria-hidden="true">→</span>
                   )}
                 </div>
               ))}
             </div>
-          </section>
+          </Section>
 
-          {/* Metrics */}
-          <section>
-            <div className="section-label">Confidence</div>
-            <div className="lineage-metrics">
-              <div className="lineage-metric-cell">
-                <div className="lm-label">VCI Score</div>
-                <div className="lm-value">{vci !== undefined ? vci.toFixed(0) : "—"}</div>
-                <div className="lm-sub">Visentix Confidence Index</div>
+          <Separator />
+
+          <Section label="Confidence">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-md border p-3">
+                <div className="text-[11px] uppercase tracking-wider text-muted-foreground">VCI Score</div>
+                {/* Honest absence: an unmeasured confidence is a dash, never a 0. */}
+                <div className="font-data text-xl font-bold" data-testid="lineage-vci">{vci !== undefined ? vci.toFixed(0) : "—"}</div>
+                <div className="text-[11px] text-muted-foreground">Visentix Confidence Index</div>
               </div>
-              <div className="lineage-metric-cell">
-                <div className="lm-label">Cohort Size</div>
-                <div className="lm-value">n={cohortSize}</div>
-                <div className="lm-sub">as of {cohortDate}</div>
+              <div className="rounded-md border p-3">
+                <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Cohort Size</div>
+                <div className="font-data text-xl font-bold">n={cohortSize}</div>
+                <div className="text-[11px] text-muted-foreground">as of {cohortDate}</div>
               </div>
             </div>
-          </section>
+          </Section>
 
-          {/* Snapshot */}
-          <section>
-            <div className="section-label">Snapshot</div>
-            <div className="lineage-snapshot">
-              <div className="snap-row">
-                <span className="snap-key">Snapshot ID</span>
-                <span className="snap-val">{snapshotId}</span>
-              </div>
-              <div className="snap-row">
-                <span className="snap-key">Frozen</span>
-                <span className="snap-val">{frozenDate}</span>
-              </div>
-            </div>
-          </section>
+          <Separator />
 
-          {/* Intelligence mark */}
-          <div style={{ marginTop: "auto", paddingTop: 8 }}>
-            <span className="intelligence-mark">
-              <span className="im-icon">ⓘ</span>
-              Intelligence, not legal advice
-            </span>
-          </div>
+          <Section label="Snapshot">
+            <dl className="flex flex-col gap-1.5 text-sm">
+              <div className="flex justify-between gap-3">
+                <dt className="text-muted-foreground">Snapshot ID</dt>
+                <dd className="font-data truncate">{snapshotId}</dd>
+              </div>
+              <div className="flex justify-between gap-3">
+                <dt className="text-muted-foreground">Frozen</dt>
+                <dd className="font-data">{frozenDate}</dd>
+              </div>
+            </dl>
+          </Section>
         </div>
-      </aside>
-    </>
+      </SheetContent>
+    </Sheet>
   );
 }

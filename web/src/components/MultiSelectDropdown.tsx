@@ -3,12 +3,15 @@
  * Used by the intake filters for both INDUSTRY and STATE PRIVACY LAWS so the two
  * controls look and behave identically (ARCH-001A).
  *
- * - Closed by default; the trigger summarises the current selection.
- * - Each option is a checkbox row (role="option", aria-selected) — click toggles.
- * - Closes on outside-click or Escape. Fully keyboard-reachable via the trigger.
+ * Outside-click, Escape, focus management, typeahead and roving focus are
+ * Radix's job — the hand-rolled version wired only mousedown + Escape.
  */
-import { useCallback, useEffect, useId, useRef, useState } from "react";
-import "./multiselect.css";
+import { ChevronDown } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
 
 export interface MSDOption {
   value: string;
@@ -28,97 +31,47 @@ interface MultiSelectDropdownProps {
 }
 
 export function MultiSelectDropdown({
-  options,
-  selected,
-  onChange,
+  options, selected, onChange,
   placeholder = "Select…",
   disabled = false,
-  ariaLabel,
-  testId,
+  ariaLabel, testId,
 }: MultiSelectDropdownProps) {
-  const [open, setOpen] = useState(false);
-  const rootRef = useRef<HTMLDivElement>(null);
-  const menuId = useId();
+  const toggle = (value: string) =>
+    onChange(selected.includes(value) ? selected.filter(v => v !== value) : [...selected, value]);
 
-  // Close on outside-click so the compact control never traps focus.
-  useEffect(() => {
-    if (!open) return;
-    const onDown = (e: MouseEvent) => {
-      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false);
-    };
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
-    document.addEventListener("mousedown", onDown);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", onDown);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [open]);
-
-  const toggle = useCallback((value: string) => {
-    onChange(
-      selected.includes(value)
-        ? selected.filter(v => v !== value)
-        : [...selected, value],
-    );
-  }, [selected, onChange]);
-
-  // Summary: named picks up to two, then "+N" so the trigger stays compact.
-  const labelFor = (v: string) => options.find(o => o.value === v)?.label ?? v;
-  const chosen = selected.filter(v => options.some(o => o.value === v));
-  let summary = placeholder;
-  if (chosen.length === 1) summary = labelFor(chosen[0]);
-  else if (chosen.length === 2) summary = chosen.map(labelFor).join(", ");
-  else if (chosen.length > 2) summary = `${labelFor(chosen[0])} +${chosen.length - 1} more`;
+  const summary =
+    selected.length === 0 ? placeholder
+    : selected.length === 1 ? (options.find(o => o.value === selected[0])?.label ?? selected[0])
+    : `${selected.length} selected`;
 
   return (
-    <div className="msd" ref={rootRef} data-testid={testId}>
-      <button
-        type="button"
-        className={`msd-trigger ${open ? "open" : ""}`}
-        aria-haspopup="listbox"
-        aria-expanded={open}
-        aria-controls={menuId}
-        disabled={disabled}
-        onClick={() => setOpen(o => !o)}
-      >
-        <span className={chosen.length ? "msd-summary" : "msd-summary msd-placeholder"}>
-          {summary}
-        </span>
-        <span className="msd-caret" aria-hidden="true">▾</span>
-      </button>
-
-      {open && (
-        <ul
-          id={menuId}
-          className="msd-menu"
-          role="listbox"
-          aria-multiselectable="true"
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="outline"
+          disabled={disabled}
+          data-testid={testId}
           aria-label={ariaLabel}
+          className="w-full justify-between font-normal"
         >
-          {options.map(o => {
-            const on = selected.includes(o.value);
-            return (
-              <li
-                key={o.value}
-                role="option"
-                aria-selected={on}
-                className={`msd-option ${on ? "on" : ""}`}
-                onClick={() => toggle(o.value)}
-              >
-                <input
-                  type="checkbox"
-                  className="msd-check"
-                  checked={on}
-                  readOnly
-                  tabIndex={-1}
-                />
-                <span>{o.label}</span>
-              </li>
-            );
-          })}
-        </ul>
-      )}
-    </div>
+          <span className={cn("truncate", selected.length === 0 && "text-muted-foreground")}>
+            {summary}
+          </span>
+          <ChevronDown className="opacity-50" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="max-h-72 w-(--radix-dropdown-menu-trigger-width) overflow-y-auto">
+        {options.map(o => (
+          <DropdownMenuCheckboxItem
+            key={o.value}
+            checked={selected.includes(o.value)}
+            onCheckedChange={() => toggle(o.value)}
+            onSelect={(e) => e.preventDefault() /* keep the menu open for multi-select */}
+          >
+            {o.label}
+          </DropdownMenuCheckboxItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

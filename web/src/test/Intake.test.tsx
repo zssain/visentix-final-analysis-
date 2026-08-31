@@ -8,7 +8,7 @@
  *  - submit sends comma-separated industry + jurisdictions in the FormData
  */
 import { createElement } from "react";
-import { render, screen, waitFor, fireEvent, within } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { expect, it, vi, beforeEach } from "vitest";
 
 const mockGet = vi.fn();
@@ -78,19 +78,22 @@ beforeEach(() => {
   mockPostForm.mockResolvedValue({ assessment_id: "job-1", status: "queued" });
 });
 
-// Open a dropdown by clicking its trigger button (found via the root test-id).
-const openDropdown = (testId: string) =>
-  fireEvent.click(within(screen.getByTestId(testId)).getByRole("button"));
+/* Open a dropdown. The testid now sits on the trigger button itself (Radix),
+   not on a wrapper around it, and Radix opens on pointerdown — a plain click
+   leaves the menu closed. */
+const openDropdown = (testId: string) => {
+  fireEvent.pointerDown(screen.getByTestId(testId), { button: 0, ctrlKey: false, pointerType: "mouse" });
+};
 
 it("loads real options and shows the honest-degradation note when blank", async () => {
   renderIntake();
   await waitFor(() => expect(mockGet).toHaveBeenCalledWith("/config/intake-options"));
   // industry options render from the real vocabulary (once the menu is open)
   openDropdown("intake-industry");
-  expect(await screen.findByRole("option", { name: "Retail" })).toBeTruthy();
+  expect(await screen.findByRole("menuitemcheckbox", { name: "Retail" })).toBeTruthy();
   // jurisdiction options render from the real vocabulary
   openDropdown("intake-selected-laws");
-  expect(screen.getByRole("option", { name: "California (CCPA / CPRA)" })).toBeTruthy();
+  expect(screen.getByRole("menuitemcheckbox", { name: "California (CCPA / CPRA)" })).toBeTruthy();
   // blank → honest note
   expect(screen.getByTestId("intake-filters-note")).toBeTruthy();
 });
@@ -105,13 +108,13 @@ it("keeps footprint distinct from selected laws and submits the reviewed scope",
 
   // choose an industry (checkbox dropdown)
   openDropdown("intake-industry");
-  fireEvent.click(screen.getByRole("option", { name: "Retail" }));
+  fireEvent.click(screen.getByRole("menuitemcheckbox", { name: "Retail" }));
   // Factual footprint and requested legal scope are separate fields.
   openDropdown("intake-footprint");
-  fireEvent.click(screen.getByRole("option", { name: "California" }));
+  fireEvent.click(screen.getByRole("menuitemcheckbox", { name: "California" }));
   openDropdown("intake-selected-laws");
-  fireEvent.click(screen.getByRole("option", { name: "California (CCPA / CPRA)" }));
-  fireEvent.click(screen.getByRole("option", { name: "Colorado (CPA)" }));
+  fireEvent.click(screen.getByRole("menuitemcheckbox", { name: "California (CCPA / CPRA)" }));
+  fireEvent.click(screen.getByRole("menuitemcheckbox", { name: "Colorado (CPA)" }));
   // note disappears once a filter is set
   expect(screen.queryByTestId("intake-filters-note")).toBeNull();
 

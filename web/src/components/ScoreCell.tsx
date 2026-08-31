@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { LineageDrawer } from "./LineageDrawer";
-import "./furniture.css";
+import { cn } from "@/lib/utils";
 
 interface ScoreCellProps {
   value: number;
@@ -17,36 +17,34 @@ interface ScoreCellProps {
 }
 
 export function ScoreCell({
-  value,
-  unit,
-  formulaId,
-  formulaDesc,
-  inputs = [],
-  vci,
-  snapshotId = "—",
-  frozenDate = "—",
-  cohortSize = 0,
-  cohortDate = "—",
+  value, unit, formulaId, formulaDesc,
+  inputs = [], vci,
+  snapshotId = "—", frozenDate = "—",
+  cohortSize = 0, cohortDate = "—",
   size = "md",
 }: ScoreCellProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const open  = useCallback(() => setDrawerOpen(true),  []);
   const close = useCallback(() => setDrawerOpen(false), []);
 
-  const sizeMap = { sm: "0.9rem", md: "1.4rem", lg: "2rem" };
+  const sizeClass = { sm: "text-sm", md: "text-2xl", lg: "text-4xl" }[size];
 
   return (
     <>
       <button
-        className="score-cell"
         onClick={open}
         aria-label={`${value.toFixed(1)} — click to view score lineage`}
         title="Click to view score lineage"
+        className={cn(
+          "group inline-flex items-baseline gap-1 rounded-md px-1 -mx-1 transition-colors",
+          "hover:bg-accent focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
+          "underline decoration-dotted decoration-muted-foreground/50 underline-offset-4"
+        )}
       >
-        <span className="score-num" style={{ fontSize: sizeMap[size] }}>
+        <span className={cn("font-data font-bold tabular-nums leading-none", sizeClass)}>
           {value.toFixed(1)}
         </span>
-        {unit && <span className="score-unit">{unit}</span>}
+        {unit && <span className="text-xs text-muted-foreground">{unit}</span>}
       </button>
 
       <LineageDrawer

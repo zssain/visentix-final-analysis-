@@ -3,11 +3,12 @@ import { ViewSwitch } from "./ViewSwitch";
 import { CodexTooltip } from "./CodexTooltip";
 import { ProvenanceRibbon } from "./ProvenanceRibbon";
 import { ScoreCell } from "./ScoreCell";
-import { IntelligenceMark } from "./IntelligenceMark";
 import { scoreBandColor } from "../lib/scoreBands";
 import { domainLabel } from "../lib/domainLabels";
-import "./advisor-note.css";
-import "./furniture.css";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { cn } from "@/lib/utils";
 
 export interface AdvisorNoteProps {
   /* Identity */
@@ -61,9 +62,8 @@ export function AdvisorNote({
   ];
 
   return (
-    <div className={`advisor-note-wrap ${isDraft ? "draft-state" : ""}`}>
-      {/* Provenance ribbon */}
-      <div style={{ padding: "12px 20px 0" }}>
+    <Card className={cn("gap-0 overflow-hidden py-0", isDraft && "border-dashed")}>
+      <div className="p-5 pb-0">
         <ProvenanceRibbon
           snapshotId={snapshotId}
           formulaVersion={formulaVersion}
@@ -73,27 +73,31 @@ export function AdvisorNote({
       </div>
 
       {/* Header */}
-      <div className="an-header">
-        <div className="an-header-left">
-          <div className="an-header-meta">
+      <div className="flex flex-wrap items-start justify-between gap-3 p-5">
+        <div className="min-w-0 flex flex-col gap-1.5">
+          <div className="flex flex-wrap items-center gap-2">
             <CodexTooltip code={findingCode} />
-            <span className="domain-eyebrow">{domainLabel(domain)}</span>
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              {domainLabel(domain)}
+            </span>
           </div>
-          <h3 className="an-title">{title}</h3>
+          <h3 className="font-display text-lg font-semibold leading-snug">{title}</h3>
         </div>
         <ViewSwitch value={view} onChange={setView} />
       </div>
 
-      {/* Body */}
-      <div className="an-body">
+      <Separator />
+
+      <CardContent className="p-5">
         {view === "analyst" ? (
           <>
-            {/* 3-up metric grid */}
-            <div className="an-analyst-grid">
+            <div className="grid gap-5 sm:grid-cols-3">
               {/* Exposure */}
-              <div className="an-metric-cell">
-                <div className="an-metric-label">Exposure Score</div>
-                <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
+              <div className="flex flex-col gap-1">
+                <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  Exposure Score
+                </div>
+                <div className="flex items-baseline gap-1">
                   <ScoreCell
                     value={exposureScore}
                     formulaId={formulaId}
@@ -106,44 +110,53 @@ export function AdvisorNote({
                     cohortDate={cohortDate}
                     size="lg"
                   />
-                  <span className="an-metric-sub">/ 100</span>
+                  <span className="text-xs text-muted-foreground">/ 100</span>
                 </div>
-                <div className="an-score-bar">
+                {/* Meter: one value against a fixed 0-100 scale, not a chart. */}
+                <div
+                  className="mt-1.5 h-1 overflow-hidden rounded-sm bg-border"
+                  role="img"
+                  aria-label={`Exposure ${exposureScore.toFixed(1)} out of 100`}
+                >
                   <div
-                    className="an-score-bar-fill"
-                    style={{
-                      width: `${exposureScore}%`,
-                      background: scoreBandColor(exposureScore),
-                    }}
+                    className="h-full rounded-sm transition-[width] duration-700 ease-out motion-reduce:transition-none"
+                    style={{ width: `${exposureScore}%`, background: scoreBandColor(exposureScore) }}
                   />
                 </div>
               </div>
 
               {/* Cohort percentile */}
-              <div className="an-metric-cell">
-                <div className="an-metric-label">Cohort Percentile</div>
-                <div className="an-metric-value">{cohortPercentile !== undefined ? <>{cohortPercentile}<span style={{ fontSize: "0.6em" }}>th</span></> : "Not recorded"}</div>
-                <div className="an-metric-sub">n={cohortSize} peers · {cohortDate}</div>
+              <div className="flex flex-col gap-1">
+                <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  Cohort Percentile
+                </div>
+                <div className="font-data text-2xl font-bold leading-none">
+                  {cohortPercentile !== undefined
+                    ? <>{cohortPercentile}<span className="text-[0.6em]">th</span></>
+                    : <span className="text-base font-normal text-muted-foreground">Not recorded</span>}
+                </div>
+                <div className="text-xs text-muted-foreground">n={cohortSize} peers · {cohortDate}</div>
               </div>
 
               {/* VCI */}
-              <div className="an-metric-cell">
-                <div className="an-metric-label">Confidence (VCI)</div>
-                <div className="an-metric-value" data-testid="advisor-vci">
-                  {vci !== undefined
-                    ? <>{vci}<span style={{ fontSize: "0.6em" }}>%</span></>
-                    : "Not recorded"}
+              <div className="flex flex-col gap-1">
+                <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  Confidence (VCI)
                 </div>
-                <div className="an-metric-sub">Visentix Confidence Index</div>
+                <div className="font-data text-2xl font-bold leading-none" data-testid="advisor-vci">
+                  {vci !== undefined
+                    ? <>{vci}<span className="text-[0.6em]">%</span></>
+                    : <span className="text-base font-normal text-muted-foreground">Not recorded</span>}
+                </div>
+                <div className="text-xs text-muted-foreground">Visentix Confidence Index</div>
               </div>
             </div>
 
-            {/* Lineage refs */}
             {lineageRefs.length > 0 && (
-              <div className="an-lineage-chips">
-                <span style={{ fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 600 }}>Sources:</span>
+              <div className="mt-5 flex flex-wrap items-center gap-1.5 border-t pt-4">
+                <span className="text-xs font-semibold text-muted-foreground">Sources:</span>
                 {lineageRefs.map(ref => (
-                  <span key={ref} className="an-lineage-chip">{ref}</span>
+                  <Badge key={ref} variant="outline" className="font-data">{ref}</Badge>
                 ))}
               </div>
             )}
@@ -154,45 +167,44 @@ export function AdvisorNote({
                 Advisor layer, never regenerated at render time. When the snapshot
                 carries no Advisor prose, show honest absence (no house-voice
                 filler is fabricated on the client). */}
-            <div className="an-advisor-body">
+            <div className="flex flex-col gap-3">
               {(advisorLede.trim() || advisorBody.trim()) ? (
                 <>
-                  {advisorLede.trim() && <p className="an-advisor-lede">{advisorLede}</p>}
-                  {advisorBody.trim() && <p className="an-advisor-prose">{advisorBody}</p>}
+                  {advisorLede.trim() && (
+                    <p className="font-display text-lg leading-relaxed">{advisorLede}</p>
+                  )}
+                  {advisorBody.trim() && (
+                    <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">{advisorBody}</p>
+                  )}
                 </>
               ) : (
-                <p className="an-advisor-prose" data-testid="advisor-absent" style={{ color: "var(--text-muted)", fontStyle: "italic" }}>
+                <p className="text-sm italic text-muted-foreground" data-testid="advisor-absent">
                   An advisor perspective for this finding is not part of this snapshot.
                 </p>
               )}
 
-              {/* Metric pills */}
-              <div className="an-pills">
-                <span className="an-pill exposure">Exposure: {exposureScore.toFixed(1)}</span>
-                <span className="an-pill cohort">{cohortPercentile !== undefined ? `${cohortPercentile}th percentile` : "Percentile not recorded"} · n={cohortSize}</span>
-                <span className="an-pill vci">VCI {vci !== undefined ? `${vci}%` : "Not recorded"}</span>
+              <div className="flex flex-wrap gap-1.5">
+                <Badge variant="outline">Exposure: {exposureScore.toFixed(1)}</Badge>
+                <Badge variant="outline">
+                  {cohortPercentile !== undefined ? `${cohortPercentile}th percentile` : "Percentile not recorded"} · n={cohortSize}
+                </Badge>
+                <Badge variant="outline">VCI {vci !== undefined ? `${vci}%` : "Not recorded"}</Badge>
               </div>
             </div>
 
-            {/* Attribution */}
-            <div className="an-attribution">
+            <div className="mt-5 flex flex-wrap items-end justify-between gap-3 border-t pt-4">
               <div>
-                <div className="an-attribution-name">The Visentix Privacy Desk</div>
-                <div className="an-attribution-role">Intelligence authored in house voice</div>
+                <div className="text-sm font-semibold">The Visentix Privacy Desk</div>
+                <div className="text-xs text-muted-foreground">Intelligence authored in house voice</div>
               </div>
-              <div className="an-reviewer-slot">
-                <div className="slot-label">Expert Reviewer</div>
-                <div className="slot-value">Pending SME review</div>
+              <div className="text-right">
+                <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Expert Reviewer</div>
+                <div className="text-xs text-muted-foreground">Pending SME review</div>
               </div>
             </div>
           </>
         )}
-      </div>
-
-      {/* Footer */}
-      <div className="an-footer">
-        <IntelligenceMark />
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }

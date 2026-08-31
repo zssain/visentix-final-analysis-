@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { Separator } from "@/components/ui/separator";
 
 /**
  * Global footer — legal links required for launch (/privacy, /terms). Public,
@@ -7,24 +8,16 @@ import { Link } from "react-router-dom";
 export function Footer() {
   const year = new Date().getFullYear();
   return (
-    <footer style={{
-      borderTop: "1px solid var(--border)",
-      marginTop: 48,
-      padding: "20px 24px",
-      display: "flex",
-      flexWrap: "wrap",
-      gap: 16,
-      alignItems: "center",
-      justifyContent: "space-between",
-      fontSize: "0.8rem",
-      color: "var(--text-muted)",
-    }}>
-      <span>© {year} Visentix — privacy intelligence, not legal advice.</span>
-      <nav style={{ display: "flex", gap: 18 }} aria-label="Legal">
-        <Link to="/privacy" style={{ color: "var(--text-secondary)" }}>Privacy</Link>
-        <Link to="/terms" style={{ color: "var(--text-secondary)" }}>Terms</Link>
-        <Link to="/methodology" style={{ color: "var(--text-secondary)" }}>Methodology</Link>
-      </nav>
-    </footer>
+    <>
+      <Separator className="mt-12" />
+      <footer className="flex flex-wrap items-center justify-between gap-4 px-6 py-5 text-xs text-muted-foreground">
+        <span>© {year} Visentix</span>
+        <nav className="flex gap-4" aria-label="Legal">
+          <Link to="/privacy" className="text-foreground/70 hover:text-foreground transition-colors">Privacy</Link>
+          <Link to="/terms" className="text-foreground/70 hover:text-foreground transition-colors">Terms</Link>
+          <Link to="/methodology" className="text-foreground/70 hover:text-foreground transition-colors">Methodology</Link>
+        </nav>
+      </footer>
+    </>
   );
 }

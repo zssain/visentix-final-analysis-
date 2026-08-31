@@ -12,7 +12,10 @@
  * default disclosure state moved from open to closed.
  */
 import { useState } from "react";
-import "./furniture.css";
+import { Check, ChevronDown, Copy } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 interface ProvenanceRibbonProps {
   snapshotId: string;
@@ -38,8 +41,6 @@ export function ProvenanceRibbon({
 }: ProvenanceRibbonProps) {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
-  const cls = ["prov-ribbon", status, condensed ? "condensed" : ""].filter(Boolean).join(" ");
-
   async function copyId() {
     try {
       await navigator.clipboard.writeText(snapshotId);
@@ -53,45 +54,65 @@ export function ProvenanceRibbon({
   }
 
   return (
-    <div className={cls} role="status" aria-label={`Report status: ${status}`}>
-      <div className="ribbon-row">
-        <span className="ribbon-lede">
+    <div
+      className={cn(
+        "rounded-lg border bg-card",
+        condensed ? "px-3 py-2" : "px-4 py-3"
+      )}
+      role="status"
+      aria-label={`Report status: ${status}`}
+    >
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+        {/* Meaning first. The identifier is machinery and sits behind a
+            disclosure — a bare UUID is not a label (DDR-004, DDR-011). */}
+        <span className="text-sm font-semibold">
           {frozenDate ? `Frozen ${readableDate(frozenDate)}` : "Frozen snapshot"}
         </span>
 
         {snapshotId && (
-          <button
+          <Button
             type="button"
-            className="ribbon-ref-toggle"
+            variant="ghost"
+            size="sm"
             aria-expanded={open}
             onClick={() => setOpen(o => !o)}
+            className="h-6 px-1.5 text-xs text-muted-foreground"
           >
-            Reference {open ? "▴" : "▾"}
-          </button>
+            Reference
+            <ChevronDown className={cn("transition-transform motion-reduce:transition-none", open && "rotate-180")} />
+          </Button>
         )}
 
-        <div className="ribbon-mark">
-          <div className="ribbon-dot" />
+        <Badge
+          variant={status === "approved" ? "verified" : "provisional"}
+          className="ml-auto"
+        >
           {status === "approved" ? "Reproducible" : "Draft — Pending Review"}
-        </div>
+        </Badge>
       </div>
 
       {open && snapshotId && (
-        <div className="ribbon-ref">
-          <div className="ribbon-ref-item">
-            <span className="ribbon-ref-key">Snapshot ID</span>
-            <span className="ribbon-id">{snapshotId}</span>
-            <button type="button" className="ribbon-copy" onClick={copyId}>
+        <dl className="mt-3 flex flex-col gap-1.5 border-t pt-3 text-xs">
+          <div className="flex items-center gap-2">
+            <dt className="w-28 shrink-0 text-muted-foreground">Snapshot ID</dt>
+            <dd className="font-data truncate">{snapshotId}</dd>
+            <Button
+              type="button" variant="ghost" size="sm"
+              onClick={copyId}
+              className="ml-auto h-6 px-1.5 text-xs"
+              aria-label="Copy snapshot ID"
+            >
+              {copied ? <Check /> : <Copy />}
               {copied ? "Copied" : "Copy"}
-            </button>
+            </Button>
           </div>
           {formulaVersion && (
-            <div className="ribbon-ref-item">
-              <span className="ribbon-ref-key">Formula version</span>
-              <span className="ribbon-id">{formulaVersion}</span>
+            <div className="flex items-center gap-2">
+              <dt className="w-28 shrink-0 text-muted-foreground">Formula version</dt>
+              <dd className="font-data">{formulaVersion}</dd>
             </div>
           )}
-        </div>
+        </dl>
       )}
     </div>
   );

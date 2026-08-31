@@ -11,7 +11,6 @@
  */
 import { useCallback, useState } from "react";
 import { PageHeader } from "../../components/PageHeader";
-import { IntelligenceMark } from "../../components/IntelligenceMark";
 import { FlashNotice } from "../../components/FlashNotice";
 import { useFlash } from "../../lib/useFlash";
 import { api, ApiError } from "../../lib/api";
@@ -111,7 +110,7 @@ export function NoticeRewrite() {
                         <button className="btn" onClick={() => selected && rewrite(selected)}>Regenerate</button>
                       </div>
                     )}
-                    <div className="rw-legend"><span className="rw-op rw-add">added</span> <span className="rw-op rw-del">removed</span> · <IntelligenceMark /></div>
+                    <div className="rw-legend"><span className="rw-op rw-add">added</span> <span className="rw-op rw-del">removed</span></div>
                   </>
                 ) : null}
               </>

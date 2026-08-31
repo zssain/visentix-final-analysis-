@@ -1,4 +1,4 @@
-import "./furniture.css";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface ViewSwitchProps {
   value: "analyst" | "advisor";
@@ -7,36 +7,25 @@ interface ViewSwitchProps {
 }
 
 export function ViewSwitch({ value, onChange, variant = "inline" }: ViewSwitchProps) {
-  const cls = variant === "mobile-bar" ? "view-switch-mobile-bar" : undefined;
-
   const inner = (
-    <div className="view-switch" role="group" aria-label="Select view">
-      <button
-        className={value === "analyst" ? "active" : ""}
-        onClick={() => onChange("analyst")}
-        aria-pressed={value === "analyst"}
-        id="view-switch-analyst"
-      >
-        Analyst
-      </button>
-      <button
-        className={value === "advisor" ? "active" : ""}
-        onClick={() => onChange("advisor")}
-        aria-pressed={value === "advisor"}
-        id="view-switch-advisor"
-      >
-        Advisor
-      </button>
-    </div>
+    <Tabs value={value} onValueChange={(v) => onChange(v as "analyst" | "advisor")}>
+      <TabsList aria-label="Select view">
+        <TabsTrigger value="analyst" id="view-switch-analyst">Analyst</TabsTrigger>
+        <TabsTrigger value="advisor" id="view-switch-advisor">Advisor</TabsTrigger>
+      </TabsList>
+    </Tabs>
   );
 
   if (variant === "mobile-bar") {
     return (
-      <div className={cls} role="toolbar" aria-label="View controls">
+      <div
+        className="fixed bottom-0 inset-x-0 z-40 flex justify-center border-t bg-background/95 p-2 backdrop-blur md:hidden"
+        role="toolbar"
+        aria-label="View controls"
+      >
         {inner}
       </div>
     );
   }
-
   return inner;
 }

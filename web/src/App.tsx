@@ -35,6 +35,7 @@ const S_QUARTERLY = import.meta.env.VITE_SURFACE_QUARTERLY !== "false";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "./auth/AuthProvider";
 import { ProtectedRoute }        from "./auth/ProtectedRoute";
 import { ExplainProvider }       from "./report/explain/ExplainContext";
@@ -339,7 +340,7 @@ export default function App() {
       <AuthProvider>
         <ExplainProvider>
           <IntakeJobsProvider>
-            <AppRoutes />
+            <TooltipProvider delayDuration={200}><AppRoutes /></TooltipProvider>
           </IntakeJobsProvider>
         </ExplainProvider>
       </AuthProvider>

@@ -1,6 +1,7 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { api } from "../lib/api";
-import "./furniture.css";
+import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface CodexEntry {
   code: string;
@@ -35,32 +36,28 @@ interface CodexTooltipProps {
 
 export function CodexTooltip({ code, children }: CodexTooltipProps) {
   const codex = useCodex();
-  const [visible, setVisible] = useState(false);
   const entry = codex[code];
 
-  const show = useCallback(() => setVisible(true), []);
-  const hide = useCallback(() => setVisible(false), []);
+  const trigger = children ?? (
+    <Badge variant="outline" className="font-data cursor-help">{code}</Badge>
+  );
+
+  // No entry loaded yet (or unknown code): render the chip plainly rather than
+  // a tooltip that opens onto nothing.
+  if (!entry) return <span>{trigger}</span>;
 
   return (
-    <div
-      className="codex-trigger"
-      onMouseEnter={show}
-      onMouseLeave={hide}
-      onFocus={show}
-      onBlur={hide}
-      tabIndex={0}
-      role="button"
-      aria-label={`${code} — ${entry?.title ?? "Finding code"}`}
-      aria-expanded={visible}
-    >
-      {children ?? <span className="code-chip">{code}</span>}
-      {visible && entry && (
-        <div className="codex-tooltip" role="tooltip">
-          <div className="ct-code">{code}</div>
-          <div className="ct-title">{entry.title}</div>
-          <div className="ct-def">{entry.domain?.replace(/_/g, " ")} — {entry.default_severity} severity</div>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span tabIndex={0} aria-label={`${code} — ${entry.title}`}>{trigger}</span>
+      </TooltipTrigger>
+      <TooltipContent className="max-w-xs">
+        <div className="font-data text-[11px] font-bold tracking-wide">{code}</div>
+        <div className="font-semibold">{entry.title}</div>
+        <div className="opacity-80 capitalize">
+          {entry.domain?.replace(/_/g, " ")} — {entry.default_severity} severity
         </div>
-      )}
-    </div>
+      </TooltipContent>
+    </Tooltip>
   );
 }

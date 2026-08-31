@@ -8,7 +8,6 @@
  */
 import { useState } from "react";
 import { PageHeader } from "../../components/PageHeader";
-import { IntelligenceMark } from "../../components/IntelligenceMark";
 import { FlashNotice } from "../../components/FlashNotice";
 import { CodexTooltip } from "../../components/CodexTooltip";
 import { useFlash } from "../../lib/useFlash";
@@ -108,7 +107,6 @@ export function VendorDueDiligence() {
             </div>
           ))}
 
-          <div style={{ marginTop: 14 }}><IntelligenceMark /></div>
 
           {/* key remount re-seeds the panel per vendor — no setState-in-effect needed */}
           <DecisionPanel key={selected.id} vendor={selected} onFlash={showFlash} />

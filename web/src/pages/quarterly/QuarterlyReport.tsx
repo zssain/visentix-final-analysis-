@@ -11,7 +11,6 @@
  */
 import { useCallback, useEffect, useState } from "react";
 import { PageHeader } from "../../components/PageHeader";
-import { IntelligenceMark } from "../../components/IntelligenceMark";
 import { CodexTooltip } from "../../components/CodexTooltip";
 import { FlashNotice } from "../../components/FlashNotice";
 import { useFlash } from "../../lib/useFlash";
@@ -153,7 +152,6 @@ function PublicReport({ p }: { p: Payload }) {
         </div>
         <div className="qr-actions">
           <a className="btn btn-primary" href={`${API_BASE}/quarterly/${encodeURIComponent(p.quarter)}.pdf`} target="_blank" rel="noreferrer">Download PDF</a>
-          <IntelligenceMark />
         </div>
       </section>
     </div>
