@@ -86,12 +86,36 @@ export function CustomerDashboard() {
         </div>
       )}
 
-      <div className="monitor-grid" style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: 20, alignItems: "start" }}>
+      {/* Exposure counts as a compact labelled stat row in the primary scan path,
+          not a talkative side card (DDR-011 "earn your place"). Real values only —
+          an absent stat shows an em dash, never a zero standing in for unknown. */}
+      {stats && (
+        <div className="stat-row">
+          <div className="stat-cell">
+            <span className="stat-key">Assessments</span>
+            <span className="stat-val">{stats.assessment_count ?? "—"}</span>
+          </div>
+          <div className="stat-cell">
+            <span className="stat-key">Findings</span>
+            <span className="stat-val">{stats.finding_count ?? "—"}</span>
+          </div>
+          <div className="stat-cell">
+            <span className="stat-key">High exposure</span>
+            <span className="stat-val" style={{ color: "var(--red)" }}>{stats.high_findings ?? "—"}</span>
+          </div>
+          <div className="stat-cell">
+            <span className="stat-key">Elevated exposure</span>
+            <span className="stat-val" style={{ color: "var(--gold)" }}>{stats.medium_findings ?? "—"}</span>
+          </div>
+        </div>
+      )}
 
-        {/* ── LEFT ── */}
+      <div className="monitor-grid" style={{ display: "flex", flexDirection: "column", gap: 20, alignItems: "stretch" }}>
+
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
 
-          {/* M-06/07/08: continuous-monitoring hero (trend / feed / alerts) */}
+          {/* M-06/07/08: continuous-monitoring hero. Renders nothing at all while
+              every monitoring endpoint is unpopulated — F07 surfacing rule. */}
           <MonitoringHero />
 
           {/* Overall score */}
@@ -238,63 +262,36 @@ export function CustomerDashboard() {
           </div>
         </div>
 
-        {/* ── RIGHT ── */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
-
-          {/* Stats */}
-          <div className="card" style={{ padding: "16px 18px" }}>
-            <div className="card-title" style={{ marginBottom: 12 }}>Pipeline Stats</div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.85rem" }}>
-                <span style={{ color: "var(--text-muted)" }}>Assessments</span>
-                <span style={{ fontWeight: 700 }}>{stats?.assessment_count ?? 0}</span>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.85rem" }}>
-                <span style={{ color: "var(--text-muted)" }}>Findings</span>
-                <span style={{ fontWeight: 700 }}>{stats?.finding_count ?? 0}</span>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.85rem" }}>
-                <span style={{ color: "var(--text-muted)" }}>High exposure</span>
-                <span style={{ fontWeight: 700, color: "var(--red)" }}>{stats?.high_findings ?? 0}</span>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.85rem" }}>
-                <span style={{ color: "var(--text-muted)" }}>Elevated exposure</span>
-                <span style={{ fontWeight: 700, color: "var(--gold)" }}>{stats?.medium_findings ?? 0}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Training stats */}
-          {stats?.training_stats && (
-            <div className="card" style={{ padding: "16px 18px" }}>
-              <div className="card-title" style={{ marginBottom: 12 }}>Review Activity</div>
-              <div style={{ display: "flex", gap: 16, fontSize: "0.85rem" }}>
-                <span style={{ color: "var(--teal)", fontWeight: 700 }}>✓ {stats.training_stats.confirmed}</span>
-                <span style={{ color: "var(--exec-blue)", fontWeight: 700 }}>✎ {stats.training_stats.edited}</span>
-                <span style={{ color: "var(--red)", fontWeight: 700 }}>✕ {stats.training_stats.dismissed}</span>
-              </div>
-            </div>
-          )}
-
-          {/* Snapshot info */}
-          {stats?.snapshot?.id && (
-            <div className="card" style={{ padding: "16px 18px" }}>
-              <div className="card-title" style={{ marginBottom: 8 }}>Latest Snapshot</div>
-              <div style={{ fontSize: "0.78rem", color: "var(--text-muted)", fontFamily: "var(--font-data)" }}>
-                <div>{stats.snapshot.id.slice(0, 12)}</div>
-                <div>{stats.snapshot.date}</div>
-                {stats.snapshot.benchmark_population_version && (
-                  <div>Population v{stats.snapshot.benchmark_population_version}</div>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
       </div>
 
       <style>{`
-        @media (max-width: 900px) {
-          .monitor-grid { grid-template-columns: 1fr !important; }
+        .stat-row {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 28px;
+          padding: 14px 18px;
+          margin-bottom: 20px;
+          background: var(--surface, #fff);
+          border: 1px solid var(--border);
+          border-radius: var(--radius);
+        }
+        .stat-cell { display: flex; flex-direction: column; gap: 2px; min-width: 92px; }
+        .stat-key {
+          font-size: 0.68rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+          color: var(--text-muted);
+        }
+        .stat-val {
+          font-family: var(--font-data);
+          font-variant-numeric: tabular-nums;
+          font-size: 1.4rem;
+          font-weight: 700;
+          line-height: 1.1;
+        }
+        @media (max-width: 640px) {
+          .stat-row { gap: 18px 24px; }
         }
       `}</style>
     </div>

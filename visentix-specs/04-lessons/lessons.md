@@ -20,7 +20,9 @@ When someone asks "why does the spec insist on X?" — the answer should be find
 | L-009 | 2026-08 | A named measure ("Overall") did not read the same across the report — the same score presented with different precision/label depending on the surface, so a reader could not tell whether two mentions were the same number | Rounding and label choice were made per-section instead of once at the source; no rule said a named measure must be identical everywhere | design-system §2 "one name, one number"; F05 AC-12 (identical value, band, label and color on Cover / Dashboard / sections / PDF / monitoring hero for one snapshot) | Spec | Open (until the AC-12 check exists in the test gate) |
 | L-010 | 2026-08 | Bare 0–100 scores were the headline on customer surfaces; a reader cannot act on "60 → 70", and the precision implied a confidence the method does not claim | Presentation inherited the engine's internal resolution; no rule separated *what is computed* from *what is shown* | intelligence-logic §3 presentation rule + design-system §2 "the band leads; the number follows"; F05 AC-11 | Spec | Open (until AC-11 ships) |
 
-<!-- Append new rows above this line. Next ID: L-011 -->
+| L-011 | 2026-08 | "Review Activity" shipped on the **customer** dashboard rendering SME `training_stats` (confirmed / edited / dismissed) — internal review-flywheel machinery a customer has no use for; alongside it, three permanently-empty monitoring panels and a card whose content was a truncated UUID + `Population v269382882` | No rule governed whether an element **earns** persistent screen space; a panel could ship because its data existed, not because a reader could act on it. The register rule (L-005) covered vocabulary but not whole panels | design-system §2 "earn your place" + "machinery on command" (DDR-011); F07 surfacing rule + AC-11…AC-14 | Spec | Open (until AC-11…AC-14 ship) |
+
+<!-- Append new rows above this line. Next ID: L-012 -->
 
 ## How a row gets here (the loop)
 1. Incident filed or pattern spotted by the weekly audit (`logs/audits/`).

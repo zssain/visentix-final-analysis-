@@ -129,6 +129,22 @@ export function MonitoringHero() {
   const overallDelta = trend?.deltas?.overall ?? null;
   const isBaseline = trend?.state === "baseline_established";
 
+  // ── Capability gate (F07 surfacing rule, DDR-011) ──────────────────────────
+  // In the pilot configuration this surface CANNOT populate: SCHEDULER_ENABLED
+  // is false, privacy_notice.monitoring_enabled defaults false, and the F-013
+  // severity thresholds are deliberately unset. Three permanently-empty panels
+  // read as "this product does not work", so when every endpoint reports an
+  // unpopulated state we render nothing at all — no placeholder, no upsell.
+  //
+  // This is a display gate over the REAL endpoint states, never a feature flag:
+  // the moment monitoring genuinely produces data the hero returns with no code
+  // change. `baseline_established` is deliberately NOT gated — for an org that
+  // really is monitored, "nothing has happened yet" is the information.
+  const hasTrend  = trend?.state === "populated" || isBaseline;
+  const hasEvents = events?.state === "populated" && (events.events?.length ?? 0) > 0;
+  const hasAlerts = alerts?.state === "populated" && (alerts.alerts?.length ?? 0) > 0;
+  if (!hasTrend && !hasEvents && !hasAlerts) return null;
+
   // Delivery chip for a change-feed row: emailed / webhook / in-app only.
   const deliveryChip = (eventId: string) => {
     const d = deliveries[eventId];

@@ -6,9 +6,9 @@
 /* ── ProvenanceRibbon ──────────────────────────────────────────────────────── */
 .prov-ribbon {
   display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 8px 16px;
+  flex-direction: column;
+  gap: 8px;
+  padding: 9px 16px;
   border-radius: var(--radius);
   font-family: var(--font-data);
   font-size: 0.78rem;
@@ -27,6 +27,55 @@
   border-color: rgba(200,164,106,0.4);
   color: #7a5c20;
 }
+/* Meaning leads (DDR-004 revised): the frozen date and the reproducible mark are
+   the ribbon's visible content; the identifier lives in the disclosure below. */
+.prov-ribbon .ribbon-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  flex-wrap: wrap;
+}
+.prov-ribbon .ribbon-lede { font-weight: 600; }
+
+.prov-ribbon .ribbon-ref-toggle {
+  background: transparent;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: inherit;
+  opacity: 0.72;
+  cursor: pointer;
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+}
+.prov-ribbon .ribbon-ref-toggle:hover { opacity: 1; }
+
+.prov-ribbon .ribbon-ref {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  padding-top: 8px;
+  border-top: 1px solid currentColor;
+  border-top-color: rgba(0,0,0,0.09);
+}
+.prov-ribbon .ribbon-ref-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.prov-ribbon .ribbon-ref-key {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  opacity: 0.66;
+}
 .prov-ribbon .ribbon-id {
   font-family: 'Source Sans 3', monospace;
   font-variant-numeric: tabular-nums;
@@ -35,7 +84,20 @@
   background: rgba(9,35,79,0.08);
   padding: 2px 7px;
   border-radius: 4px;
+  word-break: break-all;
 }
+.prov-ribbon .ribbon-copy {
+  background: rgba(9,35,79,0.06);
+  border: 1px solid rgba(9,35,79,0.14);
+  border-radius: 4px;
+  padding: 2px 9px;
+  font: inherit;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: inherit;
+  cursor: pointer;
+}
+.prov-ribbon .ribbon-copy:hover { background: rgba(9,35,79,0.12); }
 .prov-ribbon .ribbon-mark {
   display: flex;
   align-items: center;
