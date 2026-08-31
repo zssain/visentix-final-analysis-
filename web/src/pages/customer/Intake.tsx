@@ -1,59 +1,27 @@
 /**
- * Intake — submit a privacy notice, show real pipeline results.
+ * Intake — submit a privacy notice. A form, not a waiting room.
  *
- * POST /assessments/ returns:
- *   status: "scored" | "decomposed"
- *   scores?: { overall_intelligence, benchmark_percentile, finding_count,
- *              vci_label, vci_score, cohort_size, relaxations, ... }
- *   scoring_error?, content_warning?,
- *   classification: { llm, keyword_fallback }
- *   sections, clauses, content_hash
+ * Submitting POSTs to `/assessments/async`, which returns 202 + a job handle;
+ * the job is then handed to the app-shell tracker (`IntakeJobsProvider` /
+ * `JobTracker`) and runs in the background. The user is free to navigate away or
+ * refresh — progress follows them, and the finished report is one click from the
+ * tracker.
+ *
+ * This page previously carried a results pane that claimed "results will appear
+ * here once processing is complete". That was never true: the page sent the user
+ * to the report instead. The pane is gone; the claim with it.
  */
 import { useState, useCallback, useRef, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { api } from "../../lib/api";
-import { maturityBand } from "../../lib/scoreBands";
 import { PageHeader } from "../../components/PageHeader";
 import { MultiSelectDropdown, type MSDOption } from "../../components/MultiSelectDropdown";
+import { useIntakeJobs } from "../../jobs/IntakeJobsProvider";
 import "./intake.css";
 import "../../components/furniture.css";
 
 type Step = "idle" | "submitting" | "done" | "error";
 type InputMode = "url" | "text" | "upload";
-type QueueStatus = "queued" | "processing" | "ready" | "failed";
-
-interface QueueItem {
-  jobId: string;
-  label: string;
-  status: QueueStatus;
-  stage: string;
-  assessmentId?: string;
-  error?: string;
-}
-
-// QA-011: server-authoritative pipeline stages → customer-register labels.
-const STAGE_LABELS: Record<string, string> = {
-  queued: "Queued…",
-  fetching: "Fetching the notice…",
-  extracting: "Extracting text…",
-  segmenting: "Decomposing into clauses…",
-  classifying: "Classifying clauses…",
-  profiling: "Profiling the organization…",
-  benchmarking: "Building the peer benchmark…",
-  scoring: "Scoring against peers…",
-  generating_findings: "Generating findings…",
-  awaiting_review: "Awaiting expert review…",
-  generating_report: "Generating the report…",
-  complete: "Complete",
-  failed: "Failed",
-};
-
-// Bounded polling: start fast, back off, cap total wall-clock so the UI never
-// spins forever (the QA-011 symptom). Progress is recovered from SERVER state,
-// so a refresh mid-run resumes from the current stage.
-const POLL_MIN_MS = 1200;
-const POLL_MAX_MS = 4000;
-const POLL_MAX_WALL_MS = 5 * 60 * 1000; // 5 min
-
 // Accepted upload types — validated authoritatively server-side by magic bytes;
 // this is only a friendlier client-side pre-check.
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // 10 MB — matches backend MAX_UPLOAD_BYTES
@@ -64,50 +32,20 @@ const ACCEPT_MIME = new Set([
   "text/plain",
 ]);
 
-interface AssessmentResult {
-  assessment_id: string;
-  organization_id: string;
-  status: "scored" | "decomposed";
-  sections: number;
-  clauses: number;
-  content_hash: string;
-  ssrf_protected?: boolean;
-  source_url?: string | null;
-  intake_method?: "url" | "text" | "upload";
-  upload_filename?: string;
-  clauses_substantive?: number;
-  clauses_noise?: number;
-  classification: { llm: number; keyword_fallback: number };
-  scores?: {
-    overall_intelligence: number;
-    benchmark_percentile: number;
-    finding_count: number;
-    vci_label: string;
-    vci_score?: number;
-    suppress?: boolean;
-    snapshot_id?: string;
-    cohort_size?: number;
-    benchmark_population_version?: number;
-    relaxations?: string[];
-  };
-  scoring_error?: string;
-  content_warning?: string;
-}
-
 export function Intake() {
+  const { track } = useIntakeJobs();
+  /** Label of the notice just handed to the background tracker, for the inline
+   *  confirmation. Cleared as soon as the user edits the form again. */
+  const [handedOff, setHandedOff] = useState<string | null>(null);
   const [mode, setMode]         = useState<InputMode>("url");
   const [urlVal, setUrlVal]     = useState("");
   const [textVal, setTextVal]   = useState("");
   const [fileVal, setFileVal]   = useState<File | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [step, setStep]         = useState<Step>("idle");
-  const [result, setResult]     = useState<AssessmentResult | null>(null);
   const [errorMsg, setErrorMsg] = useState("");
-  const [stage, setStage]       = useState<string>("queued");
-  const [elapsedSec, setElapsedSec] = useState(0);
   const [canRetry, setCanRetry] = useState(false);
   const [reviewing, setReviewing] = useState(false);
-  const [queue, setQueue] = useState<QueueItem[]>([]);
 
   // ARCH-001A: intake filters. Options come from the engine's real vocabulary
   // (GET /config/intake-options) so they can't drift from what scoring understands.
@@ -173,71 +111,14 @@ export function Intake() {
   // QA-011 polling machinery. The idempotency key is stable across retries of the
   // SAME submission, so a retry resumes the existing job (no duplicate assessment).
   const idempotencyKey = useRef<string>("");
-  const startedAt = useRef<number>(0);
-  const pollTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
-  const elapsedTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+  /** Guards a late submit response from touching state after unmount. Progress
+   *  itself is no longer this page's concern — the provider owns it. */
   const cancelled = useRef(false);
 
-  const stopTimers = useCallback(() => {
-    for (const timer of pollTimers.current.values()) clearTimeout(timer);
-    pollTimers.current.clear();
-    if (elapsedTimer.current) { clearInterval(elapsedTimer.current); elapsedTimer.current = null; }
-  }, []);
+  useEffect(() => () => { cancelled.current = true; }, []);
 
-  // Clean up timers if the user navigates away mid-processing.
-  useEffect(() => () => { cancelled.current = true; stopTimers(); }, [stopTimers]);
-
-  const finishWithResult = useCallback((jobId: string, res: AssessmentResult) => {
-    const timer = pollTimers.current.get(jobId);
-    if (timer) clearTimeout(timer);
-    pollTimers.current.delete(jobId);
-    setResult(res);
-    setStep("idle");
-    setQueue(items => items.map(item => item.jobId === jobId
-      ? { ...item, status: res.scoring_error ? "failed" : "ready", stage: "complete",
-          assessmentId: res.assessment_id, error: res.scoring_error }
-      : item));
-  }, []);
-
-  const pollStatus = useCallback(async function pollStatusLoop(jobId: string, intervalMs: number, submittedAt: number) {
-    if (cancelled.current) return;
-    // Overall wall-clock guard → recoverable timeout (never an infinite spinner).
-    if (Date.now() - submittedAt > POLL_MAX_WALL_MS) {
-      setQueue(items => items.map(item => item.jobId === jobId
-        ? { ...item, status: "failed", error: "Processing is taking longer than expected; the server job remains available." }
-        : item));
-      return;
-    }
-    try {
-      const s = await api.get(`/assessments/${jobId}/status`) as {
-        status: string; stage: string; assessment_id: string | null;
-        error?: string | null; result?: AssessmentResult | null;
-      };
-      if (cancelled.current) return;
-      setStage(s.stage || s.status);
-      setQueue(items => items.map(item => item.jobId === jobId
-        ? { ...item, status: s.status === "queued" ? "queued" : "processing", stage: s.stage || s.status }
-        : item));
-      if (s.status === "complete" && s.result) {
-        finishWithResult(jobId, s.result);
-        return;
-      }
-      if (s.status === "failed") {
-        setQueue(items => items.map(item => item.jobId === jobId
-          ? { ...item, status: "failed", stage: s.stage || "failed", error: s.error || "Processing failed." }
-          : item));
-        return;
-      }
-      const next = Math.min(intervalMs + 400, POLL_MAX_MS);
-      pollTimers.current.set(jobId, setTimeout(() => pollStatusLoop(jobId, next, submittedAt), next));
-    } catch (err: unknown) {
-      // A transient poll error shouldn't kill the run — retry a few times within
-      // the wall-clock budget; a hard auth error is handled by the api layer.
-      const next = Math.min(intervalMs + 800, POLL_MAX_MS);
-      pollTimers.current.set(jobId, setTimeout(() => pollStatusLoop(jobId, next, submittedAt), next));
-      void err;
-    }
-  }, [finishWithResult]);
+  // Polling now lives in IntakeJobsProvider so a running assessment survives
+  // navigation and refresh. This page only submits and hands off.
 
   // Friendly client-side pre-check. The server re-validates by magic bytes and
   // is the source of truth; this just fails fast with a plain-English message.
@@ -265,12 +146,9 @@ export function Intake() {
 
     cancelled.current = false;
     setStep("submitting");
-    setResult(null);
     setErrorMsg("");
     setCanRetry(false);
-    setStage("queued");
-    setElapsedSec(0);
-    startedAt.current = Date.now();
+    setHandedOff(null);
 
     // Stable idempotency key: generated once per submission, REUSED on retry so a
     // double-submit/retry can never create a duplicate assessment (QA-011).
@@ -278,11 +156,6 @@ export function Intake() {
       idempotencyKey.current =
         (globalThis.crypto?.randomUUID?.() ?? `idem-${Date.now()}-${Math.random()}`);
     }
-
-    // Elapsed timer (server-state progress; refresh-safe).
-    elapsedTimer.current = setInterval(() => {
-      setElapsedSec(Math.floor((Date.now() - startedAt.current) / 1000));
-    }, 1000);
 
     try {
       const formData = new FormData();
@@ -307,25 +180,25 @@ export function Intake() {
         assessment_id: string; status: string; stage?: string;
       };
       if (cancelled.current) return;
-      setStage(sub.stage || sub.status || "queued");
-      const label = mode === "url" ? urlVal : mode === "upload" ? (fileVal?.name ?? "Uploaded document") : "Pasted notice";
-      setQueue(items => [...items.filter(item => item.jobId !== sub.assessment_id), {
-        jobId: sub.assessment_id, label, status: "queued", stage: sub.stage || "queued",
-      }]);
+      const label = mode === "url" ? urlVal
+        : mode === "upload" ? (fileVal?.name ?? "Uploaded document")
+        : "Pasted notice";
+      // Hand the job to the app-shell tracker. From here it is genuinely a
+      // background task: the user may navigate away or refresh, and progress
+      // keeps reporting itself from server state (F01 AC-15/16).
+      track({ jobId: sub.assessment_id, label, status: "queued", stage: sub.stage || "queued" });
       setStep("idle");
-      if (elapsedTimer.current) { clearInterval(elapsedTimer.current); elapsedTimer.current = null; }
       setReviewing(false);
       idempotencyKey.current = "";
-      pollStatus(sub.assessment_id, POLL_MIN_MS, Date.now());
+      setHandedOff(label);
     } catch (err: unknown) {
-      if (elapsedTimer.current) { clearInterval(elapsedTimer.current); elapsedTimer.current = null; }
       setStep("error");
       setCanRetry(true);
       setErrorMsg(err instanceof Error ? err.message : "Could not submit the notice.");
     }
   }, [mode, urlVal, textVal, fileVal, industries, organizationName, organizationSize,
     publicPrivate, geography, stateFootprint, selectedLaws, dataCategories,
-    businessPractices, pollStatus]);
+    businessPractices, track]);
 
   // A new submission (inputs changed) gets a fresh idempotency key. The review
   // panel remains open and updates live, so the user can verify changed values.
@@ -341,9 +214,9 @@ export function Intake() {
         description="Add a notice by URL, pasted text, or an uploaded document (PDF, Word, or text). Visentix extracts clauses, classifies each into a privacy domain, and scores the notice against normalized peers."
       />
 
-      <div className="intake-layout">
+      <div className="intake-page">
       {/* ─── LEFT PANE: Form ─── */}
-      <div className="intake-left">
+      <div className="intake-main">
         <div className="intake-left-header">
           <h2>Privacy Notice</h2>
           <div className="intake-tabs" role="tablist" aria-label="Input method">
@@ -619,190 +492,27 @@ export function Intake() {
         </div>
       </div>
 
-      {/* ─── RIGHT PANE: Results ─── */}
-      <div className="intake-right">
-        {queue.length > 0 && (
-          <section className="intake-queue" aria-label="Submission queue" data-testid="submission-queue">
-            <h2>Submission queue</h2>
-            {queue.map(item => (
-              <div className={`intake-queue-row status-${item.status}`} key={item.jobId}>
-                <div><strong>{item.label}</strong><span>{STAGE_LABELS[item.stage] ?? item.stage}</span></div>
-                <div>
-                  <span className="chip">{item.status}</span>
-                  {item.status === "ready" && item.assessmentId && <a href={`/reports/${item.assessmentId}`}>View report</a>}
-                  {item.status === "failed" && <span className="queue-error">{item.error}</span>}
-                </div>
-              </div>
-            ))}
-          </section>
-        )}
-        {step === "idle" && queue.length === 0 && (
-          <div className="intake-empty">
-            <div className="intake-empty-icon">◉</div>
-            <p className="intake-empty-msg">
-              Submit a privacy notice above.<br />
-              Results will appear here once processing is complete.
-            </p>
+      {/* The results pane is gone. Processing now runs in the background and
+          reports itself in the floating JobTracker, which follows the user
+          across routes and survives a refresh — so intake is a form, not a
+          waiting room. The old pane also told a lie: it said "results will
+          appear here", while the page actually sent the user to the report. */}
+
+      {handedOff && (
+        <div className="intake-handoff" role="status" data-testid="intake-handoff">
+          <div className="intake-handoff-title">Analysing “{handedOff}” in the background</div>
+          <p>
+            You can leave this page — progress follows you, and it survives a refresh.
+            The tracker in the corner will link to the report when it is ready.
+          </p>
+          <div className="intake-handoff-actions">
+            <button type="button" className="btn btn-outline btn-sm" onClick={() => setHandedOff(null)}>
+              Submit another notice
+            </button>
+            <Link to="/assessments" className="btn btn-primary btn-sm">Go to Monitor</Link>
           </div>
-        )}
-
-        {isProcessing && (
-          <div className="intake-empty" data-testid="intake-progress">
-            <div style={{
-              width: 36, height: 36, border: "3px solid var(--border)",
-              borderTopColor: "var(--exec-blue)", borderRadius: "50%",
-              animation: "spin 0.8s linear infinite", margin: "0 auto 12px",
-            }} />
-            <p className="intake-empty-msg" data-testid="intake-stage">
-              {STAGE_LABELS[stage] ?? "Processing…"}
-            </p>
-            <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", marginTop: 4 }}>
-              {elapsedSec}s elapsed · you can safely refresh — progress is saved
-            </p>
-            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-          </div>
-        )}
-
-        {result && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-
-            {/* Content warning (amber box) */}
-            {result.content_warning && (
-              <div style={{
-                background: "rgba(200,164,106,0.08)", border: "1px solid var(--gold)",
-                borderRadius: "var(--radius)", padding: "12px 16px",
-                color: "#7a5c20", fontSize: "0.88rem", fontWeight: 600,
-              }}>
-                {result.content_warning}
-              </div>
-            )}
-
-            {/* Decomposition summary */}
-            <div className="card" style={{ padding: "16px 20px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-                <div style={{ fontSize: "0.7rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-muted)" }}>
-                  Decomposition
-                </div>
-                {/* M-02: verified-source badge — shown only when the notice was
-                    retrieved and validated from its live web address. Customer-
-                    register wording; no security jargon (Rule 9). */}
-                {result.ssrf_protected && (
-                  <span
-                    data-testid="verified-source-badge"
-                    title="This notice was retrieved and validated directly from its published web address."
-                    style={{
-                      display: "inline-flex", alignItems: "center", gap: 4,
-                      fontSize: "0.66rem", fontWeight: 700, color: "var(--teal)",
-                      background: "rgba(20,138,120,0.08)", border: "1px solid rgba(20,138,120,0.25)",
-                      padding: "1px 8px", borderRadius: 4, cursor: "help",
-                    }}
-                  >
-                    ✓ Verified source
-                  </span>
-                )}
-                {/* Uploaded document — customer-register wording. This is NOT a
-                    verified source (that badge means a URL passed validation);
-                    showing verified-source for an upload would be dishonest. */}
-                {result.intake_method === "upload" && (
-                  <span
-                    data-testid="uploaded-document-badge"
-                    title={result.upload_filename
-                      ? `Extracted from the uploaded document “${result.upload_filename}”.`
-                      : "Extracted from an uploaded document."}
-                    style={{
-                      display: "inline-flex", alignItems: "center", gap: 4,
-                      fontSize: "0.66rem", fontWeight: 700, color: "var(--text-secondary)",
-                      background: "var(--soft-white)", border: "1px solid var(--border)",
-                      padding: "1px 8px", borderRadius: 4, cursor: "help",
-                    }}
-                  >
-                    ↥ Uploaded document
-                  </span>
-                )}
-              </div>
-              <div style={{ fontSize: "0.95rem", color: "var(--text)" }}>
-                <strong>{result.sections}</strong> sections · <strong>{result.clauses_substantive ?? result.clauses}</strong> clauses · <strong>{result.classification.llm}</strong> LLM-classified
-                {result.classification.keyword_fallback > 0 && (
-                  <span style={{ color: "var(--text-muted)" }}> · {result.classification.keyword_fallback} keyword fallback</span>
-                )}
-                {result.clauses_noise != null && result.clauses_noise > 0 && (
-                  <span style={{ color: "var(--text-muted)" }}> · {result.clauses_noise} filtered as noise</span>
-                )}
-              </div>
-            </div>
-
-            {/* Scores (when present) */}
-            {result.scores && (
-              <div className="card" style={{ padding: "16px 20px" }}>
-                <div style={{ fontSize: "0.7rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-muted)", marginBottom: 8 }}>
-                  Intelligence Scores
-                </div>
-                <div style={{ display: "flex", gap: 20, flexWrap: "wrap", alignItems: "baseline" }}>
-                  <div>
-                    <span style={{ fontFamily: "var(--font-data)", fontSize: "1.8rem", fontWeight: 700, color: "var(--navy)" }}>
-                      {result.scores.overall_intelligence?.toFixed(1)}
-                    </span>
-                    <span style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>/100</span>
-                    <div style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--exec-blue)", marginTop: 2 }}>
-                      {maturityBand(result.scores.overall_intelligence ?? 0)}
-                    </div>
-                  </div>
-                  <div style={{ fontSize: "0.88rem", color: "var(--text-secondary)", lineHeight: 1.6 }}>
-                    <strong>{result.scores.finding_count}</strong> findings ·
-                    Confidence: <strong>{result.scores.vci_label}</strong>
-                    {result.scores.benchmark_percentile != null && (
-                      <> · {result.scores.benchmark_percentile?.toFixed(1)}th percentile</>
-                    )}
-                  </div>
-                </div>
-
-                {/* Relaxation disclosure */}
-                {(
-                  (result.scores.cohort_size != null && result.scores.cohort_size < 20) ||
-                  (result.scores.relaxations && result.scores.relaxations.length > 0)
-                ) && (
-                  <div style={{
-                    marginTop: 10, padding: "8px 12px",
-                    background: "rgba(200,164,106,0.08)", border: "1px dashed var(--gold)",
-                    borderRadius: "var(--radius)", fontSize: "0.78rem", color: "#7a5c20",
-                  }}>
-                    Benchmark cohort was broadened for sufficiency; confidence adjusted.
-                    {result.scores.cohort_size != null && (
-                      <> Cohort size: {result.scores.cohort_size}.</>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Scoring error */}
-            {result.status === "decomposed" && result.scoring_error && (
-              <div className="card" style={{ padding: "16px 20px", borderColor: "var(--red)" }}>
-                <div style={{ fontSize: "0.7rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--red)", marginBottom: 8 }}>
-                  Scoring Issue
-                </div>
-                <p style={{ fontSize: "0.88rem", color: "var(--text-secondary)" }}>
-                  Assessment stored, but scoring failed: <code style={{ fontSize: "0.82rem" }}>{result.scoring_error}</code>
-                </p>
-                <a
-                  href={`/reports/${result.assessment_id}`}
-                  className="btn btn-outline btn-sm"
-                  style={{ marginTop: 10 }}
-                >
-                  View report anyway →
-                </a>
-              </div>
-            )}
-
-            {/* Normal CTA — only when no scoring error (redirect is pending) */}
-            {!result.scoring_error && (
-              <div style={{ textAlign: "center", color: "var(--text-muted)", fontSize: "0.82rem" }}>
-                Ready for on-screen review and PDF sharing. Use “View report” in the queue.
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+        </div>
+      )}
       </div>
     </div>
   );

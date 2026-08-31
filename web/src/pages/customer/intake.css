@@ -1,19 +1,22 @@
 /* ─── Intake & Decomposition Explorer ──────────────────────────────────────── */
 
-.intake-layout {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0;
-  min-height: calc(100vh - 60px);
-  border-top: 1px solid var(--border);
+/* Intake is a single-column FORM. It used to be a two-column layout whose right
+   half was a results pane — but processing is asynchronous and the results live
+   in the report, so that half sat empty telling the reader results would appear
+   there. One readable column, capped for line length. */
+.intake-page {
+  max-width: 780px;
+  margin: 0 auto;
+  padding-bottom: 40px;
 }
 
-/* ── Left pane — original document ── */
-.intake-left {
-  border-right: 1px solid var(--border);
+.intake-main {
   display: flex;
   flex-direction: column;
   background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
 }
 .intake-left-header {
   padding: 20px 24px 16px;
@@ -302,11 +305,31 @@
 }
 .intake-ready-cta .ready-label strong { color: var(--teal); }
 
-/* Mobile: stack panes */
 @media (max-width: 900px) {
-  .intake-layout { grid-template-columns: 1fr; }
-  .intake-left { border-right: none; border-bottom: 1px solid var(--border); min-height: 60vh; }
+  .intake-page { max-width: none; }
 }
+
+/* ── Hand-off confirmation ────────────────────────────────────────────────────
+   Shown after a successful submit. Its job is to say the work continues without
+   the user, and to get them off this page. */
+.intake-handoff {
+  margin-top: 18px;
+  padding: 16px 18px;
+  background: rgba(0, 95, 163, 0.05);
+  border: 1px solid rgba(0, 95, 163, 0.25);
+  border-radius: var(--radius-lg);
+}
+.intake-handoff-title {
+  font-weight: 700;
+  color: var(--navy);
+  margin-bottom: 5px;
+}
+.intake-handoff p {
+  font-size: 0.86rem;
+  color: var(--text-secondary);
+  margin: 0 0 12px;
+}
+.intake-handoff-actions { display: flex; gap: 10px; flex-wrap: wrap; }
 
 /* ── ARCH-001A: intake filters (industry + state privacy laws) ── */
 .intake-filters {

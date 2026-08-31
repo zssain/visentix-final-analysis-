@@ -48,6 +48,8 @@ import { QuarterlyReport }       from "./pages/quarterly/QuarterlyReport";
 import { Privacy }               from "./pages/legal/Privacy";
 import { Terms }                 from "./pages/legal/Terms";
 import { Footer }                from "./components/Footer";
+import { IntakeJobsProvider }    from "./jobs/IntakeJobsProvider";
+import { JobTracker }            from "./jobs/JobTracker";
 import "./App.css";
 
 // Maskable-surface routes — registered only when the surface is on; the import()
@@ -297,6 +299,11 @@ function AppRoutes() {
       </div>
       {!fullBleed && <Footer />}
       </div>
+
+      {/* Assessments keep running when you leave the page — this is the surface
+          that makes leaving safe. Renders nothing when there is nothing to
+          report (DDR-011). */}
+      {session && <JobTracker />}
     </div>
   );
 }
@@ -306,7 +313,9 @@ export default function App() {
     <BrowserRouter>
       <AuthProvider>
         <ExplainProvider>
-          <AppRoutes />
+          <IntakeJobsProvider>
+            <AppRoutes />
+          </IntakeJobsProvider>
         </ExplainProvider>
       </AuthProvider>
     </BrowserRouter>

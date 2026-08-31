@@ -2,7 +2,9 @@
 
 **Branch:** `feedback/owner-report-narrative-pass` (5 commits, 43 files, +1215/−375)
 **Status:** all work committed; nothing pushed, nothing merged to `main`.
-**Gate at close:** vitest **100/100** · pytest **1138 passed / 16 skipped** (two byte-identity tests deselected and documented as **OD-18**, not silently skipped).
+**Gate at close:** `tsc -b` clean · `npm run build` succeeds · vitest **106/106** · pytest **1138 passed / 16 skipped** (two byte-identity tests deselected and documented as **OD-18**, not silently skipped).
+
+> ⚠️ **Correction — the frontend typecheck was vacuous for most of this session.** `npx tsc --noEmit` in `web/` checks **nothing**: `tsconfig.json` is a solution-style config with `"files": []`. The real gate is **`tsc -b`** (what `npm run build` runs). Everything has since been re-verified with the correct command; two genuine type errors it exposed were fixed. Use `npm run build` or `tsc -b`, never bare `tsc --noEmit`.
 
 This document is the single record of one session of owner feedback: what was decided, what shipped, what is blocked and on whom, and what was deliberately not done.
 
@@ -54,6 +56,12 @@ Options written up, none adopted: pin/patch the subsetter · embed fonts unsubse
 | `scripts/data/hard_rules.md` | — | Hard Rule 9 extended: acronyms + framing. AGENTS.md regenerated. |
 
 ### 2.2 Code shipped
+
+**Intake — background processing (`/intake`)**
+- Single-column form. The two-column layout existed only to host a results pane.
+- **The results pane is gone, and with it a false claim**: it said *"Results will appear here once processing is complete"* while the page actually navigated to the report.
+- New `IntakeJobsProvider` in the app shell + floating `JobTracker` (bottom-right, collapsible, per-job dismiss). A submitted assessment keeps reporting **across route changes and a full page refresh**, and links to its report when done. Renders nothing when there is nothing to report.
+- Progress advances only from `GET /assessments/{id}/status`. An unplaceable stage renders **indeterminate**, never a guessed percentage; a long-running job says so and is never reported as failed. Guard: `intake_background.test.ts`.
 
 **Shell & dashboard** — `App.css`, `Dashboard.tsx`, `MonitoringHero.tsx`
 - Quiet rail (DDR-010): filled active pill + inset left rule, grouping by spacing and a hairline, group headings screen-reader-only, one icon weight.
@@ -113,6 +121,7 @@ Each governing spec explicitly **refuses to render** the affected content until 
 | **OD-15** | Risk-horizon taxonomy (bill = emerging · law = current · enforcement · litigation). Proposed as context only, no scoring effect | **Expert + Engineer** | Section 12 / Part 6 horizon labels |
 | **OD-16** | Where obligation modality (must vs should) lives in the schema | **Expert + Engineer** | **No customer surface may display a "must"** until this closes |
 | **OD-17** | Screen↔PDF standing palette *and* band-threshold mismatch (web 45/70 vs PDF 25/50/75 over four bands) | **Expert + Engineer** | The same score can read as a different green in the PDF. Threshold half is Hard Rule 3 |
+| **OD-19** | Where the clause decomposition explorer lives now that intake is a form | **Product + Engineer** | F01 AC-1/AC-4 have no surface |
 
 Also still open from earlier work: OD-06, OD-07, OD-08, OD-09, OD-10, OD-11, OD-12.
 
@@ -123,8 +132,9 @@ Also still open from earlier work: OD-06, OD-07, OD-08, OD-09, OD-10, OD-11, OD-
 | Item | Notes |
 |---|---|
 | **Part 5 will look thin** | Owner chose honest-absence-only, so "What Peers Do" shows absence until real approved exemplar language exists. Needs SME exemplar approval, not code |
+| **Decomposition explorer has no home (OD-19)** | The split-pane original-vs-clauses view left with the intake results pane, so F01 AC-1/AC-4 currently have no surface. A deliberate consequence of the single-column decision, not an oversight. Clause data and lineage are untouched server-side — only the view is gone |
 | **Empty heatmap — cause undetermined** | Could not tell from code alone whether the 2026-06-18 assessment's empty clause→domain mapping is legacy data or a live gap. The display fix is correct either way; the data question is open |
-| **F01 determinate progress** | Specced (AC-15/16), not implemented |
+| **F01 determinate progress** | Specced (AC-15/16) — **now implemented** in the JobTracker |
 | **F07 assessment history** | Specced (AC-9/10), not implemented |
 | **F05 explorable heatmap cell** | Specced (AC-13), not implemented |
 | **Report narrative arc copy** | Specced — Cover "what this is", closing summary, one "read more" URL (AC-9/10). Authored copy not written |

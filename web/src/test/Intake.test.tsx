@@ -7,6 +7,7 @@
  *  - multi-select round-trips and clears the note
  *  - submit sends comma-separated industry + jurisdictions in the FormData
  */
+import { createElement } from "react";
 import { render, screen, waitFor, fireEvent, within } from "@testing-library/react";
 import { expect, it, vi, beforeEach } from "vitest";
 
@@ -22,9 +23,27 @@ vi.mock("../lib/api", () => ({
     constructor(status: number, message: string) { super(message); this.status = status; }
   },
 }));
-vi.mock("react-router-dom", () => ({ useNavigate: () => vi.fn() }));
+// Router is stubbed rather than mounted: this is a unit test of the intake form,
+// and the page now renders a <Link> in its hand-off confirmation.
+vi.mock("react-router-dom", () => ({
+  useNavigate: () => vi.fn(),
+  MemoryRouter: ({ children }: { children?: unknown }) => children,
+  Link: ({ to, children, ...rest }: { to: string; children?: unknown }) =>
+    createElement("a", { href: to, ...rest }, children as never),
+}));
 
 import { Intake } from "../pages/customer/Intake";
+import { IntakeJobsProvider } from "../jobs/IntakeJobsProvider";
+
+/** Intake now hands submitted jobs to the app-shell tracker, so it renders
+ *  inside the provider, as it does in the app. */
+function renderIntake() {
+  return render(
+    <IntakeJobsProvider>
+      <Intake />
+    </IntakeJobsProvider>,
+  );
+}
 
 const OPTIONS = {
   industries: [
@@ -64,7 +83,7 @@ const openDropdown = (testId: string) =>
   fireEvent.click(within(screen.getByTestId(testId)).getByRole("button"));
 
 it("loads real options and shows the honest-degradation note when blank", async () => {
-  render(<Intake />);
+  renderIntake();
   await waitFor(() => expect(mockGet).toHaveBeenCalledWith("/config/intake-options"));
   // industry options render from the real vocabulary (once the menu is open)
   openDropdown("intake-industry");
@@ -81,7 +100,7 @@ it("keeps footprint distinct from selected laws and submits the reviewed scope",
   // assertion (we're only verifying the submit payload here, not the poll loop).
   mockGet.mockImplementation((path: string) =>
     path === "/config/intake-options" ? Promise.resolve(OPTIONS) : new Promise(() => {}));
-  render(<Intake />);
+  renderIntake();
   await waitFor(() => expect(screen.getByTestId("intake-industry")).toBeTruthy());
 
   // choose an industry (checkbox dropdown)

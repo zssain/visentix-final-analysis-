@@ -1,0 +1,145 @@
+/* Floating assessment tracker — bottom-right, above content, below modals. */
+.job-tracker {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  width: 330px;
+  max-width: calc(100vw - 32px);
+  z-index: 400;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 10px 34px rgba(9, 35, 79, 0.16);
+  overflow: hidden;
+}
+
+.jt-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--navy);
+  color: #fff;
+}
+.jt-toggle {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: none;
+  color: inherit;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  text-align: left;
+}
+.jt-chevron { margin-left: auto; opacity: 0.7; }
+.jt-clear {
+  background: rgba(255, 255, 255, 0.12);
+  border: none;
+  color: rgba(255, 255, 255, 0.85);
+  font: inherit;
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.jt-clear:hover { background: rgba(255, 255, 255, 0.2); color: #fff; }
+
+.jt-spinner {
+  width: 12px; height: 12px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: jt-spin 0.9s linear infinite;
+  flex-shrink: 0;
+}
+@keyframes jt-spin { to { transform: rotate(360deg); } }
+
+.jt-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 320px;
+  overflow-y: auto;
+}
+.jt-item {
+  padding: 11px 12px;
+  border-top: 1px solid var(--border);
+}
+.jt-item:first-child { border-top: none; }
+
+.jt-row { display: flex; align-items: center; gap: 8px; }
+.jt-label {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--navy);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.jt-dismiss {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 2px;
+}
+.jt-dismiss:hover { color: var(--navy); }
+
+.jt-bar {
+  height: 5px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+  margin: 7px 0 5px;
+}
+.jt-bar-fill {
+  height: 100%;
+  background: var(--exec-blue);
+  border-radius: 3px;
+  transition: width 0.35s ease;
+}
+/* Indeterminate: the server has not reported a stage we can place, so the bar
+   must NOT imply a percentage (F01 AC-15). */
+.jt-bar.indeterminate .jt-bar-fill {
+  width: 35%;
+  animation: jt-slide 1.4s ease-in-out infinite;
+}
+@keyframes jt-slide {
+  0%   { margin-left: -35%; }
+  100% { margin-left: 100%; }
+}
+
+.jt-stage { font-size: 0.72rem; color: var(--text-muted); }
+.jt-open {
+  display: inline-block;
+  margin-top: 6px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--exec-blue);
+}
+.jt-error {
+  display: block;
+  margin-top: 5px;
+  font-size: 0.74rem;
+  color: var(--bad);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jt-spinner { animation: none; }
+  .jt-bar.indeterminate .jt-bar-fill { animation: none; width: 100%; opacity: 0.45; margin-left: 0; }
+  .jt-bar-fill { transition: none; }
+}
+
+@media (max-width: 640px) {
+  .job-tracker { right: 12px; left: 12px; bottom: 12px; width: auto; }
+}
