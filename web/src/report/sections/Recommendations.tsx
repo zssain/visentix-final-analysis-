@@ -1,4 +1,5 @@
 import type { ReportSection } from "../types";
+import { SectionHeading } from "../SectionHeading";
 
 interface Rec {
   severity: string; code: string; title: string; prose: string;
@@ -27,7 +28,7 @@ export function Recommendations({ content }: { content: ReportSection["content"]
 
   return (
     <div data-testid="section-9" className="report-section">
-      <h2>9. Strategic Recommendations</h2>
+      <SectionHeading n={9} title="Strategic Recommendations" />
       <p style={{ color: "var(--text-muted)", fontSize: "0.85rem", marginBottom: 16 }}>
         Recommendations are ordered by exposure level. They describe disclosure gaps and maturity
         improvements — not legal requirements.

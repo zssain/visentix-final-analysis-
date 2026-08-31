@@ -1,4 +1,5 @@
 import type { ReportSection } from "../types";
+import { SectionHeading } from "../SectionHeading";
 
 interface Priority {
   code: string;
@@ -23,7 +24,7 @@ export function RiskReduction({ content }: { content: ReportSection["content"] }
 
   return (
     <div data-testid="section-10" className="report-section">
-      <h2>10. Risk Reduction Priorities</h2>
+      <SectionHeading n={10} title="Risk Reduction Priorities" />
 
       {/* Summary count row */}
       <div style={{ display: "flex", gap: 16, marginBottom: 16, flexWrap: "wrap" }}>

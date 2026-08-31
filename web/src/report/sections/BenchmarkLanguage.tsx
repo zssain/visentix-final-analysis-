@@ -2,6 +2,7 @@ import { useState } from "react";
 import { CodexTooltip } from "../../components/CodexTooltip";
 import { domainLabel } from "../../lib/domainLabels";
 import type { ReportSection } from "../types";
+import { SectionHeading } from "../SectionHeading";
 
 interface ExemplarEntry {
   domain: string;
@@ -60,7 +61,7 @@ export function BenchmarkLanguage({ content }: { content: ReportSection["content
   if (entries.length === 0) {
     return (
       <div data-testid="section-8" className="report-section">
-        <h2>8. Benchmark Language Comparison</h2>
+        <SectionHeading n={8} title="Benchmark Language Comparison" />
         <div data-testid="exemplar-placeholder" style={{
           background: "rgba(200,164,106,0.08)", border: "1px dashed var(--gold)",
           padding: "16px 20px", borderRadius: "var(--radius)",
@@ -74,7 +75,7 @@ export function BenchmarkLanguage({ content }: { content: ReportSection["content
 
   return (
     <div data-testid="section-8" className="report-section">
-      <h2>8. Benchmark Language Comparison</h2>
+      <SectionHeading n={8} title="Benchmark Language Comparison" />
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, marginBottom: 16, flexWrap: "wrap" }}>
         <p style={{ color: "var(--text-muted)", fontSize: "0.85rem", margin: 0 }}>
           Your notice language by disclosed domain, with an approved peer comparator only where the evidence gates are met.

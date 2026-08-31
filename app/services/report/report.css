@@ -93,6 +93,43 @@ p { margin: 0 0 6pt; }
 /* ── Section lockup ─────────────────────────────────────────── */
 .report-section { break-before: page; break-inside: auto; }
 .report-section.first { break-before: auto; }
+
+/* ── Grouped parts (mirrors web sectionGroups.ts) ────────────────────────────
+   The report is presented as six parts + an appendix; the payload still carries
+   its twelve blocks. A part opens a page and names the reader's question; the
+   blocks inside it flow on with sub-headings and do NOT force a page break of
+   their own (that is what made every one-idea block cost a full page). */
+.report-part { break-before: page; }
+.report-part .report-section,
+.report-section.sec-nested { break-before: auto; }
+.part-head { margin: 0 0 14pt; }
+.part-title {
+  string-set: secname content();
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 17pt;
+  font-weight: 600;
+  color: var(--navy);
+  line-height: 1.1;
+  margin: 0 0 5pt;
+}
+.part-lede {
+  font-size: 8.5pt;
+  color: var(--muted);
+  margin: 0;
+  max-width: 68ch;
+}
+.sec-subhead {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 11.5pt;
+  font-weight: 600;
+  color: var(--navy);
+  margin: 16pt 0 7pt;
+  padding-top: 9pt;
+  border-top: 0.5pt solid var(--hair);
+}
+.report-part .report-section:first-of-type .sec-subhead {
+  margin-top: 0; padding-top: 0; border-top: none;
+}
 .sec-head {
   display: table; width: 100%; margin: 0 0 10pt;
   border-bottom: 2pt solid var(--teal); padding-bottom: 5pt;

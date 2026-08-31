@@ -1,6 +1,7 @@
 import { ScoreCell }      from "../../components/ScoreCell";
 import { scoreBandColor } from "../../lib/scoreBands";
 import type { ReportSection } from "../types";
+import { SectionHeading } from "../SectionHeading";
 
 export function CompoundRisk({ content }: { content: ReportSection["content"] }) {
   const compoundScore = content.compound_score as number | undefined;
@@ -17,7 +18,7 @@ export function CompoundRisk({ content }: { content: ReportSection["content"] })
 
   return (
     <div data-testid="section-7" className="report-section">
-      <h2>7. Compound Risk Analysis</h2>
+      <SectionHeading n={7} title="Compound Risk Analysis" />
 
       {/* Headline */}
       <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginBottom: 20, flexWrap: "wrap" }}>

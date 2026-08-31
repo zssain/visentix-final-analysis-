@@ -122,6 +122,33 @@ _SECTION_KICKERS = {
     12: "Forward View",
 }
 
+# ── Presentation grouping (mirrors web/src/report/sectionGroups.ts) ──────────
+# The report is PRESENTED as six reader-facing parts + an appendix. The frozen
+# payload still carries its original twelve blocks with their original numbers —
+# grouping is presentation only, so every stored snapshot still regenerates
+# identically (Hard Rule 6) and the per-block `id="section-N"` anchors survive.
+# Keep this list in step with sectionGroups.ts or the PDF stops matching the
+# interactive report (F05 PDF parity).
+_REPORT_PARTS: list[tuple[int | None, str, str, list[int]]] = [
+    (2, "Executive Summary", "", [2]),
+    (3, "Where You Stand",
+     "Every score in this assessment, what each one measures, and how it compares "
+     "with the peer cohort.", [3, 4, 5, 7]),
+    (4, "What We Found",
+     "The specific disclosure gaps identified in this notice, each with the "
+     "evidence behind it.", [6]),
+    (5, "What Peers Do, What We Recommend",
+     "How comparable organizations word the areas where this notice differs, and "
+     "what we suggest &mdash; in priority order.", [8, 9, 10]),
+    (6, "What&rsquo;s Changing",
+     "Movement since the last assessment, and the regulatory developments worth "
+     "watching.", [12]),
+    (None, "Appendix &middot; Traceability &amp; Method",
+     "The machinery behind every figure above: snapshot, formula versions, cohort "
+     "construction, and sources.", [11]),
+]
+
+
 # SEC-006: default brand color used whenever the partner-supplied value fails
 # strict validation. Must NEVER be replaced by an unvalidated raw value.
 _DEFAULT_BRAND_COLOR = "#0f3460"
@@ -441,17 +468,15 @@ def render_html(report: ReportPayload, branding: dict | None = None) -> str:
     byte-identical to the unbranded render apart from that band (F20).
     """
     cover = ""
-    body_parts: list[str] = []
     for s in report.sections:
         if s.number == 1:
             cover = _render_cover(s)
-        else:
-            body_parts.append(_render_section(s))
+    body = _render_parts([s for s in report.sections if s.number != 1])
     # F20: the band is prepended DIRECTLY to the body with no surrounding
     # whitespace, so unbranded vs branded differ by exactly the band substring
     # and nothing else (byte-identical body).
     band = _branding_band(branding)
-    body_html = band + "\n".join(body_parts)
+    body_html = band + body
     # Closing bookend before the back cover (revised DDR-007) — kept in the same
     # order as the web report so PDF parity holds.
     body_html += _render_disclosure(report)
@@ -595,7 +620,17 @@ def _render_back_cover(report: ReportPayload) -> str:
 
 # ── Section frame ───────────────────────────────────────────────────────────
 
-def _section_open(section: ReportSection) -> str:
+def _section_open(section: ReportSection, heading: str = "own") -> str:
+    """Open a block. `heading`: "own" (block titles itself, legacy standalone),
+    "sub" (one of several blocks in a part), or "hidden" (sole block in a part —
+    the part heading already named it, so repeating it adds nothing)."""
+    if heading == "hidden":
+        return f'<section class="report-section sec-nested" id="section-{section.number}">'
+    if heading == "sub":
+        return (
+            f'<section class="report-section sec-nested" id="section-{section.number}">'
+            f'<h3 class="sec-subhead">{_esc(section.title)}</h3>'
+        )
     kicker = _SECTION_KICKERS.get(section.number, "")
     kick_html = f'<div class="sec-kicker">{kicker}</div>' if kicker else ""
     return (
@@ -606,11 +641,33 @@ def _section_open(section: ReportSection) -> str:
     )
 
 
-def _render_section(section: ReportSection) -> str:
+def _render_section(section: ReportSection, heading: str = "own") -> str:
     n = section.number
     renderer = _SECTION_RENDERERS.get(n)
     inner = renderer(section.content) if renderer else _render_generic(section.content)
-    return _section_open(section) + inner + "</section>"
+    return _section_open(section, heading) + inner + "</section>"
+
+
+def _render_parts(sections: list[ReportSection]) -> str:
+    """Render the body as six grouped parts + appendix (see _REPORT_PARTS).
+
+    A part whose blocks are all absent from the payload is skipped entirely, so a
+    legacy snapshot never produces an empty heading.
+    """
+    by_number = {s.number: s for s in sections}
+    out: list[str] = []
+    for number, title, lede, block_numbers in _REPORT_PARTS:
+        blocks = [by_number[n] for n in block_numbers if n in by_number]
+        if not blocks:
+            continue
+        label = f"{number}. {title}" if number is not None else title
+        lede_html = f'<p class="part-lede">{lede}</p>' if lede else ""
+        out.append(f'<div class="report-part"><div class="part-head">'
+                   f'<h2 class="part-title">{label}</h2>{lede_html}</div>')
+        mode = "sub" if len(blocks) > 1 else "hidden"
+        out.extend(_render_section(s, mode) for s in blocks)
+        out.append("</div>")
+    return "".join(out)
 
 
 # ── Section 2: Executive Summary ────────────────────────────────────────────

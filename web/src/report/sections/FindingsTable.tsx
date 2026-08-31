@@ -5,6 +5,7 @@ import { InfoButton } from "../explain";
 import { EvidenceStack } from "./EvidenceStack";
 import { domainLabel } from "../../lib/domainLabels";
 import type { ReportSection } from "../types";
+import { SectionHeading } from "../SectionHeading";
 
 interface Finding {
   id: string;
@@ -40,7 +41,7 @@ export function FindingsTable({ content }: { content: ReportSection["content"] }
 
   return (
     <div data-testid="section-6" className="report-section">
-      <h2>6. Disclosure Findings</h2>
+      <SectionHeading n={6} title="Disclosure Findings" />
       <p style={{ color: "var(--text-muted)", fontSize: "0.85rem", marginBottom: 16 }}>
         {content.total as number} findings · Click a finding to view the full Analyst / Advisor note
       </p>

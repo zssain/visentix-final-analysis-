@@ -1,5 +1,6 @@
 import { trendColor } from "../../lib/scoreBands";
 import type { ReportSection } from "../types";
+import { SectionHeading } from "../SectionHeading";
 
 // Fallback trend data when F-012 Trend Delta has not yet produced real snapshots
 const FALLBACK_TREND: number[] = [];
@@ -49,7 +50,7 @@ export function TrendPanel({ content }: { content: ReportSection["content"] }) {
 
   return (
     <div data-testid="section-12" className="report-section">
-      <h2>12. Trend &amp; Emerging Risk</h2>
+      <SectionHeading n={12} title="Trend & Emerging Risk" />
 
       {noPrior ? (
         <div style={{

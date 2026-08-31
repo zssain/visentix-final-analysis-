@@ -4,6 +4,7 @@ import { ScoreCell } from "../../components/ScoreCell";
 import { InfoButton } from "../explain";
 import { bandColor, metricPolarity } from "../../lib/scoreBands";
 import type { ReportSection } from "../types";
+import { SectionHeading } from "../SectionHeading";
 
 const FID_TO_FKEY: Record<string, string> = {
   "F-002": "f002", "F-005": "f005", "F-006": "f006",
@@ -38,7 +39,7 @@ export function RiskDashboard({ content }: { content: ReportSection["content"] }
 
   return (
     <div data-testid="section-3" className="report-section">
-      <h2>3. Risk Dashboard</h2>
+      <SectionHeading n={3} title="Risk Dashboard" />
 
       {/* Chart */}
       <div style={{ width: "100%", height: 280 }} className="chart-container">

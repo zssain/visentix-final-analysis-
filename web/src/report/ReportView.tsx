@@ -24,6 +24,8 @@ import { RiskReduction }      from "./sections/RiskReduction";
 import { Traceability }       from "./sections/Traceability";
 import { TrendPanel }         from "./sections/TrendPanel";
 import { Disclosure }         from "./sections/Disclosure";
+import { REPORT_PARTS }       from "./sectionGroups";
+import { NestedSectionContext } from "./SectionHeading";
 import "./report.css";
 
 const SECTION_MAP: Record<number, React.FC<{ content: Record<string, unknown> }>> = {
@@ -94,23 +96,50 @@ export function ReportView({ report }: ReportViewProps) {
         />
       </div>
 
-      {report.sections.map((section) => {
-        const Component = SECTION_MAP[section.number];
-        if (!Component) return null;
-        // Thread snapshot context into every section's content
-        const enrichedContent = {
-          ...section.content,
-          snapshot_id:   snapshotId,
-          is_draft:      isDraft,
-          formula_descs: formulaDescs,
-          cohort_size:   report.cohort_size,
-          cohort_date:   report.cohort_date,
-          date:          report.generated_date,
-          assessment_id: report.assessment_id,
-        };
+      {/* Presented as six parts + an appendix (see sectionGroups.ts). The payload
+          is untouched — each part simply renders the blocks it groups, in order,
+          and a part with no blocks present is skipped rather than left empty. */}
+      {REPORT_PARTS.map((part) => {
+        const blocks = part.blocks
+          .map(n => report.sections.find(s => s.number === n))
+          .filter((s): s is NonNullable<typeof s> => !!s && !!SECTION_MAP[s.number]);
+        if (blocks.length === 0) return null;
+
+        const headed = part.headed !== false;
+        // One block under a part heading would otherwise print the same name
+        // twice; several blocks each need naming.
+        const mode = !headed ? "own" : blocks.length > 1 ? "sub" : "hidden";
+        const body = blocks.map((section) => {
+          const Component = SECTION_MAP[section.number]!;
+          // Thread snapshot context into every section's content
+          const enrichedContent = {
+            ...section.content,
+            snapshot_id:   snapshotId,
+            is_draft:      isDraft,
+            formula_descs: formulaDescs,
+            cohort_size:   report.cohort_size,
+            cohort_date:   report.cohort_date,
+            date:          report.generated_date,
+            assessment_id: report.assessment_id,
+          };
+          return (
+            <div key={section.number} id={`section-${section.number}`}>
+              <Component content={enrichedContent} />
+            </div>
+          );
+        });
+
         return (
-          <div key={section.number} className="report-page-break">
-            <Component content={enrichedContent} />
+          <div key={part.title} className="report-page-break">
+            {headed && (
+              <div className="report-part-head">
+                <h2>{part.n !== null ? `${part.n}. ${part.title}` : part.title}</h2>
+                {part.lede && <p className="report-part-lede">{part.lede}</p>}
+              </div>
+            )}
+            <NestedSectionContext.Provider value={mode}>
+              {body}
+            </NestedSectionContext.Provider>
           </div>
         );
       })}

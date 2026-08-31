@@ -1,5 +1,6 @@
 import { ProvenanceRibbon } from "../../components/ProvenanceRibbon";
 import type { ReportSection } from "../types";
+import { SectionHeading } from "../SectionHeading";
 
 export function Traceability({ content }: { content: ReportSection["content"] }) {
   const snapshotId  = (content.snapshot_id     as string | undefined) ?? "—" /* honest absence — never a plausible-looking fake ID (Hard Rule 7) */;
@@ -20,7 +21,7 @@ export function Traceability({ content }: { content: ReportSection["content"] })
 
   return (
     <div data-testid="section-11" className="report-section">
-      <h2>11. Source Traceability</h2>
+      <SectionHeading n={11} title="Source Traceability" />
 
       <ProvenanceRibbon
         snapshotId={snapshotId}

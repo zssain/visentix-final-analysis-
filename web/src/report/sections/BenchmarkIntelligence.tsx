@@ -2,6 +2,7 @@ import { CohortLabel }    from "../CohortLabel";
 import { ScoreCell }      from "../../components/ScoreCell";
 import { maturityBandColor } from "../../lib/scoreBands";
 import type { ReportSection } from "../types";
+import { SectionHeading } from "../SectionHeading";
 
 export function BenchmarkIntelligence({ content }: { content: ReportSection["content"] }) {
   const orgScore   = content.org_score as number | null | undefined;
@@ -29,7 +30,7 @@ export function BenchmarkIntelligence({ content }: { content: ReportSection["con
 
   return (
     <div data-testid="section-4" className="report-section">
-      <h2>4. Benchmark Intelligence</h2>
+      <SectionHeading n={4} title="Benchmark Intelligence" />
 
       {/* Percentile + score headline */}
       <div style={{ display: "flex", alignItems: "flex-end", gap: 24, flexWrap: "wrap", marginBottom: 16 }}>

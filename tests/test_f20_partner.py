@@ -312,7 +312,9 @@ def test_branding_is_header_only_body_unchanged():
     assert "LawCo" in branded
     # The report BODY is byte-identical apart from the injected band — branding
     # never changes a number or wording. A content section renders verbatim in both.
-    body = _render_section(report.sections[1])
+    # Section 2 is the sole block of presented part 2, so it renders in "hidden"
+    # heading mode (the part heading already names it) — see renderer._REPORT_PARTS.
+    body = _render_section(report.sections[1], "hidden")
     assert body in plain and body in branded
     assert "61.0" in plain and "61.0" in branded  # the headline number is unchanged
     # Rigorous F20: strip the band → the whole document is identical.

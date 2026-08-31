@@ -1,5 +1,6 @@
 import { CohortLabel } from "../CohortLabel";
 import type { ReportSection } from "../types";
+import { SectionHeading } from "../SectionHeading";
 
 type Register = "executive" | "practitioner" | "plain";
 
@@ -30,7 +31,7 @@ export function ExecutiveSummary({ content }: { content: ReportSection["content"
 
   return (
     <div data-testid="section-2" className="report-section">
-      <h2>2. Executive Summary</h2>
+      <SectionHeading n={2} title="Executive Summary" />
 
       {/* Register tabs — shown only when alternatives exist */}
       {registers.length > 1 && (

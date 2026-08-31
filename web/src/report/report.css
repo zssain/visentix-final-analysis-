@@ -248,3 +248,31 @@
   font-size: 0.76rem;
   color: #8896A5;
 }
+
+/* ── Grouped report parts ─────────────────────────────────────────────────────
+   The report is presented as six parts + an appendix; the frozen snapshot still
+   carries its original twelve blocks (sectionGroups.ts). A part heading names
+   the reader's question; the blocks inside it carry sub-headings. */
+.report-part-head { margin-bottom: 18px; }
+.report-part-head h2 { margin-bottom: 6px; }
+.report-part-lede {
+  margin: 0;
+  font-size: 0.92rem;
+  color: #55606D;
+  max-width: 68ch;
+}
+.report-subhead {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #09234F;
+  margin: 26px 0 10px;
+  padding-top: 14px;
+  border-top: 1px solid #E4E8ED;
+}
+/* The first sub-heading in a part sits directly under the lede — no extra rule. */
+.report-part-head + div > div:first-child .report-subhead {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}

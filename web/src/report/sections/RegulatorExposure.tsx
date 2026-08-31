@@ -2,6 +2,7 @@ import { ScoreCell }    from "../../components/ScoreCell";
 import { domainLabel } from "../../lib/domainLabels";
 import { scoreBandColor } from "../../lib/scoreBands";
 import type { ReportSection } from "../types";
+import { SectionHeading } from "../SectionHeading";
 
 interface HeatmapCell {
   domain: string;
@@ -46,7 +47,7 @@ export function RegulatorExposure({ content }: { content: ReportSection["content
 
   return (
     <div data-testid="section-5" className="report-section">
-      <h2>5. Regulator Exposure</h2>
+      <SectionHeading n={5} title="Regulator Exposure" />
 
       {/* Headline score */}
       <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
