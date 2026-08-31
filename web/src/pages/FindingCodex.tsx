@@ -6,6 +6,7 @@ import { useState, useMemo, useEffect } from "react";
 import { api } from "../lib/api";
 import { PageHeader } from "../components/PageHeader";
 import "../components/furniture.css";
+import { Card } from "@/components/ui/card";
 
 const DOMAINS = [
   "data_sharing", "tracking_cookies", "consumer_rights",
@@ -61,7 +62,7 @@ export function FindingCodex() {
 
       <div style={{ display: "grid", gridTemplateColumns: "220px 1fr", gap: 24 }}>
         {/* Domain filter */}
-        <div className="card" style={{ padding: "16px", alignSelf: "start" }}>
+        <Card style={{ padding: "16px", alignSelf: "start" }}>
           <div style={{ fontWeight: 700, fontSize: "0.88rem", marginBottom: 12 }}>Filter by domain</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
             <button
@@ -82,7 +83,7 @@ export function FindingCodex() {
               </button>
             ))}
           </div>
-        </div>
+        </Card>
 
         {/* Entries */}
         <div>
@@ -103,7 +104,7 @@ export function FindingCodex() {
               {filtered.map(e => {
                 const isOpen = expanded === e.code;
                 return (
-                  <div key={e.code} className="card" style={{ overflow: "hidden" }}>
+                  <Card key={e.code} style={{ overflow: "hidden" }}>
                     <button
                       onClick={() => setExpanded(isOpen ? null : e.code)}
                       style={{
@@ -127,7 +128,7 @@ export function FindingCodex() {
                     {isOpen && (
                       <div style={{ padding: "0 18px 18px", borderTop: "1px solid var(--border)" }}>
                         <div style={{ marginTop: 14 }}>
-                          <div className="micro-label">Severity</div>
+                          <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Severity</div>
                           <span className={`badge badge-${e.default_severity}`} style={{ textTransform: "uppercase" }}>
                             {e.default_severity}
                           </span>
@@ -141,7 +142,7 @@ export function FindingCodex() {
                         {/* Regulator relevance */}
                         {Object.keys(e.regulator_relevance).length > 0 && (
                           <div style={{ marginTop: 12 }}>
-                            <div className="micro-label">Regulator Relevance</div>
+                            <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Regulator Relevance</div>
                             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 4 }}>
                               {Object.entries(e.regulator_relevance).map(([reg, weight]) => (
                                 <span key={reg} style={{
@@ -159,7 +160,7 @@ export function FindingCodex() {
                         {/* Legal references */}
                         {e.legal_references.length > 0 && (
                           <div style={{ marginTop: 12 }}>
-                            <div className="micro-label">Legal References</div>
+                            <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Legal References</div>
                             {e.legal_references.map((lr, i) => (
                               <div key={i} style={{ marginTop: 6, fontSize: "0.82rem" }}>
                                 <span style={{ fontWeight: 700, color: "var(--navy)" }}>{lr.framework}</span>
@@ -180,7 +181,7 @@ export function FindingCodex() {
                         {/* Recommendations */}
                         {e.recommendations.length > 0 && (
                           <div style={{ marginTop: 12 }}>
-                            <div className="micro-label">Recommendation</div>
+                            <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Recommendation</div>
                             <p style={{ fontSize: "0.82rem", color: "var(--text-secondary)", marginTop: 4 }}>
                               {e.recommendations[0].body_template?.replace(/\{[^}]+\}/g, "[...]") ?? "See report."}
                             </p>
@@ -188,7 +189,7 @@ export function FindingCodex() {
                         )}
                       </div>
                     )}
-                  </div>
+                  </Card>
                 );
               })}
             </div>

@@ -15,6 +15,8 @@ import { useFlash } from "../../lib/useFlash";
 import { api, ApiError } from "../../lib/api";
 import "../../components/furniture.css";
 import "./partner.css";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? (import.meta.env.DEV ? "http://localhost:8000" : "");
 // Same gate language customers see — no special casing (F20).
@@ -102,10 +104,10 @@ function ClientsTab({ onOpen, showFlash }: { onOpen: (w: Workspace) => void; sho
     <div>
       <div className="pp-toolbar">
         <span className="pp-count">{workspaces.length} client{workspaces.length === 1 ? "" : "s"}</span>
-        <button className="btn btn-primary" onClick={() => setModalOpen(true)}>+ New Client</button>
+        <Button onClick={() => setModalOpen(true)}>+ New Client</Button>
       </div>
       {workspaces.length === 0 ? (
-        <div className="pp-card"><div className="pp-empty">No client workspaces yet. Create one to begin.</div></div>
+        <Card className="pp-card"><div className="pp-empty">No client workspaces yet. Create one to begin.</div></Card>
       ) : (
         <div className="pp-cards">
           {workspaces.map(w => (
@@ -133,8 +135,8 @@ function ClientsTab({ onOpen, showFlash }: { onOpen: (w: Workspace) => void; sho
               </select>
             </label>
             <div className="pp-modal-actions">
-              <button className="btn" onClick={() => setModalOpen(false)}>Cancel</button>
-              <button className="btn btn-primary" disabled={busy || !name.trim() || !clientName.trim()} onClick={create}>{busy ? "Creating…" : "Create"}</button>
+              <Button onClick={() => setModalOpen(false)}>Cancel</Button>
+              <Button disabled={busy || !name.trim() || !clientName.trim()} onClick={create}>{busy ? "Creating…" : "Create"}</Button>
             </div>
           </div>
         </div>
@@ -193,11 +195,11 @@ function ClientView({ ws, onBack, showFlash }: { ws: Workspace; onBack: () => vo
 
   return (
     <div>
-      <button className="btn" onClick={onBack}>← Clients</button>
+      <Button onClick={onBack}>← Clients</Button>
       <h2 className="pp-view-title">{ws.name}</h2>
 
-      <section className="pp-card">
-        <div className="pp-card-title">New assessment</div>
+      <Card className="pp-card">
+        <Card className="pp-card-title">New assessment</Card>
         <div className="pp-modes">
           {(["url", "text", "upload"] as const).map(m => (
             <button key={m} className={`pp-mode ${mode === m ? "on" : ""}`} onClick={() => setMode(m)}>
@@ -208,11 +210,11 @@ function ClientView({ ws, onBack, showFlash }: { ws: Workspace; onBack: () => vo
         {mode === "url" && <input className="pp-input" placeholder="https://client.example/privacy" value={urlVal} onChange={e => setUrlVal(e.target.value)} />}
         {mode === "text" && <textarea className="pp-textarea" placeholder="Paste the privacy notice text…" value={textVal} onChange={e => setTextVal(e.target.value)} />}
         {mode === "upload" && <input type="file" accept=".pdf,.docx,.txt" onChange={e => setFileVal(e.target.files?.[0] || null)} />}
-        <button className="btn btn-primary" style={{ marginTop: 12 }} disabled={busy} onClick={submit}>{busy ? "Submitting…" : "Run assessment"}</button>
-      </section>
+        <Button style={{ marginTop: 12 }} disabled={busy} onClick={submit}>{busy ? "Submitting…" : "Run assessment"}</Button>
+      </Card>
 
-      <section className="pp-card">
-        <div className="pp-card-title">Reports</div>
+      <Card className="pp-card">
+        <Card className="pp-card-title">Reports</Card>
         {!latest ? (
           <div className="pp-empty">No assessments yet for this client.</div>
         ) : (
@@ -220,14 +222,14 @@ function ClientView({ ws, onBack, showFlash }: { ws: Workspace; onBack: () => vo
             <span className="pp-report-id">Assessment {latest.assessment_id.slice(0, 8)}</span>
             <StatusChip status={latest.review_status} />
             {latest.review_status === "approved" && latest.snapshot_id ? (
-              <button className="btn" onClick={() => downloadBranded(latest.snapshot_id!)}>Download branded PDF</button>
+              <Button onClick={() => downloadBranded(latest.snapshot_id!)}>Download branded PDF</Button>
             ) : (
               <span className="pp-report-note">Branded report available once approved.</span>
             )}
           </div>
         )}
         <div className="pp-gate-note">Every client report is held for Visentix expert review — partners see the same gate as our direct customers.</div>
-      </section>
+      </Card>
     </div>
   );
 }
@@ -259,29 +261,29 @@ function FeedTab({ showFlash }: { showFlash: (m: string) => void }) {
 
   return (
     <div>
-      <section className="pp-card">
-        <div className="pp-card-title">White-label data feed</div>
-        <div className="pp-card-sub">
+      <Card className="pp-card">
+        <Card className="pp-card-title">White-label data feed</Card>
+        <Card className="pp-card-sub">
           Aggregate privacy intelligence by industry cohort. No organisation identities, cohort membership, or raw
           clause text is included; cohorts below the minimum sample are suppressed. Redistribution requires a data
           license agreement.
-        </div>
+        </Card>
         <div className="pp-key-create">
           <input className="pp-input" placeholder="Key label (e.g. prod)" value={label} onChange={e => setLabel(e.target.value)} />
-          <button className="btn btn-primary" onClick={create}>Create API key</button>
+          <Button onClick={create}>Create API key</Button>
         </div>
         {freshKey && (
           <div className="pp-fresh-key">
             <strong>Copy this key now — it is shown only once:</strong>
             <code>{freshKey}</code>
-            <button className="btn" onClick={() => { navigator.clipboard?.writeText(freshKey); showFlash("Key copied."); }}>Copy</button>
-            <button className="btn" onClick={() => setFreshKey(null)}>Done</button>
+            <Button onClick={() => { navigator.clipboard?.writeText(freshKey); showFlash("Key copied."); }}>Copy</Button>
+            <Button onClick={() => setFreshKey(null)}>Done</Button>
           </div>
         )}
-      </section>
+      </Card>
 
-      <section className="pp-card">
-        <div className="pp-card-title">Keys</div>
+      <Card className="pp-card">
+        <Card className="pp-card-title">Keys</Card>
         {keys.length === 0 ? <div className="pp-empty">No API keys yet.</div> : (
           <table className="pp-keys">
             <thead><tr><th>Label</th><th>Key</th><th>Last used</th><th>Status</th><th></th></tr></thead>
@@ -292,13 +294,13 @@ function FeedTab({ showFlash }: { showFlash: (m: string) => void }) {
                   <td className="pp-mono">{k.masked}</td>
                   <td>{k.last_used_at || "never"}</td>
                   <td>{k.revoked ? <span className="pp-chip st-revoked">revoked</span> : <span className="pp-chip st-approved">active</span>}</td>
-                  <td>{!k.revoked && <button className="btn" onClick={() => revoke(k.api_key_id)}>Revoke</button>}</td>
+                  <td>{!k.revoked && <Button onClick={() => revoke(k.api_key_id)}>Revoke</Button>}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         )}
-      </section>
+      </Card>
     </div>
   );
 }
@@ -322,16 +324,16 @@ function BrandingTab({ showFlash }: { showFlash: (m: string) => void }) {
   };
 
   return (
-    <section className="pp-card">
-      <div className="pp-card-title">Branding</div>
-      <div className="pp-card-sub">Applied as a header band on branded reports. Branding never changes any number or wording in the report body, and a report keeps the branding it had when the Visentix expert approved it.</div>
+    <Card className="pp-card">
+      <Card className="pp-card-title">Branding</Card>
+      <Card className="pp-card-sub">Applied as a header band on branded reports. Branding never changes any number or wording in the report body, and a report keeps the branding it had when the Visentix expert approved it.</Card>
       <div className="pp-branding-grid">
         <div>
           <label className="pp-label">Brand color<input type="color" className="pp-color" value={color} onChange={e => setColor(e.target.value)} /></label>
           <label className="pp-label">Logo (PNG/JPG, max 2 MB)
             <input type="file" accept="image/png,image/jpeg,image/gif,image/webp" onChange={e => setLogo(e.target.files?.[0] || null)} />
           </label>
-          <button className="btn btn-primary" disabled={busy} onClick={save}>{busy ? "Saving…" : "Save branding"}</button>
+          <Button disabled={busy} onClick={save}>{busy ? "Saving…" : "Save branding"}</Button>
         </div>
         <div className="pp-preview" style={{ borderTop: `6px solid ${color}` }}>
           <div className="pp-preview-band">
@@ -341,6 +343,6 @@ function BrandingTab({ showFlash }: { showFlash: (m: string) => void }) {
           <div className="pp-preview-body">Report body — the same numbers as our product. Branding only adds this header.</div>
         </div>
       </div>
-    </section>
+    </Card>
   );
 }

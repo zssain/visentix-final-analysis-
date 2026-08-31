@@ -16,6 +16,8 @@ import { useFlash } from "../../lib/useFlash";
 import { api, ApiError } from "../../lib/api";
 import "../../components/furniture.css";
 import "./rewrite.css";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 
 const WATERMARK = "Illustrative language based on peer patterns — not legal drafting. Review with counsel.";
 
@@ -64,13 +66,13 @@ export function NoticeRewrite() {
       <div className="rw-load">
         <input className="rw-input" placeholder="Assessment ID" value={assessmentId}
                onChange={e => setAssessmentId(e.target.value)} onKeyDown={e => e.key === "Enter" && loadClauses(assessmentId)} />
-        <button className="btn btn-primary" onClick={() => loadClauses(assessmentId)}>Load clauses</button>
+        <Button onClick={() => loadClauses(assessmentId)}>Load clauses</Button>
       </div>
 
       {clauses.length > 0 && (
         <div className="rw-grid">
           {/* Clause picker */}
-          <section className="rw-card rw-picker">
+          <Card className="rw-card rw-picker">
             <div className="rw-h">Clauses {flagged.length > 0 && <span className="rw-flagged-note">· flagged domains first</span>}</div>
             {clauses.map(c => (
               <button key={c.clause_id} className={`rw-clause ${selected?.clause_id === c.clause_id ? "on" : ""} ${flagged.includes(c.domain) ? "flagged" : ""}`}
@@ -79,10 +81,10 @@ export function NoticeRewrite() {
                 <span className="rw-clause-text">{c.raw_text.slice(0, 140)}{c.raw_text.length > 140 ? "…" : ""}</span>
               </button>
             ))}
-          </section>
+          </Card>
 
           {/* Rewrite / diff */}
-          <section className="rw-card rw-output">
+          <Card className="rw-card rw-output">
             {!selected ? <div className="rw-empty">Pick a clause to see an illustrative rewrite.</div> : (
               <>
                 <div className="rw-watermark">{WATERMARK}</div>
@@ -106,8 +108,8 @@ export function NoticeRewrite() {
                     )}
                     {result.suggested_text && (
                       <div className="rw-actions">
-                        <button className="btn" onClick={() => { navigator.clipboard?.writeText(result.suggested_text || ""); showFlash("Copied."); }}>Copy</button>
-                        <button className="btn" onClick={() => selected && rewrite(selected)}>Regenerate</button>
+                        <Button onClick={() => { navigator.clipboard?.writeText(result.suggested_text || ""); showFlash("Copied."); }}>Copy</Button>
+                        <Button onClick={() => selected && rewrite(selected)}>Regenerate</Button>
                       </div>
                     )}
                     <div className="rw-legend"><span className="rw-op rw-add">added</span> <span className="rw-op rw-del">removed</span></div>
@@ -115,7 +117,7 @@ export function NoticeRewrite() {
                 ) : null}
               </>
             )}
-          </section>
+          </Card>
         </div>
       )}
     </div>

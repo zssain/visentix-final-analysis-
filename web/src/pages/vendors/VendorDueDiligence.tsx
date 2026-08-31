@@ -16,6 +16,8 @@ import { scoreBandColor, vciBand, LOW_CONFIDENCE_COHORT_N } from "../../lib/scor
 import { VENDORS, STATUS_LABEL, type Vendor, type VendorStatus } from "./mockData";
 import "../../components/furniture.css";
 import "./vendors.css";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 
 const STATUS_FILTERS: (VendorStatus | "all")[] = ["all", "pending", "approved", "conditional", "declined"];
 
@@ -34,7 +36,7 @@ export function VendorDueDiligence() {
         eyebrow="Vendors"
         title="Vendor Due Diligence"
         description="Screen a vendor's public privacy notice, review the exposure intelligence with evidence, and record your own procurement decision."
-        actions={<button className="btn btn-primary" onClick={() => showFlash("Add vendor — intake→assessment pipeline wired later (M-28).")}>+ Add vendor</button>}
+        actions={<Button onClick={() => showFlash("Add vendor — intake→assessment pipeline wired later (M-28).")}>+ Add vendor</Button>}
       />
 
       <FlashNotice message={flash} />
@@ -68,7 +70,7 @@ export function VendorDueDiligence() {
         </div>
 
         {/* ── Detail + decision ─────────────────────────────────────────── */}
-        <div className="vd-card">
+        <Card className="vd-card">
           <div className="vd-detail-head">
             <div>
               <div className="vd-detail-name">{selected.name}</div>
@@ -110,7 +112,7 @@ export function VendorDueDiligence() {
 
           {/* key remount re-seeds the panel per vendor — no setState-in-effect needed */}
           <DecisionPanel key={selected.id} vendor={selected} onFlash={showFlash} />
-        </div>
+        </Card>
       </div>
     </div>
   );
@@ -151,7 +153,7 @@ function DecisionPanel({ vendor, onFlash }: { vendor: Vendor; onFlash: (msg: str
       <div className="vd-field-label">Decision note</div>
       <textarea className="vd-textarea" value={note} onChange={e => setNote(e.target.value)} placeholder="Why you reached this decision" />
 
-      <button className="btn btn-primary" style={{ marginTop: 12 }} onClick={record}>Record decision</button>
+      <Button style={{ marginTop: 12 }} onClick={record}>Record decision</Button>
     </div>
   );
 }

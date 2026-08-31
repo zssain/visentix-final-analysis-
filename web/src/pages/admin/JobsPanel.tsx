@@ -7,6 +7,8 @@
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "../../lib/api";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 
 interface JobRun {
   status: "running" | "succeeded" | "failed";
@@ -91,7 +93,7 @@ export function JobsPanel() {
   };
 
   return (
-    <section className="card" style={{ padding: "20px 24px", marginTop: 20 }}>
+    <Card style={{ padding: "20px 24px", marginTop: 20 }}>
       <h2 style={{ fontSize: "1.1rem", fontWeight: 700, color: "var(--navy)", marginBottom: 4 }}>
         Scheduled Jobs
       </h2>
@@ -149,10 +151,9 @@ export function JobsPanel() {
                     {j.last_run ? `${j.last_run.items_processed} proc · ${j.last_run.items_changed} changed` : "—"}
                   </td>
                   <td style={{ padding: "10px 6px", textAlign: "right" }}>
-                    <button className="btn btn-outline btn-sm" disabled={busy[j.job_name]}
-                            onClick={() => runNow(j.job_name)} aria-busy={busy[j.job_name]}>
+                    <Button variant="outline" size="sm" disabled={busy[j.job_name]} onClick={() => runNow(j.job_name)} aria-busy={busy[j.job_name]}>
                       {busy[j.job_name] ? "Running…" : "Run now"}
-                    </button>
+                    </Button>
                   </td>
                 </tr>
               );
@@ -160,6 +161,6 @@ export function JobsPanel() {
           </tbody>
         </table>
       )}
-    </section>
+    </Card>
   );
 }

@@ -5,6 +5,7 @@
 import { useState, useCallback } from "react";
 import { ExplanationPanel } from "./ExplanationPanel";
 import { useExplain } from "./ExplainContext";
+import { Button } from "@/components/ui/button";
 
 interface InfoButtonProps {
   assessmentId: string;
@@ -26,16 +27,9 @@ export function InfoButton({ assessmentId, elementType, elementKey, label }: Inf
 
   return (
     <>
-      <button
-        className="info-btn"
-        data-testid="info-button"
-        onClick={handleOpen}
-        aria-label={`Explain how ${label ?? elementKey} was calculated`}
-        title={`Explain: ${label ?? elementKey}`}
-        type="button"
-      >
+      <Button className="info-btn" data-testid="info-button" onClick={handleOpen} aria-label={`Explain how ${label ?? elementKey} was calculated`} title={`Explain: ${label ?? elementKey}`} type="button">
         <span aria-hidden="true">ⓘ</span>
-      </button>
+      </Button>
       {open && (
         <ExplanationPanel
           envelope={envelope}

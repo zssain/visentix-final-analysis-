@@ -19,6 +19,7 @@ import { MultiSelectDropdown, type MSDOption } from "../../components/MultiSelec
 import { useIntakeJobs } from "../../jobs/IntakeJobsProvider";
 import "./intake.css";
 import "../../components/furniture.css";
+import { Button } from "@/components/ui/button";
 
 type Step = "idle" | "submitting" | "done" | "error";
 type InputMode = "url" | "text" | "upload";
@@ -460,24 +461,17 @@ export function Intake() {
         </p>
 
         <div className="intake-actions">
-          <button
-            className="btn btn-primary"
-            onClick={() => reviewing ? void handleSubmit() : setReviewing(true)}
+          <Button onClick={() => reviewing ? void handleSubmit() : setReviewing(true)}
             disabled={isProcessing}
             aria-busy={isProcessing}
             id="intake-submit-btn"
           >
             {isProcessing ? "Adding to queue…" : reviewing ? "Confirm and analyse" : "Review scope"}
-          </button>
+          </Button>
           {canRetry && step === "error" && (
-            <button
-              className="btn btn-outline btn-sm"
-              onClick={handleSubmit}
-              data-testid="intake-retry"
-              style={{ marginLeft: 8 }}
-            >
+            <Button variant="outline" size="sm" onClick={handleSubmit} data-testid="intake-retry" style={{ marginLeft: 8 }}>
               Retry
-            </button>
+            </Button>
           )}
           {(step === "error" || errorMsg) && (
             <span style={{ fontSize: "0.82rem", color: "var(--red)" }}>
@@ -506,10 +500,10 @@ export function Intake() {
             The tracker in the corner will link to the report when it is ready.
           </p>
           <div className="intake-handoff-actions">
-            <button type="button" className="btn btn-outline btn-sm" onClick={() => setHandedOff(null)}>
+            <Button variant="outline" size="sm" type="button" onClick={() => setHandedOff(null)}>
               Submit another notice
-            </button>
-            <Link to="/assessments" className="btn btn-primary btn-sm">Go to Monitor</Link>
+            </Button>
+            <Button asChild size="sm"><Link to="/assessments">Go to Monitor</Link></Button>
           </div>
         </div>
       )}

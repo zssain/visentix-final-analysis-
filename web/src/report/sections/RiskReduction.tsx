@@ -86,7 +86,7 @@ export function RiskReduction({ content }: { content: ReportSection["content"] }
                       fontFamily: "var(--font-data)", fontSize: "0.7rem", fontWeight: 700,
                       padding: "2px 7px", borderRadius: 4, letterSpacing: "0.04em",
                     }}>{p.code}</span>
-                    <span className="domain-eyebrow">{p.domain.replace(/_/g, " ")}</span>
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{p.domain.replace(/_/g, " ")}</span>
                   </div>
                   <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", lineHeight: 1.5 }}>
                     {p.description}

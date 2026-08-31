@@ -5,6 +5,7 @@
  * source refs, and narrative provenance badge.
  */
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell } from "recharts";
+import { Badge } from "@/components/ui/badge";
 
 export interface ExplainPanelProps {
   explanation: Record<string, unknown>;
@@ -161,43 +162,16 @@ function NarrativeExplanation({ explanation }: { explanation: Record<string, unk
           const bg = isPass ? "#dcfce7" : isAbsent ? "#f3f4f6" : "#fef2f2";
           const fg = isPass ? "#166534" : isAbsent ? "#4b5563" : "#991b1b";
           return (
-            <span
-              data-testid="guardrail-badge"
-              className="explain-badge"
-              style={{
-                background: bg,
-                color: fg,
-                padding: "2px 8px",
-                borderRadius: 4,
-                fontSize: "0.85em",
-                fontWeight: 600,
-              }}
-              title={
-                isAbsent
-                  ? "Guardrail status was not recorded for this snapshot."
-                  : undefined
-              }
-            >
+            <Badge variant="secondary" data-testid="guardrail-badge" className="explain-badge" style={{ background: bg, color: fg, padding: "2px 8px", borderRadius: 4, fontSize: "0.85em", fontWeight: 600, }} title={ isAbsent ? "Guardrail status was not recorded for this snapshot." : undefined }>
               {isAbsent
                 ? "Guardrail status was not recorded for this snapshot."
                 : `Guardrail: ${g}`}
-            </span>
+            </Badge>
           );
         })()}
-        <span
-          data-testid="llm-badge"
-          className="explain-badge"
-          style={{
-            background: "#eff6ff",
-            color: "#1e40af",
-            padding: "2px 8px",
-            borderRadius: 4,
-            fontSize: "0.85em",
-            fontWeight: 600,
-          }}
-        >
+        <Badge variant="secondary" data-testid="llm-badge" className="explain-badge" style={{ background: "#eff6ff", color: "#1e40af", padding: "2px 8px", borderRadius: 4, fontSize: "0.85em", fontWeight: 600, }}>
           {explanation.llm_used ? "LLM rephrased" : "Template used"}
-        </span>
+        </Badge>
       </div>
 
       {numbersFrom.length > 0 && (

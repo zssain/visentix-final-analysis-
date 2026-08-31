@@ -18,6 +18,8 @@ import { api, ApiError } from "../../lib/api";
 import { useAuth } from "../../auth/AuthProvider";
 import "./quarterly.css";
 import "../../components/furniture.css";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? (import.meta.env.DEV ? "http://localhost:8000" : "");
 
@@ -59,8 +61,8 @@ export function QuarterlyReport() {
     <div>
       <PageHeader eyebrow="Quarterly" title="Global Privacy Intelligence Report"
         description="The published, anonymized market briefing. Every statistic is drawn only from cohorts large enough that no company can be identified, and traces to a frozen snapshot." />
-      {loading ? <div className="qr-card"><div className="qr-empty">Loading…</div></div>
-        : payload ? <PublicReport p={payload} /> : <div className="qr-card"><div className="qr-empty">No approved quarterly report has been published yet.</div></div>}
+      {loading ? <Card className="qr-card"><div className="qr-empty">Loading…</div></Card>
+        : payload ? <PublicReport p={payload} /> : <Card className="qr-card"><div className="qr-empty">No approved quarterly report has been published yet.</div></Card>}
       {isAdmin && <AdminPanel onPublished={() => fetchPublic("/quarterly/latest").then(setPayload)} />}
     </div>
   );
@@ -91,18 +93,18 @@ function PublicReport({ p }: { p: Payload }) {
 
       {/* Indicator cards */}
       {(dmi || ai) && (
-        <section className="qr-card">
+        <Card className="qr-card">
           <div className="qr-h">Intelligence indicators</div>
           <div className="qr-indicators">
             {dmi && <Indicator name="Disclosure Maturity Index" value={dmi.value} n={dmi.population_n} />}
             {ai && <Indicator name="AI Transparency Index" value={ai.value} n={ai.population_n} />}
           </div>
-        </section>
+        </Card>
       )}
 
       {/* Top gaps */}
       {gaps.length > 0 && (
-        <section className="qr-card">
+        <Card className="qr-card">
           <div className="qr-h">Top disclosure gaps</div>
           <div className="qr-sub">Most frequent finding types across the corpus. Descriptive prevalence — not a verdict on any organisation.</div>
           <ol className="qr-gaps">
@@ -114,12 +116,12 @@ function PublicReport({ p }: { p: Payload }) {
               </li>
             ))}
           </ol>
-        </section>
+        </Card>
       )}
 
       {/* Enforcement themes */}
       {themes.length > 0 && (
-        <section className="qr-card">
+        <Card className="qr-card">
           <div className="qr-h">Enforcement theme shares</div>
           <div className="qr-sub">Share of resolved enforcement records by theme (resolved records only). Observed activity, not risk scores.</div>
           {themes.map((t, i) => (
@@ -129,11 +131,11 @@ function PublicReport({ p }: { p: Payload }) {
               <span className="qr-pct">{String(t.share_pct)}%</span>
             </div>
           ))}
-        </section>
+        </Card>
       )}
 
       {/* Methodology */}
-      <section className="qr-card">
+      <Card className="qr-card">
         <div className="qr-h">Methodology</div>
         {m.intro && <p className="qr-sub">{m.intro}</p>}
         <div className="qr-meth">
@@ -151,9 +153,9 @@ function PublicReport({ p }: { p: Payload }) {
           <MethRow k="Reproducibility" v={m.reproducible} />
         </div>
         <div className="qr-actions">
-          <a className="btn btn-primary" href={`${API_BASE}/quarterly/${encodeURIComponent(p.quarter)}.pdf`} target="_blank" rel="noreferrer">Download PDF</a>
+          <Button asChild><a href={`${API_BASE}/quarterly/${encodeURIComponent(p.quarter)}.pdf`} target="_blank" rel="noreferrer">Download PDF</a></Button>
         </div>
-      </section>
+      </Card>
     </div>
   );
 }
@@ -221,12 +223,12 @@ function AdminPanel({ onPublished }: { onPublished: () => void }) {
   };
 
   return (
-    <section className="qr-card qr-admin">
+    <Card className="qr-card qr-admin">
       <div className="qr-h">Admin · build &amp; publish</div>
       <FlashNotice message={flash} />
       <div className="qr-build">
         <input className="qr-input" value={quarter} onChange={e => setQuarter(e.target.value)} placeholder="2026-Q3" />
-        <button className="btn btn-primary" disabled={busy} onClick={build}>{busy ? "Building…" : "Build quarter"}</button>
+        <Button disabled={busy} onClick={build}>{busy ? "Building…" : "Build quarter"}</Button>
       </div>
       <table className="qr-admin-table">
         <thead><tr><th>Quarter</th><th>Status</th><th>Gate</th><th>Created</th><th></th></tr></thead>
@@ -241,8 +243,8 @@ function AdminPanel({ onPublished }: { onPublished: () => void }) {
                 <td>{passed === true ? <span className="qr-gate ok">passed</span> : passed === false ? <span className="qr-gate bad" title={JSON.stringify(gate?.violations)}>failed · {gate?.violations?.length} violations</span> : "—"}</td>
                 <td>{new Date(s.created_at).toLocaleString()}</td>
                 <td>
-                  <button className="btn" disabled={previewing === s.id} onClick={() => preview(s.id)}>{previewing === s.id ? "Opening…" : "Preview PDF"}</button>
-                  {s.status === "draft" && passed && <button className="btn btn-primary" onClick={() => approve(s.id)}>Approve</button>}
+                  <Button variant="outline" disabled={previewing === s.id} onClick={() => preview(s.id)}>{previewing === s.id ? "Opening…" : "Preview PDF"}</Button>
+                  {s.status === "draft" && passed && <Button onClick={() => approve(s.id)}>Approve</Button>}
                 </td>
               </tr>
             );
@@ -250,6 +252,6 @@ function AdminPanel({ onPublished }: { onPublished: () => void }) {
           {snapshots.length === 0 && <tr><td colSpan={5} className="qr-empty">No builds yet.</td></tr>}
         </tbody>
       </table>
-    </section>
+    </Card>
   );
 }

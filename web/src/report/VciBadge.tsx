@@ -1,4 +1,5 @@
 /** VCI confidence badge — shows spec 5-band label. */
+import { Badge } from "@/components/ui/badge";
 
 // Map both old underscore labels and new spec labels to display text
 const VCI_DISPLAY: Record<string, string> = {
@@ -31,22 +32,8 @@ export function VciBadge({ label, guidance }: VciBadgeProps) {
   const display = VCI_DISPLAY[label] ?? label.replace(/_/g, " ");
   const color = VCI_COLORS[display] ?? "var(--text-muted)";
   return (
-    <span
-      className="vci-badge"
-      style={{
-        display: "inline-block",
-        padding: "1px 8px",
-        borderRadius: 4,
-        fontSize: "0.8em",
-        fontWeight: 600,
-        color,
-        border: `1px solid ${color}`,
-        marginLeft: 6,
-      }}
-      data-testid="vci-badge"
-      title={guidance || `Confidence: ${display}`}
-    >
+    <Badge variant="secondary" className="vci-badge" style={{ display: "inline-block", padding: "1px 8px", borderRadius: 4, fontSize: "0.8em", fontWeight: 600, color, border: `1px solid ${color}`, marginLeft: 6, }} data-testid="vci-badge" title={guidance || `Confidence: ${display}`}>
       {display}
-    </span>
+    </Badge>
   );
 }

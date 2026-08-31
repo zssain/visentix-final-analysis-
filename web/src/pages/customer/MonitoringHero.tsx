@@ -11,6 +11,7 @@ import { useEffect, useState } from "react";
 import { api } from "../../lib/api";
 import { trendColor } from "../../lib/scoreBands";
 import { NotificationsCard } from "./NotificationsCard";
+import { Card } from "@/components/ui/card";
 
 interface DeliveriesResponse {
   deliveries: Record<string, { channel: string | null; status: string | null }>;
@@ -164,9 +165,9 @@ export function MonitoringHero() {
 
   return (
     <>
-    <div className="card" style={{ padding: 20 }} data-testid="monitoring-hero">
+    <Card style={{ padding: 20 }} data-testid="monitoring-hero">
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-        <div className="card-title">Continuous Monitoring</div>
+        <div className="font-semibold leading-none">Continuous Monitoring</div>
         <span style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>
           Trend · change feed · alerts
         </span>
@@ -179,7 +180,7 @@ export function MonitoringHero() {
             <Sparkline data={overallVals} />
             {overallDelta && (
               <div>
-                <div className="tabular" style={{
+                <div className="font-data tabular-nums" style={{
                   fontSize: "1.1rem", fontWeight: 700,
                   color: trendColor(overallDelta.delta_pct, "maturity"),
                 }}>
@@ -206,7 +207,7 @@ export function MonitoringHero() {
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }} className="mon-hero-grid">
         {/* ── M-07: change feed ── */}
         <div>
-          <div className="section-label" style={{ marginBottom: 8 }}>Change Feed</div>
+          <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground" style={{ marginBottom: 8 }}>Change Feed</div>
           {events && events.events.length > 0 ? (
             <div style={{ display: "flex", flexDirection: "column", gap: 8, borderLeft: "2px solid var(--border)", paddingLeft: 12 }}>
               {events.events.slice(0, 6).map(ev => (
@@ -221,7 +222,7 @@ export function MonitoringHero() {
                     {deliveryChip(ev.event_id)}
                   </div>
                   {ev.type === "score_moved" && ev.from != null && (
-                    <div className="tabular" style={{ color: "var(--text-secondary)" }}>
+                    <div className="font-data tabular-nums" style={{ color: "var(--text-secondary)" }}>
                       {ev.from} → {ev.to}
                     </div>
                   )}
@@ -240,20 +241,20 @@ export function MonitoringHero() {
 
         {/* ── M-08: alert center (F-013) ── */}
         <div>
-          <div className="section-label" style={{ marginBottom: 8 }}>Alert Center</div>
+          <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground" style={{ marginBottom: 8 }}>Alert Center</div>
           {alerts && alerts.alerts.length > 0 ? (
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {alerts.alerts.slice(0, 5).map(al => (
-                <div key={al.alert_id} className="card" style={{ padding: "10px 12px" }}>
+                <Card key={al.alert_id} style={{ padding: "10px 12px" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
                     <span style={{ fontWeight: 700, fontSize: "0.8rem", color: "var(--navy)" }}>
                       {al.severity ? fmtType(al.severity) : "Escalation"}
                     </span>
-                    <span className="tabular" style={{ fontSize: "0.72rem", color: "var(--text-muted)", cursor: "help" }} title={VCI_TITLE}>
+                    <span className="font-data tabular-nums" style={{ fontSize: "0.72rem", color: "var(--text-muted)", cursor: "help" }} title={VCI_TITLE}>
                       VCI {al.vci ?? "—"}
                     </span>
                   </div>
-                  <div className="tabular" style={{ fontSize: "0.74rem", color: "var(--text-secondary)" }}>
+                  <div className="font-data tabular-nums" style={{ fontSize: "0.74rem", color: "var(--text-secondary)" }}>
                     F-013 {al.escalation_score ?? "—"} · {al.formula_version_id}
                   </div>
                   {al.enforcement_refs.length > 0 && (
@@ -261,7 +262,7 @@ export function MonitoringHero() {
                       Related resolved matters: {al.enforcement_refs.map(e => e.entity_name).join(", ")}
                     </div>
                   )}
-                </div>
+                </Card>
               ))}
             </div>
           ) : (
@@ -277,7 +278,7 @@ export function MonitoringHero() {
           .mon-hero-grid { grid-template-columns: 1fr !important; }
         }
       `}</style>
-    </div>
+    </Card>
     <NotificationsCard />
     </>
   );

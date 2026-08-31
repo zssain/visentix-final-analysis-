@@ -8,6 +8,8 @@
 import { useExplain } from "./ExplainContext";
 import type { ExplainEnvelope } from "./ExplainContext";
 import "./explain.css";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface Props {
   envelope: ExplainEnvelope | null;
@@ -17,12 +19,19 @@ interface Props {
   onClose: () => void;
 }
 
-function Card({ title, children, testId }: { title: string; children: React.ReactNode; testId?: string }) {
+/* A titled block inside the panel. Named ExplainCard because it is NOT the
+   generic surface — it always carries a heading — and the codemod collided
+   with the shadcn Card of the same name. */
+function ExplainCard({ title, children, testId }: { title: string; children: React.ReactNode; testId?: string }) {
   return (
-    <div className="explain-card" data-testid={testId}>
-      <div className="explain-card-title">{title}</div>
-      {children}
-    </div>
+    <Card className="gap-2 py-4" data-testid={testId}>
+      <CardHeader className="px-4">
+        <CardTitle className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          {title}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="px-4">{children}</CardContent>
+    </Card>
   );
 }
 
@@ -73,7 +82,7 @@ export function ExplanationPanel({ envelope, elementType, elementKey, label, onC
               )}
 
               {/* Always-visible cards */}
-              <Card title="Was AI involved?" testId="card-ai">
+              <ExplainCard title="Was AI involved?" testId="card-ai">
                 <p className="explain-text">
                   {(envelope.llm_involvement as Record<string, unknown>)?.used
                     ? `Yes — ${(envelope.llm_involvement as Record<string, unknown>).role}`
@@ -83,10 +92,10 @@ export function ExplanationPanel({ envelope, elementType, elementKey, label, onC
                 {(envelope.llm_involvement as Record<string, unknown>)?.model ? (
                   <div className="explain-meta">Model: {String((envelope.llm_involvement as Record<string, unknown>).model)}</div>
                 ) : null}
-              </Card>
+              </ExplainCard>
 
               {Array.isArray(envelope.legal_basis) && envelope.legal_basis.length > 0 && (
-                <Card title="Legal basis" testId="card-legal">
+                <ExplainCard title="Legal basis" testId="card-legal">
                   {envelope.legal_basis.map((lr, i) => {
                     const framework = String(lr.framework ?? "");
                     const citation = String(lr.citation ?? "");
@@ -98,7 +107,7 @@ export function ExplanationPanel({ envelope, elementType, elementKey, label, onC
                         <div className="legal-ref-header">
                           <span className="legal-framework">{framework}</span>
                           <span className="legal-citation">{citation}</span>
-                          {lr.is_primary ? <span className="badge-primary">Primary</span> : null}
+                          {lr.is_primary ? <Badge variant="secondary">Primary</Badge> : null}
                         </div>
                         <p className="legal-summary">{summary}</p>
                         {url ? (
@@ -112,33 +121,33 @@ export function ExplanationPanel({ envelope, elementType, elementKey, label, onC
                       </div>
                     );
                   })}
-                </Card>
+                </ExplainCard>
               )}
 
               {envelope.database_provenance && envelope.database_provenance.length > 0 && (
-                <Card title="Where this came from" testId="card-provenance">
+                <ExplainCard title="Where this came from" testId="card-provenance">
                   {envelope.database_provenance.map((p, i) => (
                     <div key={i} className="explain-meta">
                       <strong>{String(p.table)}</strong> · Row {String(p.row_id).slice(0, 12)}
                       {Array.isArray(p.fields_used) && <> · Fields: {(p.fields_used as string[]).join(", ")}</>}
                     </div>
                   ))}
-                </Card>
+                </ExplainCard>
               )}
 
-              <Card title="How confident is this?" testId="card-confidence">
+              <ExplainCard title="How confident is this?" testId="card-confidence">
                 <p className="explain-text">{envelope.confidence_note || "Confidence data not available."}</p>
-              </Card>
+              </ExplainCard>
 
               <PeerComparisonCard peer_comparison={envelope.peer_comparison} />
 
-              <Card title="Human review" testId="card-review">
+              <ExplainCard title="Human review" testId="card-review">
                 {envelope.human_review_status ? (
                   <span className="chip-reviewed">Reviewed by expert</span>
                 ) : (
                   <span className="chip-pending">Automated — pending expert review</span>
                 )}
-              </Card>
+              </ExplainCard>
 
               {/* Versioning footer */}
               <div className="explain-footer" data-testid="explain-versioning">
@@ -165,7 +174,7 @@ function PeerComparisonCard({ peer_comparison }: { peer_comparison: Record<strin
   const pcRelaxations = Array.isArray(pc.relaxations) ? (pc.relaxations as string[]) : [];
   const pcHow = pc.how_percentile_computed ? String(pc.how_percentile_computed) : "";
   return (
-    <Card title="Benchmark cohort" testId="card-cohort">
+    <ExplainCard title="Benchmark cohort" testId="card-cohort">
       <p className="explain-text">
         Cohort size: <strong>{pcSize}</strong> normalized peers
         {pcVersion && <> · Population version: {pcVersion}</>}
@@ -179,7 +188,7 @@ function PeerComparisonCard({ peer_comparison }: { peer_comparison: Record<strin
       {pcHow && (
         <div className="explain-meta" style={{ marginTop: 6 }}>{pcHow}</div>
       )}
-    </Card>
+    </ExplainCard>
   );
 }
 
@@ -187,22 +196,22 @@ function PlainView({ envelope, elementType }: { envelope: ExplainEnvelope; eleme
   if (elementType === "finding") {
     return (
       <div className="explain-audit-cards">
-        <div className="audit-card">
+        <Card className="audit-card">
           <div className="audit-label">Standard</div>
           <p>{envelope.legal_basis?.[0] ? `${(envelope.legal_basis[0] as Record<string, unknown>).framework}: ${(envelope.legal_basis[0] as Record<string, unknown>).citation}` : "See Legal Basis below."}</p>
-        </div>
-        <div className="audit-card">
+        </Card>
+        <Card className="audit-card">
           <div className="audit-label">What we observed</div>
           <p>{envelope.plain}</p>
-        </div>
-        <div className="audit-card">
+        </Card>
+        <Card className="audit-card">
           <div className="audit-label">Our conclusion</div>
           <p>The disclosure in this domain presents an exposure gap relative to the assessed peer cohort. This represents a maturity gap that warrants attention.</p>
-        </div>
-        <div className="audit-card">
+        </Card>
+        <Card className="audit-card">
           <div className="audit-label">What to do</div>
           <p>Review and strengthen disclosures in this domain to reduce exposure indicators and improve maturity positioning.</p>
-        </div>
+        </Card>
       </div>
     );
   }

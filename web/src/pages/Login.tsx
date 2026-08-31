@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
 import { BeamsBackground } from "../components/ui/beams-background";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 
 function roleLanding(role: string): string {
   switch (role) {
@@ -87,10 +89,7 @@ export function Login() {
                   placeholder="Enter your password"
                   required
                 />
-                <button
-                  type="button"
-                  className="password-toggle-btn"
-                  onClick={() => setShowPassword(!showPassword)}
+                <Button type="button" className="password-toggle-btn" onClick={() => setShowPassword(!showPassword)}
                   aria-label={showPassword ? "Hide password" : "Show password"}
                 >
                   {showPassword ? (
@@ -104,14 +103,14 @@ export function Login() {
                       <circle cx="12" cy="12" r="3"></circle>
                     </svg>
                   )}
-                </button>
+                </Button>
               </div>
             </div>
 
             <div className="login-actions-row">
-              <button type="submit" className="login-btn-pill" disabled={submitting || loading}>
+              <Button type="submit" className="login-btn-pill" disabled={submitting || loading}>
                 {submitting ? "Signing in..." : "Sign In"}
-              </button>
+              </Button>
               <a 
                 href="#forgot" 
                 className="forgot-link" 
@@ -148,9 +147,9 @@ export function Login() {
 
       {/* Artwork Pane */}
       <div className="login-artwork-pane">
-        <div className="artwork-card">
+        <Card className="artwork-card">
           <BeamsBackground>
-            <div className="artwork-card-content">
+            <Card className="artwork-card-content">
               <div className="login-artwork-logo-container">
                 <div className="logo-background-watermark" />
                 <img src="/logo.png" className="login-artwork-logo" alt="Visentix Logo" />
@@ -160,9 +159,9 @@ export function Login() {
               <div className="artwork-subtitle">
                 Evidence-driven privacy notice benchmarking and continuous exposure monitoring for legal and regulatory advisory.
               </div>
-            </div>
+            </Card>
           </BeamsBackground>
-        </div>
+        </Card>
       </div>
     </div>
   );

@@ -8,6 +8,7 @@ import { useParams, Link } from "react-router-dom";
 import { api, ApiError } from "../lib/api";
 import { ReportView } from "../report/ReportView";
 import type { ReportPayload } from "../report/types";
+import { Button } from "@/components/ui/button";
 
 export function ReportPage() {
   const { assessmentId } = useParams<{ assessmentId: string }>();
@@ -102,9 +103,9 @@ function ReportLoader({ assessmentId }: { assessmentId: string }) {
           {error.status === 403 ? "403 — Not Permitted" : error.status === 404 ? "404 — Not Found" : "Error"}
         </h2>
         <p style={{ color: "var(--text-muted)", marginTop: 8 }}>{error.message}</p>
-        <Link to="/" className="btn btn-primary" style={{ marginTop: 24, display: "inline-flex" }}>
+        <Button asChild style={{ marginTop: 24, display: "inline-flex" }}><Link to="/">
           Back to Assessments
-        </Link>
+        </Link></Button>
       </div>
     );
   }
@@ -114,9 +115,9 @@ function ReportLoader({ assessmentId }: { assessmentId: string }) {
     return (
       <div style={{ textAlign: "center", padding: "60px 24px" }}>
         <p style={{ color: "var(--text-muted)" }}>No report data available.</p>
-        <Link to="/" className="btn btn-outline" style={{ marginTop: 16, display: "inline-flex" }}>
+        <Button asChild variant="outline" style={{ marginTop: 16, display: "inline-flex" }}><Link to="/">
           Back to Assessments
-        </Link>
+        </Link></Button>
       </div>
     );
   }
@@ -128,14 +129,9 @@ function ReportLoader({ assessmentId }: { assessmentId: string }) {
         <Link to="/" style={{ color: "var(--text-secondary)", fontSize: "0.9rem" }}>
           ← Back to Assessments
         </Link>
-        <button
-          type="button"
-          className="btn btn-outline btn-sm"
-          onClick={downloadPdf}
-          disabled={downloading}
-        >
+        <Button variant="outline" size="sm" type="button" onClick={downloadPdf} disabled={downloading}>
           {downloading ? "Downloading…" : "Download PDF"}
-        </button>
+        </Button>
         {downloadError && (
           <span role="alert" style={{ color: "var(--red)", fontSize: "0.85rem" }}>
             {downloadError}

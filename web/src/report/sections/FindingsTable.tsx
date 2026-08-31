@@ -6,6 +6,7 @@ import { EvidenceStack } from "./EvidenceStack";
 import { domainLabel } from "../../lib/domainLabels";
 import type { ReportSection } from "../types";
 import { SectionHeading } from "../SectionHeading";
+import { Button } from "@/components/ui/button";
 
 interface Finding {
   id: string;
@@ -91,14 +92,12 @@ export function FindingsTable({ content }: { content: ReportSection["content"] }
                     {vci !== undefined ? confidenceText : "Not recorded"}
                   </td>
                   <td style={td}>
-                    <button
-                      className="btn btn-ghost btn-xs"
-                      onClick={() => setExpanded(isOpen ? null : f.id)}
+                    <Button variant="ghost" size="sm" onClick={() => setExpanded(isOpen ? null : f.id)}
                       aria-expanded={isOpen}
                       aria-label={`${isOpen ? "Collapse" : "Expand"} finding ${code}`}
                     >
                       {isOpen ? "Collapse ↑" : "View ↓"}
-                    </button>
+                    </Button>
                   </td>
                 </tr>
                 {isOpen && (

@@ -6,6 +6,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { api } from "../../lib/api";
 import { useAuth } from "../../auth/AuthProvider";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 
 interface Settings {
   email_to: string | null;
@@ -66,8 +68,8 @@ export function NotificationsCard() {
   };
 
   return (
-    <div className="card" style={{ padding: 20, marginTop: 16 }} data-testid="notifications-card">
-      <div className="card-title" style={{ marginBottom: 4 }}>Notifications</div>
+    <Card style={{ padding: 20, marginTop: 16 }} data-testid="notifications-card">
+      <div className="font-semibold leading-none" style={{ marginBottom: 4 }}>Notifications</div>
       <p style={{ fontSize: "0.82rem", color: "var(--text-muted)", marginBottom: 12 }}>
         Get monitoring updates by email or webhook. Delivery starts once severity thresholds are approved.
       </p>
@@ -87,10 +89,10 @@ export function NotificationsCard() {
                           borderRadius: "var(--radius)", padding: "8px 12px", fontSize: "0.88rem" }} />
         </label>
         <div style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 4 }}>
-          <button className="btn btn-primary btn-sm" onClick={save} disabled={busy}>
+          <Button size="sm" onClick={save} disabled={busy}>
             {saved ? "Saved ✓" : "Save"}
-          </button>
-          <button className="btn btn-outline btn-sm" onClick={test} disabled={busy}>Send test</button>
+          </Button>
+          <Button variant="outline" size="sm" onClick={test} disabled={busy}>Send test</Button>
           {toast && (
             <span style={{ fontSize: "0.8rem", color: toast.ok ? "var(--teal)" : "var(--red)" }}>
               {toast.msg}
@@ -98,6 +100,6 @@ export function NotificationsCard() {
           )}
         </div>
       </div>
-    </div>
+    </Card>
   );
 }

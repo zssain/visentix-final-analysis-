@@ -1,5 +1,6 @@
 import { PageHeader } from "../components/PageHeader";
 import "../components/furniture.css";
+import { Card } from "@/components/ui/card";
 
 const FORMULAS = [
   { id: "F-001", name: "Source Reliability Score",       purpose: "Evaluates how authoritative, fresh, and complete the source record is." },
@@ -87,7 +88,7 @@ export function Methodology() {
           </p>
         </div>
         <div style={{ background: "var(--soft-white)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "14px 16px" }}>
-          <div className="section-label" style={{ marginBottom: 10 }}>Guardrail — blocked terms</div>
+          <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground" style={{ marginBottom: 10 }}>Guardrail — blocked terms</div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             {GUARDRAIL_TERMS.map(t => (
               <span key={t} style={{
@@ -143,10 +144,10 @@ export function Methodology() {
             { title: "Honest Benchmarking",    body: "Cohort sizes are always reported exactly, live-queried with their as-of date. Low-confidence labels are attached when cohort size is small. No inflated numbers." },
             { title: "Deterministic Narrative",     body: "Advisor Note prose is frozen into the snapshot. It is never regenerated at render time, eliminating LLM non-determinism from the final deliverable." },
           ].map(card => (
-            <div key={card.title} className="card" style={{ padding: "16px 18px" }}>
+            <Card key={card.title} style={{ padding: "16px 18px" }}>
               <div style={{ fontWeight: 700, fontSize: "0.9rem", color: "var(--navy)", marginBottom: 6 }}>{card.title}</div>
               <p style={{ fontSize: "0.82rem", color: "var(--text-secondary)", lineHeight: 1.6 }}>{card.body}</p>
-            </div>
+            </Card>
           ))}
         </div>
       </section>

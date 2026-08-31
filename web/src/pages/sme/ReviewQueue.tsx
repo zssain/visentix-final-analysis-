@@ -31,6 +31,9 @@ import { CodexTooltip } from "../../components/CodexTooltip";
 import { PageHeader } from "../../components/PageHeader";
 import "../../components/furniture.css";
 import "./workbench.css";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 
 const NR = "—"; // honest absence — never a fabricated value (DATA-003)
 
@@ -315,7 +318,7 @@ export function ReviewQueue() {
         description="Decide every machine finding before it reaches a client — confirm, edit or dismiss — then approve the assessment. Every decision is saved as a training label."
         actions={
           <div className="wb-header-stats">
-            <span className="badge badge-gold">{queueLoading ? NR : queue.length} pending</span>
+            <Badge variant="provisional">{queueLoading ? NR : queue.length} pending</Badge>
             <div className="wb-counters">
               <span title="Confirmed">✓ {trainingStats.confirmed}</span>
               <span title="Edited">✎ {trainingStats.edited}</span>
@@ -342,8 +345,8 @@ export function ReviewQueue() {
       {mode === "findings" ? (
         <div className="wb-grid">
           {/* ── Queue ── */}
-          <aside className="card wb-queue">
-            <div className="card-head"><div className="section-label">Awaiting review</div></div>
+          <Card className="wb-queue">
+            <div className="flex items-center justify-between gap-3 border-b px-6 py-4"><div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Awaiting review</div></div>
             <div className="wb-queue-body">
               {queueLoading ? (
                 <p className="wb-muted">Loading queue…</p>
@@ -380,10 +383,10 @@ export function ReviewQueue() {
                 );
               })}
             </div>
-          </aside>
+          </Card>
 
           {/* ── Review surface ── */}
-          <section className="card wb-review">
+          <Card className="wb-review">
             {!selected ? (
               <div className="wb-empty">Choose an assessment to begin reviewing its findings.</div>
             ) : detailLoading ? (
@@ -409,16 +412,16 @@ export function ReviewQueue() {
                     {current.severity || NR}
                   </span>
                   {current.decision && (
-                    <span className="badge badge-approved" data-testid="finding-decision">
+                    <Badge variant="verified" data-testid="finding-decision">
                       {current.decision}ed
-                    </span>
+                    </Badge>
                   )}
                   <span className="wb-count">Finding {findingIdx + 1} of {detail.total_count}</span>
                 </div>
 
                 {/* Cited evidence — the real finding_clause links, or absence. */}
                 <div className="wb-block">
-                  <div className="section-label">Cited clause{current.evidence.length > 1 ? "s" : ""}</div>
+                  <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Cited clause{current.evidence.length > 1 ? "s" : ""}</div>
                   {current.evidence.length === 0 ? (
                     <p className="wb-muted" data-testid="no-evidence">
                       No clause is linked to this finding. Judge it on the finding definition alone,
@@ -440,7 +443,7 @@ export function ReviewQueue() {
                 </div>
 
                 <div className="wb-block">
-                  <div className="section-label">Advisor note (optional)</div>
+                  <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Advisor note (optional)</div>
                   <input className="wb-input" placeholder="Lede — one sentence"
                     value={advisorLede} onChange={e => setAdvisorLede(e.target.value)} />
                   <textarea className="wb-input" rows={3} placeholder="Body"
@@ -448,14 +451,13 @@ export function ReviewQueue() {
                 </div>
 
                 <div className="wb-actions">
-                  <button className="btn btn-primary btn-sm" disabled={saving} onClick={() => decide("confirm")}>Confirm</button>
-                  <button className="btn btn-outline btn-sm" disabled={saving} onClick={() => decide("edit")}>Save edit</button>
-                  <button className="btn btn-danger btn-sm" disabled={saving} onClick={() => decide("dismiss")}>Dismiss</button>
+                  <Button size="sm" disabled={saving} onClick={() => decide("confirm")}>Confirm</Button>
+                  <Button variant="outline" size="sm" disabled={saving} onClick={() => decide("edit")}>Save edit</Button>
+                  <Button variant="destructive" size="sm" disabled={saving} onClick={() => decide("dismiss")}>Dismiss</Button>
                   <span className="wb-nav">
-                    <button className="btn btn-outline btn-xs" disabled={findingIdx === 0}
-                      onClick={() => setFindingIdx(i => Math.max(0, i - 1))}>← Prev</button>
-                    <button className="btn btn-outline btn-xs" disabled={findingIdx >= detail.total_count - 1}
-                      onClick={() => setFindingIdx(i => Math.min(detail.total_count - 1, i + 1))}>Next →</button>
+                    <Button variant="outline" size="sm" disabled={findingIdx === 0} onClick={() => setFindingIdx(i => Math.max(0, i - 1))}>← Prev</Button>
+                    <Button variant="outline" size="sm" disabled={findingIdx>= detail.total_count - 1}
+                      onClick={() => setFindingIdx(i => Math.min(detail.total_count - 1, i + 1))}>Next →</Button>
                   </span>
                 </div>
 
@@ -466,10 +468,9 @@ export function ReviewQueue() {
                     </div>
                     <span>{detail.reviewed_count} of {detail.total_count} decided</span>
                   </div>
-                  <button className="btn btn-primary" data-testid="approve-btn"
-                    disabled={approving || !detail.all_reviewed} onClick={approve}>
+                  <Button data-testid="approve-btn" disabled={approving || !detail.all_reviewed} onClick={approve}>
                     {approving ? "Approving…" : "Approve assessment"}
-                  </button>
+                  </Button>
                   {!detail.all_reviewed && (
                     <span className="wb-muted" data-testid="approve-blocked">
                       Every finding needs a decision first — the server refuses approval otherwise.
@@ -478,13 +479,13 @@ export function ReviewQueue() {
                 </div>
               </>
             ) : null}
-          </section>
+          </Card>
         </div>
       ) : (
         /* ── Exemplar de-identification — real, server-validated ── */
         <div className="wb-grid">
-          <aside className="card wb-queue">
-            <div className="card-head"><div className="section-label">Candidates</div></div>
+          <Card className="wb-queue">
+            <div className="flex items-center justify-between gap-3 border-b px-6 py-4"><div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Candidates</div></div>
             <div className="wb-queue-body">
               {exLoading ? <p className="wb-muted">Loading candidates…</p>
                 : exemplars.length === 0 ? <p className="wb-muted" data-testid="exemplars-empty">No exemplar candidates are awaiting de-identification.</p>
@@ -493,13 +494,13 @@ export function ReviewQueue() {
                     className={`wb-queue-item ${exSelected?.id === ex.id ? "sel" : ""}`}
                     data-testid={`exemplar-${ex.id}`}>
                     <span className="wb-qid">{ex.domain?.replace(/_/g, " ") || NR}</span>
-                    <span className="badge badge-draft">{ex.id.slice(0, 6)}…</span>
+                    <Badge variant="provisional">{ex.id.slice(0, 6)}…</Badge>
                   </button>
                 ))}
             </div>
-          </aside>
+          </Card>
 
-          <section className="card wb-review">
+          <Card className="wb-review">
             {!exSelected ? (
               <div className="wb-empty">
                 Choose a candidate to de-identify. The server re-validates every submission and
@@ -509,7 +510,7 @@ export function ReviewQueue() {
             ) : (
               <>
                 <div className="wb-block">
-                  <div className="section-label">Cleaned clause text</div>
+                  <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Cleaned clause text</div>
                   <textarea className="wb-input" rows={8} value={cleanText}
                     onChange={e => setCleanText(e.target.value)} data-testid="exemplar-text" />
                   {hints.length > 0 && (
@@ -520,19 +521,17 @@ export function ReviewQueue() {
                   )}
                 </div>
                 <div className="wb-block">
-                  <div className="section-label">Maturity note</div>
+                  <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Maturity note</div>
                   <input className="wb-input" value={maturityNote}
                     onChange={e => setMaturityNote(e.target.value)} />
                 </div>
                 <div className="wb-actions">
-                  <button className="btn btn-outline btn-sm" disabled={exBusy} onClick={saveClean}
-                    data-testid="exemplar-clean">Check &amp; save cleaned text</button>
-                  <button className="btn btn-primary btn-sm" disabled={exBusy} onClick={approveExemplar}
-                    data-testid="exemplar-approve">Approve exemplar</button>
+                  <Button variant="outline" size="sm" disabled={exBusy} onClick={saveClean} data-testid="exemplar-clean">Check &amp; save cleaned text</Button>
+                  <Button size="sm" disabled={exBusy} onClick={approveExemplar} data-testid="exemplar-approve">Approve exemplar</Button>
                 </div>
               </>
             )}
-          </section>
+          </Card>
         </div>
       )}
     </div>

@@ -22,6 +22,9 @@ import { scoreBandColor, vciBand } from "../../lib/scoreBands";
 import { api, ApiError } from "../../lib/api";
 import "../../components/furniture.css";
 import "./bulk.css";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 
 // 8 taxonomy domains (backend heatmap TAXONOMY_DOMAINS order) + short labels.
 const DOMAINS = [
@@ -47,7 +50,7 @@ interface Result { org_name: string; assessment_id: string; review_status: strin
 interface HeatCell { domain: string; mean: number | null; n: number; }
 
 const DraftBadge = () => (
-  <span className="bulk-draft-badge" title="Screening intelligence — automated analysis, not expert-reviewed.">draft-grade</span>
+  <Badge variant="secondary" className="bulk-draft-badge" title="Screening intelligence — automated analysis, not expert-reviewed.">draft-grade</Badge>
 );
 
 const StatusChip = ({ status }: { status: string }) => (
@@ -172,7 +175,7 @@ function UploadStep({ onSubmitted, showFlash }: { onSubmitted: (id: string) => v
 
   return (
     <div className="bulk-grid">
-      <section className="bulk-card">
+      <Card className="bulk-card">
         <div className="bulk-eyebrow">Upload company list</div>
         <input className="bulk-input" placeholder="Label (optional) — e.g. Q3 retail sector scan"
                value={label} onChange={e => setLabel(e.target.value)} />
@@ -190,9 +193,9 @@ function UploadStep({ onSubmitted, showFlash }: { onSubmitted: (id: string) => v
           />
           <input type="file" accept=".csv,text/csv" onChange={e => { const f = e.target.files?.[0]; if (f) onFile(f); }} />
         </div>
-      </section>
+      </Card>
 
-      <section className="bulk-card">
+      <Card className="bulk-card">
         <div className="bulk-eyebrow">Validation preview</div>
         {rows.length === 0 ? (
           <div className="bulk-empty">Paste or drop a list to preview it before submitting.</div>
@@ -214,13 +217,13 @@ function UploadStep({ onSubmitted, showFlash }: { onSubmitted: (id: string) => v
               ))}
               {rows.length > 50 && <div className="bulk-preview-more">…and {rows.length - 50} more</div>}
             </div>
-            <button className="btn btn-primary" style={{ marginTop: 12 }} disabled={submitting || overCap || rows.length === 0} onClick={submit}>
+            <Button style={{ marginTop: 12 }} disabled={submitting || overCap || rows.length === 0} onClick={submit}>
               {submitting ? "Submitting…" : `Run screening · ${rows.length} organisations`}
-            </button>
+            </Button>
             {overCap && <div className="bulk-cap-note">Trim to 200 rows or fewer — the cap is enforced server-side.</div>}
           </>
         )}
-      </section>
+      </Card>
     </div>
   );
 }
@@ -234,10 +237,10 @@ function JobList({ jobs, onOpen, onRefresh }: { jobs: Job[]; onOpen: (id: string
     return () => clearInterval(t);
   }, [anyRunning, onRefresh]);
 
-  if (!jobs.length) return <div className="bulk-card"><div className="bulk-empty">No screening jobs yet. Start one with “New screening”.</div></div>;
+  if (!jobs.length) return <Card className="bulk-card"><div className="bulk-empty">No screening jobs yet. Start one with “New screening”.</div></Card>;
   return (
-    <section className="bulk-card">
-      <div className="bulk-card-head"><span>Screening jobs</span></div>
+    <Card className="bulk-card">
+      <Card className="bulk-card-head"><span>Screening jobs</span></Card>
       <table className="bulk-jobs-table">
         <thead><tr><th>Label</th><th>Status</th><th>Progress</th><th>Created</th><th></th></tr></thead>
         <tbody>
@@ -250,12 +253,12 @@ function JobList({ jobs, onOpen, onRefresh }: { jobs: Job[]; onOpen: (id: string
                 <span className="bulk-progress-label">{j.completed_count + j.failed_count}/{j.row_count}{j.failed_count ? ` · ${j.failed_count} not scored` : ""}</span>
               </td>
               <td>{new Date(j.created_at).toLocaleString()}</td>
-              <td><button className="btn" onClick={() => onOpen(j.id)}>Open</button></td>
+              <td><Button onClick={() => onOpen(j.id)}>Open</Button></td>
             </tr>
           ))}
         </tbody>
       </table>
-    </section>
+    </Card>
   );
 }
 
@@ -332,17 +335,17 @@ function ResultsGrid({ jobId, onBack, showFlash }: { jobId: string; onBack: () =
   return (
     <div>
       <div className="bulk-results-bar">
-        <button className="btn" onClick={onBack}>← Jobs</button>
+        <Button onClick={onBack}>← Jobs</Button>
         <span className="bulk-results-title">{job?.label || "Screening"} <StatusChip status={job?.status || "…"} /></span>
         <DraftBadge />
         <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
           <span className="bulk-progress-label">{job ? `${job.completed_count + job.failed_count}/${job.row_count} processed` : ""}</span>
-          <button className="btn btn-primary" onClick={exportCsv} disabled={!results.length}>Export CSV</button>
+          <Button onClick={exportCsv} disabled={!results.length}>Export CSV</Button>
         </div>
       </div>
 
       {/* Sector heat strip — aggregate domain means over succeeded rows */}
-      <section className="bulk-card">
+      <Card className="bulk-card">
         <div className="bulk-eyebrow">Sector heat strip · aggregate domain means (succeeded rows)</div>
         <div className="bulk-heatstrip">
           {DOMAINS.map(d => {
@@ -356,7 +359,7 @@ function ResultsGrid({ jobId, onBack, showFlash }: { jobId: string; onBack: () =
             );
           })}
         </div>
-      </section>
+      </Card>
 
       {/* Domain filter chips */}
       <div className="bulk-filters">
@@ -369,7 +372,7 @@ function ResultsGrid({ jobId, onBack, showFlash }: { jobId: string; onBack: () =
         {domainFilter.size > 0 && <button className="bulk-chip" style={{ fontStyle: "italic" }} onClick={() => setDomainFilter(new Set())}>Clear</button>}
       </div>
 
-      <section className="bulk-card" style={{ overflowX: "auto" }}>
+      <Card className="bulk-card" style={{ overflowX: "auto" }}>
         {results.length === 0 ? (
           <div className="bulk-empty">{job && (job.status === "running" || job.status === "queued") ? "Scoring in progress — succeeded rows will appear here as they finish." : "No succeeded rows yet."}</div>
         ) : (
@@ -401,11 +404,11 @@ function ResultsGrid({ jobId, onBack, showFlash }: { jobId: string; onBack: () =
             </tbody>
           </table>
         )}
-      </section>
+      </Card>
 
       {/* Non-scored rows — honest per-row explanation */}
       {nonScored.length > 0 && (
-        <section className="bulk-card">
+        <Card className="bulk-card">
           <div className="bulk-eyebrow">Rows not scored ({nonScored.length})</div>
           {nonScored.map((r, i) => (
             <div key={i} className={`bulk-nonscored st-${r.status}`}>
@@ -415,7 +418,7 @@ function ResultsGrid({ jobId, onBack, showFlash }: { jobId: string; onBack: () =
               </span>
             </div>
           ))}
-        </section>
+        </Card>
       )}
     </div>
   );

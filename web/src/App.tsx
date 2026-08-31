@@ -267,9 +267,9 @@ function AppRoutes() {
               <p style={{ color: "var(--text-secondary)", marginTop: 8 }}>
                 You do not have permission to view this page.
               </p>
-              <Link to="/" className="btn btn-primary" style={{ marginTop: 24, display: "inline-flex" }}>
+              <Button asChild style={{ marginTop: 24, display: "inline-flex" }}><Link to="/">
                 Go Home
-              </Link>
+              </Link></Button>
             </div>
           } />
 

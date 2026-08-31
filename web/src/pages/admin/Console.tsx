@@ -3,6 +3,7 @@ import { api } from "../../lib/api";
 import { PageHeader } from "../../components/PageHeader";
 import { JobsPanel } from "./JobsPanel";
 import "../../components/furniture.css";
+import { Card } from "@/components/ui/card";
 
 interface TrainingStats {
   total_labels: number;
@@ -119,7 +120,7 @@ export function AdminConsole() {
         <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
           
           {/* System Health */}
-          <div className="card" style={{ padding: 24 }}>
+          <Card style={{ padding: 24 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
               <h2 style={{ fontSize: "1.1rem", fontWeight: 700, color: "var(--navy)" }}>
                 System Health
@@ -130,7 +131,7 @@ export function AdminConsole() {
             </div>
 
             <div className="stats-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-              <div className="stat-card" style={{ background: "var(--soft-white)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: 16 }}>
+              <Card className="stat-card" style={{ background: "var(--soft-white)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: 16 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <div className="live-dot" style={{ background: health ? "var(--emerald)" : "var(--red)" }} />
                   <div className="stat-value" style={{ color: health ? "var(--emerald)" : "var(--red)", fontSize: "1.25rem", fontWeight: 700 }}>
@@ -138,9 +139,9 @@ export function AdminConsole() {
                   </div>
                 </div>
                 <div className="stat-label" style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: 4, fontWeight: 500 }}>API Status</div>
-              </div>
+              </Card>
 
-              <div className="stat-card" style={{ background: "var(--soft-white)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: 16 }}>
+              <Card className="stat-card" style={{ background: "var(--soft-white)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: 16 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <div className="live-dot" style={{ background: health?.ollama === "ok" ? "var(--emerald)" : "var(--red)" }} />
                   <div className="stat-value" style={{ color: health?.ollama === "ok" ? "var(--emerald)" : "var(--red)", fontSize: "1.25rem", fontWeight: 700 }}>
@@ -148,12 +149,12 @@ export function AdminConsole() {
                   </div>
                 </div>
                 <div className="stat-label" style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: 4, fontWeight: 500 }}>Ollama (LLM)</div>
-              </div>
+              </Card>
             </div>
-          </div>
+          </Card>
 
           {/* Database Overview */}
-          <div className="card" style={{ overflow: "hidden" }}>
+          <Card style={{ overflow: "hidden" }}>
             <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border)", background: "var(--soft-white)" }}>
               <h2 style={{ fontSize: "1rem", fontWeight: 700, color: "var(--navy)" }}>
                 Database Overview
@@ -177,7 +178,7 @@ export function AdminConsole() {
                         <td style={{ padding: "10px 16px", fontSize: "0.85rem", color: "var(--text)", fontWeight: 500 }}>
                           {table.replace(/_/g, " ")}
                         </td>
-                        <td className="tabular" style={{ padding: "10px 16px", textAlign: "right", fontWeight: 600, fontSize: "0.85rem", color: "var(--navy)" }}>
+                        <td className="font-data tabular-nums" style={{ padding: "10px 16px", textAlign: "right", fontWeight: 600, fontSize: "0.85rem", color: "var(--navy)" }}>
                           {typeof count === "number" ? count.toLocaleString() : count}
                         </td>
                       </tr>
@@ -192,7 +193,7 @@ export function AdminConsole() {
                 </tbody>
               </table>
             </div>
-          </div>
+          </Card>
 
         </div>
 
@@ -200,7 +201,7 @@ export function AdminConsole() {
         <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
           
           {/* Gate Mode Configuration */}
-          <div className="card" style={{ padding: 24 }}>
+          <Card style={{ padding: 24 }}>
             <h2 style={{ fontSize: "1.1rem", fontWeight: 700, marginBottom: 4, color: "var(--navy)" }}>
               Global Gate Mode
             </h2>
@@ -299,10 +300,10 @@ export function AdminConsole() {
                 </label>
               ))}
             </div>
-          </div>
+          </Card>
 
           {/* System Operations — M-14: real batch re-assessment trigger */}
-          <div className="card" style={{ padding: 24 }}>
+          <Card style={{ padding: 24 }}>
             <h2 style={{ fontSize: "1.1rem", fontWeight: 700, marginBottom: 4, color: "var(--navy)" }}>
               System Operations
             </h2>
@@ -347,15 +348,15 @@ export function AdminConsole() {
                 <div style={{ fontWeight: 700, marginBottom: 4 }}>
                   Run {batchResult.run_id.slice(0, 8)} — {batchResult.outcome}
                 </div>
-                <div className="tabular" style={{ color: "var(--text-secondary)" }}>
+                <div className="font-data tabular-nums" style={{ color: "var(--text-secondary)" }}>
                   {batchResult.scored} scored · {batchResult.failed} failed · {batchResult.requested} requested
                 </div>
               </div>
             )}
-          </div>
+          </Card>
 
           {/* Training stats */}
-          <div className="card" style={{ padding: 24 }}>
+          <Card style={{ padding: 24 }}>
             <h2 style={{ fontSize: "1.1rem", fontWeight: 700, marginBottom: 4, color: "var(--navy)" }}>
               Training Label Stats
             </h2>
@@ -376,7 +377,7 @@ export function AdminConsole() {
               <div>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 12 }}>
                   <span style={{ fontSize: "0.85rem", fontWeight: 600, color: "var(--text-secondary)" }}>Total Labels</span>
-                  <span className="tabular" style={{ fontSize: "1.8rem", fontWeight: 700, color: "var(--navy)" }}>
+                  <span className="font-data tabular-nums" style={{ fontSize: "1.8rem", fontWeight: 700, color: "var(--navy)" }}>
                     {actualStats.total_labels}
                   </span>
                 </div>
@@ -390,21 +391,21 @@ export function AdminConsole() {
 
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 24 }}>
                   <div style={{ background: "var(--soft-white)", borderRadius: "var(--radius)", padding: "10px 12px", border: "1px solid var(--border)" }}>
-                    <div className="micro-label">Confirmed</div>
-                    <div className="tabular" style={{ fontSize: "1.2rem", fontWeight: 700, color: "var(--teal)" }}>{actualStats.by_action.confirm}</div>
+                    <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Confirmed</div>
+                    <div className="font-data tabular-nums" style={{ fontSize: "1.2rem", fontWeight: 700, color: "var(--teal)" }}>{actualStats.by_action.confirm}</div>
                   </div>
                   <div style={{ background: "var(--soft-white)", borderRadius: "var(--radius)", padding: "10px 12px", border: "1px solid var(--border)" }}>
-                    <div className="micro-label">Edited</div>
-                    <div className="tabular" style={{ fontSize: "1.2rem", fontWeight: 700, color: "var(--gold)" }}>{actualStats.by_action.edit}</div>
+                    <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Edited</div>
+                    <div className="font-data tabular-nums" style={{ fontSize: "1.2rem", fontWeight: 700, color: "var(--gold)" }}>{actualStats.by_action.edit}</div>
                   </div>
                   <div style={{ background: "var(--soft-white)", borderRadius: "var(--radius)", padding: "10px 12px", border: "1px solid var(--border)" }}>
-                    <div className="micro-label">Dismissed</div>
-                    <div className="tabular" style={{ fontSize: "1.2rem", fontWeight: 700, color: "var(--red)" }}>{actualStats.by_action.dismiss}</div>
+                    <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Dismissed</div>
+                    <div className="font-data tabular-nums" style={{ fontSize: "1.2rem", fontWeight: 700, color: "var(--red)" }}>{actualStats.by_action.dismiss}</div>
                   </div>
                 </div>
 
                 <div style={{ marginBottom: 20 }}>
-                  <div className="section-label" style={{ marginBottom: 10 }}>Breakdown by Domain</div>
+                  <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground" style={{ marginBottom: 10 }}>Breakdown by Domain</div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                     {Object.entries(actualStats.by_domain).map(([domain, count]) => {
                       const pct = (count / (actualStats.total_labels || 1)) * 100;
@@ -412,7 +413,7 @@ export function AdminConsole() {
                         <div key={domain}>
                           <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.78rem", color: "var(--text-secondary)", marginBottom: 3 }}>
                             <span>{domain.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())}</span>
-                            <span className="tabular" style={{ fontWeight: 600 }}>{count}</span>
+                            <span className="font-data tabular-nums" style={{ fontWeight: 600 }}>{count}</span>
                           </div>
                           <div style={{ height: 4, background: "var(--border)", borderRadius: 2, overflow: "hidden" }}>
                             <div style={{ height: "100%", width: `${pct}%`, background: "var(--exec-blue)", borderRadius: 2 }} />
@@ -424,19 +425,19 @@ export function AdminConsole() {
                 </div>
 
                 <div>
-                  <div className="section-label" style={{ marginBottom: 8 }}>Labels Collected Over Time</div>
+                  <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground" style={{ marginBottom: 8 }}>Labels Collected Over Time</div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                     {Object.entries(actualStats.by_month).map(([month, count]) => (
                       <div key={month} style={{ display: "flex", justifyContent: "space-between", fontSize: "0.78rem", color: "var(--text-secondary)" }}>
                         <span>{month}</span>
-                        <span className="tabular" style={{ fontWeight: 600, color: "var(--navy)" }}>{count} label{count !== 1 ? "s" : ""}</span>
+                        <span className="font-data tabular-nums" style={{ fontWeight: 600, color: "var(--navy)" }}>{count} label{count !== 1 ? "s" : ""}</span>
                       </div>
                     ))}
                   </div>
                 </div>
               </div>
             )}
-          </div>
+          </Card>
 
         </div>
 

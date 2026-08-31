@@ -118,7 +118,7 @@ export function BenchmarkLanguage({ content }: { content: ReportSection["content
             <div style={{
               display: "flex", alignItems: "center", gap: 10, marginBottom: 8,
             }}>
-              <span className="domain-eyebrow">{displayDomain.toUpperCase()}</span>
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{displayDomain.toUpperCase()}</span>
               {/* DDR-006: finding codes are hover/focus Codex targets */}
               {e.finding_code && <CodexTooltip code={e.finding_code} />}
             </div>

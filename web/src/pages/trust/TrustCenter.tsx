@@ -11,6 +11,7 @@ import { Link } from "react-router-dom";
 import { TRUST_METRICS, DATA_COMMITMENTS, LINEAGE_FIELDS } from "./mockData";
 import "../../components/furniture.css";
 import "./trust.css";
+import { Card } from "@/components/ui/card";
 
 export function TrustCenter() {
   // AC-3: never render a metric without a source note.
@@ -48,7 +49,7 @@ export function TrustCenter() {
           legal?" Our reports speak in exposure, maturity, likelihood, benchmark position, and confidence.
         </p>
         <div className="tc-claim">
-          <div className="tc-claim-card do">
+          <Card className="tc-claim-card do">
             <div className="tc-claim-head">We do</div>
             <ul>
               <li>Benchmark a notice against a real cohort of peers.</li>
@@ -56,8 +57,8 @@ export function TrustCenter() {
               <li>Show the confidence behind every figure.</li>
               <li>Point to the specific clause behind every finding.</li>
             </ul>
-          </div>
-          <div className="tc-claim-card dont">
+          </Card>
+          <Card className="tc-claim-card dont">
             <div className="tc-claim-head">We do not</div>
             <ul>
               <li>Tell you whether a notice is legal or meets a law.</li>
@@ -65,7 +66,7 @@ export function TrustCenter() {
               <li>Offer legal advice or draft your notice for you.</li>
               <li>Publish a number we cannot trace to its source.</li>
             </ul>
-          </div>
+          </Card>
         </div>
       </section>
 
