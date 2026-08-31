@@ -1,32 +1,54 @@
 # Design System — Tokens, Furniture, DDR Summary
 
-**Version:** 1.7 · 2026-08-31 · Condenses the Brand Guide, DDRs, and UI_SPEC §0 into one authority. Design principle: **legal-and-regulator "premium" is confident stillness plus evidence everywhere.** Motion exists only to reveal evidence.
+**Version:** 1.8 · 2026-08-31 · Condenses the Brand Guide, DDRs, and UI_SPEC §0 into one authority. Design principle: **legal-and-regulator "premium" is confident stillness plus evidence everywhere.**
+
+**Motion — amended 2026-08-31 (owner).** The previous rule read *"Motion exists only to reveal evidence."* The owner has asked for figures and charts that animate to their value. This is a deliberate reversal, recorded as such rather than allowed to drift in. Motion is now permitted for **arrival** only, under four binding constraints (§7).
 
 ## 1. Tokens (fixed — never invent colors)
 
-| Token | Hex | Use |
-|---|---|---|
-| Deep Navy | `#09234F` | Primary bg (nav, drawers, chips) |
-| Executive Blue | `#005FA3` | Interactive states, links |
-| Teal | `#55C7B3` | Verified / approved / live. **No longer a standing color** — see the traffic-light scale below |
-| Soft White | `#F7F8FA` | Page backgrounds |
-| Warm Gray | `#D9DDE2` | Borders, dividers, removed-diff strikethrough |
-| Subtle Gold | `#C8A46A` | Provisional / draft / premium / added-diff. **No longer a standing color** — see below |
-| Red | `#F87171` | Poor standing: high exposure, lagging/deficient maturity, worsening deltas, de-id block (see §2) |
-| Emerald | `#10b981` | Live-dot only |
-| **Green** | `#0E7C57` | **Good standing** on every score/standing surface (traffic-light scale) |
-| **Yellow** | `#A87400` | **Middling standing / needs attention** on every score/standing surface |
-| **Red (standing)** | `#B42318` | **Poor standing** on every score/standing surface |
+**Single source of truth: `web/src/theme.css`.** No component, page, chart or stylesheet may define a colour value. Tokens are oklch and are consumed through the shadcn/Tailwind token names (`--background`, `--card`, `--primary`, `--muted-foreground`, `--border`, …), which the owner supplied on 2026-08-31 and which are recorded there verbatim.
 
-**Traffic-light standing scale (OD-13 Decided 2026-08-31, owner).** Standing is read by non-specialists, and the near-universal reading of standing color is red / yellow / green. The judgement colors on score surfaces are therefore **green = good · yellow = middling · red = poor**. Teal and gold keep their *non-standing* jobs (verified/approved/live; draft/provisional/added-diff) and stop carrying judgement. Single source of truth in code: `web/src/lib/scoreBands.ts` (`STANDING_GOOD` / `STANDING_MID` / `STANDING_BAD`), mirrored as `--good` / `--mid` / `--bad` in `index.css`. **Never redefine a standing color locally.**
+Two token groups exist that the shadcn set does not cover, because they carry meaning the framework has no name for:
 
-**Why these values are ink-weight, not pastel.** These strings color *numbers* on a near-white surface. The superseded pastels (`#55C7B3` teal, `#C8A46A` gold, `#F87171` red) did not clear AA contrast as text, so scores rendered washed out and the judgement was hard to read at a glance — a legibility defect, not a matter of taste. The standing values are chosen to clear AA on Soft White as text while remaining usable as bar/stroke fills.
+### 1.1 Standing scale (OD-13) — the only colours that judge
 
-**Draft watermark collision — resolved.** DDR-001 chose gold for the DRAFT watermark specifically because *yellow reads as an error state to legal readers*; yellow now means "middling standing". The draft watermark **stays gold**, and gold is now used for *nothing else that carries judgement* — so the two never appear in the same role. Draft state is additionally carried by the diagonal watermark and the ribbon's own wording, never by color alone.
+Traffic light. **Green = good · Yellow = middling · Red = poor.** A surface may use these *only* to express a standing. Values are per-mode: a light standing colour is **never** reused in dark.
 
-**Open residue (OD-17): the PDF renderer has its own ramp.** `app/services/report/renderer.py` `_RAMP` already renders green/amber/red (`#2E9E6B` / `#E9A23B` / `#D9534F` / `#C0392B`) over **four** bands at 25/50/75 — different values *and* different thresholds from the web scale's 45/70. The web recolor moved the two surfaces closer, not further apart, but the same score can still read as a different green in the PDF than on screen, which F05 PDF-parity does not allow. Reconciling the palette is a design call; reconciling the **thresholds** is a Hard Rule 3 matter (score bands come only from `intelligence-logic.md`) and is expert-owned. Do not unilaterally change either.
+| Token | Light | Contrast on card | Dark | Contrast on card |
+|---|---|---|---|---|
+| `--standing-good` | `oklch(0.520 0.108 163.3)` | 5.21:1 | `oklch(0.750 0.108 163.3)` | 8.18:1 |
+| `--standing-mid` | `oklch(0.545 0.125 77.5)` | 5.04:1 | `oklch(0.750 0.125 77.5)` | 7.69:1 |
+| `--standing-bad` | `oklch(0.500 0.182 29.5)` | 6.58:1 | `oklch(0.750 0.182 29.5)` | 6.79:1 |
+
+**Contrast is computed, never eyeballed.** `scripts/check_contrast.mjs` recalculates all six from `theme.css` on every run and fails below WCAG AA (4.5:1), so the ratios above cannot drift from the values. This guard exists because measuring found two live defects:
+
+- **`--mid` was `#A87400` = 4.07:1 on white and had been shipping as a text colour** — below AA for normal text. A washed-out number is a legibility bug, not a matter of taste.
+- The light standing values measured **2.64–3.34:1 on the dark card**. Dark mode requires lifted variants, not the same hex.
+
+### 1.2 Non-standing status — what KIND a thing is
+
+| Token | Job |
+|---|---|
+| `--provisional` | draft · mock · not-yet-verified · added-diff |
+| `--verified` | approved · live · frozen |
+
+Kept structurally separate from the standing scale so a palette change to one can never silently restate the other. **A draft notice is not a bad score.**
+
+### 1.3 Chart ramp
+
+`--chart-1` … `--chart-5` is a **sequential** ramp (one hue, lightness 0.845 → 0.432). It is for **magnitude only** — heatmap cells, meters, part-to-whole bars. It cannot carry identity: five shades of one green cannot tell entities apart. `--chart-1` and `--chart-2` measure 1.52:1 and 2.51:1 on white and are **fills only, never text or thin strokes**. If a genuinely categorical series is ever needed, it is a new decision, not a generated hue.
+
+### 1.4 Legacy token bridge (temporary)
+
+The old brand names (`--navy`, `--exec-blue`, `--teal`, `--gold`, `--soft-white`, `--good`/`--mid`/`--bad`, …) still exist in `index.css` but **hold no values** — each resolves to a shadcn token. This lets unmigrated pages adopt the palette and respond to the theme without being edited. Names are retired as their pages migrate; **nothing may be added to the bridge.**
 
 **Typography:** Fraunces (display/serif, Advisor lede, report covers) · Inter (UI chrome) · Source Sans 3 (data/numerics, `tabular-nums` required on all figures). Marketing/site may also use Aptos/Avenir per Brand Guide.
+
+### 1.5 Dark mode
+
+Three states — light · dark · **system** — because a two-way switch cannot express "follow my OS" and would override a reader whose system is dark with no way back. Choice persists to `localStorage` (guarded; private mode throws) and sets `root.style.colorScheme` so native scrollbars and form controls follow. Every token has a dark value; **a surface that hard-codes a colour cannot respond to the theme**, which is why §1's no-colour-outside-the-token-layer rule is enforced rather than advisory.
+
+**Open residue (OD-17): the PDF renderer still has its own ramp.** `app/services/report/renderer.py` `_RAMP` renders four bands at 25/50/75 with its own hexes — different values *and* different thresholds from the web scale's 45/70. Tailwind cannot reach WeasyPrint, and WeasyPrint does not parse `oklch()`. The PDF therefore keeps its own stylesheet (owner-confirmed 2026-08-31), but its values must be **generated from `theme.css`, not hand-copied**. Reconciling the palette is a design call; reconciling the **thresholds** is a Hard Rule 3 matter and is expert-owned. Do not unilaterally change either.
 
 ## 2. Semantic rules (single sources of truth in code)
 
@@ -54,8 +76,22 @@
 | **Lineage Drawer** (DDR-005) | Dotted underline on any score; hover = affordance, click = drawer (right slide desktop, full-screen bottom sheet mobile). Contents: input micro-timeline (Clause → Regulator → Jurisdiction → Cohort), formula ID chip + plain-English description (no math notation), VCI, snapshot ID, frozen date |
 | **Codex Tooltip** (DDR-006) | Every finding code is hover/focus target → canonical definition + exposure signal + related codes; PDF appends Codex appendix; code chips always navy |
 | **View Switch** (DDR-002) | Analyst / Advisor labels; toggle top of card desktop, bottom-fixed bar mobile; both layers frozen in snapshot |
-| **Live-Dot** | Emerald pulse, monitoring surfaces only; static under reduced motion |
+| **StatusDot** (was Live-Dot) | Monitoring/health surfaces only. Colour says what KIND of state it is (`--verified` live / `--standing-bad` stopped), **never how good a score is** — the old emerald pulse collided with green-means-good on the standing scale. Pulse is hidden under `prefers-reduced-motion`; the superseded dot animated forever regardless |
 | **Scope statement (front) + Disclosure (end)** (DDR-007, revised 2026-08-31) | **Replaces the per-surface "Intelligence, not legal advice" mark.** A deliverable opens with a plain-language **scope statement** (what was assessed, against what, as of when — the Assessment Scope front matter, F05 RPT-006) and closes with a single **Disclosure** block (what this intelligence is and is not, how it should and should not be used, confidence and cohort caveats). Applies to the report, the PDF, and any exported/partner deliverable. The mark is removed from finding cards, report section furniture, the lineage drawer, and the SME editor. **The removal is contingent on both bookends actually rendering** — a surface that drops the mark without the scope-and-disclosure pair is a regression, not a simplification. **Needs expert + engineer joint approval before code changes** (see §4 DDR-007). |
+
+### 3.1 Component system — shadcn/Radix (owner-decided 2026-08-31)
+
+The UI is built on **shadcn** components vendored into `web/src/components/ui/` and styled with Tailwind v4. This reverses an earlier recommendation to keep hand-rolled CSS; the owner decided, and the decision is recorded here rather than argued in a commit.
+
+Binding rules:
+
+| Rule | Why |
+|---|---|
+| **Components are owned, not imported from a package.** They live in the repo and may be edited | shadcn's own model; a variant we need (`standing-*`) cannot be added to a locked dependency |
+| **A component names a MEANING, never a colour.** `<Badge variant="standing-bad">`, never a red | The superseded `.badge-*` classes hard-coded hex outside the token layer, so the traffic-light decision never reached them |
+| **Overlays use Radix** (Dialog, Tooltip, DropdownMenu, Sheet, Popover, Select) | Focus trap, restore-focus, Escape, roving focus and typeahead are where hand-rolled a11y quietly fails. The superseded LineageDrawer wired only Escape; the superseded CodexTooltip was hover-only and unreachable by keyboard |
+| **All legacy CSS lives in `@layer legacy`**, declared before Tailwind's layers | In Tailwind v4 unlayered CSS beats layered CSS *regardless of specificity*. Unlayered element rules silently defeated every utility (L-015) |
+| **No new inline `style={{}}` for anything a token or utility covers.** Computed values (a bar's `width`, a token-derived `background`) are the exception | 522 inline style objects were the mechanical cause of the app looking like several products |
 
 ## 4. Key DDR decisions (defendable choices)
 
@@ -97,7 +133,20 @@ Nav is a grouped sidebar: **Workspace** (Monitor, Intake, Rewrite, Vendors, Work
 
 \* **Recorded DDR-008 exception:** the two public *editorial* pages (`/quarterly`, `/trust`) open with a full-bleed editorial cover/hero instead of the shared PageHeader — like the report reader, they are documents, not workflow screens. Every other routed screen keeps PageHeader with eyebrow = nav label.
 
+## 7. Motion (amended 2026-08-31, owner)
+
+Figures and charts may animate **to** their value. Four constraints, all load-bearing:
+
+1. **Arrival only — never a transition between two real values.** A score easing 62 → 71 renders an improvement that did not happen.
+2. **The final value is the accessible value from the first frame.** It lives in `aria-label`; the animating text is `aria-hidden`. A number that is only correct once it finishes is unreadable to a screen reader and untestable.
+3. **`prefers-reduced-motion` lands instantly** — and so does the *absence* of `matchMedia` (jsdom), which keeps tests deterministic instead of racing `requestAnimationFrame`.
+4. **Never in any PDF path.** The print renderer must stay deterministic, and OD-18 already has byte-identity failing.
+
+Implementation: `web/src/components/ui/animated-number.tsx`.
+
 ## Changelog
+
+- 1.8 (2026-08-31): **shadcn/Tailwind v4 adopted (owner).** §1 rewritten around the owner-supplied oklch token set with `theme.css` as the single source of colour; standing scale restated per-mode with computed AA ratios and a CI guard (`scripts/check_contrast.mjs`) after measurement found `--mid` shipping at 4.07:1 as text and the light standing values at 2.64–3.34:1 on dark. Added §1.2 non-standing status tokens, §1.3 sequential chart ramp (magnitude only), §1.4 the temporary legacy bridge, §1.5 dark mode (three states). Added §3.1 component-system rules including the `@layer legacy` cascade rule (L-015). Live-Dot superseded by StatusDot. **§7 records the owner's reversal of the motion principle** — arrival animation permitted under four constraints. OD-17 narrowed: the PDF keeps its own stylesheet (owner-confirmed) but must generate its values from `theme.css`.
 - 1.7 (2026-08-31): **OD-13 Decided (owner) — the traffic-light standing scale is live.** §1 records the adopted values: Green `#0E7C57`, Yellow `#A87400`, Red (standing) `#B42318`, chosen ink-weight so scores clear AA as text — the superseded pastels did not, which is why scores read washed out. Single source of truth `scoreBands.ts` (`STANDING_GOOD`/`STANDING_MID`/`STANDING_BAD`) mirrored as `--good`/`--mid`/`--bad`. The DDR-001 draft-watermark collision is **resolved**: gold stays the watermark and now carries no judgement anywhere, so the two roles never overlap. **Band thresholds are unchanged** (exposure 45/70, maturity 60/75) — only the colors moved. New **OD-17** records the residue: the PDF renderer's `_RAMP` uses different hexes over four bands at 25/50/75, so palette *and* threshold parity between screen and PDF still needs resolving — the thresholds are expert-owned (Hard Rule 3). Source: owner (product).
 - 1.6 (2026-08-31): **Owner feedback pass 2 — shell modernization and progressive disclosure.** §2 adds **earn your place** and **machinery on command** (DDR-011): permanent space goes to what the reader can act on, while snapshot IDs, formula/population versions and cohort internals stay reachable in one gesture but stop leading. §3 revises the **Provenance Ribbon (DDR-004)** to lead with the frozen date and Reproducible mark, with the ID reached via a copy control and Traceability rather than printed raw, and adds a **Shell & primary navigation** row. §4 adds **DDR-010 (the quiet rail** — unmistakable active state, grouping by spacing not caps labels, consistent icon weight, navy retained; light shell and icon-only rail explicitly rejected) and **DDR-011**. Nothing is deleted from any snapshot and no reproducibility guarantee changes — only the default disclosure state. Source: owner (product) verbal notes.
 - 1.5 (2026-08-31): **Owner feedback pass — standing colors, band-first scores, bookended disclosure, acronyms.** (a) §1/§2 adopt the **traffic-light standing scale** green/yellow/red for every score surface; teal and gold keep only their non-standing jobs; the Green/Yellow hexes are **PROPOSED pending OD-13** and must not be guessed in code, and OD-13 must resolve the DDR-001 gold-draft-vs-yellow-standing collision. (b) §2 adds **band leads / number follows**, **peer position in words** (vocabulary governed in intelligence-logic §3, gated on OD-14), and **one name, one number** consistency (lesson L-009). (c) §3/§4 revise **DDR-007**: the per-surface "Intelligence, not legal advice" mark is replaced by a plain-language scope statement at the front and one disclosure at the end — **needs expert + engineer joint approval** before code. (d) §4 adds the **acronym rule** (house acronyms are never the customer-facing label) and the **no-negative-framing** register rule. No thresholds, weights, or band cut-points changed. Source: owner (product) verbal notes.
