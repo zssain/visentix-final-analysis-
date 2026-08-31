@@ -24,57 +24,58 @@
      Teal  = verified / approved / live
      Red   = low-score exposure ONLY — never decorative
      ──────────────────────────────────────────────────────────────────────────── */
-  :root {
-    /* Brand palette */
-    --navy:        #09234F;
-    --navy-light:  #0d2d66;
-    --exec-blue:   #005FA3;
-    --teal:        #55C7B3;
-    --teal-light:  #7DD9CA;
-    --soft-white:  #F7F8FA;
-    --warm-gray:   #D9DDE2;
-    --warm-gray-dark: #B8BEC6;
-    --gold:        #C8A46A;
-    --gold-light:  #E8C98A;
-    --red:         #F87171;
-    --emerald:     #10b981;
+  /* ═══ TOKEN BRIDGE ═══════════════════════════════════════════════════════
+     The legacy brand names below no longer hold their own colour values —
+     each one now RESOLVES to a shadcn token from theme.css.
 
-    /* Standing scale (OD-13, owner-decided 2026-08-31) — traffic light.
-       These are the ONLY colors that carry judgement about a score. Teal and gold
-       keep their non-standing jobs (verified/approved/live; draft/provisional/
-       added-diff) and no longer say "good" or "middling".
-       Values are chosen to clear AA contrast on Soft White as TEXT, which the old
-       pastel standing colors did not — a washed-out number is a legibility bug,
-       not a style. Single source of truth in code: web/src/lib/scoreBands.ts. */
-    --good:        #0E7C57;
-    --mid:         #A87400;
-    --bad:         #B42318;
+     Why: five page stylesheets still reference --navy / --gold / --teal etc.
+     Rather than leave those pages painted in the old brand while migrated
+     screens use the new one, the names are kept and repointed. Every
+     unmigrated page adopts the new palette without a single edit, and there
+     is still exactly one place a colour is defined (theme.css).
+
+     These names are retired as their pages migrate. Do not add to this list.
+     ════════════════════════════════════════════════════════════════════════ */
+  :root {
+    /* Brand -> surface tokens */
+    --navy:           var(--primary);
+    --navy-light:     var(--primary);
+    --exec-blue:      var(--primary);
+    --soft-white:     var(--muted);
+    --warm-gray:      var(--border);
+    --warm-gray-dark: var(--muted-foreground);
+
+    /* Non-standing status keeps its JOB, not its old hue */
+    --teal:        var(--verified);
+    --teal-light:  var(--verified);
+    --gold:        var(--provisional);
+    --gold-light:  var(--provisional);
+
+    /* Standing scale — the ONLY colours that judge a score (OD-13) */
+    --good:     var(--standing-good);
+    --mid:      var(--standing-mid);
+    --bad:      var(--standing-bad);
+    --red:      var(--standing-bad);
+    --emerald:  var(--standing-good);
 
     /* Semantic aliases */
-    --bg:          var(--soft-white);
-    --bg-card:     #ffffff;
-    --bg-nav:      var(--navy);
-    --text:        #1a2035;
-    --text-secondary: #4A5568;
-    --text-muted:  #8896A5;
-    --border:      var(--warm-gray);
+    --bg:             var(--background);
+    --bg-card:        var(--card);
+    --bg-nav:         var(--sidebar);
+    --text:           var(--foreground);
+    --text-secondary: var(--muted-foreground);
+    --text-muted:     var(--muted-foreground);
 
-    /* Shadows */
-    --shadow-sm:   0 1px 3px rgba(9,35,79,0.08);
-    --shadow:      0 4px 12px rgba(9,35,79,0.12);
-    --shadow-lg:   0 12px 32px rgba(9,35,79,0.16);
-    --shadow-drawer: -8px 0 32px rgba(9,35,79,0.18);
+    /* Shadows — flattened to match the shadcn surface treatment */
+    --shadow-sm:     0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow:        0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+    --shadow-lg:     0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    --shadow-drawer: -8px 0 32px rgb(0 0 0 / 0.12);
 
-    /* Radii */
-    --radius:      8px;
-    --radius-lg:   12px;
-    --radius-xl:   16px;
-
-    /* Typography */
-    --font-display: 'Fraunces', Georgia, serif;
-    --font-ui:      'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    --font-data:    'Source Sans 3', 'Segoe UI', sans-serif;
+    /* Radii + type come from theme.css; only the aliases live here */
+    --font-ui:      var(--font-sans);
   }
+
 
   /* ─── Base ───────────────────────────────────────────────────────────────────── */
   body {
