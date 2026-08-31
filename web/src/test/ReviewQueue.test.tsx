@@ -23,7 +23,12 @@ vi.mock("../lib/api", () => ({
 import { ReviewQueue } from "../pages/sme/ReviewQueue";
 
 const AID = "notice-abc-123";
-const QUEUE = [{ assessment_id: AID, status: "in_review", finding_reviews: {} }];
+const QUEUE = [{
+  assessment_id: AID, status: "in_review", finding_reviews: {},
+  organization_name: "Acme Retail", organization_domain: "acme.example",
+  industry: "retail", source_label: "https://acme.example/legal/privacy-policy",
+  captured_at: "2026-06-18", total_findings: 2, decided_findings: 0,
+}];
 
 /** Two findings: one cited, one with no linked clause. Neither is decided. */
 const FINDINGS = {
@@ -158,6 +163,27 @@ describe("SME Workbench — the gate cannot fail open", () => {
     fireEvent.click(await screen.findByTestId("exemplar-clean"));
     await waitFor(() => expect(mockPost).toHaveBeenCalledWith(
       "/review/exemplar/ex-1/clean", expect.objectContaining({ cleaned_text: expect.any(String) })));
+  });
+
+  it("names the ORGANIZATION in the queue, not a bare UUID", async () => {
+    render(<ReviewQueue />);
+    const row = await screen.findByTestId(`queue-item-${AID}`);
+    expect(row).toHaveTextContent("Acme Retail");
+    expect(row).toHaveTextContent("0/2 findings decided");
+    // The id stays reachable (title attribute) but must not be the label.
+    expect(row).toHaveAttribute("title", expect.stringContaining(AID));
+    expect(row.textContent).not.toContain(AID);
+  });
+
+  it("states honest absence when a queue row has no organization recorded", async () => {
+    mockGet.mockImplementation((path: string) =>
+      path === "/review/queue"
+        ? Promise.resolve([{ assessment_id: AID, status: "draft", finding_reviews: {} }])
+        : routeGet(path));
+    render(<ReviewQueue />);
+    const row = await screen.findByTestId(`queue-item-${AID}`);
+    expect(row).toHaveTextContent(/Organization not recorded/i);
+    expect(row).toHaveTextContent(/No findings recorded/i);
   });
 
   it("shows honest empty state when the queue is empty", async () => {

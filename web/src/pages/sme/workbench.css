@@ -81,3 +81,27 @@
 .wb-progress { display: flex; align-items: center; gap: 10px; font-size: 0.78rem; color: var(--text-muted); }
 .wb-progress-bar { width: 130px; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
 .wb-progress-bar div { height: 100%; background: var(--good); border-radius: 3px; transition: width 0.3s ease; }
+
+/* Queue rows name the ORGANIZATION, not the row's primary key. */
+.wb-queue-item { align-items: flex-start; }
+.wb-qi-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.wb-qi-name { font-size: 0.84rem; font-weight: 700; color: var(--navy); }
+.wb-qi-src {
+  font-size: 0.72rem; color: var(--text-secondary);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 190px;
+}
+.wb-qi-meta { font-size: 0.7rem; color: var(--text-muted); }
+
+/* What am I reviewing — restated above the findings. */
+.wb-subject {
+  display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap;
+  padding-bottom: 12px; margin-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.84rem; color: var(--text-secondary);
+}
+.wb-subject strong { color: var(--navy); font-size: 0.95rem; }
+.wb-subject code {
+  margin-left: auto; font-family: var(--font-data); font-size: 0.68rem;
+  color: var(--text-muted); background: var(--soft-white);
+  padding: 2px 6px; border-radius: 4px;
+}

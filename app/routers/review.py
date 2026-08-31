@@ -38,9 +38,83 @@ class GateModeRequest(BaseModel):
 async def review_queue(
     user: AuthenticatedUser = require_role("sme", "admin"),
 ):
-    """List assessments pending SME review."""
-    queue = get_pending_queue()
-    return [asdict(r) for r in queue]
+    """List assessments pending SME review, each identified by what it IS.
+
+    The queue used to return bare `assessment_review` rows, so the workbench had
+    nothing to show but a UUID — an identifier with no meaning attached, which is
+    the one thing DDR-011 says must never occupy a reader's primary surface. An
+    SME could not tell which organization they were about to review, what was
+    assessed, or how much work the item represented.
+
+    Each row is enriched from data that already exists: the organization, what was
+    submitted (URL / uploaded file / pasted text), when it was captured, and how
+    many findings are decided out of the total. Nothing here is computed or
+    inferred — a missing value renders as absent rather than a guess.
+    """
+    from app.db import supabase_rest_get
+
+    queue = [asdict(r) for r in get_pending_queue()]
+    if not queue:
+        return queue
+
+    def rows(resp) -> list[dict]:
+        """Labels are a convenience; the QUEUE ITSELF is the SME's work list.
+        A failed or unexpected enrichment response degrades to no labels — it
+        must never take the queue down with it."""
+        try:
+            data = resp.json()
+        except Exception:  # noqa: BLE001 — non-JSON error body
+            return []
+        return [d for d in data if isinstance(d, dict)] if isinstance(data, list) else []
+
+    ids = ",".join(f'"{r["assessment_id"]}"' for r in queue)
+
+    nr = await supabase_rest_get(
+        "privacy_notice",
+        select="notice_id,organization_id,source_url,capture_date,notice_version,"
+               "intake_method,upload_filename",
+        filters=f"notice_id=in.({ids})", limit=1000)
+    notices = {str(n["notice_id"]): n for n in rows(nr) if n.get("notice_id")}
+
+    org_ids = sorted({str(n["organization_id"]) for n in notices.values() if n.get("organization_id")})
+    orgs: dict[str, dict] = {}
+    if org_ids:
+        o = ",".join(f'"{i}"' for i in org_ids)
+        orr = await supabase_rest_get(
+            "organization", select="organization_id,name,domain,industry",
+            filters=f"organization_id=in.({o})", limit=1000)
+        orgs = {str(x["organization_id"]): x for x in rows(orr) if x.get("organization_id")}
+
+    fr = await supabase_rest_get(
+        "risk_finding", select="finding_id,notice_id",
+        filters=f"notice_id=in.({ids})", limit=5000)
+    counts: dict[str, int] = {}
+    for row in rows(fr):
+        nid = str(row.get("notice_id") or "")
+        if nid:
+            counts[nid] = counts.get(nid, 0) + 1
+
+    for r in queue:
+        aid = r["assessment_id"]
+        n = notices.get(aid) or {}
+        org = orgs.get(str(n.get("organization_id") or "")) or {}
+        reviews = r.get("finding_reviews")
+        decided = sum(1 for fr_ in (reviews.values() if isinstance(reviews, dict) else [])
+                      if isinstance(fr_, dict) and fr_.get("action"))
+        r["organization_name"] = org.get("name")
+        r["organization_domain"] = org.get("domain")
+        r["industry"] = org.get("industry")
+        # What was actually submitted — the SME's real handle on the item.
+        r["source_label"] = (
+            n.get("source_url")
+            or n.get("upload_filename")
+            or ("Pasted text" if n.get("intake_method") == "text" else None)
+        )
+        r["captured_at"] = n.get("capture_date")
+        r["notice_version"] = n.get("notice_version")
+        r["total_findings"] = counts.get(aid, 0)
+        r["decided_findings"] = decided
+    return queue
 
 
 @router.post("/finding/{assessment_id}/{finding_id}")

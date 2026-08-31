@@ -38,6 +38,16 @@ interface ReviewItem {
   assessment_id: string;
   status: string;
   finding_reviews: Record<string, unknown>;
+  // Identity, from GET /review/queue. A UUID is not a name: an SME needs to know
+  // WHOSE notice this is and what was assessed before they open it (DDR-011).
+  // Any of these may be absent on a legacy row — absent renders as absent.
+  organization_name?: string | null;
+  organization_domain?: string | null;
+  industry?: string | null;
+  source_label?: string | null;
+  captured_at?: string | null;
+  total_findings?: number;
+  decided_findings?: number;
 }
 
 interface Evidence {
@@ -87,6 +97,25 @@ function severityBadgeClass(severity: string): string {
     case "low": return "badge-low";
     default: return "badge-draft";
   }
+}
+
+/** A submitted source shown at reading length: a full privacy-policy URL is
+ *  mostly boilerplate, and the host plus the tail is what identifies it. */
+function shortSource(src: string): string {
+  try {
+    const u = new URL(src);
+    const tail = u.pathname.replace(/\/$/, "").split("/").filter(Boolean).pop();
+    return tail ? `${u.hostname}/…/${tail}` : u.hostname;
+  } catch {
+    return src.length > 42 ? `${src.slice(0, 40)}…` : src;
+  }
+}
+
+function shortDate(raw: string): string {
+  const d = new Date(raw);
+  return Number.isNaN(d.getTime())
+    ? raw
+    : d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 }
 
 /** Reading aid only — the authoritative de-id check runs server-side on submit. */
@@ -320,16 +349,36 @@ export function ReviewQueue() {
                 <p className="wb-muted">Loading queue…</p>
               ) : queue.length === 0 ? (
                 <p className="wb-muted" data-testid="queue-empty">All caught up — nothing is waiting for review.</p>
-              ) : queue.map(item => (
-                <button key={item.assessment_id} onClick={() => selectItem(item)}
-                  data-testid={`queue-item-${item.assessment_id}`}
-                  className={`wb-queue-item ${selected?.assessment_id === item.assessment_id ? "sel" : ""}`}>
-                  <span className="wb-qid">{item.assessment_id.slice(0, 8)}…</span>
-                  <span className={`badge ${item.status === "in_review" ? "badge-gold" : "badge-draft"}`}>
-                    {item.status.replace(/_/g, " ")}
-                  </span>
-                </button>
-              ))}
+              ) : queue.map(item => {
+                const total = item.total_findings ?? 0;
+                const decided = item.decided_findings ?? 0;
+                return (
+                  <button key={item.assessment_id} onClick={() => selectItem(item)}
+                    data-testid={`queue-item-${item.assessment_id}`}
+                    title={`Assessment ${item.assessment_id}`}
+                    className={`wb-queue-item ${selected?.assessment_id === item.assessment_id ? "sel" : ""}`}>
+                    <span className="wb-qi-main">
+                      {/* The organization is the item's name. The id stays available
+                          on hover and in the header — reachable, not leading. */}
+                      <span className="wb-qi-name">
+                        {item.organization_name || <em className="wb-muted">Organization not recorded</em>}
+                      </span>
+                      {item.source_label && (
+                        <span className="wb-qi-src">{shortSource(item.source_label)}</span>
+                      )}
+                      <span className="wb-qi-meta">
+                        {total > 0
+                          ? `${decided}/${total} findings decided`
+                          : "No findings recorded"}
+                        {item.captured_at && <> · {shortDate(item.captured_at)}</>}
+                      </span>
+                    </span>
+                    <span className={`badge ${item.status === "in_review" ? "badge-gold" : "badge-draft"}`}>
+                      {item.status.replace(/_/g, " ")}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </aside>
 
@@ -348,6 +397,12 @@ export function ReviewQueue() {
               </div>
             ) : current ? (
               <>
+                <div className="wb-subject">
+                  <strong>{selected.organization_name || "Organization not recorded"}</strong>
+                  {selected.source_label && <span> · {shortSource(selected.source_label)}</span>}
+                  {selected.industry && <span> · {selected.industry.replace(/_/g, " ")}</span>}
+                  <code title="Assessment id">{selected.assessment_id}</code>
+                </div>
                 <div className="wb-finding-head">
                   <CodexTooltip code={current.finding_type_code} />
                   <span className={`badge ${severityBadgeClass(current.severity)}`} data-testid="finding-severity">
