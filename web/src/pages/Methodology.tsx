@@ -1,5 +1,7 @@
 import { PageHeader } from "../components/PageHeader";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 const FORMULAS = [
   { id: "F-001", name: "Source Reliability Score",       purpose: "Evaluates how authoritative, fresh, and complete the source record is." },
@@ -31,9 +33,16 @@ const SME_STEPS = [
   { step: "5", label: "Approval", detail: "Approved report moves from draft to client-visible." },
 ];
 
+/** One section heading, so all five match. */
+function H2({ children }: { children: React.ReactNode }) {
+  return (
+    <h2 className="mb-1.5 font-display text-2xl font-semibold tracking-tight">{children}</h2>
+  );
+}
+
 export function Methodology() {
   return (
-    <div style={{ maxWidth: 800, margin: "0 auto" }}>
+    <div className="mx-auto max-w-3xl">
       <PageHeader
         eyebrow="Methodology"
         title="How Visentix Works"
@@ -41,128 +50,110 @@ export function Methodology() {
       />
 
       {/* The formulas */}
-      <section style={{ marginBottom: 48 }}>
-        <h2 style={{ fontFamily: "var(--font-display)", fontSize: "1.5rem", fontWeight: 700, color: "var(--navy)", letterSpacing: "-0.02em", marginBottom: 6 }}>
-          14 Versioned Formulas
-        </h2>
-        <p style={{ color: "var(--text-muted)", fontSize: "0.88rem", marginBottom: 20 }}>
+      <section className="mb-12">
+        <H2>14 Versioned Formulas</H2>
+        <p className="mb-5 text-sm text-muted-foreground">
           Every score is the output of one of these formulas. Formula IDs are published in every report and lineage drawer.
         </p>
-        <div style={{ display: "flex", flexDirection: "column", gap: 0, border: "1px solid var(--border)", borderRadius: "var(--radius)", overflow: "hidden" }}>
-          {FORMULAS.map((f, i) => (
-            <div key={f.id} style={{
-              display: "flex", gap: 16, padding: "12px 16px", alignItems: "flex-start",
-              background: i % 2 === 0 ? "white" : "var(--soft-white)",
-              borderBottom: i < FORMULAS.length - 1 ? "1px solid var(--border)" : "none",
-            }}>
-              <span style={{
-                background: "var(--navy)", color: "white",
-                fontFamily: "var(--font-data)", fontSize: "0.72rem", fontWeight: 700,
-                padding: "3px 8px", borderRadius: 4, flexShrink: 0, marginTop: 2,
-              }}>{f.id}</span>
-              <div>
-                <div style={{ fontWeight: 700, fontSize: "0.88rem", color: "var(--navy)", marginBottom: 2 }}>{f.name}</div>
-                <div style={{ fontSize: "0.82rem", color: "var(--text-secondary)", lineHeight: 1.5 }}>{f.purpose}</div>
-              </div>
-            </div>
-          ))}
-        </div>
+        <Card className="gap-0 overflow-hidden py-0">
+          <ul className="divide-y">
+            {FORMULAS.map(f => (
+              <li key={f.id} className="flex items-start gap-4 px-4 py-3 odd:bg-muted/40">
+                <Badge className="mt-0.5 font-data shrink-0">{f.id}</Badge>
+                <div>
+                  <div className="text-sm font-semibold">{f.name}</div>
+                  <div className="text-sm leading-relaxed text-muted-foreground">{f.purpose}</div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </Card>
       </section>
 
       {/* Intelligence, not verdicts */}
-      <section style={{ marginBottom: 48 }}>
-        <h2 style={{ fontFamily: "var(--font-display)", fontSize: "1.5rem", fontWeight: 700, color: "var(--navy)", letterSpacing: "-0.02em", marginBottom: 6 }}>
-          Intelligence, Not Legal Verdicts
-        </h2>
-        <div style={{
-          borderLeft: "3px solid var(--gold)", paddingLeft: 20, marginBottom: 16,
-        }}>
-          <p style={{ fontFamily: "var(--font-display)", fontStyle: "italic", fontSize: "1.05rem", color: "var(--navy)", lineHeight: 1.6, marginBottom: 8 }}>
+      <section className="mb-12">
+        <H2>Intelligence, Not Legal Verdicts</H2>
+        <blockquote className="my-4 border-l-[3px] border-[var(--provisional)] pl-5">
+          <p className="mb-2 font-display text-lg italic leading-relaxed">
             Visentix answers "compared to whom, with what exposure, at what confidence."
             It never answers "is this legal?"
           </p>
-          <p style={{ fontSize: "0.88rem", color: "var(--text-secondary)", lineHeight: 1.7 }}>
+          <p className="text-sm leading-relaxed text-muted-foreground">
             A phrasing guardrail runs at report-draft time and hard-blocks any attempt to output legal-verdict language.
             Reports are written in exposure, maturity, likelihood, benchmark, and confidence terms only.
           </p>
-        </div>
-        <div style={{ background: "var(--soft-white)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "14px 16px" }}>
-          <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground" style={{ marginBottom: 10 }}>Guardrail — blocked terms</div>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            {GUARDRAIL_TERMS.map(t => (
-              <span key={t} style={{
-                padding: "3px 10px", borderRadius: 4,
-                background: "rgba(248,113,113,0.08)",
-                border: "1px solid rgba(248,113,113,0.25)",
-                color: "var(--standing-bad)", fontSize: "0.78rem", fontWeight: 600,
-                textDecoration: "line-through", opacity: 0.7,
-              }}>{t}</span>
-            ))}
-          </div>
-        </div>
+        </blockquote>
+        <Card className="gap-2 py-4">
+          <CardContent className="px-4">
+            <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Guardrail — blocked terms
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {GUARDRAIL_TERMS.map(t => (
+                <Badge key={t} variant="standing-bad" className="line-through opacity-80">{t}</Badge>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       </section>
 
       {/* SME review gate */}
-      <section style={{ marginBottom: 48 }}>
-        <h2 style={{ fontFamily: "var(--font-display)", fontSize: "1.5rem", fontWeight: 700, color: "var(--navy)", letterSpacing: "-0.02em", marginBottom: 6 }}>
-          Human Expert Review Gate
-        </h2>
-        <p style={{ color: "var(--text-secondary)", fontSize: "0.88rem", marginBottom: 20, lineHeight: 1.6 }}>
+      <section className="mb-12">
+        <H2>Human Expert Review Gate</H2>
+        <p className="mb-5 max-w-prose text-sm leading-relaxed text-muted-foreground">
           Every report passes through a subject-matter expert before becoming client-visible.
           Every review decision is captured as a training label for model improvement.
         </p>
-        <div style={{ display: "flex", flexDirection: "column", gap: 0 }} className="stripe-timeline">
+        <ol className="flex flex-col">
           {SME_STEPS.map((s, i) => (
-            <div key={s.step} className={`stripe-timeline-item ${i === 0 ? "done" : i === 1 ? "active" : ""}`}>
-              <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
-                <div style={{
-                  width: 28, height: 28, borderRadius: "50%",
-                  background: i < 2 ? "var(--navy)" : "var(--border)",
-                  color: "white", display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: "0.75rem", fontWeight: 700, flexShrink: 0,
-                }}>{s.step}</div>
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: "0.88rem", color: "var(--navy)" }}>{s.label}</div>
-                  <div style={{ fontSize: "0.8rem", color: "var(--text-secondary)", marginTop: 2 }}>{s.detail}</div>
-                </div>
+            <li key={s.step} className="flex gap-4">
+              {/* Rail: the connector is drawn by the item, not by a wrapper, so
+                  the last step has no dangling tail. */}
+              <div className="flex flex-col items-center">
+                <div className={cn(
+                  "flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-bold",
+                  i < 2 ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                )}>{s.step}</div>
+                {i < SME_STEPS.length - 1 && <div className="w-px flex-1 bg-border" />}
               </div>
-            </div>
+              <div className="pb-6">
+                <div className="text-sm font-semibold">{s.label}</div>
+                <div className="mt-0.5 text-sm text-muted-foreground">{s.detail}</div>
+              </div>
+            </li>
           ))}
-        </div>
+        </ol>
       </section>
 
       {/* Reproducibility */}
-      <section style={{ marginBottom: 48 }}>
-        <h2 style={{ fontFamily: "var(--font-display)", fontSize: "1.5rem", fontWeight: 700, color: "var(--navy)", letterSpacing: "-0.02em", marginBottom: 6 }}>
-          Reproducibility & Lineage
-        </h2>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+      <section className="mb-12">
+        <H2>Reproducibility &amp; Lineage</H2>
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
           {[
             { title: "Frozen Snapshots",  body: "Reports are frozen at publication. Pulling the same snapshot ID twice produces byte-identical output. Re-scoring creates a new versioned snapshot; history is never overwritten." },
             { title: "No Score Without Lineage",    body: "Every score stores its formula version, input references, VCI confidence, and generation timestamp. Click any score in a report to see the full lineage." },
             { title: "Honest Benchmarking",    body: "Cohort sizes are always reported exactly, live-queried with their as-of date. Low-confidence labels are attached when cohort size is small. No inflated numbers." },
             { title: "Deterministic Narrative",     body: "Advisor Note prose is frozen into the snapshot. It is never regenerated at render time, eliminating LLM non-determinism from the final deliverable." },
           ].map(card => (
-            <Card key={card.title} style={{ padding: "16px 18px" }}>
-              <div style={{ fontWeight: 700, fontSize: "0.9rem", color: "var(--navy)", marginBottom: 6 }}>{card.title}</div>
-              <p style={{ fontSize: "0.82rem", color: "var(--text-secondary)", lineHeight: 1.6 }}>{card.body}</p>
+            <Card key={card.title} className="gap-1.5 py-4">
+              <CardContent className="px-4">
+                <div className="mb-1.5 text-sm font-semibold">{card.title}</div>
+                <p className="text-sm leading-relaxed text-muted-foreground">{card.body}</p>
+              </CardContent>
             </Card>
           ))}
         </div>
       </section>
 
       {/* About */}
-      <section style={{ marginBottom: 48 }}>
-        <h2 style={{ fontFamily: "var(--font-display)", fontSize: "1.5rem", fontWeight: 700, color: "var(--navy)", letterSpacing: "-0.02em", marginBottom: 10 }}>
-          About Visentix
-        </h2>
-        <p style={{ fontSize: "0.9rem", color: "var(--text-secondary)", lineHeight: 1.75 }}>
+      <section className="mb-12">
+        <H2>About Visentix</H2>
+        <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
           Visentix is a privacy intelligence platform built by SOLRAC. It turns public privacy notices into
           benchmark-driven intelligence for regulators, legal officers, and privacy advisors — the people who
           need to understand where an organisation stands relative to its peers, with the evidence to defend that view.
         </p>
       </section>
-
     </div>
   );
 }

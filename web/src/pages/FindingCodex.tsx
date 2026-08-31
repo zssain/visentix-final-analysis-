@@ -5,7 +5,22 @@
 import { useState, useMemo, useEffect } from "react";
 import { api } from "../lib/api";
 import { PageHeader } from "../components/PageHeader";
+import { ChevronDown, Search } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
+
+/** Severity is a STANDING, so it uses the traffic-light scale (OD-13).
+ *  An unrecognised severity gets a neutral pill rather than a guessed colour. */
+function severityVariant(sev: string) {
+  const s = sev?.toLowerCase();
+  if (s === "high" || s === "critical") return "standing-bad" as const;
+  if (s === "medium" || s === "elevated" || s === "moderate") return "standing-mid" as const;
+  if (s === "low") return "standing-good" as const;
+  return "secondary" as const;
+}
 
 const DOMAINS = [
   "data_sharing", "tracking_cookies", "consumer_rights",
@@ -52,136 +67,163 @@ export function FindingCodex() {
   [entries, activeDomain, search]);
 
   return (
-    <div style={{ maxWidth: 1000, margin: "0 auto" }}>
+    <div className="mx-auto max-w-5xl">
       <PageHeader
         eyebrow="Codex"
         title="Finding Codex"
         description={`Definitions for all ${entries.length} finding codes from the database catalog — what each code means, the exposure it signals, and linked legal references.`}
       />
 
-      <div style={{ display: "grid", gridTemplateColumns: "220px 1fr", gap: 24 }}>
+      <div className="grid gap-6 md:grid-cols-[220px_1fr]">
         {/* Domain filter */}
-        <Card style={{ padding: "16px", alignSelf: "start" }}>
-          <div style={{ fontWeight: 700, fontSize: "0.88rem", marginBottom: 12 }}>Filter by domain</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+        <Card className="self-start p-4 md:sticky md:top-6">
+          <div className="mb-3 text-sm font-semibold">Filter by domain</div>
+          <nav className="flex flex-col gap-0.5">
             <button
-              className={`btn btn-ghost btn-sm ${activeDomain === "all" ? "active" : ""}`}
               onClick={() => setActiveDomain("all")}
-              style={{ textAlign: "left", fontWeight: activeDomain === "all" ? 700 : 400, color: activeDomain === "all" ? "var(--exec-blue)" : "var(--text-secondary)", borderLeft: activeDomain === "all" ? "3px solid var(--exec-blue)" : "3px solid transparent", paddingLeft: 12 }}
+              aria-pressed={activeDomain === "all"}
+              className={cn(
+                "rounded-md px-3 py-1.5 text-left text-sm transition-colors",
+                activeDomain === "all"
+                  ? "bg-accent font-semibold text-accent-foreground"
+                  : "text-muted-foreground hover:bg-accent/60 hover:text-foreground"
+              )}
             >
               All domains
             </button>
             {DOMAINS.map(d => (
               <button
                 key={d}
-                className={`btn btn-ghost btn-sm ${activeDomain === d ? "active" : ""}`}
                 onClick={() => setActiveDomain(activeDomain === d ? "all" : d)}
-                style={{ textAlign: "left", fontWeight: activeDomain === d ? 700 : 400, color: activeDomain === d ? "var(--exec-blue)" : "var(--text-secondary)", borderLeft: activeDomain === d ? "3px solid var(--exec-blue)" : "3px solid transparent", paddingLeft: 12 }}
+                aria-pressed={activeDomain === d}
+                className={cn(
+                  "rounded-md px-3 py-1.5 text-left text-sm transition-colors",
+                  activeDomain === d
+                    ? "bg-accent font-semibold text-accent-foreground"
+                    : "text-muted-foreground hover:bg-accent/60 hover:text-foreground"
+                )}
               >
                 {domainLabel(d)}
               </button>
             ))}
-          </div>
+          </nav>
         </Card>
 
         {/* Entries */}
-        <div>
-          <input
-            type="text"
-            placeholder={`Search ${filtered.length} finding codes...`}
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            style={{ width: "100%", padding: "10px 14px", border: "1px solid var(--border)", borderRadius: "var(--radius)", marginBottom: 16, fontSize: "0.88rem" }}
-          />
+        <div className="min-w-0">
+          <div className="relative mb-4">
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              type="search"
+              placeholder={`Search ${filtered.length} finding codes...`}
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="pl-9"
+              aria-label="Search finding codes"
+            />
+          </div>
 
           {loading ? (
-            <div className="empty-state"><p>Loading codex from database...</p></div>
+            <div className="flex flex-col gap-2">
+              {[0,1,2,3].map(i => <Skeleton key={i} className="h-16 w-full" />)}
+            </div>
           ) : filtered.length === 0 ? (
-            <div className="empty-state"><p>No finding codes found.</p></div>
+            <Card className="items-center py-12 text-center text-sm text-muted-foreground">
+              No finding codes match this filter.
+            </Card>
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <div className="flex flex-col gap-2">
               {filtered.map(e => {
                 const isOpen = expanded === e.code;
                 return (
-                  <Card key={e.code} style={{ overflow: "hidden" }}>
+                  <Card key={e.code} className="gap-0 overflow-hidden py-0">
                     <button
                       onClick={() => setExpanded(isOpen ? null : e.code)}
-                      style={{
-                        width: "100%", textAlign: "left", padding: "14px 18px",
-                        display: "flex", alignItems: "center", gap: 12,
-                        border: "none", background: "transparent", cursor: "pointer",
-                      }}
+                      aria-expanded={isOpen}
+                      className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-accent/50"
                     >
-                      <span style={{
-                        background: "var(--navy)", color: "white",
-                        fontFamily: "var(--font-data)", fontSize: "0.72rem", fontWeight: 700,
-                        padding: "3px 8px", borderRadius: 4, flexShrink: 0,
-                      }}>{e.code}</span>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontWeight: 700, fontSize: "0.9rem", color: "var(--navy)" }}>{e.title}</div>
-                        <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em" }}>{domainLabel(e.domain)}</div>
+                      <Badge className="font-data shrink-0">{e.code}</Badge>
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-sm font-semibold">{e.title}</div>
+                        <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                          {domainLabel(e.domain)}
+                        </div>
                       </div>
-                      <span style={{ color: "var(--text-muted)", fontSize: "0.8rem" }}>{isOpen ? "↑" : "↓"}</span>
+                      <ChevronDown
+                        className={cn(
+                          "size-4 shrink-0 text-muted-foreground transition-transform motion-reduce:transition-none",
+                          isOpen && "rotate-180"
+                        )}
+                        aria-hidden="true"
+                      />
                     </button>
 
                     {isOpen && (
-                      <div style={{ padding: "0 18px 18px", borderTop: "1px solid var(--border)" }}>
-                        <div style={{ marginTop: 14 }}>
-                          <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Severity</div>
-                          <span className={`badge badge-${e.default_severity}`} style={{ textTransform: "uppercase" }}>
-                            {e.default_severity}
+                      <div className="flex flex-col gap-4 border-t px-4 py-4">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                            Severity
                           </span>
+                          <Badge variant={severityVariant(e.default_severity)} className="uppercase">
+                            {e.default_severity}
+                          </Badge>
                           {!e.sme_authored && (
-                            <span style={{ marginLeft: 8, fontSize: "0.72rem", color: "var(--text-muted)" }}>
-                              (Pending SME review)
-                            </span>
+                            <span className="text-xs text-muted-foreground">(Pending SME review)</span>
                           )}
                         </div>
 
-                        {/* Regulator relevance */}
                         {Object.keys(e.regulator_relevance).length > 0 && (
-                          <div style={{ marginTop: 12 }}>
-                            <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Regulator Relevance</div>
-                            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 4 }}>
+                          <div>
+                            <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                              Regulator Relevance
+                            </div>
+                            <div className="flex flex-wrap gap-1.5">
                               {Object.entries(e.regulator_relevance).map(([reg, weight]) => (
-                                <span key={reg} style={{
-                                  padding: "2px 8px", borderRadius: 4,
-                                  background: "var(--soft-white)", border: "1px solid var(--border)",
-                                  fontSize: "0.75rem", fontWeight: 600, color: "var(--navy)",
-                                }}>
+                                <Badge key={reg} variant="outline" className="font-data">
                                   {reg}: {(weight as number).toFixed(1)}
-                                </span>
+                                </Badge>
                               ))}
                             </div>
                           </div>
                         )}
 
-                        {/* Legal references */}
                         {e.legal_references.length > 0 && (
-                          <div style={{ marginTop: 12 }}>
-                            <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Legal References</div>
-                            {e.legal_references.map((lr, i) => (
-                              <div key={i} style={{ marginTop: 6, fontSize: "0.82rem" }}>
-                                <span style={{ fontWeight: 700, color: "var(--navy)" }}>{lr.framework}</span>
-                                {" · "}
-                                <span>{lr.citation}</span>
-                                {lr.is_primary && <span style={{ marginLeft: 6, padding: "1px 5px", borderRadius: 3, background: "var(--navy)", color: "white", fontSize: "0.62rem", fontWeight: 700 }}>PRIMARY</span>}
-                                {lr.official_url && (
-                                  <a href={lr.official_url} target="_blank" rel="noopener noreferrer" style={{ marginLeft: 8, fontSize: "0.75rem", color: "var(--exec-blue)" }}>
-                                    Official source ↗
-                                  </a>
-                                )}
-                                {lr.summary && <div style={{ fontSize: "0.78rem", color: "var(--text-muted)", marginTop: 2 }}>{lr.summary}</div>}
-                              </div>
-                            ))}
+                          <div>
+                            <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                              Legal References
+                            </div>
+                            <ul className="flex flex-col gap-2">
+                              {e.legal_references.map((lr, i) => (
+                                <li key={i} className="text-sm">
+                                  <span className="font-semibold">{lr.framework}</span>
+                                  {" · "}
+                                  <span className="text-muted-foreground">{lr.citation}</span>
+                                  {lr.is_primary && <Badge className="ml-1.5 text-[10px]">PRIMARY</Badge>}
+                                  {lr.official_url && (
+                                    <a
+                                      href={lr.official_url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="ml-2 text-xs underline underline-offset-4 hover:text-foreground"
+                                    >
+                                      Official source ↗
+                                    </a>
+                                  )}
+                                  {lr.summary && (
+                                    <p className="mt-0.5 text-xs text-muted-foreground">{lr.summary}</p>
+                                  )}
+                                </li>
+                              ))}
+                            </ul>
                           </div>
                         )}
 
-                        {/* Recommendations */}
                         {e.recommendations.length > 0 && (
-                          <div style={{ marginTop: 12 }}>
-                            <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Recommendation</div>
-                            <p style={{ fontSize: "0.82rem", color: "var(--text-secondary)", marginTop: 4 }}>
+                          <div>
+                            <div className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                              Recommendation
+                            </div>
+                            <p className="max-w-prose text-sm text-muted-foreground">
                               {e.recommendations[0].body_template?.replace(/\{[^}]+\}/g, "[...]") ?? "See report."}
                             </p>
                           </div>
