@@ -318,7 +318,11 @@ function AppRoutes() {
       )}
 
       <div className="flex-1 min-w-0 flex flex-col pt-14 md:pt-0">
-      <div className={fullBleed ? "" : "mx-auto w-full max-w-[1400px] px-5 py-7 md:px-8 md:py-8"}>
+      {/* pt matches the sidebar card's own top margin (md:my-3 = 12px), so the
+          header panel and the sidebar panel start on the same line. They were
+          12px and 32px apart, which is close enough to look like a mistake
+          rather than a choice. */}
+      <div className={fullBleed ? "" : "mx-auto w-full max-w-[1400px] px-5 pt-5 pb-7 md:px-8 md:pt-3 md:pb-8"}>
         <Routes>
           {/* Public */}
           <Route path="/login" element={<Login />} />

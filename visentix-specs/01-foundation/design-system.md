@@ -1,6 +1,6 @@
 # Design System — Tokens, Furniture, DDR Summary
 
-**Version:** 1.10 · 2026-09-01 · Condenses the Brand Guide, DDRs, and UI_SPEC §0 into one authority. Design principle: **legal-and-regulator "premium" is confident stillness plus evidence everywhere.**
+**Version:** 1.11 · 2026-09-01 · Condenses the Brand Guide, DDRs, and UI_SPEC §0 into one authority. Design principle: **legal-and-regulator "premium" is confident stillness plus evidence everywhere.**
 
 **Motion — amended 2026-08-31 (owner).** The previous rule read *"Motion exists only to reveal evidence."* The owner has asked for figures and charts that animate to their value. This is a deliberate reversal, recorded as such rather than allowed to drift in. Motion is now permitted for **arrival** only, under four binding constraints (§7).
 
@@ -42,7 +42,20 @@ Kept structurally separate from the standing scale so a palette change to one ca
 
 The old brand names (`--navy`, `--exec-blue`, `--teal`, `--gold`, `--soft-white`, `--good`/`--mid`/`--bad`, …) still exist in `index.css` but **hold no values** — each resolves to a shadcn token. This lets unmigrated pages adopt the palette and respond to the theme without being edited. Names are retired as their pages migrate; **nothing may be added to the bridge.**
 
-**Typography:** Fraunces (display/serif, Advisor lede, report covers) · Inter (UI chrome) · Source Sans 3 (data/numerics, `tabular-nums` required on all figures). Marketing/site may also use Aptos/Avenir per Brand Guide.
+**Typography:** Fraunces (display/serif) · Inter (UI chrome) · Source Sans 3 (data/numerics, `tabular-nums` required on all figures). Marketing/site may also use Aptos/Avenir per Brand Guide.
+
+**One rule for which face a thing wears (2026-09-01):**
+
+| Role | Face | Where |
+|---|---|---|
+| **Heading** — anything that names a region | **Fraunces** (`font-display`) | page title, card title, report part heads and sub-heads, panel titles |
+| **Label and body** — anything that describes | Inter (`font-sans`) | eyebrows, field labels, descriptions, prose |
+| **Figure** | Source Sans 3 (`font-data`) | every score, count and identifier |
+
+An eyebrow is a LABEL, not a small heading: in the display face it reads as a
+second heading stacked above the real one. `CardTitle` was the one heading still
+on the UI sans, which is what made the set look unplanned — a card title sat
+beside a page title and a report sub-head in a different typeface.
 
 ### 1.5 Dark mode
 
@@ -173,6 +186,7 @@ meaning and is `aria-hidden`.
 
 ## Changelog
 
+- 1.11 (2026-09-01): §1 gained the **face-per-role** rule — display for headings, sans for labels and body, data for figures — after `CardTitle` was found to be the only heading in the product still on the UI sans, so a card title sat beside a page title and a report sub-head in a different typeface. Records that an eyebrow is a label, not a small heading. No new face was added and no token changed.
 - 1.10 (2026-09-01): §7 gained the **cover arrival** paragraph — the staggered title entrance, the gauge arc drawing to its value, and the counting figure, all inside the four existing constraints. Records why rule 4 holds structurally (the PDF is a separate Python template that executes no script) and why the cover is *additionally* print-disabled anyway, so a browser print-to-PDF of the screen view cannot capture a half-drawn arc. Records that the arc's dash length must be the arc's own computed length: a fixed dash over- or under-shoots at different scores, which renders the wrong figure. No constraint was relaxed.
 - 1.9 (2026-08-31): §6 route map trued up against `routes/registry.ts` and the router, and put under `scripts/check_routes.py`, which fails on any disagreement between the three. The guard found 14 on its first run — five routes absent from §6 entirely, three renamed paths still listed under their old names, and two title/label mismatches. Records the `/monitor` → `/assessments` reversion (the route named a capability the screen does not deliver; "Monitor" is now reserved) and `/codex` → `/finding-codes` (house coinage on a reader-facing page). All renamed paths keep permanent redirects.
 

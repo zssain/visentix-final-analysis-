@@ -32,7 +32,11 @@ function CardTitle({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="card-title"
-      className={cn("leading-none font-semibold", className)}
+      /* The display face, like every other heading in the product.
+         This was the one heading still on the UI sans — so a card title sat
+         next to a page title and a report sub-head in a different typeface,
+         which is what made the headings look unplanned. design-system §4. */
+      className={cn("font-display text-[0.975rem] leading-tight font-semibold tracking-[-0.01em]", className)}
       {...props}
     />
   )
