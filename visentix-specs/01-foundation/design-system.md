@@ -1,6 +1,6 @@
 # Design System — Tokens, Furniture, DDR Summary
 
-**Version:** 1.9 · 2026-08-31 · Condenses the Brand Guide, DDRs, and UI_SPEC §0 into one authority. Design principle: **legal-and-regulator "premium" is confident stillness plus evidence everywhere.**
+**Version:** 1.10 · 2026-09-01 · Condenses the Brand Guide, DDRs, and UI_SPEC §0 into one authority. Design principle: **legal-and-regulator "premium" is confident stillness plus evidence everywhere.**
 
 **Motion — amended 2026-08-31 (owner).** The previous rule read *"Motion exists only to reveal evidence."* The owner has asked for figures and charts that animate to their value. This is a deliberate reversal, recorded as such rather than allowed to drift in. Motion is now permitted for **arrival** only, under four binding constraints (§7).
 
@@ -158,8 +158,22 @@ Figures and charts may animate **to** their value. Four constraints, all load-be
 
 Implementation: `web/src/components/ui/animated-number.tsx`.
 
+**Cover arrival (2026-09-01).** The report cover is the one page a forwarded
+reader lands on with no context, so it carries an entrance: a staggered rise on
+the title block, the gauge arc drawing from zero to its value, and the figure
+counting up. All three sit inside the four constraints above. Rule 4 is
+structural rather than a promise — the PDF is produced by a separate Python
+template (`app/services/report/renderer.py`) that never executes the React
+component or any script — but the cover's animations are additionally disabled
+under `@media print`, so a browser "print to PDF" of the screen view cannot
+capture a half-drawn arc either. The arc's dash length is the arc's own computed
+length, not a fixed value: a fixed dash over- or under-shoots at different
+scores, which would render the wrong figure. The decorative wash carries no
+meaning and is `aria-hidden`.
+
 ## Changelog
 
+- 1.10 (2026-09-01): §7 gained the **cover arrival** paragraph — the staggered title entrance, the gauge arc drawing to its value, and the counting figure, all inside the four existing constraints. Records why rule 4 holds structurally (the PDF is a separate Python template that executes no script) and why the cover is *additionally* print-disabled anyway, so a browser print-to-PDF of the screen view cannot capture a half-drawn arc. Records that the arc's dash length must be the arc's own computed length: a fixed dash over- or under-shoots at different scores, which renders the wrong figure. No constraint was relaxed.
 - 1.9 (2026-08-31): §6 route map trued up against `routes/registry.ts` and the router, and put under `scripts/check_routes.py`, which fails on any disagreement between the three. The guard found 14 on its first run — five routes absent from §6 entirely, three renamed paths still listed under their old names, and two title/label mismatches. Records the `/monitor` → `/assessments` reversion (the route named a capability the screen does not deliver; "Monitor" is now reserved) and `/codex` → `/finding-codes` (house coinage on a reader-facing page). All renamed paths keep permanent redirects.
 
 - 1.8 (2026-08-31): **shadcn/Tailwind v4 adopted (owner).** §1 rewritten around the owner-supplied oklch token set with `theme.css` as the single source of colour; standing scale restated per-mode with computed AA ratios and a CI guard (`scripts/check_contrast.mjs`) after measurement found `--mid` shipping at 4.07:1 as text and the light standing values at 2.64–3.34:1 on dark. Added §1.2 non-standing status tokens, §1.3 sequential chart ramp (magnitude only), §1.4 the temporary legacy bridge, §1.5 dark mode (three states). Added §3.1 component-system rules including the `@layer legacy` cascade rule (L-015). Live-Dot superseded by StatusDot. **§7 records the owner's reversal of the motion principle** — arrival animation permitted under four constraints. OD-17 narrowed: the PDF keeps its own stylesheet (owner-confirmed) but must generate its values from `theme.css`.

@@ -2,6 +2,7 @@
 
 Format: `YYYY-MM-DD · who · decision · one-line why`
 
+- 2026-09-01 · engineer · Report cover given an arrival entrance (staggered rise, arc draw, counting figure) + a decorative wash · design-system 1.10; the cover is the one page a forwarded reader lands on with no context, and a bare white card asks to be skimmed. No §7 constraint relaxed; the arc's dash length is the arc's own computed length because a fixed dash renders the wrong figure at other scores
 - 2026-09-01 · engineer · Provenance ribbon moved off the top of the report into Traceability; contents index now numbers the whole document · the report opened with a snapshot ID and a formula version before it named the organisation it is about, and the index started at "2. Executive Summary" because it filtered to parts that print a heading — telling the reader either that part 1 was missing or that the index was wrong
 - 2026-09-01 · engineer · Added a pinned "on this page" rail with scroll tracking, revealed once the contents card scrolls away · the contents card answers "what is in this" once and cannot answer "where am I now", which is the question six parts deep; the active-part rule is a pure function so it is testable without a layout engine
 - 2026-09-01 · engineer · Report presentation pass: contents map, one part-heading shape, score-dial scale, badge padding, Recommendations/Traceability/Disclosure rebuilt · the document had no statement of what it contained, which is the first thing a forwarded reader needs, and its own reading order was carried by nothing but paragraph order

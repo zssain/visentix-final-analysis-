@@ -1,11 +1,19 @@
 import { maturityBandColor, maturityBand, vciBand } from "../lib/scoreBands";
 import { VciBadge } from "./VciBadge";
+import { AnimatedNumber } from "@/components/ui/animated-number";
 
 /**
  * ScoreDial — the cover's score gauge (MVP plan Workstream B item 1).
- * Pure static SVG: no animation (confident stillness; deterministic for the
- * Playwright PDF). Arc color follows the shared score-band rule. The VCI badge
- * renders only when a real VCI is supplied — never an invented one.
+ *
+ * The arc draws to its value and the figure counts up to it, under §7's four
+ * motion constraints: arrival only, the final value accessible from the first
+ * frame, reduced motion lands instantly, never in a PDF path. The last is
+ * structural rather than a promise — the PDF is rendered by a separate Python
+ * template (`app/services/report/renderer.py`) that never executes this
+ * component or any script, so no animation here can reach it.
+ *
+ * Arc color follows the shared score-band rule. The VCI badge renders only when
+ * a real VCI is supplied — never an invented one.
  */
 interface ScoreDialProps {
   score: number;        // 0–100
@@ -43,9 +51,17 @@ export function ScoreDial({ score, vci }: ScoreDialProps) {
         aria-label={`Overall Privacy Intelligence Score ${clamped.toFixed(1)} of 100`}>
         {/* Track */}
         <path d={arcPath(120, 120, 96, 180)} fill="none" stroke="var(--border)" strokeWidth="14" strokeLinecap="round" />
-        {/* Value arc — band-colored */}
+        {/* Value arc — band-colored, drawn from 0 to its value.
+            The dash length is the arc's own length (pi x r x sweep/180), so the
+            stroke starts fully offset and lands exactly on the value. A fixed
+            dash guess would over- or under-shoot at different scores. */}
         {sweep > 0 && (
-          <path d={arcPath(120, 120, 96, sweep)} fill="none" stroke={color} strokeWidth="14" strokeLinecap="round" />
+          <path
+            className="score-dial-arc"
+            style={{ "--dial-len": `${(Math.PI * 96 * sweep) / 180}` } as React.CSSProperties}
+            d={arcPath(120, 120, 96, sweep)}
+            fill="none" stroke={color} strokeWidth="14" strokeLinecap="round"
+          />
         )}
         {/* Scale hints — the ends of the range the arc is drawn against. */}
         <text x="24" y="143" fontSize="10" textAnchor="middle" fill="var(--muted-foreground)" fontFamily="'Source Sans 3', sans-serif">0</text>
@@ -57,8 +73,12 @@ export function ScoreDial({ score, vci }: ScoreDialProps) {
           hints and collided with them). Below the arc the BAND leads, because
           "Developing" is what a reader can act on and 62.3 is not
           (design-system §2). The figure is never removed — it is the arc. */}
-      <div className="score-dial-value" aria-hidden="true">
-        <span className="score-dial-num">{clamped.toFixed(1)}</span>
+      {/* The svg already carries the full figure in its aria-label, so the
+          counter is decorative here — but AnimatedNumber keeps its own
+          aria-label anyway, and the wrapper is not hidden, because a figure
+          that is only correct once it finishes is unreadable (§7 rule 2). */}
+      <div className="score-dial-value">
+        <AnimatedNumber value={clamped} decimals={1} className="score-dial-num" durationMs={900} />
       </div>
 
       <div className="score-dial-caption">

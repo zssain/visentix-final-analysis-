@@ -52,10 +52,48 @@
   border-radius: 1px;
 }
 
-/* Cover section — editorial first page */
+/* ── Cover: the first page ────────────────────────────────────────────────────
+   This is the page a forwarded reader lands on with no context, and it has one
+   job before any figure earns attention: look like a document somebody made on
+   purpose. The wash and the entrance are decorative and carry no meaning, so
+   both are inert under prefers-reduced-motion and absent from print. */
 .cover-section {
   text-align: center;
-  padding: 48px 32px 36px;
+  padding: 56px 32px 40px;
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+/* A band-neutral wash behind the title block — gold at the top fading out, so
+   the page has depth without tinting any figure below it. */
+.cover-wash {
+  position: absolute;
+  inset: -40% 0 auto;
+  height: 420px;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(60% 55% at 50% 42%,
+      color-mix(in oklab, var(--provisional) 13%, transparent) 0%,
+      transparent 70%),
+    radial-gradient(45% 40% at 50% 30%,
+      color-mix(in oklab, var(--primary) 7%, transparent) 0%,
+      transparent 75%);
+}
+
+/* Entrance stagger. `--rise` is set per element in Cover.tsx. `both` holds the
+   from-state before the delay elapses, so nothing flashes at full opacity and
+   then jumps back. */
+@keyframes cover-rise {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: none; }
+}
+.cover-rise {
+  animation: cover-rise 640ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+  animation-delay: var(--rise, 0ms);
+}
+@media (prefers-reduced-motion: reduce) {
+  .cover-rise { animation: none; }
 }
 .cover-hairline {
   width: 72px; height: 3px;
@@ -108,7 +146,22 @@
 /* Score dial (Workstream B item 1) */
 .cover-dial-wrap { display: flex; justify-content: center; margin: 26px 0 8px; }
 .score-dial { display: inline-flex; flex-direction: column; align-items: center; position: relative; }
-.score-dial svg { display: block; }
+.score-dial svg { display: block; overflow: visible; }
+
+/* The arc draws from zero to its value. The dash length is the arc's own
+   length, set inline by ScoreDial — a fixed guess would over- or under-shoot
+   at different scores. */
+@keyframes score-dial-draw {
+  from { stroke-dashoffset: var(--dial-len); }
+  to   { stroke-dashoffset: 0; }
+}
+.score-dial-arc {
+  stroke-dasharray: var(--dial-len);
+  animation: score-dial-draw 1000ms cubic-bezier(0.22, 0.61, 0.36, 1) 220ms both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .score-dial-arc { animation: none; stroke-dasharray: none; }
+}
 /* Centred inside the arc rather than pulled up by a negative margin — the old
    approach let the caption overflow onto the 0/100 scale hints. */
 .score-dial-value {
@@ -201,6 +254,13 @@
 
 /* Print stylesheet for PDF export */
 @media print {
+  /* Nothing on the cover animates in print. The PDF is rendered by a separate
+     Python template that never executes this component, so this is belt and
+     braces rather than the guarantee — but a browser "print to PDF" of the
+     screen view must not capture a half-drawn arc either. */
+  .cover-rise, .score-dial-arc { animation: none !important; }
+  .score-dial-arc { stroke-dasharray: none !important; }
+  .cover-wash { display: none; }
   .report-container { max-width: 100%; margin: 0; }
   .report-page-break { page-break-inside: avoid; }
   .report-section { box-shadow: none; }

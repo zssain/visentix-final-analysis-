@@ -2,6 +2,14 @@ import { ScoreDial } from "../ScoreDial";
 import type { ReportSection } from "../types";
 import { humanize } from "../../lib/labels";
 
+/* Entrance stagger. One place, so the rhythm is a decision rather than six
+   scattered magic numbers, and so a step inserted in the middle cannot land on
+   top of its neighbour. Every delay is inert under prefers-reduced-motion and
+   in print — see .cover-rise in report.css. */
+const RISE: React.CSSProperties[] = [0, 1, 2, 3, 4, 5].map(
+  i => ({ "--rise": `${60 + i * 70}ms` } as React.CSSProperties),
+);
+
 /**
  * Cover — editorial first page: eyebrow, Fraunces org name, meta row,
  * score dial (Workstream B item 1), scope & limitations, mark.
@@ -32,14 +40,22 @@ export function Cover({ content }: { content: ReportSection["content"] }) {
 
   return (
     <div data-testid="section-1" className="report-section cover-section">
+      {/* A soft wash behind the title block. Decorative, token-built, and
+          `aria-hidden` — it carries no meaning, so a reader who cannot see it
+          loses nothing. It exists because this page is the first thing a
+          forwarded reader sees, and a bare white card asks to be skimmed. */}
+      <div className="cover-wash" aria-hidden="true" />
+
       {/* Gold hairline rule */}
-      <div className="cover-hairline" aria-hidden="true" />
+      <div className="cover-hairline cover-rise" aria-hidden="true" />
 
       {/* Eyebrow — the report type, quiet small caps */}
-      <div className="cover-eyebrow">{(content.report_title as string) ?? "Privacy Intelligence Assessment"}</div>
+      <div className="cover-eyebrow cover-rise" style={RISE[0]}>
+        {(content.report_title as string) ?? "Privacy Intelligence Assessment"}
+      </div>
 
       {/* Org name — display font */}
-      <h1 className="cover-org-name">{orgName}</h1>
+      <h1 className="cover-org-name cover-rise" style={RISE[1]}>{orgName}</h1>
 
       {/* Who this is for, in a sentence. The cover named the organisation and
           the report type but never said the two were related — a reader handed
@@ -47,7 +63,7 @@ export function Cover({ content }: { content: ReportSection["content"] }) {
           that the document was ABOUT that company. Composed from the payload,
           so it asserts nothing the snapshot does not already carry. */}
       {orgName && (
-        <p className="cover-lede">
+        <p className="cover-lede cover-rise" style={RISE[2]}>
           A privacy intelligence assessment prepared for {orgName}, based on its
           published privacy notice.
         </p>
@@ -55,7 +71,7 @@ export function Cover({ content }: { content: ReportSection["content"] }) {
 
       {/* Meta row */}
       {hasMeta && (
-        <div className="cover-meta">
+        <div className="cover-meta cover-rise" style={RISE[3]}>
           {domain    && <span><b>Domain</b> {domain}</span>}
           {industry  && <span className="capitalize"><b>Industry</b> {industry}</span>}
           {size      && <span className="capitalize"><b>Size</b> {size}</span>}
@@ -64,13 +80,13 @@ export function Cover({ content }: { content: ReportSection["content"] }) {
       )}
 
       {/* Score dial — band-colored arc, maturity band, VCI (when real) */}
-      <div className="cover-dial-wrap">
+      <div className="cover-dial-wrap cover-rise" style={RISE[4]}>
         <ScoreDial score={(content.overall_score as number) ?? 0} vci={vciScore} />
       </div>
 
       {/* Scope & limitations */}
-      <div className="cover-scope-block">
-        <div className="cover-scope-label">Scope & Limitations</div>
+      <div className="cover-scope-block cover-rise" style={RISE[5]}>
+        <div className="cover-scope-label">Scope &amp; Limitations</div>
         <p className="cover-scope-text">
           This assessment evaluates the organisation&apos;s public privacy notice against a cohort of peer
           organisations. It quantifies disclosure maturity, regulatory exposure likelihood, and transparency.
