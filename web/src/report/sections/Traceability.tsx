@@ -74,7 +74,7 @@ export function Traceability({ content }: { content: ReportSection["content"] })
         ))}
       </div>
 
-      <div style={{ marginBottom: 16, fontSize: "0.82rem", color: "var(--text-secondary)" }}>
+      <div className="mb-4 text-sm text-muted-foreground">
         Guardrail: <strong>{guardrail?.status ?? "not recorded"}</strong> · Template-token gate: <strong>{templateTokens?.status ?? "not recorded"}</strong> · Clause read agreement: <strong>{extraction?.status ?? "not recorded"}</strong>
       </div>
 
@@ -88,13 +88,13 @@ export function Traceability({ content }: { content: ReportSection["content"] })
         </tbody>
       </table>
 
-      <p style={{ fontSize: "0.82rem", color: "var(--text-muted)", lineHeight: 1.6 }}>
+      <p className="text-sm text-muted-foreground leading-relaxed">
         This report was generated from a frozen snapshot of all scores, lineage references, and narrative text.
         Re-pulling this report from the same snapshot ID will produce byte-identical output.
         Re-scoring against new data creates a new versioned snapshot and preserves this record unchanged.
       </p>
 
-      <div style={{ marginTop: 12 }}>
+      <div className="mt-3">
       </div>
     </div>
   );

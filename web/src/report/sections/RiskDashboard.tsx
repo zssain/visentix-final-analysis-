@@ -92,7 +92,7 @@ export function RiskDashboard({ content }: { content: ReportSection["content"] }
                 <InfoButton assessmentId={assessmentId} elementType="score" elementKey={FID_TO_FKEY[m.fid] ?? m.fid} label={m.name} />
               )}
             </div>
-            <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginBottom: 4 }}>{m.direction}</div>
+            <div className="text-xs text-muted-foreground mb-1">{m.direction}</div>
             {typeof m.value === "number" ? <ScoreCell
               value={m.value}
               formulaId={m.fid}
@@ -108,15 +108,15 @@ export function RiskDashboard({ content }: { content: ReportSection["content"] }
               cohortSize={cohortSize}
               cohortDate={cohortDate}
               size="md"
-            /> : <span style={{ color: "var(--text-muted)" }}>Not recorded</span>}
+            /> : <span className="text-muted-foreground">Not recorded</span>}
           </div>
         ))}
       </div>
 
-      <div style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 10 }}>
-        <span style={{ fontSize: "0.82rem", color: "var(--text-muted)" }}>Confidence {typeof vci === "number" ? vci.toFixed(1) : "—"}</span>
+      <div className="mt-3 flex items-center gap-2.5">
+        <span className="text-sm text-muted-foreground">Confidence {typeof vci === "number" ? vci.toFixed(1) : "—"}</span>
         {typeof vci === "number" && <VciBadge label={content.vci_label as string} />}
-        <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontStyle: "italic" }}>
+        <span className="text-xs text-muted-foreground italic">
           Click any score to view its lineage
         </span>
       </div>

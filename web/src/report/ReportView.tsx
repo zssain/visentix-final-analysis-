@@ -87,7 +87,7 @@ export function ReportView({ report }: ReportViewProps) {
     >
       {/* DDR-004 + DDR-001: THE provenance ribbon — rendered once, here only
           (audit 2026-07-16: Cover previously rendered a duplicate). */}
-      <div style={{ marginBottom: 24 }}>
+      <div className="mb-6">
         <ProvenanceRibbon
           snapshotId={snapshotId}
           formulaVersion={formulaVer}

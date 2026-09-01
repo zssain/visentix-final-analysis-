@@ -202,7 +202,7 @@ export function ExplainPanel({ explanation, kind, label, onClose }: ExplainPanel
           overflowY: "auto", padding: "24px 20px", boxShadow: "-2px 0 8px rgba(0,0,0,0.1)",
         }}
       >
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+        <div className="flex justify-between items-center mb-4">
           <h3 style={{ margin: 0, color: "var(--primary)" }}>
             {label ?? (kind === "score" ? "Score" : kind === "finding" ? "Finding" : "Narrative")}
           </h3>

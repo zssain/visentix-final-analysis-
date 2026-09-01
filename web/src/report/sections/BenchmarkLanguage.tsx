@@ -76,7 +76,7 @@ export function BenchmarkLanguage({ content }: { content: ReportSection["content
   return (
     <div data-testid="section-8" className="report-section">
       <SectionHeading n={8} title="Benchmark Language Comparison" />
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, marginBottom: 16, flexWrap: "wrap" }}>
+      <div className="flex justify-between items-center gap-4 mb-4 flex-wrap">
         <p style={{ color: "var(--text-muted)", fontSize: "0.85rem", margin: 0 }}>
           Your notice language by disclosed domain, with an approved peer comparator only where the evidence gates are met.
         </p>
@@ -99,7 +99,7 @@ export function BenchmarkLanguage({ content }: { content: ReportSection["content
         </button>
       </div>
       {showDiff && (
-        <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginBottom: 14 }}>
+        <div className="text-xs text-muted-foreground mb-3.5">
           <span style={{ background: "color-mix(in oklab, var(--provisional) 22%, transparent)", color: "var(--provisional)", padding: "0 4px", borderRadius: 2 }}>gold</span> = exemplar adds ·{" "}
           <span style={{ color: "var(--muted-foreground)", textDecoration: "line-through" }}>strike-through</span> = your notice drops
         </div>
@@ -115,9 +115,7 @@ export function BenchmarkLanguage({ content }: { content: ReportSection["content
         return (
           <div key={i} style={{ marginBottom: 28 }}>
             {/* Domain header */}
-            <div style={{
-              display: "flex", alignItems: "center", gap: 10, marginBottom: 8,
-            }}>
+            <div className="flex items-center gap-2.5 mb-2">
               <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{displayDomain.toUpperCase()}</span>
               {/* DDR-006: finding codes are hover/focus Codex targets */}
               {e.finding_code && <CodexTooltip code={e.finding_code} />}
@@ -222,11 +220,11 @@ export function BenchmarkLanguage({ content }: { content: ReportSection["content
                 fontSize: "0.75rem", color: "var(--text-muted)",
                 display: "flex", alignItems: "center", gap: 8,
               }}>
-                <span style={{ fontWeight: 600, color: "var(--navy)" }}>
+                <span className="font-semibold text-foreground">
                   {/* Honest n only — never a fabricated fallback (M-12 / Hard Rule 7) */}
                   {e.cohort_size ? `Cohort: n=${e.cohort_size} peers` : "Cohort size unavailable"}
                 </span>
-                <span style={{ fontStyle: "italic" }}>· {e.maturity_note}</span>
+                <span className="italic">· {e.maturity_note}</span>
               </div>
             )}
           </div>

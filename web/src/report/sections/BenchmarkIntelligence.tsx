@@ -69,7 +69,7 @@ export function BenchmarkIntelligence({ content }: { content: ReportSection["con
             cohortSize={cohortSize}
             cohortDate={cohortDate}
             size="lg"
-          /> : <div style={{ color: "var(--text-muted)" }}>Not recorded</div>}
+          /> : <div className="text-muted-foreground">Not recorded</div>}
         </div>
       </div>
 
@@ -117,7 +117,7 @@ export function BenchmarkIntelligence({ content }: { content: ReportSection["con
       )}
 
       {/* Honest cohort label */}
-      <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+      <div className="mt-2.5 flex items-center gap-3.5 flex-wrap">
         <CohortLabel size={cohortSize} date={cohortDate} />
       </div>
 
@@ -141,7 +141,7 @@ export function BenchmarkIntelligence({ content }: { content: ReportSection["con
           {!!methodology.relaxations?.length && <div>Cohort widening: {methodology.relaxations.join(", ")}. Confidence is reduced to reflect the broader comparison.</div>}
           <div>Comparison formula: F-003 · percentile formula: F-011</div>
         </div>
-      ) : <div style={{ marginTop: 12, color: "var(--text-muted)", fontSize: "0.8rem" }}>Cohort methodology not recorded.</div>}
+      ) : <div className="mt-3 text-muted-foreground text-sm">Cohort methodology not recorded.</div>}
     </div>
   );
 }

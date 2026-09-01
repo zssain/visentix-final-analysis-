@@ -21,7 +21,7 @@ export function CompoundRisk({ content }: { content: ReportSection["content"] })
       <SectionHeading n={7} title="Compound Risk Analysis" />
 
       {/* Headline */}
-      <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginBottom: 20, flexWrap: "wrap" }}>
+      <div className="mb-5 flex flex-wrap items-baseline gap-3">
         {typeof compoundScore === "number" ? <ScoreCell
           value={compoundScore}
           formulaId="F-008"
@@ -39,55 +39,62 @@ export function CompoundRisk({ content }: { content: ReportSection["content"] })
           cohortSize={cohortSize}
           cohortDate={cohortDate}
           size="lg"
-        /> : <span style={{ color: "var(--text-muted)" }}>Compound exposure not recorded</span>}
-        <span style={{ fontSize: "0.82rem", color: "var(--text-muted)", fontStyle: "italic" }}>
+        /> : <span className="text-muted-foreground">Compound exposure not recorded</span>}
+        <span className="text-sm italic text-muted-foreground">
           Compound Risk Score — click to view lineage
         </span>
       </div>
 
       {/* Dimension breakdown */}
       {dimensions.length > 0 ? (
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {dimensions.map((d, i) => (
-            <div key={i}>
-              <div style={{
-                display: "flex", justifyContent: "space-between", alignItems: "center",
-                marginBottom: 4,
-              }}>
-                <span style={{ fontSize: "0.82rem", fontWeight: 600, color: "var(--navy)" }}>{d.name}</span>
-                <span style={{
-                  fontFamily: "var(--font-data)", fontVariantNumeric: "tabular-nums",
-                  fontSize: "0.82rem", fontWeight: 700, color: scoreBandColor(d.score ?? 0),
-                }}>
-                  {typeof d.score === "number" ? d.score.toFixed(1) : "Not recorded"}
-                </span>
+        <div className="flex flex-col gap-2.5">
+          {dimensions.map((d, i) => {
+            /* An unrecorded dimension must not be coloured as if it scored.
+               This previously passed `d.score ?? 0` into scoreBandColor, so a
+               missing score rendered GREEN — 0 exposure reads as good, which is
+               a judgement invented from absence (Hard Rule 7). */
+            const hasScore = typeof d.score === "number";
+            const color = hasScore ? scoreBandColor(d.score as number) : "var(--muted-foreground)";
+            return (
+              <div key={i}>
+                <div className="mb-1 flex items-center justify-between gap-3">
+                  <span className="text-sm font-semibold">{d.name}</span>
+                  <span
+                    className="font-data text-sm font-bold tabular-nums"
+                    style={{ color }}
+                  >
+                    {hasScore ? (d.score as number).toFixed(1) : "Not recorded"}
+                  </span>
+                </div>
+                <div
+                  className="h-[5px] overflow-hidden rounded-sm bg-border"
+                  role="img"
+                  aria-label={hasScore ? `${d.name} ${(d.score as number).toFixed(1)} out of 100` : `${d.name} not recorded`}
+                >
+                  {/* No bar at all when there is no score — a zero-width bar and
+                      a genuine zero would otherwise look identical. */}
+                  {hasScore && (
+                    <div
+                      className="h-full rounded-sm transition-[width] duration-500 ease-out motion-reduce:transition-none"
+                      style={{ width: `${Math.max(0, Math.min(100, d.score as number))}%`, background: color }}
+                    />
+                  )}
+                </div>
               </div>
-              <div style={{ height: 5, background: "var(--border)", borderRadius: 3, overflow: "hidden" }}>
-                <div style={{
-                  height: "100%", width: `${d.score ?? 0}%`,
-                  background: scoreBandColor(d.score ?? 0), borderRadius: 3,
-                  transition: "width 0.4s ease",
-                }} />
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       ) : (
-        <div style={{
-          background: "var(--soft-white)", border: "1px solid var(--border)",
-          borderRadius: "var(--radius)", padding: "12px 16px",
-          fontSize: "0.85rem", color: "var(--text-muted)",
-        }}>
+        <div className="rounded-lg border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
           Compound risk dimension breakdown will appear once all formula inputs are available.
         </div>
       )}
 
-      {typeof lineage.cm === "number" && <p style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>
-        Correlation multiplier: {lineage.cm.toFixed(2)}. The multiplier reflects how related exposure signals can reinforce one another.
-      </p>}
-
-      <div style={{ marginTop: 14 }}>
-      </div>
+      {typeof lineage.cm === "number" && (
+        <p className="mt-3 max-w-prose text-sm text-muted-foreground">
+          Correlation multiplier: {lineage.cm.toFixed(2)}. The multiplier reflects how related exposure signals can reinforce one another.
+        </p>
+      )}
     </div>
   );
 }

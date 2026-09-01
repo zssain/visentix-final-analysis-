@@ -75,7 +75,7 @@ export function TrendPanel({ content }: { content: ReportSection["content"] }) {
               </div>
               <Sparkline data={trendData} />
               {trendData.length === 0 && (
-                <div style={{ marginTop: 4, fontSize: "0.75rem", color: "var(--text-muted)" }}>
+                <div className="mt-1 text-xs text-muted-foreground">
                   Trend data will appear after the next assessment snapshot.
                 </div>
               )}
@@ -94,7 +94,7 @@ export function TrendPanel({ content }: { content: ReportSection["content"] }) {
                 </div>
               </div>
             )}
-            <div style={{ flex: 1 }}>
+            <div className="flex-1">
               <div style={{ fontSize: "0.68rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-muted)", marginBottom: 4 }}>
                 Trend scores
               </div>
@@ -110,7 +110,7 @@ export function TrendPanel({ content }: { content: ReportSection["content"] }) {
           </div>
 
           {note && (
-            <p style={{ color: "var(--text-secondary)", fontSize: "0.88rem", lineHeight: 1.7 }}>{note}</p>
+            <p className="text-muted-foreground text-sm leading-relaxed">{note}</p>
           )}
         </>
       )}

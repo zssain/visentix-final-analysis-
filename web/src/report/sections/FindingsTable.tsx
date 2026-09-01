@@ -43,7 +43,7 @@ export function FindingsTable({ content }: { content: ReportSection["content"] }
   return (
     <div data-testid="section-6" className="report-section">
       <SectionHeading n={6} title="Disclosure Findings" />
-      <p style={{ color: "var(--text-muted)", fontSize: "0.85rem", marginBottom: 16 }}>
+      <p className="text-muted-foreground text-sm mb-4">
         {content.total as number} findings · Click a finding to view the full Analyst / Advisor note
       </p>
 
@@ -72,7 +72,7 @@ export function FindingsTable({ content }: { content: ReportSection["content"] }
               <Fragment key={f.id}>
                 <tr style={{ borderBottom: "1px solid var(--border)" }}>
                   <td style={td}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                    <div className="flex items-center gap-1">
                       <CodexTooltip code={code} />
                       {assessmentId && <InfoButton assessmentId={assessmentId} elementType="finding" elementKey={code} label={code} />}
                     </div>
@@ -122,7 +122,7 @@ export function FindingsTable({ content }: { content: ReportSection["content"] }
                         lineageRefs={f.lineage_refs}
                       />
                       {assessmentId && <EvidenceStack assessmentId={assessmentId} findingId={f.id} />}
-                      <div style={{ marginTop: 12, fontSize: "0.82rem", color: "var(--text-secondary)" }}>
+                      <div className="mt-3 text-sm text-muted-foreground">
                         {(f.evidence ?? []).length > 0 ? (f.evidence ?? []).map((ev, i) => (
                           <blockquote key={i} style={{ margin: "8px 0", padding: "8px 12px", borderLeft: "3px solid var(--gold)" }}>
                             <strong>{ev.section_reference ?? ev.clause_id ?? "Stored clause"}</strong>

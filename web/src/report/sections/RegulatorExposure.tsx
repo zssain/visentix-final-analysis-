@@ -53,7 +53,7 @@ export function RegulatorExposure({ content }: { content: ReportSection["content
       <SectionHeading n={5} title="Regulator Exposure" />
 
       {/* Headline score */}
-      <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
+      <div className="flex items-baseline gap-3 mb-4 flex-wrap">
         {typeof regulatoryScore === "number" ? <ScoreCell
           value={regulatoryScore}
           formulaId="F-002"
@@ -69,9 +69,9 @@ export function RegulatorExposure({ content }: { content: ReportSection["content
           cohortSize={cohortSize}
           cohortDate={cohortDate}
           size="lg"
-        /> : <span style={{ color: "var(--text-muted)" }}>Exposure score not recorded</span>}
+        /> : <span className="text-muted-foreground">Exposure score not recorded</span>}
         <span className={`badge badge-${tier.toLowerCase()}`}>{tier}</span>
-        <span style={{ fontSize: "0.82rem", color: "var(--text-muted)", fontStyle: "italic" }}>
+        <span className="text-sm text-muted-foreground italic">
           Click score to view lineage
         </span>
       </div>
@@ -87,7 +87,7 @@ export function RegulatorExposure({ content }: { content: ReportSection["content
           fontSize: "0.85rem", color: "var(--text-secondary)",
         }}>
           <strong>No regulator-domain evidence in this assessment.</strong>
-          <div style={{ marginTop: 6, color: "var(--text-muted)" }}>
+          <div className="mt-1.5 text-muted-foreground">
             None of this notice's clauses mapped to a domain that the {regulators.length} tracked
             regulators publish expectations for, so every cell of the {regulators.length}×{domainCount} grid
             would be blank. The grid is withheld rather than shown empty. The regulator
@@ -105,7 +105,7 @@ export function RegulatorExposure({ content }: { content: ReportSection["content
           <tbody>
             {regulators.map((r) => (
               <tr key={r.regulator_id}>
-                <td style={{ ...td, fontWeight: 600, color: "var(--navy)" }}>{r.regulator_name}<div style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>{r.jurisdiction}</div></td>
+                <td style={{ ...td, fontWeight: 600, color: "var(--navy)" }}>{r.regulator_name}<div className="text-[11px] text-muted-foreground">{r.jurisdiction}</div></td>
                 {r.cells.map(cell => <td key={cell.domain} style={{ ...td, textAlign: "center", background: cellColor(cell), color: isEvidenced(cell) ? "white" : "var(--text-muted)" }}>
                   {isEvidenced(cell) ? cell.intensity.toFixed(1) : "—"}
                 </td>)}
@@ -122,7 +122,7 @@ export function RegulatorExposure({ content }: { content: ReportSection["content
           Regulatory heatmap will appear here once regulator data is populated.
         </div>
       )}
-      {regulators.length > 0 && evidencedCells > 0 && <div style={{ marginTop: 8, fontSize: "0.75rem", color: "var(--text-muted)" }}>
+      {regulators.length > 0 && evidencedCells > 0 && <div className="mt-2 text-xs text-muted-foreground">
         Hatched cells are regulator baselines with no clause from your notice mapped to that domain.
         {" "}{evidencedCells} of {allCells.length} cells are backed by notice-clause evidence.
       </div>}
