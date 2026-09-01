@@ -31,7 +31,7 @@ from app.services.report.clause_data import (
     representative_clauses,
     select_comparators,
 )
-from app.services.report.renderer import find_unresolved_template_tokens
+from app.services.report.renderer import find_unresolved_template_tokens, _strip_placeholders
 from app.services.review import customer_can_view
 from app.services.scoring.heatmap import build_regulator_heatmap, heatmap_to_serializable
 
@@ -613,14 +613,14 @@ def _assemble_from_live(assessment_id: str) -> ReportPayload:
     """Assemble report from live DB data. Used when no snapshot exists."""
 
     notices = _sb_get(
-        f"privacy_notice?select=notice_id,organization_id,source_url,capture_date,effective_date,"
-        f"notice_version,intake_method,upload_filename"
+        f"privacy_notice?select=notice_id,organization_id,url,retrieval_date,effective_date,"
+        f"intake_method,upload_filename"
         f"&notice_id=eq.{assessment_id}&limit=1"
     )
     if not notices:
         notices = _sb_get(
-            f"privacy_notice?select=notice_id,organization_id,source_url,capture_date,effective_date,"
-            f"notice_version,intake_method,upload_filename"
+            f"privacy_notice?select=notice_id,organization_id,url,retrieval_date,effective_date,"
+            f"intake_method,upload_filename"
             f"&organization_id=eq.{assessment_id}"
             f"&order=retrieval_date.desc&limit=1"
         )
@@ -628,6 +628,11 @@ def _assemble_from_live(assessment_id: str) -> ReportPayload:
         raise HTTPException(status_code=404, detail="Assessment not found")
 
     notice = notices[0]
+    # Schema aliases: privacy_notice stores url/retrieval_date, but the report layer
+    # historically referenced source_url/capture_date. Map them so downstream
+    # provenance fields keep resolving. (No notice-version column exists → stays unset.)
+    notice.setdefault("source_url", notice.get("url"))
+    notice.setdefault("capture_date", notice.get("retrieval_date"))
     notice_id = notice["notice_id"]
     org_id = notice["organization_id"]
 
@@ -898,7 +903,12 @@ def _assemble_from_live(assessment_id: str) -> ReportPayload:
                 "severity": f["severity"],
                 "code": f["code"],
                 "title": rec["title"],
-                "prose": rec["body_template"],
+                # Strip un-substituted authored tokens (e.g. {missing_elements}) the
+                # same way the PDF renderer does (renderer._strip_placeholders, Part C
+                # §10 / Part E), so the assembly guardrail — which fails closed on any
+                # unresolved token — only trips on genuinely bad prose, and the JSON
+                # report matches the rendered PDF.
+                "prose": _strip_placeholders(rec["body_template"]),
                 "source_note": rec.get("source_note"),
                 "basis_label": basis_label,
                 "evidence": f.get("evidence", []),
