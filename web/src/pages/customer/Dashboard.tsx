@@ -233,7 +233,11 @@ export function CustomerDashboard() {
       <PageHeader
         eyebrow="Assessments"
         title="Your Assessments"
-        description="Real-time privacy intelligence across all assessed notices. Every number comes from the scoring pipeline — nothing is mocked."
+        /* "nothing is mocked" told the reader that we sometimes ship mocks —
+           a fact about our build, addressed to us, on a customer screen. What
+           a reader can act on is that each figure traces to a stored snapshot,
+           which is the same claim stated as a property of their data. */
+        description="Privacy intelligence across every assessed notice. Each figure is read from a stored snapshot and traces back to the clause behind it."
         actions={
           <>
             <div className="flex items-center gap-1.5 text-[0.78rem] font-semibold text-[var(--verified)]">
