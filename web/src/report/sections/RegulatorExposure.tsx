@@ -3,6 +3,7 @@ import { domainLabel } from "../../lib/domainLabels";
 import { scoreBandColor } from "../../lib/scoreBands";
 import type { ReportSection } from "../types";
 import { SectionHeading } from "../SectionHeading";
+import { cn } from "@/lib/utils";
 
 interface HeatmapCell {
   domain: string;
@@ -95,9 +96,9 @@ export function RegulatorExposure({ content }: { content: ReportSection["content
           </div>
         </div>
       ) : regulators.length > 0 ? (
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <table className="w-full border-collapse text-sm">
           <thead>
-            <tr style={{ background: "var(--soft-white)" }}>
+            <tr className="bg-muted/40">
               <th style={th}>Regulator</th>
               {(regulators[0]?.cells ?? []).map(cell => <th style={th} key={cell.domain}>{domainLabel(cell.domain)}</th>)}
             </tr>
@@ -105,8 +106,12 @@ export function RegulatorExposure({ content }: { content: ReportSection["content
           <tbody>
             {regulators.map((r) => (
               <tr key={r.regulator_id}>
-                <td style={{ ...td, fontWeight: 600, color: "var(--navy)" }}>{r.regulator_name}<div className="text-[11px] text-muted-foreground">{r.jurisdiction}</div></td>
-                {r.cells.map(cell => <td key={cell.domain} style={{ ...td, textAlign: "center", background: cellColor(cell), color: isEvidenced(cell) ? "white" : "var(--text-muted)" }}>
+                <td style={td} className="font-semibold">{r.regulator_name}<div className="text-[11px] text-muted-foreground">{r.jurisdiction}</div></td>
+                {r.cells.map(cell => <td
+                  key={cell.domain}
+                  style={{ ...td, background: cellColor(cell) }}
+                  className={cn("text-center", isEvidenced(cell) ? "text-[var(--primary-foreground)]" : "text-muted-foreground")}
+                >
                   {isEvidenced(cell) ? cell.intensity.toFixed(1) : "—"}
                 </td>)}
               </tr>

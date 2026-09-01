@@ -3,6 +3,8 @@ import { CodexTooltip } from "../../components/CodexTooltip";
 import { domainLabel } from "../../lib/domainLabels";
 import type { ReportSection } from "../types";
 import { SectionHeading } from "../SectionHeading";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 interface ExemplarEntry {
   domain: string;
@@ -42,12 +44,15 @@ function wordDiff(a: string, b: string): DiffSeg[] {
 function DiffView({ your, exemplar }: { your: string; exemplar: string }) {
   const segs = wordDiff(your, exemplar);
   return (
-    <p style={{ fontSize: "0.85rem", lineHeight: 1.85, color: "var(--text)", margin: 0 }}>
+    <p className="m-0 text-sm leading-loose">
       {segs.map((s, i) => {
+        /* Not colour-alone: an addition is highlighted AND marked <ins>, a
+           removal is struck through AND marked <del>, so the diff survives a
+           reader who cannot distinguish the two tints. */
         if (s.type === "added")
-          return <span key={i} style={{ background: "color-mix(in oklab, var(--provisional) 22%, transparent)", color: "var(--provisional)", borderRadius: 2 }}>{s.text}</span>;
+          return <ins key={i} className="rounded-xs bg-[color-mix(in_oklab,var(--provisional)_22%,transparent)] text-[var(--provisional)] no-underline">{s.text}</ins>;
         if (s.type === "removed")
-          return <span key={i} style={{ color: "var(--muted-foreground)", textDecoration: "line-through" }}>{s.text}</span>;
+          return <del key={i} className="text-muted-foreground">{s.text}</del>;
         return <span key={i}>{s.text}</span>;
       })}
     </p>
@@ -62,11 +67,8 @@ export function BenchmarkLanguage({ content }: { content: ReportSection["content
     return (
       <div data-testid="section-8" className="report-section">
         <SectionHeading n={8} title="Benchmark Language Comparison" />
-        <div data-testid="exemplar-placeholder" style={{
-          background: "color-mix(in oklab, var(--provisional) 8%, transparent)", border: "1px dashed var(--gold)",
-          padding: "16px 20px", borderRadius: "var(--radius)",
-          color: "var(--text-secondary)", fontSize: "0.88rem",
-        }}>
+        <div data-testid="exemplar-placeholder"
+          className="rounded-lg border border-dashed border-[var(--provisional)] bg-[color-mix(in_oklab,var(--provisional)_8%,transparent)] px-5 py-4 text-sm text-muted-foreground">
           No substantive notice clause is available for a domain comparison.
         </div>
       </div>
@@ -77,31 +79,29 @@ export function BenchmarkLanguage({ content }: { content: ReportSection["content
     <div data-testid="section-8" className="report-section">
       <SectionHeading n={8} title="Benchmark Language Comparison" />
       <div className="flex justify-between items-center gap-4 mb-4 flex-wrap">
-        <p style={{ color: "var(--text-muted)", fontSize: "0.85rem", margin: 0 }}>
+        <p className="m-0 max-w-prose text-sm text-muted-foreground">
           Your notice language by disclosed domain, with an approved peer comparator only where the evidence gates are met.
         </p>
         {/* Show-differences toggle (off by default): gold = language the exemplar
             adds, warm-gray strikethrough = language it drops. */}
-        <button
+        <Button
           type="button"
+          variant={showDiff ? "secondary" : "outline"}
+          size="sm"
           onClick={() => setShowDiff(v => !v)}
           aria-pressed={showDiff}
           data-testid="diff-toggle"
-          style={{
-            fontSize: "0.74rem", fontWeight: 600, padding: "5px 12px",
-            border: `1px solid ${showDiff ? "var(--gold)" : "var(--border)"}`,
-            background: showDiff ? "color-mix(in oklab, var(--provisional) 12%, transparent)" : "white",
-            color: showDiff ? "var(--provisional)" : "var(--text-secondary)",
-            borderRadius: "var(--radius)", cursor: "pointer", whiteSpace: "nowrap",
-          }}
+          className="shrink-0"
         >
           {showDiff ? "Hide differences" : "Show differences"}
-        </button>
+        </Button>
       </div>
       {showDiff && (
         <div className="text-xs text-muted-foreground mb-3.5">
-          <span style={{ background: "color-mix(in oklab, var(--provisional) 22%, transparent)", color: "var(--provisional)", padding: "0 4px", borderRadius: 2 }}>gold</span> = exemplar adds ·{" "}
-          <span style={{ color: "var(--muted-foreground)", textDecoration: "line-through" }}>strike-through</span> = your notice drops
+          {/* The legend used to read "gold = exemplar adds", naming a colour a
+              reader may not perceive. It now names the MARK, not the hue. */}
+          <ins className="rounded-xs bg-[color-mix(in_oklab,var(--provisional)_22%,transparent)] px-1 text-[var(--provisional)] no-underline">highlighted</ins> = the exemplar adds this ·{" "}
+          <del className="text-muted-foreground">struck through</del> = your notice does not have it
         </div>
       )}
 
@@ -113,7 +113,7 @@ export function BenchmarkLanguage({ content }: { content: ReportSection["content
         const displayDomain = domainLabel(e.domain);
 
         return (
-          <div key={i} style={{ marginBottom: 28 }}>
+          <div key={i} className="mb-7">
             {/* Domain header */}
             <div className="flex items-center gap-2.5 mb-2">
               <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{displayDomain.toUpperCase()}</span>
@@ -123,14 +123,8 @@ export function BenchmarkLanguage({ content }: { content: ReportSection["content
 
             {/* Diff view — merged single column when toggled on and both sides exist */}
             {showDiff && hasExemplar && hasYour ? (
-              <div style={{
-                padding: "16px 18px", border: "1px solid var(--border)",
-                borderRadius: "var(--radius)", background: "color-mix(in oklab, var(--primary) 2%, transparent)",
-              }}>
-                <div style={{
-                  fontSize: "0.68rem", fontWeight: 700, textTransform: "uppercase",
-                  letterSpacing: "0.09em", color: "var(--navy)", marginBottom: 10,
-                }}>
+              <div className="rounded-lg border bg-muted/40 px-4.5 py-4">
+                <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                   Your Notice → Exemplar (differences)
                 </div>
                 <DiffView
@@ -140,37 +134,21 @@ export function BenchmarkLanguage({ content }: { content: ReportSection["content
               </div>
             ) : (
             /* Content cards */
-            <div style={{
-              display: "grid",
-              gridTemplateColumns: hasYour ? "1fr 1fr" : "1fr",
-              gap: 0,
-              border: "1px solid var(--border)",
-              borderRadius: "var(--radius)",
-              overflow: "hidden",
-            }}>
+            <div className={cn(
+              "grid overflow-hidden rounded-lg border",
+              hasYour ? "md:grid-cols-2" : "grid-cols-1"
+            )}>
               {/* Your clause */}
-              <div style={{
-                padding: "16px 18px",
-                borderRight: hasExemplar && hasYour ? "1px solid var(--border)" : "none",
-              }}>
-                <div style={{
-                  fontSize: "0.68rem", fontWeight: 700, textTransform: "uppercase",
-                  letterSpacing: "0.09em", color: "var(--navy)", marginBottom: 10,
-                }}>
+              <div className={cn("px-4.5 py-4", hasExemplar && hasYour && "md:border-r")}>
+                <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                   Your Notice
                 </div>
                 {hasYour ? (
-                  <p style={{
-                    fontSize: "0.85rem", lineHeight: 1.75, color: "var(--text)",
-                    margin: 0,
-                  }}>
+                  <p className="m-0 text-sm leading-relaxed">
                     {yourText.length > 500 ? yourText.slice(0, 500) + "…" : yourText}
                   </p>
                 ) : (
-                  <p style={{
-                    fontSize: "0.85rem", lineHeight: 1.6, color: "var(--text-muted)",
-                    fontStyle: "italic", margin: 0,
-                  }}>
+                  <p className="m-0 text-sm italic leading-relaxed text-muted-foreground">
                     Your privacy notice does not appear to include a dedicated clause
                     for {displayDomain}.
                   </p>
@@ -179,30 +157,21 @@ export function BenchmarkLanguage({ content }: { content: ReportSection["content
 
               {/* Exemplar */}
               {hasExemplar && (
-                <div style={{
-                  padding: "16px 18px",
-                  background: "color-mix(in oklab, var(--primary) 2%, transparent)",
-                }}>
-                  <div style={{
-                    fontSize: "0.68rem", fontWeight: 700, textTransform: "uppercase",
-                    letterSpacing: "0.09em", color: "var(--exec-blue)", marginBottom: 10,
-                  }}>
+                <div className="bg-muted/40 px-4.5 py-4">
+                  <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                     Approved Peer Comparator
                   </div>
-                  <p style={{
-                    fontSize: "0.85rem", lineHeight: 1.75, color: "var(--text)",
-                    margin: 0,
-                  }}>
+                  <p className="m-0 text-sm leading-relaxed">
                     {exemplarText.length > 500 ? exemplarText.slice(0, 500) + "…" : exemplarText}
                   </p>
                 </div>
               )}
               {!hasExemplar && (
-                <div style={{ padding: "16px 18px", background: "color-mix(in oklab, var(--primary) 2%, transparent)" }}>
-                  <div style={{ fontSize: "0.68rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.09em", color: "var(--exec-blue)", marginBottom: 10 }}>
+                <div className="bg-muted/40 px-4.5 py-4">
+                  <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                     Approved Peer Comparator
                   </div>
-                  <p style={{ fontSize: "0.85rem", lineHeight: 1.6, color: "var(--text-muted)", fontStyle: "italic", margin: 0 }}>
+                  <p className="m-0 text-sm italic leading-relaxed text-muted-foreground">
                     No comparable approved peer language is available for this domain.
                   </p>
                 </div>
@@ -212,14 +181,7 @@ export function BenchmarkLanguage({ content }: { content: ReportSection["content
 
             {/* Footer */}
             {e.maturity_note && (
-              <div style={{
-                padding: "8px 16px",
-                background: "var(--soft-white)",
-                border: "1px solid var(--border)", borderTop: "none",
-                borderRadius: "0 0 var(--radius) var(--radius)",
-                fontSize: "0.75rem", color: "var(--text-muted)",
-                display: "flex", alignItems: "center", gap: 8,
-              }}>
+              <div className="flex items-center gap-2 rounded-b-lg border border-t-0 bg-muted/40 px-4 py-2 text-xs text-muted-foreground">
                 <span className="font-semibold text-foreground">
                   {/* Honest n only — never a fabricated fallback (M-12 / Hard Rule 7) */}
                   {e.cohort_size ? `Cohort: n=${e.cohort_size} peers` : "Cohort size unavailable"}

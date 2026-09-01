@@ -79,7 +79,7 @@ export function Traceability({ content }: { content: ReportSection["content"] })
       </div>
 
       <h3>Finding evidence lineage</h3>
-      <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 16 }}>
+      <table className="mb-4 w-full border-collapse text-sm">
         <thead><tr><th>Finding</th><th>Clause / section</th><th>Excerpt</th><th>Source</th><th>Formula</th><th>Confidence</th></tr></thead>
         <tbody>
           {findingEvidence.length ? findingEvidence.flatMap(f => (f.evidence ?? []).length ? (f.evidence ?? []).map((ev, i) => (

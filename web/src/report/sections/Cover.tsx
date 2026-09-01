@@ -43,8 +43,8 @@ export function Cover({ content }: { content: ReportSection["content"] }) {
       {hasMeta && (
         <div className="cover-meta">
           {domain    && <span><b>Domain</b> {domain}</span>}
-          {industry  && <span style={{ textTransform: "capitalize" }}><b>Industry</b> {industry}</span>}
-          {size      && <span style={{ textTransform: "capitalize" }}><b>Size</b> {size}</span>}
+          {industry  && <span className="capitalize"><b>Industry</b> {industry}</span>}
+          {size      && <span className="capitalize"><b>Size</b> {size}</span>}
           {geography && <span><b>Geography</b> {geography}</span>}
         </div>
       )}
@@ -67,10 +67,10 @@ export function Cover({ content }: { content: ReportSection["content"] }) {
 
       {Object.keys(scope).length > 0 && <div className="cover-scope-block" data-testid="assessment-scope">
         <div className="cover-scope-label">Assessment Scope</div>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.78rem" }}>
+        <table className="w-full border-collapse text-xs">
           <tbody>{Object.entries(scopeLabels).map(([key, label]) => {
             const item = scope[key] ?? {};
-            return <tr key={key}><th style={{ textAlign: "left", padding: "4px 6px" }}>{label}</th><td style={{ padding: "4px 6px" }}>{displayValue(item.value)}</td><td style={{ padding: "4px 6px", color: "var(--text-muted)" }}>{(item.provenance ?? "not recorded").replace(/_/g, " ")}</td></tr>;
+            return <tr key={key}><th className="px-1.5 py-1 text-left">{label}</th><td className="px-1.5 py-1">{displayValue(item.value)}</td><td className="px-1.5 py-1 text-muted-foreground">{(item.provenance ?? "not recorded").replace(/_/g, " ")}</td></tr>;
           })}</tbody>
         </table>
         <p className="cover-scope-text">Unconfirmed values are shown as assumptions; legacy assessments are not back-filled.</p>

@@ -53,24 +53,16 @@ export function TrendPanel({ content }: { content: ReportSection["content"] }) {
       <SectionHeading n={12} title="Trend & Emerging Risk" />
 
       {noPrior ? (
-        <div style={{
-          background: "color-mix(in oklab, var(--provisional) 8%, transparent)", border: "1px dashed var(--gold)",
-          borderRadius: "var(--radius)", padding: "14px 18px",
-          color: "var(--text-secondary)", fontSize: "0.88rem",
-        }}>
+        <div className="rounded-lg border border-dashed border-[var(--provisional)] bg-[color-mix(in_oklab,var(--provisional)_8%,transparent)] px-4.5 py-3.5 text-sm text-muted-foreground">
           <strong>Baseline established.</strong> This is the first assessment for this organisation.
           Trend data will be available on the next assessment run.
         </div>
       ) : (
         <>
           {/* Sparkline + delta */}
-          <div style={{
-            display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap",
-            background: "var(--soft-white)", border: "1px solid var(--border)",
-            borderRadius: "var(--radius)", padding: "14px 18px", marginBottom: 16,
-          }}>
+          <div className="mb-4 flex flex-wrap items-center gap-5 rounded-lg border bg-muted/40 px-4.5 py-3.5">
             <div>
-              <div style={{ fontSize: "0.68rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-muted)", marginBottom: 4 }}>
+              <div className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                 Score over time
               </div>
               <Sparkline data={trendData} />
@@ -82,26 +74,28 @@ export function TrendPanel({ content }: { content: ReportSection["content"] }) {
             </div>
             {trendDelta !== undefined && (
               <div>
-                <div style={{ fontSize: "0.68rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-muted)", marginBottom: 4 }}>
+                <div className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                   Delta vs last snapshot
                 </div>
-                <div style={{
-                  fontFamily: "var(--font-data)", fontVariantNumeric: "tabular-nums",
-                  fontSize: "1.6rem", fontWeight: 700,
-                  color: trendColor(trendDelta),
-                }}>
-                  {isDeltaUp ? "▲" : "▼"} {Math.abs(trendDelta).toFixed(1)}
+                {/* Direction is carried by the arrow AND the accessible label,
+                    never by colour alone. */}
+                <div
+                  className="font-data text-2xl font-bold tabular-nums"
+                  style={{ color: trendColor(trendDelta) }}
+                  aria-label={`${isDeltaUp ? "Up" : "Down"} ${Math.abs(trendDelta).toFixed(1)} versus the last snapshot`}
+                >
+                  <span aria-hidden="true">{isDeltaUp ? "▲" : "▼"} {Math.abs(trendDelta).toFixed(1)}</span>
                 </div>
               </div>
             )}
             <div className="flex-1">
-              <div style={{ fontSize: "0.68rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-muted)", marginBottom: 4 }}>
+              <div className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                 Trend scores
               </div>
-              <div style={{ fontFamily: "var(--font-data)", fontVariantNumeric: "tabular-nums", fontSize: "0.82rem", color: "var(--text-secondary)" }}>
+              <div className="font-data text-sm tabular-nums text-muted-foreground">
                 {trendData.map((v, i) => (
-                  <span key={i} style={{ marginRight: 8 }}>
-                    {i > 0 && <span style={{ color: "var(--border)", marginRight: 8 }}>·</span>}
+                  <span key={i} className="mr-2">
+                    {i > 0 && <span className="mr-2 text-border" aria-hidden="true">·</span>}
                     {v.toFixed(1)}
                   </span>
                 ))}

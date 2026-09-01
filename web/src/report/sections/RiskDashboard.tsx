@@ -42,7 +42,7 @@ export function RiskDashboard({ content }: { content: ReportSection["content"] }
       <SectionHeading n={3} title="Risk Dashboard" />
 
       {/* Chart */}
-      <div style={{ width: "100%", height: 280 }} className="chart-container">
+      <div className="chart-container h-70 w-full">
         <ResponsiveContainer>
           <BarChart data={chartMetrics} layout="vertical" margin={{ left: 110, right: 24 }}>
             <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 11 }} />
@@ -62,10 +62,10 @@ export function RiskDashboard({ content }: { content: ReportSection["content"] }
           </BarChart>
         </ResponsiveContainer>
       </div>
-      {(quality?.status === "mismatch" || quality?.status === "insufficient") && <div style={{ marginTop: 10, padding: "10px 12px", border: "1px solid var(--gold)", color: "var(--provisional)" }}>
+      {(quality?.status === "mismatch" || quality?.status === "insufficient") && <div className="mt-2.5 rounded-lg border border-[var(--provisional)] px-3 py-2.5 text-[var(--provisional)]">
         {quality.status === "mismatch" ? "The stored scoring record and the clauses available to this report do not agree." : "No substantive notice clauses are available to support parse-dependent measures."} Parse-dependent maturity and benchmark values are withheld pending review.
       </div>}
-      <div style={{ fontSize: "0.74rem", color: "var(--text-muted)", marginTop: 4 }}>
+      <div className="mt-1 text-xs text-muted-foreground">
         Color shows standing — teal good · gold developing · red needs attention. Maturity scores read
         higher-is-better; exposure scores lower-is-better.
       </div>
@@ -86,7 +86,7 @@ export function RiskDashboard({ content }: { content: ReportSection["content"] }
             background: "var(--bg-card)",
             padding: "12px 14px",
           }}>
-            <div style={{ fontSize: "0.68rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-muted)", marginBottom: 4, display: "flex", alignItems: "center", gap: 4 }}>
+            <div className="mb-1 flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
               {m.name}
               {assessmentId && (
                 <InfoButton assessmentId={assessmentId} elementType="score" elementKey={FID_TO_FKEY[m.fid] ?? m.fid} label={m.name} />

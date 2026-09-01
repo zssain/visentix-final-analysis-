@@ -48,9 +48,9 @@ export function FindingsTable({ content }: { content: ReportSection["content"] }
       </p>
 
       {/* Summary table */}
-      <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 16 }}>
+      <table className="mb-4 w-full border-collapse text-sm">
         <thead>
-          <tr style={{ background: "var(--soft-white)" }}>
+          <tr className="bg-muted/40">
             <th style={th}>Code</th>
             <th style={th}>Domain</th>
             <th style={th}>Severity</th>
@@ -70,7 +70,7 @@ export function FindingsTable({ content }: { content: ReportSection["content"] }
             const vci = Number.isFinite(parsedVci) && confidenceText.trim() ? parsedVci : undefined;
             return (
               <Fragment key={f.id}>
-                <tr style={{ borderBottom: "1px solid var(--border)" }}>
+                <tr className="border-b">
                   <td style={td}>
                     <div className="flex items-center gap-1">
                       <CodexTooltip code={code} />
@@ -85,10 +85,10 @@ export function FindingsTable({ content }: { content: ReportSection["content"] }
                       {f.severity}
                     </span>
                   </td>
-                  <td style={{ ...td, fontFamily: "var(--font-data)", fontVariantNumeric: "tabular-nums" }}>
+                  <td style={td} className="font-data tabular-nums">
                     {f.score?.toFixed(1)}
                   </td>
-                  <td style={{ ...td, color: "var(--text-muted)", fontSize: "0.82rem" }}>
+                  <td style={td} className="text-sm text-muted-foreground">
                     {vci !== undefined ? confidenceText : "Not recorded"}
                   </td>
                   <td style={td}>
@@ -102,7 +102,7 @@ export function FindingsTable({ content }: { content: ReportSection["content"] }
                 </tr>
                 {isOpen && (
                   <tr>
-                    <td colSpan={6} style={{ padding: "16px 8px 20px" }}>
+                    <td colSpan={6} className="px-2 pb-5 pt-4">
                       <AdvisorNote
                         findingCode={code}
                         title={f.id}
@@ -124,7 +124,7 @@ export function FindingsTable({ content }: { content: ReportSection["content"] }
                       {assessmentId && <EvidenceStack assessmentId={assessmentId} findingId={f.id} />}
                       <div className="mt-3 text-sm text-muted-foreground">
                         {(f.evidence ?? []).length > 0 ? (f.evidence ?? []).map((ev, i) => (
-                          <blockquote key={i} style={{ margin: "8px 0", padding: "8px 12px", borderLeft: "3px solid var(--gold)" }}>
+                          <blockquote key={i} className="my-2 border-l-[3px] border-[var(--provisional)] px-3 py-2">
                             <strong>{ev.section_reference ?? ev.clause_id ?? "Stored clause"}</strong>
                             <div>{ev.excerpt ?? "Excerpt not recorded"}</div>
                           </blockquote>
