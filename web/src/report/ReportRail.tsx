@@ -15,13 +15,51 @@
  * so it cannot reach the PDF renderer or affect a byte-identical re-pull.
  */
 import { useEffect, useRef, useState } from "react";
-import type { ReportPart } from "./sectionGroups";
+import { hasSubheadings, type PresentPart, type ReportPart } from "./sectionGroups";
 import { cn } from "@/lib/utils";
 
 /** The anchor id a part owns. One definition, so the rail, the contents map and
  *  the part wrapper can never disagree about where a link points. */
 export function partAnchor(part: Pick<ReportPart, "n">): string {
   return `part-${part.n ?? "appendix"}`;
+}
+
+/** The anchor a stored block owns. Matches the `id` ReportView renders. */
+export function blockAnchor(n: number): string {
+  return `section-${n}`;
+}
+
+/** A row in the rail: a part, or one of its sub-sections. */
+export interface RailEntry {
+  anchor: string;
+  label: string;
+  /** The part number, or the stored section number for a sub-entry. */
+  marker: string;
+  sub: boolean;
+}
+
+/**
+ * Flatten parts and their sub-sections into the rows the rail tracks.
+ *
+ * Sub-rows appear only where the document actually prints a sub-heading — a
+ * part holding one block hides that block's heading, so a sub-row there would
+ * point at something the reader cannot see.
+ */
+export function railEntries(parts: PresentPart[]): RailEntry[] {
+  const out: RailEntry[] = [];
+  for (const p of parts) {
+    out.push({
+      anchor: partAnchor(p.part),
+      label: p.part.title,
+      marker: p.part.n === null ? "\u00b7" : String(p.part.n),
+      sub: false,
+    });
+    if (!hasSubheadings(p)) continue;
+    for (const b of p.blocks) {
+      out.push({ anchor: blockAnchor(b.n), label: b.title, marker: "", sub: true });
+    }
+  }
+  return out;
 }
 
 /**
@@ -43,17 +81,18 @@ export function activeIndexFor(tops: number[], readingLine: number): number {
 /** Distance from the viewport top at which a heading counts as "reached". */
 const READING_LINE = 140;
 
-export function ReportRail({ parts }: { parts: ReportPart[] }) {
+export function ReportRail({ parts }: { parts: PresentPart[] }) {
   const [active, setActive] = useState(0);
   const frame = useRef<number | null>(null);
+  const entries = railEntries(parts);
 
   useEffect(() => {
-    if (parts.length === 0) return;
+    if (entries.length === 0) return;
 
     function measure() {
       frame.current = null;
-      const tops = parts.map(p => {
-        const el = document.getElementById(partAnchor(p));
+      const tops = entries.map(e => {
+        const el = document.getElementById(e.anchor);
         return el ? el.getBoundingClientRect().top : Number.POSITIVE_INFINITY;
       });
       setActive(activeIndexFor(tops, READING_LINE));
@@ -71,23 +110,28 @@ export function ReportRail({ parts }: { parts: ReportPart[] }) {
       window.removeEventListener("resize", onScroll);
       if (frame.current !== null) window.cancelAnimationFrame(frame.current);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [parts]);
 
-  if (parts.length === 0) return null;
+  if (entries.length === 0) return null;
 
   return (
     <nav className="report-rail" aria-label="On this page" data-testid="report-rail">
       <div className="report-rail-label">On this page</div>
       <ol className="report-rail-list">
-        {parts.map((part, i) => (
-          <li key={part.title}>
+        {entries.map((e, i) => (
+          <li key={e.anchor}>
             <a
-              href={`#${partAnchor(part)}`}
-              className={cn("report-rail-item", i === active && "report-rail-item-active")}
+              href={`#${e.anchor}`}
+              className={cn(
+                "report-rail-item",
+                e.sub && "report-rail-item-sub",
+                i === active && "report-rail-item-active",
+              )}
               aria-current={i === active ? "true" : undefined}
             >
-              <span className="report-rail-num" aria-hidden="true">{part.n ?? "·"}</span>
-              <span className="report-rail-name">{part.title}</span>
+              <span className="report-rail-num" aria-hidden="true">{e.marker}</span>
+              <span className="report-rail-name">{e.label}</span>
             </a>
           </li>
         ))}

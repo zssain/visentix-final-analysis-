@@ -37,6 +37,9 @@ export interface AdvisorNoteProps {
 
   /* Lineage chips (clause refs etc.) */
   lineageRefs?: string[];
+  /** Rendered inside a row that already shows the code, domain, score and
+   *  confidence. Drops everything that would restate them. */
+  embedded?: boolean;
 
   /* View switch default */
   defaultView?: "analyst" | "advisor";
@@ -49,6 +52,7 @@ export function AdvisorNote({
   formulaId, formulaDesc, cohortSize, cohortDate,
   advisorLede, advisorBody,
   lineageRefs = [],
+  embedded = false,
   defaultView = "analyst",
 }: AdvisorNoteProps) {
   const [view, setView] = useState<"analyst" | "advisor">(defaultView);
@@ -63,26 +67,38 @@ export function AdvisorNote({
 
   return (
     <Card className={cn("gap-0 overflow-hidden py-0", isDraft && "border-dashed")}>
-      <div className="p-5 pb-0">
+      {/* The ribbon names the snapshot. Inside a findings row that is the third
+          time the same snapshot is named on one screen — the report's own
+          Traceability part owns it. */}
+      {!embedded && <div className="p-5 pb-0">
         <ProvenanceRibbon
           snapshotId={snapshotId}
           formulaVersion={formulaVersion}
           frozenDate={frozenDate}
           status={status}
         />
-      </div>
+      </div>}
 
-      {/* Header */}
-      <div className="flex flex-wrap items-start justify-between gap-3 p-5">
-        <div className="min-w-0 flex flex-col gap-1.5">
-          <div className="flex flex-wrap items-center gap-2">
-            <CodexTooltip code={findingCode} />
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-              {domainLabel(domain)}
-            </span>
+      {/* Header. Embedded, the row above already carries the code, the domain
+          and the title — repeating them is what made expanding a finding feel
+          like being shown the same line twice. Only the view switch survives. */}
+      <div className={cn("flex flex-wrap items-start justify-between gap-3 p-5", embedded && "px-5 py-3")}>
+        {!embedded && (
+          <div className="min-w-0 flex flex-col gap-1.5">
+            <div className="flex flex-wrap items-center gap-2">
+              <CodexTooltip code={findingCode} />
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                {domainLabel(domain)}
+              </span>
+            </div>
+            <h3 className="font-display text-lg font-semibold leading-snug">{title}</h3>
           </div>
-          <h3 className="font-display text-lg font-semibold leading-snug">{title}</h3>
-        </div>
+        )}
+        {embedded && (
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            The note
+          </span>
+        )}
         <ViewSwitch value={view} onChange={setView} />
       </div>
 
@@ -91,9 +107,10 @@ export function AdvisorNote({
       <CardContent className="p-5">
         {view === "analyst" ? (
           <>
-            <div className="grid gap-5 sm:grid-cols-3">
-              {/* Exposure */}
-              <div className="flex flex-col gap-1">
+            <div className={cn("grid gap-5", embedded ? "sm:grid-cols-1" : "sm:grid-cols-3")}>
+              {/* Exposure. Hidden when embedded: the row's Score column is this
+                  number, and a second copy an inch below it is not detail. */}
+              {!embedded && <div className="flex flex-col gap-1">
                 <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                   Exposure Score
                 </div>
@@ -123,9 +140,10 @@ export function AdvisorNote({
                     style={{ width: `${exposureScore}%`, background: scoreBandColor(exposureScore) }}
                   />
                 </div>
-              </div>
+              </div>}
 
-              {/* Cohort percentile */}
+              {/* Cohort percentile — NOT in the row, so it survives embedding.
+                  This is the analyst figure the table has no column for. */}
               <div className="flex flex-col gap-1">
                 <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                   Cohort Percentile
@@ -138,8 +156,8 @@ export function AdvisorNote({
                 <div className="text-xs text-muted-foreground">n={cohortSize} peers · {cohortDate}</div>
               </div>
 
-              {/* VCI */}
-              <div className="flex flex-col gap-1">
+              {/* VCI. Also hidden when embedded — the row's Confidence column. */}
+              {!embedded && <div className="flex flex-col gap-1">
                 <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                   Confidence
                 </div>
@@ -149,7 +167,7 @@ export function AdvisorNote({
                     : <span className="text-base font-normal text-muted-foreground">Not recorded</span>}
                 </div>
                 <div className="text-xs text-muted-foreground">Visentix Confidence Index</div>
-              </div>
+              </div>}
             </div>
 
             {lineageRefs.length > 0 && (
@@ -183,12 +201,14 @@ export function AdvisorNote({
                 </p>
               )}
 
+              {/* Embedded, exposure and confidence are already two columns up.
+                  The percentile is not, so it is the one that stays. */}
               <div className="flex flex-wrap gap-1.5">
-                <Badge variant="outline">Exposure: {exposureScore.toFixed(1)}</Badge>
+                {!embedded && <Badge variant="outline">Exposure: {exposureScore.toFixed(1)}</Badge>}
                 <Badge variant="outline">
                   {cohortPercentile !== undefined ? `${cohortPercentile}th percentile` : "Percentile not recorded"} · n={cohortSize}
                 </Badge>
-                <Badge variant="outline">Confidence {vci !== undefined ? `${vci}%` : "Not recorded"}</Badge>
+                {!embedded && <Badge variant="outline">Confidence {vci !== undefined ? `${vci}%` : "Not recorded"}</Badge>}
               </div>
             </div>
 

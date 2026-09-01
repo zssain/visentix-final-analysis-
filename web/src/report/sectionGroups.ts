@@ -62,3 +62,36 @@ export const REPORT_PARTS: ReportPart[] = [
     lede: "The machinery behind every figure above: snapshot, formula versions, cohort construction, and sources.",
   },
 ];
+
+/** One payload block inside a part, as it will be listed and linked. */
+export interface PartBlock {
+  /** The stored section number — its anchor and its lineage key. */
+  n: number;
+  /** The title the snapshot froze. Identical to the heading the block renders. */
+  title: string;
+}
+
+/**
+ * A part that actually has content, with the blocks it turned out to hold.
+ *
+ * Built once in ReportView and handed to both the contents card and the rail,
+ * so the two indexes and the rendered document cannot disagree about what
+ * exists.
+ */
+export interface PresentPart {
+  part: ReportPart;
+  blocks: PartBlock[];
+}
+
+/**
+ * Whether a part's blocks print sub-headings of their own.
+ *
+ * This is the SAME condition ReportView uses to decide the heading mode: a part
+ * holding one block hides that block's heading, because the part heading
+ * already named it. Listing a sub-entry there would point the reader at a
+ * heading the document does not show — the same failure as a contents list
+ * promising a section the snapshot does not carry.
+ */
+export function hasSubheadings(p: PresentPart): boolean {
+  return p.part.headed !== false && p.blocks.length > 1;
+}

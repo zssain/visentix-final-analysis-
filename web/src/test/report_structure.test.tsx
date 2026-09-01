@@ -10,18 +10,26 @@
 import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { ReportContents } from "../report/ReportContents";
-import { ReportRail, activeIndexFor, partAnchor } from "../report/ReportRail";
-import { REPORT_PARTS } from "../report/sectionGroups";
+import { ReportRail, activeIndexFor, partAnchor, railEntries } from "../report/ReportRail";
+import { REPORT_PARTS, hasSubheadings, type PresentPart } from "../report/sectionGroups";
+
+/** REPORT_PARTS as if every block in the payload were present. */
+const ALL: PresentPart[] = REPORT_PARTS.map(part => ({
+  part,
+  blocks: part.blocks.map(n => ({ n, title: `Block ${n}` })),
+}));
 
 describe("report contents map", () => {
   it("lists exactly the parts it is given, in order, with their numbers", () => {
-    const parts = REPORT_PARTS.filter(p => p.headed !== false);
+    const parts = ALL.filter(p => p.part.headed !== false);
     render(<ReportContents parts={parts} />);
-    const items = within(screen.getByTestId("report-contents")).getAllByRole("link");
+    const items = within(screen.getByTestId("report-contents"))
+      .getAllByRole("link")
+      .filter(a => a.getAttribute("href")!.startsWith("#part-"));
     expect(items).toHaveLength(parts.length);
     items.forEach((el, i) => {
-      expect(el).toHaveTextContent(parts[i].title);
-      expect(el).toHaveAttribute("href", `#part-${parts[i].n ?? "appendix"}`);
+      expect(el).toHaveTextContent(parts[i].part.title);
+      expect(el).toHaveAttribute("href", `#part-${parts[i].part.n ?? "appendix"}`);
     });
   });
 
@@ -31,7 +39,7 @@ describe("report contents map", () => {
   });
 
   it("omits a part the payload does not carry", () => {
-    const parts = REPORT_PARTS.filter(p => p.headed !== false && p.n !== 4);
+    const parts = ALL.filter(p => p.part.headed !== false && p.part.n !== 4);
     render(<ReportContents parts={parts} />);
     const nav = screen.getByTestId("report-contents");
     expect(within(nav).queryByText("What We Found")).toBeNull();
@@ -47,7 +55,7 @@ describe("report contents map", () => {
 
 describe("the index numbers the document, not the headed subset", () => {
   it("starts at 1 — the cover is part 1 even though it prints no part heading", () => {
-    render(<ReportContents parts={REPORT_PARTS} />);
+    render(<ReportContents parts={ALL} />);
     const items = within(screen.getByTestId("report-contents")).getAllByRole("link");
     // The regression: filtering to `headed !== false` dropped the cover, so the
     // index opened at "2. Executive Summary" and told the reader either that
@@ -88,13 +96,15 @@ describe("pinned rail — which part am I reading", () => {
     // It used to reveal itself only after the contents card scrolled away, so
     // the one aid for orientation was missing for exactly as long as the reader
     // was still deciding where to go.
-    render(<ReportRail parts={REPORT_PARTS} />);
+    render(<ReportRail parts={ALL} />);
     expect(screen.getByTestId("report-rail")).not.toHaveAttribute("aria-hidden");
   });
 
   it("renders one entry per part, each pointing at that part's anchor", () => {
-    render(<ReportRail parts={REPORT_PARTS} />);
-    const links = within(screen.getByTestId("report-rail")).getAllByRole("link");
+    render(<ReportRail parts={ALL} />);
+    const links = within(screen.getByTestId("report-rail"))
+      .getAllByRole("link")
+      .filter(a => a.getAttribute("href")!.startsWith("#part-"));
     expect(links).toHaveLength(REPORT_PARTS.length);
     links.forEach((el, i) => {
       expect(el).toHaveAttribute("href", `#${partAnchor(REPORT_PARTS[i])}`);
@@ -104,5 +114,54 @@ describe("pinned rail — which part am I reading", () => {
   it("renders nothing when there are no parts", () => {
     const { container } = render(<ReportRail parts={[]} />);
     expect(container).toBeEmptyDOMElement();
+  });
+});
+
+describe("sub-sections in the contents", () => {
+  it("lists a part's blocks only where the document prints their headings", () => {
+    render(<ReportContents parts={ALL} />);
+    const nav = screen.getByTestId("report-contents");
+    const subs = within(nav).getAllByRole("link")
+      .filter(a => a.getAttribute("href")!.startsWith("#section-"));
+
+    // Sub-entries exist only under parts holding more than one block. A part
+    // with one block hides that block's heading — the part heading already
+    // named it — so a sub-entry there would point at nothing visible.
+    const expected = ALL.filter(hasSubheadings).flatMap(p => p.blocks);
+    expect(subs).toHaveLength(expected.length);
+    expect(subs.length).toBeGreaterThan(0);
+    subs.forEach((el, i) => {
+      expect(el).toHaveAttribute("href", `#section-${expected[i].n}`);
+    });
+  });
+
+  it("a one-block part gets no sub-entries", () => {
+    // "What We Found" is section 6 alone.
+    const single = ALL.find(p => p.part.n === 4)!;
+    expect(single.blocks).toHaveLength(1);
+    expect(hasSubheadings(single)).toBe(false);
+  });
+
+  it("the cover gets none either — it prints no part heading at all", () => {
+    const cover = ALL.find(p => p.part.headed === false)!;
+    expect(hasSubheadings(cover)).toBe(false);
+  });
+
+  it("the rail tracks sub-sections as their own rows", () => {
+    const rows = railEntries(ALL);
+    const subs = rows.filter(r => r.sub);
+    expect(subs.length).toBe(ALL.filter(hasSubheadings).flatMap(p => p.blocks).length);
+    // Each sub-row sits after its part, never before it.
+    for (const p of ALL.filter(hasSubheadings)) {
+      const partIdx = rows.findIndex(r => r.anchor === `part-${p.part.n ?? "appendix"}`);
+      for (const b of p.blocks) {
+        expect(rows.findIndex(r => r.anchor === `section-${b.n}`)).toBeGreaterThan(partIdx);
+      }
+    }
+  });
+
+  it("every rail anchor is unique — no two rows scroll to one place", () => {
+    const anchors = railEntries(ALL).map(r => r.anchor);
+    expect(new Set(anchors).size).toBe(anchors.length);
   });
 });

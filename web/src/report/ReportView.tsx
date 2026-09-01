@@ -26,7 +26,7 @@ import { RiskReduction }      from "./sections/RiskReduction";
 import { Traceability }       from "./sections/Traceability";
 import { TrendPanel }         from "./sections/TrendPanel";
 import { Disclosure }         from "./sections/Disclosure";
-import { REPORT_PARTS }       from "./sectionGroups";
+import { REPORT_PARTS, type PresentPart } from "./sectionGroups";
 import { ReportContents }     from "./ReportContents";
 import { ReportRail, partAnchor } from "./ReportRail";
 import { NestedSectionContext } from "./SectionHeading";
@@ -83,14 +83,19 @@ export function ReportView({ report }: ReportViewProps) {
     ?? "—";
   const formulaVer   = coverContent.formula_version as string | undefined;
 
-  // Parts whose blocks are actually in this payload. Computed once so the
-  // contents map, the rail, and the rendered parts cannot disagree.
-  const presentParts = REPORT_PARTS.filter(part =>
-    part.blocks.some(n => {
-      const sec = report.sections.find(s => s.number === n);
-      return !!sec && !!SECTION_MAP[sec.number];
-    })
-  );
+  // Parts whose blocks are actually in this payload, WITH those blocks.
+  // Computed once so the contents map, the rail, and the rendered document
+  // cannot disagree about what exists or what it is called. The block titles
+  // are the ones the snapshot froze — identical to the headings each block
+  // renders, so a sub-entry never names a heading differently from the heading
+  // it scrolls to.
+  const presentParts: PresentPart[] = REPORT_PARTS.map(part => ({
+    part,
+    blocks: part.blocks
+      .map(n => report.sections.find(s => s.number === n))
+      .filter((s): s is NonNullable<typeof s> => !!s && !!SECTION_MAP[s.number])
+      .map(s => ({ n: s.number, title: s.title })),
+  })).filter(p => p.blocks.length > 0);
 
   // One part, rendered. Pulled out of the JSX so the contents card can be
   // placed BETWEEN parts rather than before all of them.
@@ -162,10 +167,10 @@ export function ReportView({ report }: ReportViewProps) {
   // own, not every such part: a filter would silently hoist a later unheaded
   // part to the top and reorder the document. Splitting at the first headed
   // part keeps document order whatever sectionGroups.ts grows into.
-  const firstHeaded = presentParts.findIndex(p => p.headed !== false);
+  const firstHeaded = presentParts.findIndex(p => p.part.headed !== false);
   const splitAt     = firstHeaded === -1 ? presentParts.length : firstHeaded;
-  const frontMatter = presentParts.slice(0, splitAt);
-  const bodyParts   = presentParts.slice(splitAt);
+  const frontMatter = presentParts.slice(0, splitAt).map(p => p.part);
+  const bodyParts   = presentParts.slice(splitAt).map(p => p.part);
 
   return (
     <div className="report-shell">

@@ -327,6 +327,9 @@
 /* A jump from the contents or the rail must land the part heading BELOW the
    pinned header, not underneath it. Matches the rail's own offset. */
 .report-part { scroll-margin-top: 108px; }
+/* Blocks are jump targets too, now that the contents lists sub-sections. Without
+   this a sub-section link lands its heading under the pinned header. */
+.report-section { scroll-margin-top: 108px; }
 
 .report-part-head {
   display: flex;
@@ -450,6 +453,31 @@
   line-height: 1.5;
 }
 
+/* Sub-sections. Indented under their part and hung off a rule, so the nesting
+   is visible without a second numbering scheme competing with the part numbers. */
+.report-contents-sublist {
+  list-style: none;
+  margin: 2px 0 6px 0;
+  padding: 0 0 0 12px;
+  border-left: 1px solid var(--border);
+  margin-left: 22px;
+}
+.report-contents-subitem {
+  display: block;
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 0.84rem;
+  color: var(--muted-foreground);
+  text-decoration: none;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+.report-contents-subitem:hover { background: var(--muted); color: var(--foreground); }
+.report-contents-subitem:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 50%, transparent);
+}
+@media (prefers-reduced-motion: reduce) { .report-contents-subitem { transition: none; } }
+
 @media (max-width: 640px) {
   .report-part-head { gap: 12px; }
   .report-part-num { width: 34px; height: 34px; font-size: 1.05rem; }
@@ -535,6 +563,13 @@
   border-left-color: var(--verified);
   color: var(--foreground);
   font-weight: 600;
+}
+/* A rail sub-row: indented, quieter, and no number of its own — the part number
+   is the only numbering in the document, and a second scheme beside it would
+   read as an outline the report does not have. */
+.report-rail-item-sub {
+  padding-left: 30px;
+  font-size: 0.78rem;
 }
 .report-rail-num {
   flex-shrink: 0;

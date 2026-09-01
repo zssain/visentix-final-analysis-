@@ -7,6 +7,8 @@ import { domainLabel } from "../../lib/domainLabels";
 import type { ReportSection } from "../types";
 import { SectionHeading } from "../SectionHeading";
 import { Button } from "@/components/ui/button";
+import { ChevronDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { severityLabel } from "../../lib/labels";
 
 interface Finding {
@@ -45,7 +47,7 @@ export function FindingsTable({ content }: { content: ReportSection["content"] }
     <div data-testid="section-6" className="report-section">
       <SectionHeading n={6} title="Disclosure Findings" />
       <p className="text-muted-foreground text-sm mb-4">
-        {content.total as number} findings · Click a finding to view the full Analyst / Advisor note
+        {content.total as number} findings · Expand a finding for the clause that raised it and the analyst note
       </p>
 
       {/* Summary table */}
@@ -57,7 +59,7 @@ export function FindingsTable({ content }: { content: ReportSection["content"] }
             <th style={th}>Severity</th>
             <th style={th}>Score</th>
             <th style={th}>Confidence</th>
-            <th style={th}>Detail</th>
+            <th style={th} className="w-10"><span className="sr-only">Detail</span></th>
           </tr>
         </thead>
         <tbody>
@@ -92,19 +94,54 @@ export function FindingsTable({ content }: { content: ReportSection["content"] }
                   <td style={td} className="text-sm text-muted-foreground">
                     {vci !== undefined ? confidenceText : "Not recorded"}
                   </td>
-                  <td style={td}>
-                    <Button variant="ghost" size="sm" onClick={() => setExpanded(isOpen ? null : f.id)}
+                  {/* One chevron, not a column of identical "View" buttons.
+                      The old column spent real width restating the same word on
+                      every row; the affordance is the same, the label lives in
+                      aria, and the arrow states the direction. */}
+                  <td style={td} className="text-right">
+                    <Button variant="ghost" size="icon" className="size-7"
+                      onClick={() => setExpanded(isOpen ? null : f.id)}
                       aria-expanded={isOpen}
+                      aria-controls={`finding-detail-${f.id}`}
                       aria-label={`${isOpen ? "Collapse" : "Expand"} finding ${code}`}
                     >
-                      {isOpen ? "Collapse ↑" : "View ↓"}
+                      <ChevronDown className={cn(
+                        "transition-transform motion-reduce:transition-none",
+                        isOpen && "rotate-180",
+                      )} />
                     </Button>
                   </td>
                 </tr>
                 {isOpen && (
                   <tr>
-                    <td colSpan={6} className="px-2 pb-5 pt-4">
+                    <td colSpan={6} id={`finding-detail-${f.id}`} className="px-2 pb-5 pt-4">
+                      {/* EVIDENCE FIRST.
+                          The panel used to open with a provenance ribbon, then
+                          the code, domain and title again, then the exposure
+                          score and confidence again — four things the row the
+                          reader just clicked already showed — and put the
+                          triggering clause last. The clause is the answer to
+                          "why did this fire", which is the only reason to
+                          expand a row at all. */}
+                      <div className="mb-4">
+                        <div className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                          Why this was raised
+                        </div>
+                        {(f.evidence ?? []).length > 0 ? (f.evidence ?? []).map((ev, i) => (
+                          <blockquote key={i} className="my-2 border-l-[3px] border-[var(--provisional)] px-3 py-2">
+                            <strong className="text-sm">{ev.section_reference ?? ev.clause_id ?? "Stored clause"}</strong>
+                            <div className="text-sm text-muted-foreground">{ev.excerpt ?? "Excerpt not recorded"}</div>
+                          </blockquote>
+                        )) : (
+                          <p className="m-0 text-sm italic text-muted-foreground">
+                            No triggering clause reference is stored for this finding.
+                          </p>
+                        )}
+                        {assessmentId && <EvidenceStack assessmentId={assessmentId} findingId={f.id} />}
+                      </div>
+
                       <AdvisorNote
+                        embedded
                         findingCode={code}
                         title={f.id}
                         domain={f.domain}
@@ -122,15 +159,6 @@ export function FindingsTable({ content }: { content: ReportSection["content"] }
                         advisorBody={f.advisor_body ?? ""}
                         lineageRefs={f.lineage_refs}
                       />
-                      {assessmentId && <EvidenceStack assessmentId={assessmentId} findingId={f.id} />}
-                      <div className="mt-3 text-sm text-muted-foreground">
-                        {(f.evidence ?? []).length > 0 ? (f.evidence ?? []).map((ev, i) => (
-                          <blockquote key={i} className="my-2 border-l-[3px] border-[var(--provisional)] px-3 py-2">
-                            <strong>{ev.section_reference ?? ev.clause_id ?? "Stored clause"}</strong>
-                            <div>{ev.excerpt ?? "Excerpt not recorded"}</div>
-                          </blockquote>
-                        )) : <em>No triggering clause reference is stored for this finding.</em>}
-                      </div>
                     </td>
                   </tr>
                 )}
