@@ -16,8 +16,9 @@ import { FlashNotice } from "../../components/FlashNotice";
 import { useFlash } from "../../lib/useFlash";
 import { api, ApiError } from "../../lib/api";
 import { useAuth } from "../../auth/AuthProvider";
-import "./quarterly.css";
+
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? (import.meta.env.DEV ? "http://localhost:8000" : "");
@@ -60,8 +61,8 @@ export function QuarterlyReport() {
     <div>
       <PageHeader eyebrow="Quarterly" title="Global Privacy Intelligence Report"
         description="The published, anonymized market briefing. Every statistic is drawn only from cohorts large enough that no company can be identified, and traces to a frozen snapshot." />
-      {loading ? <Card className="qr-card"><div className="qr-empty">Loading…</div></Card>
-        : payload ? <PublicReport p={payload} /> : <Card className="qr-card"><div className="qr-empty">No approved quarterly report has been published yet.</div></Card>}
+      {loading ? <Card className="rounded-lg border bg-card p-5 shadow-sm mb-5"><div className="px-5 py-6 text-center text-[0.86rem] text-muted-foreground">Loading…</div></Card>
+        : payload ? <PublicReport p={payload} /> : <Card className="rounded-lg border bg-card p-5 shadow-sm mb-5"><div className="px-5 py-6 text-center text-[0.86rem] text-muted-foreground">No approved quarterly report has been published yet.</div></Card>}
       {isAdmin && <AdminPanel onPublished={() => fetchPublic("/quarterly/latest").then(setPayload)} />}
     </div>
   );
@@ -77,24 +78,24 @@ function PublicReport({ p }: { p: Payload }) {
   const c = m.corpus;
 
   return (
-    <div className="qr-report">
+    <div >
       {/* Hero */}
-      <section className="qr-hero">
-        <div className="qr-hero-quarter">{m.quarter}</div>
-        <div className="qr-corpus">
+      <section className="rounded-lg border bg-card p-6 mb-5">
+        <div className="font-display text-[1.6rem] font-bold">{m.quarter}</div>
+        <div className="flex flex-wrap gap-8 my-4.5">
           {c.organizations != null && <Stat n={c.organizations} label="organizations" />}
           {c.clauses_analyzed != null && <Stat n={c.clauses_analyzed} label="clauses analyzed" />}
           {c.industries_benchmarked != null && <Stat n={c.industries_benchmarked} label="industries benchmarked" />}
           {c.jurisdictions_covered != null && <Stat n={c.jurisdictions_covered} label="jurisdictions covered" />}
         </div>
-        <div className="qr-baseline">{m.baseline_note || BASELINE_LINE}</div>
+        <div className="inline-block rounded-md border border-[color-mix(in_oklab,var(--provisional)_55%,transparent)] bg-[color-mix(in_oklab,var(--provisional)_12%,var(--card))] px-3 py-2 text-[0.82rem] text-[var(--provisional)]">{m.baseline_note || BASELINE_LINE}</div>
       </section>
 
       {/* Indicator cards */}
       {(dmi || ai) && (
-        <Card className="qr-card">
-          <div className="qr-h">Intelligence indicators</div>
-          <div className="qr-indicators">
+        <Card className="rounded-lg border bg-card p-5 shadow-sm mb-5">
+          <div className="font-display text-[1.05rem] font-semibold mb-1.5">Intelligence indicators</div>
+          <div className="flex flex-wrap gap-4.5">
             {dmi && <Indicator name="Disclosure Maturity Index" value={dmi.value} n={dmi.population_n} />}
             {ai && <Indicator name="AI Transparency Index" value={ai.value} n={ai.population_n} />}
           </div>
@@ -103,15 +104,15 @@ function PublicReport({ p }: { p: Payload }) {
 
       {/* Top gaps */}
       {gaps.length > 0 && (
-        <Card className="qr-card">
-          <div className="qr-h">Top disclosure gaps</div>
-          <div className="qr-sub">Most frequent finding types across the corpus. Descriptive prevalence — not a verdict on any organisation.</div>
-          <ol className="qr-gaps">
+        <Card className="rounded-lg border bg-card p-5 shadow-sm mb-5">
+          <div className="font-display text-[1.05rem] font-semibold mb-1.5">Top disclosure gaps</div>
+          <div className="text-[0.82rem] text-muted-foreground mb-3.5">Most frequent finding types across the corpus. Descriptive prevalence — not a verdict on any organisation.</div>
+          <ol className="list-decimal pl-5.5">
             {gaps.map((g, i) => (
-              <li key={i}>
-                <span className="qr-chip"><CodexTooltip code={String(g.code)} /></span>
-                <span className="qr-bar"><span style={{ width: `${g.prevalence_pct}%` }} /></span>
-                <span className="qr-pct">{String(g.prevalence_pct)}%</span>
+              <li className="grid grid-cols-[120px_1fr_48px] items-center gap-3 py-1.5" key={i}>
+                <span className="text-[0.72rem]"><CodexTooltip code={String(g.code)} /></span>
+                <span className="h-2 overflow-hidden rounded-sm bg-border"><span style={{ width: `${g.prevalence_pct}%` }} /></span>
+                <span className="text-right font-data text-[0.82rem] font-bold tabular-nums">{String(g.prevalence_pct)}%</span>
               </li>
             ))}
           </ol>
@@ -120,24 +121,24 @@ function PublicReport({ p }: { p: Payload }) {
 
       {/* Enforcement themes */}
       {themes.length > 0 && (
-        <Card className="qr-card">
-          <div className="qr-h">Enforcement theme shares</div>
-          <div className="qr-sub">Share of resolved enforcement records by theme (resolved records only). Observed activity, not risk scores.</div>
+        <Card className="rounded-lg border bg-card p-5 shadow-sm mb-5">
+          <div className="font-display text-[1.05rem] font-semibold mb-1.5">Enforcement theme shares</div>
+          <div className="text-[0.82rem] text-muted-foreground mb-3.5">Share of resolved enforcement records by theme (resolved records only). Observed activity, not risk scores.</div>
           {themes.map((t, i) => (
-            <div key={i} className="qr-theme">
-              <span className="qr-theme-label">{String(t.theme)}</span>
-              <span className="qr-bar"><span style={{ width: `${t.share_pct}%` }} /></span>
-              <span className="qr-pct">{String(t.share_pct)}%</span>
+            <div key={i} className="grid grid-cols-[160px_1fr_48px] items-center gap-3 py-1.5">
+              <span className="text-[0.84rem] font-semibold">{String(t.theme)}</span>
+              <span className="h-2 overflow-hidden rounded-sm bg-border"><span style={{ width: `${t.share_pct}%` }} /></span>
+              <span className="text-right font-data text-[0.82rem] font-bold tabular-nums">{String(t.share_pct)}%</span>
             </div>
           ))}
         </Card>
       )}
 
       {/* Methodology */}
-      <Card className="qr-card">
-        <div className="qr-h">Methodology</div>
-        {m.intro && <p className="qr-sub">{m.intro}</p>}
-        <div className="qr-meth">
+      <Card className="rounded-lg border bg-card p-5 shadow-sm mb-5">
+        <div className="font-display text-[1.05rem] font-semibold mb-1.5">Methodology</div>
+        {m.intro && <p className="text-[0.82rem] text-muted-foreground mb-3.5">{m.intro}</p>}
+        <div className="flex flex-col gap-0.5">
           {m.quarter_window && <MethRow k="Data window" v={m.quarter_window.join(" to ")} />}
           {c.organizations != null && <MethRow k="Organizations analyzed" v={String(c.organizations)} />}
           {c.clauses_analyzed != null && <MethRow k="Clauses analyzed" v={c.clauses_analyzed.toLocaleString()} />}
@@ -151,7 +152,7 @@ function PublicReport({ p }: { p: Payload }) {
           <MethRow k="Index weighting" v={m.weighting} />
           <MethRow k="Reproducibility" v={m.reproducible} />
         </div>
-        <div className="qr-actions">
+        <div className="mt-4 flex items-center justify-between">
           <Button asChild><a href={`${API_BASE}/quarterly/${encodeURIComponent(p.quarter)}.pdf`} target="_blank" rel="noreferrer">Download PDF</a></Button>
         </div>
       </Card>
@@ -160,12 +161,12 @@ function PublicReport({ p }: { p: Payload }) {
 }
 
 const Stat = ({ n, label }: { n: number; label: string }) => (
-  <div className="qr-stat"><div className="qr-stat-n">{n.toLocaleString()}</div><div className="qr-stat-l">{label}</div></div>
+  <div className="flex flex-col"><div className="font-data text-[1.8rem] font-bold tabular-nums text-[var(--verified)]">{n.toLocaleString()}</div><div className="text-[0.76rem] text-muted-foreground">{label}</div></div>
 );
 const Indicator = ({ name, value, n }: { name: string; value: number | null; n: number }) => (
-  <div className="qr-ind"><div className="qr-ind-v">{value != null ? value.toFixed(1) : "—"}</div><div className="qr-ind-n">{name}</div><div className="qr-ind-pop">based on {n} organisations</div></div>
+  <div className="rounded-md border px-5 py-4"><div className="font-data text-3xl font-bold tabular-nums">{value != null ? value.toFixed(1) : "—"}</div><div className="text-[0.82rem] font-semibold text-muted-foreground">{name}</div><div className="mt-0.5 text-[0.72rem] text-muted-foreground">based on {n} organisations</div></div>
 );
-const MethRow = ({ k, v }: { k: string; v?: string }) => v ? <div className="qr-meth-row"><span>{k}</span><span>{v}</span></div> : null;
+const MethRow = ({ k, v }: { k: string; v?: string }) => v ? <div className="grid grid-cols-[32%_1fr] gap-3 border-b py-1.5 text-[0.82rem] [&>span:first-child]:font-semibold [&>span:first-child]:text-muted-foreground"><span>{k}</span><span>{v}</span></div> : null;
 
 // ── Admin panel ──────────────────────────────────────────────
 function AdminPanel({ onPublished }: { onPublished: () => void }) {
@@ -222,14 +223,14 @@ function AdminPanel({ onPublished }: { onPublished: () => void }) {
   };
 
   return (
-    <Card className="qr-card qr-admin">
-      <div className="qr-h">Admin · build &amp; publish</div>
+    <Card className="rounded-lg border-2 border-ring bg-card p-5 shadow-sm mb-5">
+      <div className="font-display text-[1.05rem] font-semibold mb-1.5">Admin · build &amp; publish</div>
       <FlashNotice message={flash} />
-      <div className="qr-build">
-        <input className="qr-input" value={quarter} onChange={e => setQuarter(e.target.value)} placeholder="2026-Q3" />
+      <div className="my-3 flex flex-wrap gap-2.5">
+        <input className="h-9 rounded-md border bg-transparent px-3 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50" value={quarter} onChange={e => setQuarter(e.target.value)} placeholder="2026-Q3" />
         <Button disabled={busy} onClick={build}>{busy ? "Building…" : "Build quarter"}</Button>
       </div>
-      <table className="qr-admin-table">
+      <table className="w-full border-collapse text-[0.84rem] [&_th]:border-b [&_th]:px-2.5 [&_th]:py-2 [&_th]:text-left [&_td]:border-b [&_td]:px-2.5 [&_td]:py-2 [&_td]:text-left">
         <thead><tr><th>Quarter</th><th>Status</th><th>Gate</th><th>Created</th><th></th></tr></thead>
         <tbody>
           {snapshots.map(s => {
@@ -238,8 +239,15 @@ function AdminPanel({ onPublished }: { onPublished: () => void }) {
             return (
               <tr key={s.id}>
                 <td>{s.quarter}</td>
-                <td><span className={`qr-status st-${s.status}`}>{s.status === "draft" ? "draft (gold watermark)" : "approved"}</span></td>
-                <td>{passed === true ? <span className="qr-gate ok">passed</span> : passed === false ? <span className="qr-gate bad" title={JSON.stringify(gate?.violations)}>failed · {gate?.violations?.length} violations</span> : "—"}</td>
+                <td>
+                  {/* The governed KIND badges: provisional = draft, verified =
+                      approved. They used to be hand-rolled pills whose colour
+                      came from a class interpolated off the raw status string. */}
+                  <Badge variant={s.status === "draft" ? "provisional" : "verified"}>
+                    {s.status === "draft" ? "Draft — gold watermark" : "Approved"}
+                  </Badge>
+                </td>
+                <td>{passed === true ? <span className="font-bold text-[var(--verified)]">passed</span> : passed === false ? <span className="font-bold text-[var(--standing-bad)]" title={JSON.stringify(gate?.violations)}>failed · {gate?.violations?.length} violations</span> : "—"}</td>
                 <td>{new Date(s.created_at).toLocaleString()}</td>
                 <td>
                   <Button variant="outline" disabled={previewing === s.id} onClick={() => preview(s.id)}>{previewing === s.id ? "Opening…" : "Preview PDF"}</Button>
@@ -248,7 +256,7 @@ function AdminPanel({ onPublished }: { onPublished: () => void }) {
               </tr>
             );
           })}
-          {snapshots.length === 0 && <tr><td colSpan={5} className="qr-empty">No builds yet.</td></tr>}
+          {snapshots.length === 0 && <tr><td colSpan={5} className="px-5 py-6 text-center text-[0.86rem] text-muted-foreground">No builds yet.</td></tr>}
         </tbody>
       </table>
     </Card>

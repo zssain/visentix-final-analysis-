@@ -110,7 +110,6 @@ Nothing here needs a decision.
 | Item | Size | Note |
 |---|---|---|
 | **`report.css` generated from `theme.css`** | ~1 day | The concrete half of **OD-17**. WeasyPrint does not parse `oklch()` and Tailwind does not reach it, so the PDF keeps its own stylesheet (owner-confirmed 2026-08-31) — but its values must be **generated**, not hand-copied, or screen and print drift again |
-| **Remaining page stylesheets → Tailwind** | ~3 days | See §6. Stylistic uniformity only |
 | **`tests/test_training_labels.py` order dependency** | ~2h | Three of its tests fail against the live DB, and *which* three changes between a full run and an isolated one. A test whose result depends on run order cannot tell you anything |
 | **L-012 guard** | ~1h | An assertion covering "no cohort ⇒ no percentile" |
 | **L-011 guard** | ~half day | F07 AC-11…AC-14 |
@@ -119,38 +118,34 @@ Nothing here needs a decision.
 
 ## 6. UI migration — what is left, and why it is optional
 
-The component-system rebuild is **complete for every surface a customer or an
-operator uses daily**. What remains is page-scoped CSS on surfaces that already
-adopted the palette through the legacy token bridge (`design-system.md` §1.4).
+The component-system rebuild is **complete for every route**. What remains is
+the report surface and the legacy bridge.
 
-**Done:** app shell · theme toggle (light/dark/system) · dashboard · login ·
-admin Console · Methodology · Finding Codes · Intake · 18 primitives ·
-11 bespoke components folded into primitives · `MockBadge`/`StatTile`/`AnimatedNumber`.
+**Done — every route:** app shell · theme toggle (light/dark/system) ·
+assessments · login · admin Console · Methodology · Finding Codes · Intake ·
+Workbench · Bulk Screening · Partner · Trust Center · Vendors · Quarterly ·
+Crosswalk · Rewrite · 18 primitives · 11 bespoke components folded into
+primitives · `MockBadge`/`StatTile`/`AnimatedNumber`/`ReportCard`.
 
 **Deleted:** `furniture.css` (631) · `App.css` (431) · `advisor-note.css` (234) ·
 `multiselect.css` (83) · `intake.css` (413) · `IntelligenceMark.tsx` · 117 dead
 classes across the rest.
 
-**Legacy CSS: 2,562 → 1,873 lines.**
+**Legacy CSS: 2,562 → 276 lines** (`index.css` alone, and every class in it is
+live).
 
 | Stylesheet | Lines | Note |
 |---|---|---|
-| `index.css` | 443 | The legacy bridge + base element rules. Cannot go until every row below does |
-| `explain.css` | 282 | |
-| `report.css` | 274 | **Shared with the PDF renderer** — do this as OD-17, not as cleanup (§5) |
-| `bulk.css` | 122 | |
-| `workbench.css` | 107 | |
-| `partner.css` | 107 | |
-| `trust.css` | 94 | |
-| `vendors.css` | 88 | |
-| `quarterly.css` | 75 | |
-| `crosswalk.css` | 48 | |
-| `rewrite.css` | 43 | |
+| `report.css` | 556 | **Shared with the PDF renderer's sibling file** — do this as OD-17, not as cleanup |
+| `explain.css` | 282 | The report's explanation layer |
+| `index.css` | 276 | The legacy bridge + base element rules |
+| `report-card.css` | 205 | New, component-scoped, Tailwind-adjacent by design |
 
-**The recommendation is to stop here.** These files are now token-based,
-dead-code-free, and scoped; converting them changes nothing a reader sees. The
-exception is `report.css`, which is worth doing *as OD-17* because screen and
-print drifting apart is a correctness problem, not a tidiness one.
+**Every page stylesheet is gone.** `workbench.css` · `bulk.css` · `partner.css` ·
+`trust.css` · `vendors.css` · `quarterly.css` · `crosswalk.css` · `rewrite.css` ·
+`intake.css` · `furniture.css` · `App.css` · `advisor-note.css` ·
+`multiselect.css`. What is left is the report surface (a different job, and
+`report.css` is entangled with OD-17) and the bridge.
 
 ### Carried debt
 

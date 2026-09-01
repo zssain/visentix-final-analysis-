@@ -9,17 +9,28 @@
  * branded PDF renders our numbers with the partner header.
  */
 import { useCallback, useEffect, useState } from "react";
+import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "../../components/PageHeader";
 import { FlashNotice } from "../../components/FlashNotice";
 import { useFlash } from "../../lib/useFlash";
 import { api, ApiError } from "../../lib/api";
-import "./partner.css";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { statusLabel } from "../../lib/labels";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? (import.meta.env.DEV ? "http://localhost:8000" : "");
 // Same gate language customers see — no special casing (F20).
+/* Review status is a KIND, mapped once. It used to be a class interpolated off
+   the raw enum ("pp-chip st-in_review"), so an unmapped status rendered an
+   unstyled chip carrying the database's own word. */
+const STATUS_VARIANT: Record<string, "provisional" | "verified" | "secondary" | "default"> = {
+  draft: "provisional",
+  in_review: "default",
+  approved: "verified",
+  revoked: "secondary",
+  none: "secondary",
+};
+
 const DRAFT_GATE_TEXT = "pending Visentix expert review";
 
 interface Industry { id: string; label: string; }
@@ -33,9 +44,9 @@ function authToken(): string {
 }
 
 const StatusChip = ({ status }: { status: string }) => (
-  <span className={`pp-chip st-${status}`} title={status === "draft" ? DRAFT_GATE_TEXT : status}>
-    {status === "draft" ? DRAFT_GATE_TEXT : statusLabel(status)}
-  </span>
+  <Badge variant={STATUS_VARIANT[status] ?? "secondary"} title={status === "draft" ? DRAFT_GATE_TEXT : statusLabel(status)}>
+    {statusLabel(status)}
+  </Badge>
 );
 
 export function PartnerPortal() {
@@ -50,12 +61,12 @@ export function PartnerPortal() {
         title="Partner Workspace"
         description="Deliver Visentix intelligence under your brand. Client workspaces run the same pipeline — every assessment is held for Visentix expert review before it can be shared, and branded reports carry the same numbers as our own."
         actions={
-          <div style={{ display: "flex", gap: 8 }}>
+          <div className="flex gap-2">
             {(["clients", "feed", "branding"] as const).map(t => (
-              <button key={t} className={`btn ${tab === t ? "btn-primary" : ""}`}
+              <Button key={t} type="button" size="sm" variant={tab === t ? "default" : "outline"} aria-pressed={tab === t}
                       onClick={() => { setTab(t); setSelectedWs(null); }}>
                 {t === "clients" ? "Clients" : t === "feed" ? "Data Feed" : "Branding"}
-              </button>
+              </Button>
             ))}
           </div>
         }
@@ -102,39 +113,39 @@ function ClientsTab({ onOpen, showFlash }: { onOpen: (w: Workspace) => void; sho
 
   return (
     <div>
-      <div className="pp-toolbar">
-        <span className="pp-count">{workspaces.length} client{workspaces.length === 1 ? "" : "s"}</span>
+      <div className="mb-4 flex items-center justify-between">
+        <span className="text-[0.86rem] font-semibold text-muted-foreground">{workspaces.length} client{workspaces.length === 1 ? "" : "s"}</span>
         <Button onClick={() => setModalOpen(true)}>+ New Client</Button>
       </div>
       {workspaces.length === 0 ? (
-        <Card className="pp-card"><div className="pp-empty">No client workspaces yet. Create one to begin.</div></Card>
+        <Card className="rounded-lg border bg-card px-5.5 py-5 shadow-sm"><div className="px-5 py-6 text-center text-[0.86rem] text-muted-foreground">No client workspaces yet. Create one to begin.</div></Card>
       ) : (
-        <div className="pp-cards">
+        <div className="grid gap-3.5 [grid-template-columns:repeat(auto-fill,minmax(240px,1fr))]">
           {workspaces.map(w => (
-            <button key={w.id} className="pp-client-card" onClick={() => onOpen(w)}>
-              <div className="pp-client-name">{w.name}</div>
-              <div className="pp-client-meta">
-                {w.latest_status ? <StatusChip status={w.latest_status.review_status} /> : <span className="pp-chip st-none">no assessment yet</span>}
+            <button key={w.id} className="rounded-lg border bg-card p-4 text-left shadow-sm hover:border-ring focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50" onClick={() => onOpen(w)}>
+              <div className="mb-2 font-display text-base font-bold">{w.name}</div>
+              <div className="mb-2">
+                {w.latest_status ? <StatusChip status={w.latest_status.review_status} /> : <Badge variant="secondary">No assessment yet</Badge>}
               </div>
-              <div className="pp-client-activity">{w.latest_status?.last_activity ? `Last activity ${w.latest_status.last_activity}` : "—"}</div>
+              <div className="text-[0.76rem] text-muted-foreground">{w.latest_status?.last_activity ? `Last activity ${w.latest_status.last_activity}` : "—"}</div>
             </button>
           ))}
         </div>
       )}
 
       {modalOpen && (
-        <div className="pp-modal-backdrop" onClick={() => setModalOpen(false)}>
-          <div className="pp-modal" onClick={e => e.stopPropagation()}>
-            <div className="pp-modal-title">New Client</div>
-            <label className="pp-label">Workspace name<input className="pp-input" value={name} onChange={e => setName(e.target.value)} placeholder="Acme Retail" /></label>
-            <label className="pp-label">Client organisation<input className="pp-input" value={clientName} onChange={e => setClientName(e.target.value)} placeholder="Acme Retail Inc." /></label>
-            <label className="pp-label">Industry
-              <select className="pp-input" value={industry} onChange={e => setIndustry(e.target.value)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[color-mix(in_oklab,var(--primary)_35%,transparent)]" onClick={() => setModalOpen(false)}>
+          <div className="w-[min(440px,92vw)] rounded-lg border bg-card p-6 shadow-lg" onClick={e => e.stopPropagation()}>
+            <div className="mb-4 font-display text-[1.1rem] font-bold">New Client</div>
+            <label className="mb-3 block text-[0.8rem] font-semibold text-muted-foreground">Workspace name<input className="mt-1.5 block w-full rounded-md border bg-transparent px-3 py-2 text-[0.88rem] shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50" value={name} onChange={e => setName(e.target.value)} placeholder="Acme Retail" /></label>
+            <label className="mb-3 block text-[0.8rem] font-semibold text-muted-foreground">Client organisation<input className="mt-1.5 block w-full rounded-md border bg-transparent px-3 py-2 text-[0.88rem] shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50" value={clientName} onChange={e => setClientName(e.target.value)} placeholder="Acme Retail Inc." /></label>
+            <label className="mb-3 block text-[0.8rem] font-semibold text-muted-foreground">Industry
+              <select className="mt-1.5 block w-full rounded-md border bg-transparent px-3 py-2 text-[0.88rem] shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50" value={industry} onChange={e => setIndustry(e.target.value)}>
                 <option value="">— select —</option>
                 {industries.map(i => <option key={i.id} value={i.id}>{i.label}</option>)}
               </select>
             </label>
-            <div className="pp-modal-actions">
+            <div className="mt-4.5 flex justify-end gap-2">
               <Button onClick={() => setModalOpen(false)}>Cancel</Button>
               <Button disabled={busy || !name.trim() || !clientName.trim()} onClick={create}>{busy ? "Creating…" : "Create"}</Button>
             </div>
@@ -196,39 +207,40 @@ function ClientView({ ws, onBack, showFlash }: { ws: Workspace; onBack: () => vo
   return (
     <div>
       <Button onClick={onBack}>← Clients</Button>
-      <h2 className="pp-view-title">{ws.name}</h2>
+      <h2 className="my-3 mb-4.5 font-display text-lg font-semibold">{ws.name}</h2>
 
-      <Card className="pp-card">
-        <Card className="pp-card-title">New assessment</Card>
-        <div className="pp-modes">
+      <Card className="rounded-lg border bg-card px-5.5 py-5 shadow-sm">
+        <Card className="mb-1 font-display text-[1.1rem] font-semibold">New assessment</Card>
+        <div className="mb-3 flex gap-2">
           {(["url", "text", "upload"] as const).map(m => (
-            <button key={m} className={`pp-mode ${mode === m ? "on" : ""}`} onClick={() => setMode(m)}>
+            <Button key={m} type="button" size="sm" variant={mode === m ? "default" : "outline"}
+              className="rounded-full" aria-pressed={mode === m} onClick={() => setMode(m)}>
               {m === "url" ? "URL" : m === "text" ? "Paste text" : "Upload"}
-            </button>
+            </Button>
           ))}
         </div>
-        {mode === "url" && <input className="pp-input" placeholder="https://client.example/privacy" value={urlVal} onChange={e => setUrlVal(e.target.value)} />}
-        {mode === "text" && <textarea className="pp-textarea" placeholder="Paste the privacy notice text…" value={textVal} onChange={e => setTextVal(e.target.value)} />}
+        {mode === "url" && <input className="mt-1.5 block w-full rounded-md border bg-transparent px-3 py-2 text-[0.88rem] shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50" placeholder="https://client.example/privacy" value={urlVal} onChange={e => setUrlVal(e.target.value)} />}
+        {mode === "text" && <textarea className="mt-1.5 block min-h-[120px] w-full resize-y rounded-md border bg-transparent px-3 py-2.5 font-data text-[0.84rem] shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50" placeholder="Paste the privacy notice text…" value={textVal} onChange={e => setTextVal(e.target.value)} />}
         {mode === "upload" && <input type="file" accept=".pdf,.docx,.txt" onChange={e => setFileVal(e.target.files?.[0] || null)} />}
         <Button style={{ marginTop: 12 }} disabled={busy} onClick={submit}>{busy ? "Submitting…" : "Run assessment"}</Button>
       </Card>
 
-      <Card className="pp-card">
-        <Card className="pp-card-title">Reports</Card>
+      <Card className="rounded-lg border bg-card px-5.5 py-5 shadow-sm">
+        <Card className="mb-1 font-display text-[1.1rem] font-semibold">Reports</Card>
         {!latest ? (
-          <div className="pp-empty">No assessments yet for this client.</div>
+          <div className="px-5 py-6 text-center text-[0.86rem] text-muted-foreground">No assessments yet for this client.</div>
         ) : (
-          <div className="pp-report-row">
-            <span className="pp-report-id">Assessment {latest.assessment_id.slice(0, 8)}</span>
+          <div className="flex items-center gap-3 py-2.5">
+            <span className="font-data text-[0.82rem] font-semibold">Assessment {latest.assessment_id.slice(0, 8)}</span>
             <StatusChip status={latest.review_status} />
             {latest.review_status === "approved" && latest.snapshot_id ? (
               <Button onClick={() => downloadBranded(latest.snapshot_id!)}>Download branded PDF</Button>
             ) : (
-              <span className="pp-report-note">Branded report available once approved.</span>
+              <span className="text-[0.8rem] italic text-muted-foreground">Branded report available once approved.</span>
             )}
           </div>
         )}
-        <div className="pp-gate-note">Every client report is held for Visentix expert review — partners see the same gate as our direct customers.</div>
+        <div className="mt-2 border-t pt-2.5 text-[0.78rem] text-muted-foreground">Every client report is held for Visentix expert review — partners see the same gate as our direct customers.</div>
       </Card>
     </div>
   );
@@ -261,19 +273,19 @@ function FeedTab({ showFlash }: { showFlash: (m: string) => void }) {
 
   return (
     <div>
-      <Card className="pp-card">
-        <Card className="pp-card-title">White-label data feed</Card>
-        <Card className="pp-card-sub">
+      <Card className="rounded-lg border bg-card px-5.5 py-5 shadow-sm">
+        <Card className="mb-1 font-display text-[1.1rem] font-semibold">White-label data feed</Card>
+        <Card className="mb-4 text-[0.82rem] leading-snug text-muted-foreground">
           Aggregate privacy intelligence by industry cohort. No organisation identities, cohort membership, or raw
           clause text is included; cohorts below the minimum sample are suppressed. Redistribution requires a data
           license agreement.
         </Card>
-        <div className="pp-key-create">
-          <input className="pp-input" placeholder="Key label (e.g. prod)" value={label} onChange={e => setLabel(e.target.value)} />
+        <div className="mt-3 flex gap-2 [&>input]:mt-0 [&>input]:flex-1">
+          <input className="mt-1.5 block w-full rounded-md border bg-transparent px-3 py-2 text-[0.88rem] shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50" placeholder="Key label (e.g. prod)" value={label} onChange={e => setLabel(e.target.value)} />
           <Button onClick={create}>Create API key</Button>
         </div>
         {freshKey && (
-          <div className="pp-fresh-key">
+          <div className="mt-3.5 flex flex-wrap items-center gap-2.5 rounded-md border border-[color-mix(in_oklab,var(--provisional)_50%,transparent)] bg-[color-mix(in_oklab,var(--provisional)_12%,transparent)] p-3 [&_code]:rounded-sm [&_code]:bg-card [&_code]:px-2 [&_code]:py-1 [&_code]:font-data [&_code]:text-[0.82rem]">
             <strong>Copy this key now — it is shown only once:</strong>
             <code>{freshKey}</code>
             <Button onClick={() => { navigator.clipboard?.writeText(freshKey); showFlash("Key copied."); }}>Copy</Button>
@@ -282,18 +294,18 @@ function FeedTab({ showFlash }: { showFlash: (m: string) => void }) {
         )}
       </Card>
 
-      <Card className="pp-card">
-        <Card className="pp-card-title">Keys</Card>
-        {keys.length === 0 ? <div className="pp-empty">No API keys yet.</div> : (
-          <table className="pp-keys">
+      <Card className="rounded-lg border bg-card px-5.5 py-5 shadow-sm">
+        <Card className="mb-1 font-display text-[1.1rem] font-semibold">Keys</Card>
+        {keys.length === 0 ? <div className="px-5 py-6 text-center text-[0.86rem] text-muted-foreground">No API keys yet.</div> : (
+          <table className="w-full border-collapse [&_th]:border-b [&_th]:px-2.5 [&_th]:py-2 [&_th]:text-left [&_th]:text-[0.68rem] [&_th]:font-bold [&_th]:uppercase [&_th]:tracking-wider [&_th]:text-muted-foreground [&_td]:border-b [&_td]:p-2.5 [&_td]:align-middle [&_td]:text-[0.82rem] [&_tr:last-child_td]:border-b-0">
             <thead><tr><th>Label</th><th>Key</th><th>Last used</th><th>Status</th><th></th></tr></thead>
             <tbody>
               {keys.map(k => (
                 <tr key={k.api_key_id}>
                   <td>{k.label || <em>(unlabeled)</em>}</td>
-                  <td className="pp-mono">{k.masked}</td>
+                  <td className="font-data text-[0.8rem] tabular-nums">{k.masked}</td>
                   <td>{k.last_used_at || "never"}</td>
-                  <td>{k.revoked ? <span className="pp-chip st-revoked">revoked</span> : <span className="pp-chip st-approved">active</span>}</td>
+                  <td>{k.revoked ? <span >revoked</span> : <span >active</span>}</td>
                   <td>{!k.revoked && <Button onClick={() => revoke(k.api_key_id)}>Revoke</Button>}</td>
                 </tr>
               ))}
@@ -324,23 +336,23 @@ function BrandingTab({ showFlash }: { showFlash: (m: string) => void }) {
   };
 
   return (
-    <Card className="pp-card">
-      <Card className="pp-card-title">Branding</Card>
-      <Card className="pp-card-sub">Applied as a header band on branded reports. Branding never changes any number or wording in the report body, and a report keeps the branding it had when the Visentix expert approved it.</Card>
-      <div className="pp-branding-grid">
+    <Card className="rounded-lg border bg-card px-5.5 py-5 shadow-sm">
+      <Card className="mb-1 font-display text-[1.1rem] font-semibold">Branding</Card>
+      <Card className="mb-4 text-[0.82rem] leading-snug text-muted-foreground">Applied as a header band on branded reports. Branding never changes any number or wording in the report body, and a report keeps the branding it had when the Visentix expert approved it.</Card>
+      <div className="mt-3 grid gap-5 md:grid-cols-2">
         <div>
-          <label className="pp-label">Brand color<input type="color" className="pp-color" value={color} onChange={e => setColor(e.target.value)} /></label>
-          <label className="pp-label">Logo (PNG/JPG, max 2 MB)
+          <label className="mb-3 block text-[0.8rem] font-semibold text-muted-foreground">Brand color<input type="color" className="mt-1.5 block h-[34px] w-[60px] rounded-md border" value={color} onChange={e => setColor(e.target.value)} /></label>
+          <label className="mb-3 block text-[0.8rem] font-semibold text-muted-foreground">Logo (PNG/JPG, max 2 MB)
             <input type="file" accept="image/png,image/jpeg,image/gif,image/webp" onChange={e => setLogo(e.target.files?.[0] || null)} />
           </label>
           <Button disabled={busy} onClick={save}>{busy ? "Saving…" : "Save branding"}</Button>
         </div>
-        <div className="pp-preview" style={{ borderTop: `6px solid ${color}` }}>
-          <div className="pp-preview-band">
+        <div className="overflow-hidden rounded-md border" style={{ borderTop: `6px solid ${color}` }}>
+          <div className="flex items-center gap-3 p-3">
             {logo ? <img src={URL.createObjectURL(logo)} alt="" style={{ maxHeight: 40 }} /> : <span style={{ color, fontWeight: 700 }}>Your logo</span>}
-            <span className="pp-preview-tag">Delivered via Visentix</span>
+            <span className="ml-auto text-[0.72rem] text-muted-foreground">Delivered via Visentix</span>
           </div>
-          <div className="pp-preview-body">Report body — the same numbers as our product. Branding only adds this header.</div>
+          <div className="border-t px-3 py-3 text-[0.82rem] text-muted-foreground">Report body — the same numbers as our product. Branding only adds this header.</div>
         </div>
       </div>
     </Card>

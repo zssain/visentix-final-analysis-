@@ -21,7 +21,12 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 WEB = ROOT / "web" / "src"
-EXEMPT = {"theme.css", "index.css"}
+# theme.css defines tokens, not classes. index.css is NOT exempt: exempting it
+# is how 30 dead rules survived the page migration invisibly — every page that
+# used .btn-primary and .badge-gold moved to components, and the guard reported
+# a clean tree because it was not looking at the one stylesheet those classes
+# lived in.
+EXEMPT = {"theme.css"}
 
 CLASS_DEF = re.compile(r"^\s*\.([a-zA-Z][\w-]*)", re.M)
 

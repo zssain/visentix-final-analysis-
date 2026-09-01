@@ -7,6 +7,9 @@
  * vendor pipeline + review persistence.
  */
 import { useState } from "react";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
+import { humanize } from "../../lib/labels";
 import { PageHeader } from "../../components/PageHeader";
 import { MockBadge } from "@/components/MockBadge";
 import { FlashNotice } from "../../components/FlashNotice";
@@ -15,11 +18,27 @@ import { useFlash } from "../../lib/useFlash";
 import { VciBadge } from "../../report/VciBadge";
 import { scoreBandColor, vciBand, LOW_CONFIDENCE_COHORT_N } from "../../lib/scoreBands";
 import { VENDORS, STATUS_LABEL, type Vendor, type VendorStatus } from "./mockData";
-import "./vendors.css";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
 const STATUS_FILTERS: (VendorStatus | "all")[] = ["all", "pending", "approved", "conditional", "declined"];
+
+/* Criticality and status are KINDS and STANDINGS, mapped once. They used to be
+   a class name interpolated straight off the raw enum ("vd-crit critical"), so
+   an unmapped value silently rendered an unstyled chip — and the reader saw the
+   database's word, not ours. */
+const CRITICALITY_VARIANT: Record<string, "standing-bad" | "standing-mid" | "secondary"> = {
+  critical: "standing-bad",
+  high: "standing-mid",
+  standard: "secondary",
+};
+
+const STATUS_VARIANT: Record<string, "verified" | "provisional" | "standing-bad" | "secondary"> = {
+  approved: "verified",
+  conditional: "provisional",
+  declined: "standing-bad",
+  pending: "secondary",
+};
 
 export function VendorDueDiligence() {
   const [statusFilter, setStatusFilter] = useState<VendorStatus | "all">("all");
@@ -44,27 +63,39 @@ export function VendorDueDiligence() {
 
       <FlashNotice message={flash} />
 
-      <div className="vd-layout">
+      <div className="grid items-start gap-5.5 lg:grid-cols-[1.15fr_1fr]">
         {/* ── Queue ─────────────────────────────────────────────────────── */}
         <div>
-          <div className="vd-filters">
+          <div className="mb-3.5 flex flex-wrap gap-2">
             {STATUS_FILTERS.map(s => (
-              <button key={s} className={`vd-chip ${statusFilter === s ? "on" : ""}`} aria-pressed={statusFilter === s} onClick={() => setStatusFilter(s)}>
+              <Button key={s} type="button" size="sm" variant={statusFilter === s ? "default" : "outline"}
+                className="rounded-full" aria-pressed={statusFilter === s} onClick={() => setStatusFilter(s)}>
                 {s === "all" ? "All" : STATUS_LABEL[s]}
-              </button>
+              </Button>
             ))}
           </div>
 
           {visible.map(v => (
-            <button key={v.id} className={`vd-row ${v.id === selectedId ? "selected" : ""}`} onClick={() => setSelectedId(v.id)}>
+            <button
+              key={v.id}
+              type="button"
+              aria-pressed={v.id === selectedId}
+              onClick={() => setSelectedId(v.id)}
+              className={cn(
+                "mb-2 grid w-full grid-cols-[1fr_auto_auto] items-center gap-3 rounded-md border bg-card px-3.5 py-3 text-left",
+                "hover:border-ring hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
+                "max-md:grid-cols-[1fr_auto]",
+                v.id === selectedId && "border-ring ring-[2px] ring-ring/25",
+              )}
+            >
               <span>
-                <span className="vd-name">{v.name}</span>
-                <span className="vd-meta">
-                  {v.category} · <span className={`vd-crit ${v.criticality}`}>{v.criticality}</span>
+                <span className="text-[0.9rem] font-bold">{v.name}</span>
+                <span className="mt-0.5 text-[0.76rem] text-muted-foreground">
+                  {v.category} · <Badge variant={CRITICALITY_VARIANT[v.criticality] ?? "secondary"}>{humanize(v.criticality)}</Badge>
                 </span>
               </span>
-              <span className="vd-score" style={{ color: scoreBandColor(v.exposureScore) }}>{v.exposureScore.toFixed(1)}</span>
-              <span className={`vd-status ${v.status}`}>{STATUS_LABEL[v.status]}</span>
+              <span className="text-right font-data text-[1.15rem] font-bold tabular-nums" style={{ color: scoreBandColor(v.exposureScore) }}>{v.exposureScore.toFixed(1)}</span>
+              <Badge variant={STATUS_VARIANT[v.status] ?? "secondary"}>{STATUS_LABEL[v.status]}</Badge>
             </button>
           ))}
           {visible.length === 0 && (
@@ -73,16 +104,16 @@ export function VendorDueDiligence() {
         </div>
 
         {/* ── Detail + decision ─────────────────────────────────────────── */}
-        <Card className="vd-card">
-          <div className="vd-detail-head">
+        <Card className="rounded-lg border bg-card px-5 py-4.5 shadow-sm">
+          <div className="mb-1 flex items-start justify-between gap-3">
             <div>
-              <div className="vd-detail-name">{selected.name}</div>
-              <div className="vd-detail-sub">
+              <div className="font-display text-[1.3rem] font-semibold">{selected.name}</div>
+              <div className="mb-3.5 text-[0.8rem] text-muted-foreground">
                 {selected.domain} · {selected.category} · submitted {selected.submitted}
               </div>
             </div>
             <div style={{ textAlign: "right", flexShrink: 0 }}>
-              <div className="vd-score" style={{ color: scoreBandColor(selected.exposureScore) }}>{selected.exposureScore.toFixed(1)}</div>
+              <div className="text-right font-data text-[1.15rem] font-bold tabular-nums" style={{ color: scoreBandColor(selected.exposureScore) }}>{selected.exposureScore.toFixed(1)}</div>
               <div style={{ fontSize: "0.68rem", color: "var(--text-muted)" }}>exposure</div>
             </div>
           </div>
@@ -95,17 +126,17 @@ export function VendorDueDiligence() {
             </span>
           </div>
 
-          <div className="vd-summary">{selected.summary}</div>
+          <div className="mb-4 text-[0.88rem] leading-relaxed text-muted-foreground">{selected.summary}</div>
 
           <div style={{ fontSize: "0.72rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-muted)", marginBottom: 6 }}>
             Exposure signals · with evidence
           </div>
           {selected.signals.map((s, i) => (
-            <div key={i} className="vd-signal">
+            <div key={i} className="flex gap-2.5 border-b py-2.5 last:border-b-0">
               {/* DDR-006: every finding code is a hover/focus Codex target */}
               <span style={{ flexShrink: 0 }}><CodexTooltip code={s.code} /></span>
-              <span className="vd-signal-snippet">
-                <span className="vd-signal-issue">{s.issue}</span>
+              <span className="flex-1 border-l-2 border-l-muted-foreground pl-2.5 text-[0.82rem] italic leading-snug text-muted-foreground">
+                <span className="mb-0.5 text-[0.68rem] font-bold uppercase not-italic tracking-wider text-muted-foreground">{s.issue}</span>
                 “{s.snippet}”
               </span>
               <span style={{ flexShrink: 0 }}><VciBadge label={vciBand(s.vci)} guidance={`Flag confidence: ${s.vci}`} /></span>
@@ -134,27 +165,33 @@ function DecisionPanel({ vendor, onFlash }: { vendor: Vendor; onFlash: (msg: str
   };
 
   return (
-    <div className="vd-decision">
+    <div className="mt-4.5 border-t pt-4">
       <div style={{ fontWeight: 700, fontSize: "0.9rem", color: "var(--navy)", marginBottom: 4 }}>Your procurement decision</div>
-      <div className="vd-decision-note">
+      <div className="mb-3 text-[0.72rem] italic leading-snug text-muted-foreground">
         This decision is yours to record. Visentix provides exposure intelligence about this vendor's
         disclosures — it does not approve, clear, or reject a vendor for you.
       </div>
-      <div className="vd-actions">
-        <button className={`vd-action ${decision === "approved" ? "sel-approved" : ""}`} aria-pressed={decision === "approved"} onClick={() => setDecision("approved")}>Approve</button>
-        <button className={`vd-action ${decision === "conditional" ? "sel-conditional" : ""}`} aria-pressed={decision === "conditional"} onClick={() => setDecision("conditional")}>Approve with conditions</button>
-        <button className={`vd-action ${decision === "declined" ? "sel-declined" : ""}`} aria-pressed={decision === "declined"} onClick={() => setDecision("declined")}>Decline</button>
+      <div className="mb-3 flex flex-wrap gap-2">
+        <Button type="button" variant={decision === "approved" ? "default" : "outline"} size="sm"
+          className="min-w-[120px] flex-1"
+          aria-pressed={decision === "approved"} onClick={() => setDecision("approved")}>Approve</Button>
+        <Button type="button" variant={decision === "conditional" ? "default" : "outline"} size="sm"
+          className="min-w-[120px] flex-1"
+          aria-pressed={decision === "conditional"} onClick={() => setDecision("conditional")}>Approve with conditions</Button>
+        <Button type="button" variant={decision === "declined" ? "default" : "outline"} size="sm"
+          className="min-w-[120px] flex-1"
+          aria-pressed={decision === "declined"} onClick={() => setDecision("declined")}>Decline</Button>
       </div>
 
       {decision === "conditional" && (
         <>
-          <div className="vd-field-label">Conditions</div>
-          <textarea className="vd-textarea" value={conditions} onChange={e => setConditions(e.target.value)} placeholder="e.g. proceed pending the vendor publishing category-level retention periods" />
+          <div className="mt-2.5 mb-0.5 text-[0.72rem] font-bold uppercase tracking-wider text-muted-foreground">Conditions</div>
+          <textarea className="mt-1 min-h-[62px] w-full resize-y rounded-md border bg-transparent px-2.5 py-2 text-[0.82rem] shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50" value={conditions} onChange={e => setConditions(e.target.value)} placeholder="e.g. proceed pending the vendor publishing category-level retention periods" />
         </>
       )}
 
-      <div className="vd-field-label">Decision note</div>
-      <textarea className="vd-textarea" value={note} onChange={e => setNote(e.target.value)} placeholder="Why you reached this decision" />
+      <div className="mt-2.5 mb-0.5 text-[0.72rem] font-bold uppercase tracking-wider text-muted-foreground">Decision note</div>
+      <textarea className="mt-1 min-h-[62px] w-full resize-y rounded-md border bg-transparent px-2.5 py-2 text-[0.82rem] shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50" value={note} onChange={e => setNote(e.target.value)} placeholder="Why you reached this decision" />
 
       <Button style={{ marginTop: 12 }} onClick={record}>Record decision</Button>
     </div>

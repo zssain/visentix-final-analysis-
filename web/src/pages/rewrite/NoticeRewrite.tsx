@@ -14,9 +14,12 @@ import { PageHeader } from "../../components/PageHeader";
 import { FlashNotice } from "../../components/FlashNotice";
 import { useFlash } from "../../lib/useFlash";
 import { api, ApiError } from "../../lib/api";
-import "./rewrite.css";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { domainLabel } from "../../lib/labels";
+import { cn } from "@/lib/utils";
 
 const WATERMARK = "Illustrative language based on peer patterns — not legal drafting. Review with counsel.";
 
@@ -26,6 +29,27 @@ interface RewriteResult {
   rewrite_id: string; status: "llm" | "fallback";
   suggested_text: string | null; diff: DiffOp[]; watermark_text: string;
   guardrail_passed: boolean; verification_passed: boolean; fallback_used: boolean;
+}
+
+/** The token diff.
+ *
+ *  An addition is highlighted AND marked `<ins>`; a removal is struck through
+ *  AND marked `<del>`. The colour is a second cue, never the only one, so the
+ *  diff survives a reader who cannot distinguish the two tints. */
+function DiffText({ diff }: { diff: DiffOp[] }) {
+  return (
+    <p className="m-0 text-sm leading-loose">
+      {diff.map((op, i) => {
+        if (op.op === "add") {
+          return <ins key={i} className="rounded-xs bg-[color-mix(in_oklab,var(--provisional)_28%,transparent)] text-[var(--provisional)] no-underline">{op.text} </ins>;
+        }
+        if (op.op === "del") {
+          return <del key={i} className="text-muted-foreground">{op.text} </del>;
+        }
+        return <span key={i}>{op.text} </span>;
+      })}
+    </p>
+  );
 }
 
 export function NoticeRewrite() {
@@ -62,56 +86,113 @@ export function NoticeRewrite() {
         description="A drafting aid — clearer structure, peer-informed phrasing — that never adds a practice, recipient, or purpose your clause didn't already make. Every suggestion passes a banned-term and a fabrication check; if it can't, you get a safe side-by-side comparison instead." />
       <FlashNotice message={flash} />
 
-      <div className="rw-load">
-        <input className="rw-input" placeholder="Assessment ID" value={assessmentId}
-               onChange={e => setAssessmentId(e.target.value)} onKeyDown={e => e.key === "Enter" && loadClauses(assessmentId)} />
+      <div className="mb-5 flex flex-wrap items-end gap-3">
+        <div className="flex flex-col gap-1.5">
+          {/* The input had a placeholder and no label, so its purpose vanished
+              the moment anything was typed into it. */}
+          <Label htmlFor="rw-assessment">Assessment ID</Label>
+          <Input
+            id="rw-assessment"
+            className="w-full sm:w-[340px]"
+            placeholder="Assessment ID"
+            value={assessmentId}
+            onChange={e => setAssessmentId(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && loadClauses(assessmentId)}
+          />
+        </div>
         <Button onClick={() => loadClauses(assessmentId)}>Load clauses</Button>
       </div>
 
       {clauses.length > 0 && (
-        <div className="rw-grid">
+        <div className="grid gap-5 lg:grid-cols-[360px_minmax(0,1fr)]">
           {/* Clause picker */}
-          <Card className="rw-card rw-picker">
-            <div className="rw-h">Clauses {flagged.length > 0 && <span className="rw-flagged-note">· flagged domains first</span>}</div>
-            {clauses.map(c => (
-              <button key={c.clause_id} className={`rw-clause ${selected?.clause_id === c.clause_id ? "on" : ""} ${flagged.includes(c.domain) ? "flagged" : ""}`}
-                      onClick={() => rewrite(c)}>
-                <span className="rw-clause-domain">{c.domain}{flagged.includes(c.domain) ? " ●" : ""}</span>
-                <span className="rw-clause-text">{c.raw_text.slice(0, 140)}{c.raw_text.length > 140 ? "…" : ""}</span>
-              </button>
-            ))}
+          <Card className="max-h-[640px] gap-0 overflow-y-auto p-4">
+            <div className="mb-3 font-display font-semibold">
+              Clauses{" "}
+              {flagged.length > 0 && (
+                <span className="text-xs font-normal text-muted-foreground">· flagged domains first</span>
+              )}
+            </div>
+            <div className="flex flex-col gap-2">
+              {clauses.map(c => {
+                const isFlagged = flagged.includes(c.domain);
+                const isOn = selected?.clause_id === c.clause_id;
+                return (
+                  <button
+                    key={c.clause_id}
+                    type="button"
+                    onClick={() => rewrite(c)}
+                    aria-pressed={isOn}
+                    className={cn(
+                      "w-full rounded-md border bg-card px-3 py-2.5 text-left transition-colors",
+                      "hover:border-ring focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
+                      isOn && "border-ring ring-[2px] ring-ring/25",
+                      /* A flagged domain is marked by a rule AND the word
+                         "flagged" — the bullet it used to carry was a dot with
+                         no legend, meaningful only to whoever wrote it. */
+                      isFlagged && "border-l-[3px] border-l-[var(--provisional)]",
+                    )}
+                  >
+                    <span className="mb-1 flex items-center gap-1.5 text-[0.7rem] font-bold uppercase tracking-wider text-muted-foreground">
+                      {domainLabel(c.domain)}
+                      {isFlagged && (
+                        <span className="font-semibold normal-case tracking-normal text-[var(--provisional)]">
+                          · flagged
+                        </span>
+                      )}
+                    </span>
+                    <span className="block text-[0.82rem] leading-relaxed text-muted-foreground">
+                      {c.raw_text.slice(0, 140)}{c.raw_text.length > 140 ? "…" : ""}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </Card>
 
           {/* Rewrite / diff */}
-          <Card className="rw-card rw-output">
-            {!selected ? <div className="rw-empty">Pick a clause to see an illustrative rewrite.</div> : (
+          <Card className="gap-0 p-5">
+            {!selected ? (
+              <div className="px-5 py-10 text-center text-sm text-muted-foreground">
+                Pick a clause to see an illustrative rewrite.
+              </div>
+            ) : (
               <>
-                <div className="rw-watermark">{WATERMARK}</div>
-                {busy ? <div className="rw-empty">Generating…</div> : result ? (
+                {/* Non-dismissible by design (F18): the watermark is the reason
+                    this output is safe to show at all. */}
+                <div className="mb-3.5 rounded-md border border-[color-mix(in_oklab,var(--provisional)_55%,transparent)] bg-[color-mix(in_oklab,var(--provisional)_12%,var(--card))] px-3 py-2 text-sm font-semibold text-[var(--provisional)]">
+                  {WATERMARK}
+                </div>
+                {busy ? (
+                  <div className="px-5 py-10 text-center text-sm text-muted-foreground">Generating…</div>
+                ) : result ? (
                   <>
                     {result.status === "llm" ? (
-                      <div className="rw-diff">
-                        {result.diff.map((op, i) => (
-                          <span key={i} className={`rw-op rw-${op.op}`}>{op.text} </span>
-                        ))}
-                      </div>
+                      <DiffText diff={result.diff} />
                     ) : (
-                      <div className="rw-fallback">
-                        <div className="rw-fallback-note">A safe rewrite couldn't be generated for this clause (it failed the fabrication or banned-term check, or the model was unavailable). Here is your clause beside an approved peer exemplar instead.</div>
-                        <div className="rw-diff">
-                          {result.diff.length ? result.diff.map((op, i) => (
-                            <span key={i} className={`rw-op rw-${op.op}`}>{op.text} </span>
-                          )) : <span className="rw-empty">No approved exemplar for this domain yet.</span>}
-                        </div>
+                      <div>
+                        <p className="mb-3 rounded-md bg-muted/50 px-3 py-2 text-[0.82rem] italic leading-relaxed text-muted-foreground">
+                          A safe rewrite couldn&apos;t be generated for this clause (it failed the
+                          fabrication or banned-term check, or the model was unavailable). Here is
+                          your clause beside an approved peer exemplar instead.
+                        </p>
+                        {result.diff.length ? <DiffText diff={result.diff} /> : (
+                          <div className="px-5 py-8 text-center text-sm text-muted-foreground">
+                            No approved exemplar for this domain yet.
+                          </div>
+                        )}
                       </div>
                     )}
                     {result.suggested_text && (
-                      <div className="rw-actions">
-                        <Button onClick={() => { navigator.clipboard?.writeText(result.suggested_text || ""); showFlash("Copied."); }}>Copy</Button>
-                        <Button onClick={() => selected && rewrite(selected)}>Regenerate</Button>
+                      <div className="mt-3.5 flex gap-2">
+                        <Button size="sm" onClick={() => { navigator.clipboard?.writeText(result.suggested_text || ""); showFlash("Copied."); }}>Copy</Button>
+                        <Button size="sm" variant="outline" onClick={() => selected && rewrite(selected)}>Regenerate</Button>
                       </div>
                     )}
-                    <div className="rw-legend"><span className="rw-op rw-add">added</span> <span className="rw-op rw-del">removed</span></div>
+                    <div className="mt-4 flex items-center gap-2 text-xs text-muted-foreground">
+                      <ins className="rounded-xs bg-[color-mix(in_oklab,var(--provisional)_28%,transparent)] px-1 text-[var(--provisional)] no-underline">added</ins>
+                      <del className="text-muted-foreground">removed</del>
+                    </div>
                   </>
                 ) : null}
               </>

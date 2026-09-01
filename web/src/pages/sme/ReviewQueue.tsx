@@ -29,12 +29,12 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { api, ApiError } from "../../lib/api";
 import { CodexTooltip } from "../../components/CodexTooltip";
 import { PageHeader } from "../../components/PageHeader";
-import "./workbench.css";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { domainLabel, humanize, statusLabel } from "../../lib/labels";
+import { domainLabel, humanize, severityLabel, statusLabel } from "../../lib/labels";
+import { cn } from "@/lib/utils";
 
 const NR = "—"; // honest absence — never a fabricated value (DATA-003)
 
@@ -93,13 +93,19 @@ function fmt(v: number | null | undefined, digits = 1): string {
   return typeof v === "number" && Number.isFinite(v) ? v.toFixed(digits) : NR;
 }
 
-function severityBadgeClass(severity: string): string {
+/** Severity IS a standing, so it uses the one traffic-light scale (OD-13).
+ *  An unrecognised severity gets no standing at all — `provisional` says "we do
+ *  not know what this is", where the old `badge-draft` fallback quietly painted
+ *  it the same as a reviewed draft. */
+function severityVariant(severity: string): "standing-bad" | "standing-mid" | "standing-good" | "provisional" {
   switch ((severity || "").toLowerCase()) {
     case "severe":
-    case "high": return "badge-high";
-    case "moderate": return "badge-moderate";
-    case "low": return "badge-low";
-    default: return "badge-draft";
+    case "high": return "standing-bad";
+    case "moderate":
+    case "elevated":
+    case "medium": return "standing-mid";
+    case "low": return "standing-good";
+    default: return "provisional";
   }
 }
 
@@ -318,9 +324,9 @@ export function ReviewQueue() {
         title="SME Workbench"
         description="Decide every machine finding before it reaches a client — confirm, edit or dismiss — then approve the assessment. Every decision is saved as a training label."
         actions={
-          <div className="wb-header-stats">
+          <div className="flex flex-col items-end gap-1.5">
             <Badge variant="provisional">{queueLoading ? NR : queue.length} pending</Badge>
-            <div className="wb-counters">
+            <div className="flex gap-3 text-[0.78rem] font-bold [&>span:nth-child(1)]:text-[var(--standing-good)] [&>span:nth-child(2)]:text-[var(--verified)] [&>span:nth-child(3)]:text-[var(--standing-bad)]">
               <span title="Confirmed">✓ {trainingStats.confirmed}</span>
               <span title="Edited">✎ {trainingStats.edited}</span>
               <span title="Dismissed">✕ {trainingStats.dismissed}</span>
@@ -329,7 +335,7 @@ export function ReviewQueue() {
         }
       />
 
-      <div className="wb-tabs" role="tablist" aria-label="Workbench mode">
+      <div className="mb-4 flex gap-1 border-b [&_button]:-mb-px [&_button]:cursor-pointer [&_button]:border-b-2 [&_button]:border-transparent [&_button]:bg-transparent [&_button]:px-3.5 [&_button]:py-2.5 [&_button]:text-[0.85rem] [&_button]:font-semibold [&_button]:text-muted-foreground [&_button.active]:border-b-foreground [&_button.active]:text-foreground" role="tablist" aria-label="Workbench mode">
         <button role="tab" aria-selected={mode === "findings"} className={mode === "findings" ? "active" : ""}
           onClick={() => setMode("findings")}>Findings review</button>
         <button role="tab" aria-selected={mode === "exemplars"} className={mode === "exemplars" ? "active" : ""}
@@ -344,15 +350,15 @@ export function ReviewQueue() {
       )}
 
       {mode === "findings" ? (
-        <div className="wb-grid">
+        <div className="grid items-start gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
           {/* ── Queue ── */}
-          <Card className="wb-queue">
+          <Card className="gap-0 overflow-hidden py-0">
             <div className="flex items-center justify-between gap-3 border-b px-6 py-4"><div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Awaiting review</div></div>
-            <div className="wb-queue-body">
+            <div className="flex max-h-[70vh] flex-col gap-1.5 overflow-y-auto p-2.5">
               {queueLoading ? (
-                <p className="wb-muted">Loading queue…</p>
+                <p className="m-0 text-[0.82rem] text-muted-foreground">Loading queue…</p>
               ) : queue.length === 0 ? (
-                <p className="wb-muted" data-testid="queue-empty">All caught up — nothing is waiting for review.</p>
+                <p className="m-0 text-[0.82rem] text-muted-foreground" data-testid="queue-empty">All caught up — nothing is waiting for review.</p>
               ) : queue.map(item => {
                 const total = item.total_findings ?? 0;
                 const decided = item.decided_findings ?? 0;
@@ -360,26 +366,26 @@ export function ReviewQueue() {
                   <button key={item.assessment_id} onClick={() => selectItem(item)}
                     data-testid={`queue-item-${item.assessment_id}`}
                     title={`Assessment ${item.assessment_id}`}
-                    className={`wb-queue-item ${selected?.assessment_id === item.assessment_id ? "sel" : ""}`}>
-                    <span className="wb-qi-main">
+                    className={cn("flex w-full items-start justify-between gap-2 rounded-md border bg-card px-2.5 py-2.5 text-left", "hover:border-ring focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50", selected?.assessment_id === item.assessment_id && "border-ring bg-[color-mix(in_oklab,var(--primary)_4%,transparent)]")}>
+                    <span className="flex min-w-0 flex-col gap-0.5">
                       {/* The organization is the item's name. The id stays available
                           on hover and in the header — reachable, not leading. */}
-                      <span className="wb-qi-name">
-                        {item.organization_name || <em className="wb-muted">Organization not recorded</em>}
+                      <span className="text-[0.84rem] font-bold">
+                        {item.organization_name || <em className="m-0 text-[0.82rem] text-muted-foreground">Organization not recorded</em>}
                       </span>
                       {item.source_label && (
-                        <span className="wb-qi-src">{shortSource(item.source_label)}</span>
+                        <span className="max-w-[190px] overflow-hidden text-ellipsis whitespace-nowrap text-[0.72rem] text-muted-foreground">{shortSource(item.source_label)}</span>
                       )}
-                      <span className="wb-qi-meta">
+                      <span className="text-[0.7rem] text-muted-foreground">
                         {total > 0
                           ? `${decided}/${total} findings decided`
                           : "No findings recorded"}
                         {item.captured_at && <> · {shortDate(item.captured_at)}</>}
                       </span>
                     </span>
-                    <span className={`badge ${item.status === "in_review" ? "badge-gold" : "badge-draft"}`}>
+                    <Badge variant="provisional">
                       {statusLabel(item.status)}
-                    </span>
+                    </Badge>
                   </button>
                 );
               })}
@@ -387,84 +393,84 @@ export function ReviewQueue() {
           </Card>
 
           {/* ── Review surface ── */}
-          <Card className="wb-review">
+          <Card className="px-4.5 py-4">
             {!selected ? (
-              <div className="wb-empty">Choose an assessment to begin reviewing its findings.</div>
+              <div className="max-w-[60ch] px-1 py-6 text-[0.86rem] leading-relaxed text-muted-foreground">Choose an assessment to begin reviewing its findings.</div>
             ) : detailLoading ? (
-              <div className="wb-empty">Loading findings…</div>
+              <div className="max-w-[60ch] px-1 py-6 text-[0.86rem] leading-relaxed text-muted-foreground">Loading findings…</div>
             ) : detailError ? (
               <Alert variant="destructive" data-testid="detail-error"><AlertDescription>{detailError}</AlertDescription></Alert>
             ) : !detail || detail.total_count === 0 ? (
-              <div className="wb-empty" data-testid="no-findings">
+              <div className="max-w-[60ch] px-1 py-6 text-[0.86rem] leading-relaxed text-muted-foreground" data-testid="no-findings">
                 No findings are recorded for this assessment. Nothing can be approved until the
                 pipeline has produced findings — this is not the same as "everything passed".
               </div>
             ) : current ? (
               <>
-                <div className="wb-subject">
+                <div className="mb-3.5 flex flex-wrap items-baseline gap-1.5 border-b pb-3 text-[0.84rem] text-muted-foreground [&_strong]:text-[0.95rem] [&_strong]:text-foreground [&_code]:ml-auto [&_code]:rounded-sm [&_code]:bg-muted/60 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:font-data [&_code]:text-[0.68rem] [&_code]:text-muted-foreground">
                   <strong>{selected.organization_name || "Organization not recorded"}</strong>
                   {selected.source_label && <span> · {shortSource(selected.source_label)}</span>}
                   {selected.industry && <span> · {humanize(selected.industry)}</span>}
                   <code title="Assessment id">{selected.assessment_id}</code>
                 </div>
-                <div className="wb-finding-head">
+                <div className="mb-3.5 flex flex-wrap items-center gap-2">
                   <CodexTooltip code={current.finding_type_code} />
-                  <span className={`badge ${severityBadgeClass(current.severity)}`} data-testid="finding-severity">
-                    {current.severity || NR}
-                  </span>
+                  <Badge variant={severityVariant(current.severity)} data-testid="finding-severity">
+                    {current.severity ? severityLabel(current.severity) : NR}
+                  </Badge>
                   {current.decision && (
                     <Badge variant="verified" data-testid="finding-decision">
                       {current.decision}ed
                     </Badge>
                   )}
-                  <span className="wb-count">Finding {findingIdx + 1} of {detail.total_count}</span>
+                  <span className="ml-auto text-[0.74rem] text-muted-foreground">Finding {findingIdx + 1} of {detail.total_count}</span>
                 </div>
 
                 {/* Cited evidence — the real finding_clause links, or absence. */}
-                <div className="wb-block">
+                <div className="mb-4">
                   <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Cited clause{current.evidence.length > 1 ? "s" : ""}</div>
                   {current.evidence.length === 0 ? (
-                    <p className="wb-muted" data-testid="no-evidence">
+                    <p className="m-0 text-[0.82rem] text-muted-foreground" data-testid="no-evidence">
                       No clause is linked to this finding. Judge it on the finding definition alone,
                       or dismiss it — no substitute text is shown.
                     </p>
                   ) : current.evidence.map(ev => (
-                    <blockquote key={ev.clause_id} className="wb-clause" data-testid="cited-clause">
-                      <p>{ev.text || <span className="wb-muted">Clause text not recorded.</span>}</p>
+                    <blockquote key={ev.clause_id} className="mb-2 rounded-r-md border-l-[3px] border-l-primary bg-muted/40 px-3.5 py-3 [&_p]:m-0 [&_p]:mb-1.5 [&_p]:text-[0.88rem] [&_p]:leading-relaxed [&_cite]:not-italic" data-testid="cited-clause">
+                      <p>{ev.text || <span className="m-0 text-[0.82rem] text-muted-foreground">Clause text not recorded.</span>}</p>
                       <cite className="code-chip">{ev.clause_id}</cite>
                     </blockquote>
                   ))}
                 </div>
 
-                <div className="wb-metrics">
+                <div className="mb-4 grid gap-2.5 [grid-template-columns:repeat(auto-fit,minmax(130px,1fr))] [&>div]:flex [&>div]:flex-col [&>div]:gap-0.5 [&>div]:rounded-md [&>div]:border [&>div]:px-3 [&>div]:py-2.5 [&_span]:text-[0.65rem] [&_span]:font-bold [&_span]:uppercase [&_span]:tracking-wider [&_span]:text-muted-foreground [&_strong]:font-data [&_strong]:text-base [&_strong]:tabular-nums">
                   <div><span>Score</span><strong>{fmt(current.score)}</strong></div>
                   <div><span>Confidence</span><strong>{fmt(current.confidence_score, 2)}</strong></div>
                   <div><span>Benchmark deviation</span><strong>{fmt(current.benchmark_deviation_score)}</strong></div>
                   <div><span>Domain</span><strong>{current.domain ? domainLabel(current.domain) : NR}</strong></div>
                 </div>
 
-                <div className="wb-block">
+                <div className="mb-4">
                   <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Advisor note (optional)</div>
-                  <input className="wb-input" placeholder="Lede — one sentence"
+                  <input className="mb-2 w-full resize-y rounded-md border bg-transparent px-2.5 py-2 text-[0.85rem] shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50" placeholder="Lede — one sentence"
                     value={advisorLede} onChange={e => setAdvisorLede(e.target.value)} />
-                  <textarea className="wb-input" rows={3} placeholder="Body"
+                  <textarea className="mb-2 w-full resize-y rounded-md border bg-transparent px-2.5 py-2 text-[0.85rem] shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50" rows={3} placeholder="Body"
                     value={advisorBody} onChange={e => setAdvisorBody(e.target.value)} />
                 </div>
 
-                <div className="wb-actions">
+                <div className="mb-4.5 flex flex-wrap items-center gap-2">
                   <Button size="sm" disabled={saving} onClick={() => decide("confirm")}>Confirm</Button>
                   <Button variant="outline" size="sm" disabled={saving} onClick={() => decide("edit")}>Save edit</Button>
                   <Button variant="destructive" size="sm" disabled={saving} onClick={() => decide("dismiss")}>Dismiss</Button>
-                  <span className="wb-nav">
+                  <span className="ml-auto flex gap-1.5">
                     <Button variant="outline" size="sm" disabled={findingIdx === 0} onClick={() => setFindingIdx(i => Math.max(0, i - 1))}>← Prev</Button>
                     <Button variant="outline" size="sm" disabled={findingIdx>= detail.total_count - 1}
                       onClick={() => setFindingIdx(i => Math.min(detail.total_count - 1, i + 1))}>Next →</Button>
                   </span>
                 </div>
 
-                <div className="wb-approve">
-                  <div className="wb-progress">
-                    <div className="wb-progress-bar">
+                <div className="flex flex-wrap items-center gap-3.5 border-t pt-3.5">
+                  <div className="flex items-center gap-2.5 text-[0.78rem] text-muted-foreground">
+                    <div className="h-1.5 w-[130px] overflow-hidden rounded-sm bg-border [&>div]:h-full [&>div]:rounded-sm [&>div]:bg-[var(--standing-good)] [&>div]:transition-[width] [&>div]:duration-300 motion-reduce:[&>div]:transition-none">
                       <div style={{ width: `${(detail.reviewed_count / Math.max(detail.total_count, 1)) * 100}%` }} />
                     </div>
                     <span>{detail.reviewed_count} of {detail.total_count} decided</span>
@@ -473,7 +479,7 @@ export function ReviewQueue() {
                     {approving ? "Approving…" : "Approve assessment"}
                   </Button>
                   {!detail.all_reviewed && (
-                    <span className="wb-muted" data-testid="approve-blocked">
+                    <span className="m-0 text-[0.82rem] text-muted-foreground" data-testid="approve-blocked">
                       Every finding needs a decision first — the server refuses approval otherwise.
                     </span>
                   )}
@@ -484,49 +490,49 @@ export function ReviewQueue() {
         </div>
       ) : (
         /* ── Exemplar de-identification — real, server-validated ── */
-        <div className="wb-grid">
-          <Card className="wb-queue">
+        <div className="grid items-start gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
+          <Card className="gap-0 overflow-hidden py-0">
             <div className="flex items-center justify-between gap-3 border-b px-6 py-4"><div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Candidates</div></div>
-            <div className="wb-queue-body">
-              {exLoading ? <p className="wb-muted">Loading candidates…</p>
-                : exemplars.length === 0 ? <p className="wb-muted" data-testid="exemplars-empty">No exemplar candidates are awaiting de-identification.</p>
+            <div className="flex max-h-[70vh] flex-col gap-1.5 overflow-y-auto p-2.5">
+              {exLoading ? <p className="m-0 text-[0.82rem] text-muted-foreground">Loading candidates…</p>
+                : exemplars.length === 0 ? <p className="m-0 text-[0.82rem] text-muted-foreground" data-testid="exemplars-empty">No exemplar candidates are awaiting de-identification.</p>
                 : exemplars.map(ex => (
                   <button key={ex.id} onClick={() => pickExemplar(ex)}
-                    className={`wb-queue-item ${exSelected?.id === ex.id ? "sel" : ""}`}
+                    className={cn("flex w-full items-start justify-between gap-2 rounded-md border bg-card px-2.5 py-2.5 text-left", "hover:border-ring focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50", exSelected?.id === ex.id && "border-ring bg-[color-mix(in_oklab,var(--primary)_4%,transparent)]")}
                     data-testid={`exemplar-${ex.id}`}>
-                    <span className="wb-qid">{ex.domain ? domainLabel(ex.domain) : NR}</span>
+                    <span className="font-data text-[0.76rem] font-semibold">{ex.domain ? domainLabel(ex.domain) : NR}</span>
                     <Badge variant="provisional">{ex.id.slice(0, 6)}…</Badge>
                   </button>
                 ))}
             </div>
           </Card>
 
-          <Card className="wb-review">
+          <Card className="px-4.5 py-4">
             {!exSelected ? (
-              <div className="wb-empty">
+              <div className="max-w-[60ch] px-1 py-6 text-[0.86rem] leading-relaxed text-muted-foreground">
                 Choose a candidate to de-identify. The server re-validates every submission and
                 refuses text that still carries identifying tokens — the check below is only a
                 reading aid.
               </div>
             ) : (
               <>
-                <div className="wb-block">
+                <div className="mb-4">
                   <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Cleaned clause text</div>
-                  <textarea className="wb-input" rows={8} value={cleanText}
+                  <textarea className="mb-2 w-full resize-y rounded-md border bg-transparent px-2.5 py-2 text-[0.85rem] shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50" rows={8} value={cleanText}
                     onChange={e => setCleanText(e.target.value)} data-testid="exemplar-text" />
                   {hints.length > 0 && (
-                    <p className="wb-hint" data-testid="pii-hint">
+                    <p className="mt-0.5 text-[0.76rem] text-[var(--standing-mid)]" data-testid="pii-hint">
                       Possible identifiers spotted while typing: {hints.join(", ")}. The server makes
                       the binding decision on save.
                     </p>
                   )}
                 </div>
-                <div className="wb-block">
+                <div className="mb-4">
                   <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Maturity note</div>
-                  <input className="wb-input" value={maturityNote}
+                  <input className="mb-2 w-full resize-y rounded-md border bg-transparent px-2.5 py-2 text-[0.85rem] shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50" value={maturityNote}
                     onChange={e => setMaturityNote(e.target.value)} />
                 </div>
-                <div className="wb-actions">
+                <div className="mb-4.5 flex flex-wrap items-center gap-2">
                   <Button variant="outline" size="sm" disabled={exBusy} onClick={saveClean} data-testid="exemplar-clean">Check &amp; save cleaned text</Button>
                   <Button size="sm" disabled={exBusy} onClick={approveExemplar} data-testid="exemplar-approve">Approve exemplar</Button>
                 </div>
