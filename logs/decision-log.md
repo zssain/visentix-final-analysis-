@@ -2,6 +2,7 @@
 
 Format: `YYYY-MM-DD · who · decision · one-line why`
 
+- 2026-09-01 · engineer · `/assessments/` now carries each notice's OWN overall score, read from `derived_data_item.notice_id` in one batched query · the card was showing the org-wide portfolio figure and, when that could not honestly be attributed, printing a sentence explaining our plumbing to the reader. The per-report score existed the whole time (71 of 100 live notices carry one); the list endpoint simply did not read it
 - 2026-09-01 · engineer · `dashboard-stats` now emits null for an unmeasured metric instead of 0 · the client had to un-guess absence with `score > 0`, which is wrong in both directions — a genuine 0 is the BEST result on an exposure metric and rendered as "not recorded", and any surface not repeating the guess would print a fabricated 0 as real (Hard Rule 7). The F19 bulk path already emitted null; this endpoint was the outlier
 - 2026-09-01 · engineer · "Back to Assessments" in a report pointed at `/`, the ROLE-BASED home · an admin landed on the Console and an SME on the Workbench, so the label lied to everyone who is not a customer
 - 2026-09-01 · engineer · Score breakdown moved inside the overall-score card, ordered by what needs attention first · the card was mostly empty with a toggle stranded at the bottom; the space now answers the question the headline provokes (why is it Deficient) without a click

@@ -110,6 +110,95 @@ async def test_list_assessments_filters_customer_by_org():
     assert seen["filters"] == ""  # admin → platform-wide
 
 
+# ── list_assessments carries each report's OWN score ─────────
+
+def _assessments_with_scores(score_rows):
+    """GET /assessments/ against a stub where the score query returns `score_rows`."""
+    import app.routers.assessments as A
+
+    notices = [
+        {"notice_id": "n1", "organization_id": MINE, "notice_type": "live_assessment",
+         "effective_date": None, "organization": {"name": "Alpha"}},
+        {"notice_id": "n2", "organization_id": MINE, "notice_type": "live_assessment",
+         "effective_date": None, "organization": {"name": "Beta"}},
+    ]
+    calls = []
+
+    class _Resp:
+        def __init__(self, payload): self._p = payload; self.status_code = 200
+        def json(self): return self._p
+
+    async def _get(table, *, select="*", filters="", limit=1000, count=False):
+        calls.append((table, filters))
+        if table == "privacy_notice":
+            return _Resp(notices)
+        if table == "derived_data_item":
+            return _Resp(score_rows)
+        return _Resp([])
+
+    return A, _get, calls
+
+
+@pytest.mark.anyio
+async def test_list_assessments_attaches_each_notices_own_score():
+    """Each row carries ITS report's score, not a portfolio figure.
+
+    Without this the only score available beside a report was the org-wide one
+    from /findings/dashboard-stats — a portfolio number that belongs to no
+    single report. Attaching it to one organisation's card attributes a figure
+    to an assessment that never produced it.
+    """
+    A, _get, _ = _assessments_with_scores([
+        {"notice_id": "n1", "score": 62.3, "confidence_score": 0.5,
+         "generated_at": "2026-06-18T00:00:00Z"},
+    ])
+    transport = ASGITransport(app=app)
+    with patch.object(A, "supabase_rest_get", _get):
+        async with AsyncClient(transport=transport, base_url="http://test") as c:
+            r = await c.get("/assessments/", headers=_hdr("customer"))
+    rows = {x["notice_id"]: x for x in r.json()}
+    assert rows["n1"]["overall_score"] == 62.3
+    assert rows["n1"]["overall_confidence"] == 0.5
+    # n2 has no scored row: absence, never 0 and never a borrowed number.
+    assert rows["n2"]["overall_score"] is None
+    assert rows["n2"]["overall_confidence"] is None
+
+
+@pytest.mark.anyio
+async def test_list_assessments_takes_the_newest_score_per_notice():
+    """The score query is ordered newest-first; the first row per notice wins.
+
+    A stale score is worse than none — it is a real-looking figure describing a
+    version of the notice the reader is not looking at.
+    """
+    A, _get, calls = _assessments_with_scores([
+        {"notice_id": "n1", "score": 71.0, "confidence_score": 0.6,
+         "generated_at": "2026-08-01T00:00:00Z"},
+        {"notice_id": "n1", "score": 40.0, "confidence_score": 0.4,
+         "generated_at": "2026-01-01T00:00:00Z"},
+    ])
+    transport = ASGITransport(app=app)
+    with patch.object(A, "supabase_rest_get", _get):
+        async with AsyncClient(transport=transport, base_url="http://test") as c:
+            r = await c.get("/assessments/", headers=_hdr("customer"))
+    assert {x["notice_id"]: x["overall_score"] for x in r.json()}["n1"] == 71.0
+    # The ordering the pick relies on must actually be requested.
+    score_query = next(f for t, f in calls if t == "derived_data_item")
+    assert "order=generated_at.desc" in score_query
+    assert "object_type=eq.overall_intelligence" in score_query
+
+
+@pytest.mark.anyio
+async def test_list_assessments_scores_in_one_query_not_one_per_notice():
+    """N+1 against a shared database is how a list page becomes a timeout."""
+    A, _get, calls = _assessments_with_scores([])
+    transport = ASGITransport(app=app)
+    with patch.object(A, "supabase_rest_get", _get):
+        async with AsyncClient(transport=transport, base_url="http://test") as c:
+            await c.get("/assessments/", headers=_hdr("customer"))
+    assert len([t for t, _ in calls if t == "derived_data_item"]) == 1
+
+
 # ── dashboard-stats: customer queries scoped to org ──────────
 
 @pytest.mark.anyio

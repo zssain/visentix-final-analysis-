@@ -58,7 +58,46 @@ async def list_assessments(
             return []
         filters = f"organization_id=eq.{user.organization_id}"
     r = await supabase_rest_get("privacy_notice", select=select, filters=filters, limit=100)
-    return r.json()
+    notices = r.json()
+    if not isinstance(notices, list) or not notices:
+        return notices
+
+    # Each notice's OWN overall score.
+    #
+    # The list used to carry none, so a caller wanting to show a score beside a
+    # report had only the org-wide figure from /findings/dashboard-stats — which
+    # is a portfolio number. Printing it under one organisation's name attributes
+    # a figure to a report that never produced it, and the dashboard card had to
+    # explain that limitation to the reader in a sentence about our plumbing.
+    #
+    # One query, not one per notice: fetch every overall_intelligence row for the
+    # notices in hand, newest first, and keep the first seen per notice.
+    # `notice_id` is null on older rows, which stay unscored — honest absence
+    # about THAT report, never a borrowed number.
+    ids = [n["notice_id"] for n in notices if n.get("notice_id")]
+    scores: dict[str, dict] = {}
+    if ids:
+        sr = await supabase_rest_get(
+            "derived_data_item",
+            select="notice_id,score,confidence_score,generated_at",
+            filters=("object_type=eq.overall_intelligence"
+                     f"&notice_id=in.({','.join(ids)})"
+                     "&order=generated_at.desc"),
+            limit=1000,
+        )
+        if sr.status_code == 200:
+            for row in sr.json():
+                nid = row.get("notice_id")
+                if nid and nid not in scores:      # newest wins — the list is ordered
+                    scores[nid] = row
+
+    for n in notices:
+        hit = scores.get(n.get("notice_id"))
+        # null, never 0: an unscored assessment has no standing, and 0 is the
+        # best possible result on an exposure metric (Hard Rule 7).
+        n["overall_score"] = hit.get("score") if hit else None
+        n["overall_confidence"] = hit.get("confidence_score") if hit else None
+    return notices
 
 
 # ── F05 addendum: recommendation evidence stack (frozen at approval) ──

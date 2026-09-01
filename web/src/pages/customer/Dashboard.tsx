@@ -40,6 +40,10 @@ interface Assessment {
   notice_type: string;
   effective_date: string | null;
   organization: { name: string; domain: string | null; industry: string | null; size: string | null; geography: string | null } | null;
+  /** THIS assessment's own overall score — null when it has not been scored.
+   *  Never the org-wide figure: that one belongs to a portfolio, not a report. */
+  overall_score: number | null;
+  overall_confidence: number | null;
 }
 
 interface DashboardStats {
@@ -186,21 +190,12 @@ export function CustomerDashboard() {
 
   const latest = assessments[0] ?? null;
 
-  /* Whether the headline score may be shown ON the latest report's card.
-     `overall_score` is a PORTFOLIO figure from dashboard-stats; it belongs to
-     one report only when every assessment in view belongs to one organisation
-     — true for a customer, false for an admin looking at the whole corpus.
-     Printing a portfolio score under one company's name would attribute a
-     number to a report that never produced it. */
-  const singleOrg = useMemo(() => {
-    const ids = new Set(assessments.map(a => a.organization_id));
-    return ids.size === 1;
-  }, [assessments]);
-
-  const cardScore = singleOrg ? overallScore : null;
-  const cardAbsenceReason = !singleOrg
-    ? "Score shown alongside covers every assessed organisation, not this one alone."
-    : "No score computed for this assessment yet.";
+  /* The card shows THIS report's own score, served by /assessments/.
+     It used to fall back to the org-wide figure from dashboard-stats and, when
+     that could not honestly be attributed (an admin sees many organisations),
+     printed a sentence explaining our own plumbing to the reader. The score was
+     always there — the list endpoint simply did not carry it. */
+  const cardScore = latest?.overall_score ?? null;
 
   /* Clamped rather than trusted: a refresh that shortens the list while the
      reader is on the last page would otherwise render an empty table, which on
@@ -262,7 +257,7 @@ export function CustomerDashboard() {
             organization={latest.organization?.name ?? "Organisation not recorded"}
             reportId={latest.notice_id}
             score={cardScore ?? undefined}
-            scoreAbsenceReason={cardAbsenceReason}
+            scoreAbsenceReason="Not scored yet."
             meta={[
               { label: "Type", value: noticeTypeLabel(latest.notice_type) },
               ...(latest.effective_date ? [{ label: "Effective", value: latest.effective_date }] : []),
@@ -402,6 +397,7 @@ export function CustomerDashboard() {
                   <thead>
                     <tr className="border-b bg-muted/40 text-left">
                       <th className="px-6 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Organisation</th>
+                      <th className="px-6 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Standing</th>
                       <th className="px-6 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Industry</th>
                       <th className="px-6 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Type</th>
                       <th className="px-6 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Actions</th>
@@ -414,6 +410,24 @@ export function CustomerDashboard() {
                           <div className="font-semibold">{a.organization?.name ?? "—"}</div>
                           {a.organization?.domain && (
                             <div className="text-xs text-muted-foreground">{a.organization.domain}</div>
+                          )}
+                        </td>
+                        {/* Band leads, figure follows (design-system §2). An
+                            unscored assessment says so in words — a dash in a
+                            score column reads as a missing cell, not as a fact
+                            about the report. */}
+                        <td className="px-6 py-3">
+                          {a.overall_score !== null && a.overall_score !== undefined ? (
+                            <span className="flex items-baseline gap-2">
+                              <span className="font-semibold" style={{ color: maturityBandColor(a.overall_score) }}>
+                                {maturityBand(a.overall_score)}
+                              </span>
+                              <span className="font-data text-xs tabular-nums text-muted-foreground">
+                                {a.overall_score.toFixed(1)}
+                              </span>
+                            </span>
+                          ) : (
+                            <span className="text-xs italic text-muted-foreground">Not scored yet</span>
                           )}
                         </td>
                         <td className="px-6 py-3 capitalize text-muted-foreground">{a.organization?.industry ?? "—"}</td>
