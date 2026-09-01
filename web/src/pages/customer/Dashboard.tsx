@@ -3,10 +3,12 @@
  *
  * No mock data. All scores, findings, and stats come from the backend.
  */
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { api, ApiError } from "../../lib/api";
-import { ProvenanceRibbon } from "../../components/ProvenanceRibbon";
+import { ReportCard } from "../../components/ReportCard";
+import { SnapshotReference } from "./SnapshotReference";
+import "../../components/report-card.css";
 import { PageHeader }       from "../../components/PageHeader";
 import { MonitoringHero }   from "./MonitoringHero";
 import { bandColor, maturityBandColor, maturityBand, metricPolarity, vciBand } from "../../lib/scoreBands";
@@ -14,11 +16,15 @@ import { Card, CardContent, CardHeader, CardTitle, CardAction } from "@/componen
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { StatTile } from "@/components/ui/stat-tile";
+import { ChevronDown } from "lucide-react";
 import { AnimatedNumber } from "@/components/ui/animated-number";
 
 /** Plain-language VCI explainer — shown wherever a VCI number appears. */
 const VCI_TITLE =
   "Confidence (0–100): how much weight to give this figure — reflects cohort size, source quality, and classification certainty.";
+
+/** Rows per page in the assessments table. */
+const PAGE_SIZE = 10;
 
 const DIRECTION_HINT: Record<string, string> = {
   maturity: "higher is better",
@@ -26,6 +32,7 @@ const DIRECTION_HINT: Record<string, string> = {
 };
 import { StatusDot } from "@/components/StatusDot";
 import { noticeTypeLabel } from "../../lib/labels";
+import { paginate } from "../../lib/paginate";
 
 interface Assessment {
   notice_id: string;
@@ -69,6 +76,34 @@ export function CustomerDashboard() {
   const overallScore = stats?.overall_score ?? null;
   const snapshotId = stats?.snapshot?.id ?? null;
   const snapshotDate = stats?.snapshot?.date ?? "";
+  const [breakdownOpen, setBreakdownOpen] = useState(false);
+  const [page, setPage] = useState(0);
+
+  const latest = assessments[0] ?? null;
+
+  /* Whether the headline score may be shown ON the latest report's card.
+     `overall_score` is a PORTFOLIO figure from dashboard-stats; it belongs to
+     one report only when every assessment in view belongs to one organisation
+     — true for a customer, false for an admin looking at the whole corpus.
+     Printing a portfolio score under one company's name would attribute a
+     number to a report that never produced it. */
+  const singleOrg = useMemo(() => {
+    const ids = new Set(assessments.map(a => a.organization_id));
+    return ids.size === 1;
+  }, [assessments]);
+
+  const cardScore = singleOrg ? overallScore : null;
+  const cardAbsenceReason = !singleOrg
+    ? "Score shown alongside covers every assessed organisation, not this one alone."
+    : "No score computed for this assessment yet.";
+
+  /* Clamped rather than trusted: a refresh that shortens the list while the
+     reader is on the last page would otherwise render an empty table, which on
+     this screen is indistinguishable from "you have no assessments". */
+  const {
+    rows: pageRows, page: safePage, pageCount,
+    first: firstRow, last: lastRow,
+  } = paginate(assessments, page, PAGE_SIZE);
 
   return (
     <div>
@@ -77,72 +112,103 @@ export function CustomerDashboard() {
         title="Your Assessments"
         description="Real-time privacy intelligence across all assessed notices. Every number comes from the scoring pipeline — nothing is mocked."
         actions={
-          <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.78rem", fontWeight: 600, color: "var(--emerald)" }}>
-            <StatusDot /> Live data
-          </div>
+          <>
+            <div className="flex items-center gap-1.5 text-[0.78rem] font-semibold text-[var(--verified)]">
+              <StatusDot /> Live data
+            </div>
+            {/* Provenance moved off the top of the page and behind a control.
+                Not removed — one gesture away (see SnapshotReference). */}
+            {snapshotId && (
+              <SnapshotReference snapshotId={snapshotId} frozenDate={snapshotDate} />
+            )}
+          </>
         }
       />
 
-      {snapshotId && (
-        <div style={{ marginBottom: 20 }}>
-          <ProvenanceRibbon
-            snapshotId={snapshotId}
-            frozenDate={snapshotDate}
-            status="approved"
+      {/* The latest report as an object, beside the numbers that describe the
+          whole portfolio. Two columns, because they answer different questions:
+          "what is the most recent thing" and "what does everything add up to". */}
+      <div className="mb-5 grid gap-5 lg:grid-cols-[340px_minmax(0,1fr)]">
+        {latest ? (
+          <ReportCard
+            organization={latest.organization?.name ?? "Organisation not recorded"}
+            reportId={latest.notice_id}
+            score={cardScore ?? undefined}
+            scoreAbsenceReason={cardAbsenceReason}
+            meta={[
+              { label: "Type", value: noticeTypeLabel(latest.notice_type) },
+              ...(latest.effective_date ? [{ label: "Effective", value: latest.effective_date }] : []),
+            ]}
           />
-        </div>
-      )}
+        ) : (
+          <Card className="flex items-center justify-center p-8 text-center">
+            <CardContent className="flex flex-col items-center gap-3 p-0">
+              <p className="m-0 text-sm text-muted-foreground">No report yet.</p>
+              <Button asChild size="sm"><Link to="/intake">Start Intake</Link></Button>
+            </CardContent>
+          </Card>
+        )}
 
-      {/* Exposure counts as a compact labelled stat row in the primary scan path,
-          not a talkative side card (DDR-011 "earn your place"). Real values only —
-          an absent stat shows an em dash, never a zero standing in for unknown. */}
-      {stats && (
-        <Card className="mb-5 py-4">
-          <CardContent className="flex flex-wrap gap-x-10 gap-y-4">
-            <StatTile label="Assessments" value={stats.assessment_count} />
-            <StatTile label="Findings"    value={stats.finding_count} />
-            <StatTile label="High exposure"     value={stats.high_findings}   tone="bad" />
-            <StatTile label="Elevated exposure" value={stats.medium_findings} tone="mid" />
-          </CardContent>
-        </Card>
-      )}
-
-      <div className="flex flex-col gap-5">
-
-          {/* M-06/07/08: continuous-monitoring hero. Renders nothing at all while
-              every monitoring endpoint is unpopulated — F07 surfacing rule. */}
-          <MonitoringHero />
+        <div className="flex flex-col gap-5">
+          {/* Portfolio counts. Real values only — an absent stat shows an em
+              dash, never a zero standing in for unknown. */}
+          {stats && (
+            <Card className="py-4">
+              <CardContent className="grid grid-cols-2 gap-x-8 gap-y-4 sm:grid-cols-4">
+                <StatTile label="Assessments" value={stats.assessment_count} />
+                <StatTile label="Findings"    value={stats.finding_count} />
+                <StatTile label="High exposure"     value={stats.high_findings}   tone="bad" />
+                <StatTile label="Elevated exposure" value={stats.medium_findings} tone="mid" />
+              </CardContent>
+            </Card>
+          )}
 
           {/* Overall score — the BAND leads, the number follows (design-system §2).
               "Developing" is what a reader can act on; 71.7 is not. The figure is
               kept, never removed: it sits beside the band and in full lineage. */}
-          <Card className="py-4">
-            <CardContent className="flex flex-col gap-1.5">
+          <Card className="flex-1 py-4">
+            <CardContent className="flex h-full flex-col gap-1.5">
               <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                 Overall Privacy Intelligence
               </div>
               {overallScore != null ? (
-                <div className="flex flex-wrap items-baseline gap-3">
-                  <span
-                    className="text-3xl font-bold leading-tight"
-                    style={{ color: maturityBandColor(overallScore) }}
-                  >
-                    {maturityBand(overallScore)}
-                  </span>
-                  <span className="font-data text-base font-semibold text-muted-foreground">
-                    <AnimatedNumber value={overallScore} decimals={1} />
-                    <span className="font-medium">/100</span>
-                  </span>
-                  <span
-                    title={VCI_TITLE}
-                    className="text-xs text-muted-foreground cursor-help underline decoration-dotted"
-                  >
-                    {vciBand((stats?.overall_confidence ?? 0) * 100)} confidence
-                  </span>
-                  <span className="ml-auto text-xs text-muted-foreground">
+                <>
+                  <div className="flex flex-wrap items-baseline gap-3">
+                    <span
+                      className="text-3xl font-bold leading-tight"
+                      style={{ color: maturityBandColor(overallScore) }}
+                    >
+                      {maturityBand(overallScore)}
+                    </span>
+                    <span className="font-data text-base font-semibold text-muted-foreground">
+                      <AnimatedNumber value={overallScore} decimals={1} />
+                      <span className="font-medium">/100</span>
+                    </span>
+                    <span
+                      title={VCI_TITLE}
+                      className="text-xs text-muted-foreground cursor-help underline decoration-dotted"
+                    >
+                      {vciBand((stats?.overall_confidence ?? 0) * 100)} confidence
+                    </span>
+                  </div>
+                  <p className="m-0 text-xs text-muted-foreground">
                     benchmarked against your peer cohort · higher is better
-                  </span>
-                </div>
+                  </p>
+                  {stats && stats.domain_scores.length > 0 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="mt-auto w-fit"
+                      aria-expanded={breakdownOpen}
+                      aria-controls="score-breakdown"
+                      onClick={() => setBreakdownOpen(o => !o)}
+                      data-testid="toggle-breakdown"
+                    >
+                      {breakdownOpen ? "Hide score breakdown" : "Show score breakdown"}
+                      <ChevronDown className={breakdownOpen ? "rotate-180 transition-transform motion-reduce:transition-none" : "transition-transform motion-reduce:transition-none"} />
+                    </Button>
+                  )}
+                </>
               ) : (
                 <div className="text-sm text-muted-foreground">
                   No scores computed yet. Submit an assessment via Intake to see real scores.
@@ -150,10 +216,19 @@ export function CustomerDashboard() {
               )}
             </CardContent>
           </Card>
+        </div>
+      </div>
 
-          {/* Domain scorecards — from real data */}
-          {stats && stats.domain_scores.length > 0 && (
-            <section>
+      <div className="flex flex-col gap-5">
+
+          {/* M-06/07/08: continuous-monitoring hero. Renders nothing at all while
+              every monitoring endpoint is unpopulated — F07 surfacing rule. */}
+          <MonitoringHero />
+
+          {/* Domain scorecards — from real data. Collapsed by default: eight
+              metrics is the detail behind the headline, not the headline. */}
+          {stats && stats.domain_scores.length > 0 && breakdownOpen && (
+            <section id="score-breakdown">
               <h2 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                 Score Breakdown
               </h2>
@@ -248,7 +323,7 @@ export function CustomerDashboard() {
                     </tr>
                   </thead>
                   <tbody>
-                    {assessments.slice(0, 20).map((a) => (
+                    {pageRows.map((a) => (
                       <tr key={a.notice_id} className="border-b last:border-0 hover:bg-muted/40 transition-colors">
                         <td className="px-6 py-3">
                           <div className="font-semibold">{a.organization?.name ?? "—"}</div>
@@ -271,6 +346,39 @@ export function CustomerDashboard() {
                     ))}
                   </tbody>
                 </table>
+              </div>
+            )}
+
+            {/* Pagination. The list used to render `slice(0, 20)` with nothing
+                saying so — assessment 21 simply did not exist as far as the
+                screen was concerned. The count below states the whole total, so
+                the page can never imply the list is shorter than it is. */}
+            {assessments.length > PAGE_SIZE && (
+              <div className="flex flex-wrap items-center justify-between gap-3 border-t px-6 py-3">
+                <span className="text-xs text-muted-foreground" data-testid="pagination-status">
+                  {firstRow}–{lastRow} of {assessments.length}
+                </span>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline" size="sm"
+                    onClick={() => setPage(Math.max(0, safePage - 1))}
+                    disabled={safePage === 0}
+                    data-testid="page-prev"
+                  >
+                    Previous
+                  </Button>
+                  <span className="text-xs tabular-nums text-muted-foreground">
+                    Page {safePage + 1} of {pageCount}
+                  </span>
+                  <Button
+                    variant="outline" size="sm"
+                    onClick={() => setPage(Math.min(pageCount - 1, safePage + 1))}
+                    disabled={safePage >= pageCount - 1}
+                    data-testid="page-next"
+                  >
+                    Next
+                  </Button>
+                </div>
               </div>
             )}
           </Card>
