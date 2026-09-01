@@ -199,7 +199,11 @@ function AppRoutes() {
         <>
           {/* Mobile top bar — hamburger + brand; hidden on desktop where the
               sidebar is always visible. */}
-          <div className="md:hidden fixed top-0 inset-x-0 z-40 h-14 flex items-center gap-3 px-4 bg-sidebar border-b border-sidebar-border">
+          <div className={cn(
+            "md:hidden fixed top-0 inset-x-0 z-40 h-14 flex items-center gap-3 px-4",
+            "border-b border-sidebar-border backdrop-blur-xl",
+            "bg-sidebar supports-[backdrop-filter]:bg-[color-mix(in_oklab,var(--sidebar)_82%,transparent)]",
+          )}>
             <button
               className="inline-flex items-center justify-center size-9 rounded-md text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
               aria-label={navOpen ? "Close menu" : "Open menu"}
@@ -236,7 +240,7 @@ function AppRoutes() {
               "md:top-3 md:my-3 md:ml-3 md:h-[calc(100vh-1.5rem)] md:w-60",
               "md:rounded-2xl md:border md:border-sidebar-border md:shadow-lg",
               "bg-sidebar supports-[backdrop-filter]:md:bg-[color-mix(in_oklab,var(--sidebar)_72%,transparent)]",
-              "md:backdrop-blur-xl",
+              "md:backdrop-blur-xl md:overflow-hidden md:isolate",
               "transition-transform duration-200 ease-out md:transition-none",
               "motion-reduce:transition-none",
               navOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
@@ -244,6 +248,27 @@ function AppRoutes() {
             role="navigation"
             aria-label="Main navigation"
           >
+            {/* The same wash and the same brand hairline as PageHeader, so the
+                two panels read as one piece of chrome rather than two surfaces
+                that happen to be adjacent. Decorative, aria-hidden. */}
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-x-0 top-0 -z-10 hidden h-72 md:block"
+              style={{
+                background:
+                  "radial-gradient(80% 60% at 0% 0%, color-mix(in oklab, var(--verified) 12%, transparent) 0%, transparent 64%)," +
+                  "radial-gradient(70% 50% at 100% 6%, color-mix(in oklab, var(--provisional) 9%, transparent) 0%, transparent 62%)",
+              }}
+            />
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-x-0 top-0 hidden h-px md:block"
+              style={{
+                background: "linear-gradient(90deg, var(--verified) 0%, var(--provisional) 34%, transparent 82%)",
+                opacity: 0.7,
+              }}
+            />
+
             <div className="h-16 flex items-center px-5 border-b border-sidebar-border shrink-0 md:mx-3 md:px-2">
               <img src="/wordmark logo for white background.png" alt="Visentix" className="h-7 w-auto dark:hidden" />
               <img src="/wordmark logo for dark background.png" alt="Visentix" className="h-7 w-auto hidden dark:block" />
