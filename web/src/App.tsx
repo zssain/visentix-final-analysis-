@@ -2,12 +2,12 @@
  * App — uses AuthProvider context for all auth state.
  * No imperative navigate() after sign-in. All redirects are declarative.
  */
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import { BrowserRouter, Link, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import {
   Activity, FilePlus2, ClipboardCheck, Newspaper, BookMarked,
   Compass, Settings, Grid3x3, PenLine, ShieldCheck, Handshake, ScanSearch, Building2,
-  LogOut,
+  LogOut, PanelLeftClose, PanelLeftOpen,
 } from "lucide-react";
 
 // ── Build-level surface masking (release system) ───────────────────────────
@@ -183,16 +183,50 @@ function RoleBasedHome() {
   return <Navigate to="/assessments" replace />;
 }
 
+/** Persisted rail preference — same storage pattern as ThemeProvider: lazy
+ *  read, try/catch on both sides so blocked storage degrades to session-only. */
+const RAIL_KEY = "visentix.rail";
+
 function AppRoutes() {
   const { session, user, profile, signOut } = useAuth();
   const role = profile?.role;
   const location = useLocation();
   const [navOpen, setNavOpen] = useState(false);
+  // Desktop-only: the rail can be hidden entirely (owner-decided 2026-09-01).
+  // This is hide/show, NOT the icon-only collapsed mode DDR-010 rejects — the
+  // rail is either fully present or fully out of the way. Mobile keeps its
+  // hamburger drawer regardless of this preference.
+  const [railHidden, setRailHidden] = useState(() => {
+    try { return localStorage.getItem(RAIL_KEY) === "hidden"; } catch { return false; }
+  });
   // Login is the only full-bleed route; everything else (including the public
   // /codex and /methodology pages) gets the standard content container.
   const fullBleed = location.pathname === "/login";
 
   const closeNav = () => setNavOpen(false);
+
+  const toggleRail = useCallback(() => {
+    setRailHidden(h => {
+      const next = !h;
+      try { localStorage.setItem(RAIL_KEY, next ? "hidden" : "visible"); } catch { /* session-only */ }
+      return next;
+    });
+  }, []);
+
+  // Ctrl/Cmd+B toggles the rail (the shortcut editors use for their sidebar).
+  // Skipped while typing so it can never eat a keystroke in a text field.
+  useEffect(() => {
+    if (!session) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key.toLowerCase() !== "b" || !(e.metaKey || e.ctrlKey) || e.altKey || e.shiftKey) return;
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
+      e.preventDefault();
+      toggleRail();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [session, toggleRail]);
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -244,7 +278,11 @@ function AppRoutes() {
               "md:backdrop-blur-xl md:overflow-hidden md:isolate",
               "transition-transform duration-200 ease-out md:transition-none",
               "motion-reduce:transition-none",
-              navOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+              navOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
+              /* Hidden rail (desktop preference): fully absent, so the content
+                 column reclaims the width. Mobile ignores it — the drawer is
+                 already hidden until summoned. */
+              railHidden && "md:hidden"
             )}
             role="navigation"
             aria-label="Main navigation"
@@ -273,6 +311,17 @@ function AppRoutes() {
             <div className="h-16 flex items-center px-5 border-b border-sidebar-border shrink-0 md:mx-3 md:px-2">
               <img src="/wordmark logo for white background.png" alt="Visentix" className="h-7 w-auto dark:hidden" />
               <img src="/wordmark logo for dark background.png" alt="Visentix" className="h-7 w-auto hidden dark:block" />
+              <Button
+                onClick={toggleRail}
+                variant="ghost"
+                size="icon"
+                aria-label="Hide sidebar"
+                aria-keyshortcuts="Control+B"
+                title="Hide sidebar (Ctrl+B)"
+                className="ml-auto hidden shrink-0 text-muted-foreground hover:text-foreground md:inline-flex"
+              >
+                <PanelLeftClose />
+              </Button>
             </div>
 
             {/* Built from the route registry — the nav cannot list a screen the
@@ -329,6 +378,22 @@ function AppRoutes() {
               <ThemeToggle className="self-start" />
             </div>
           </nav>
+
+          {/* The way back. Floats where the rail's own edge was, so hiding and
+              showing feel like the same control moving, not two features. */}
+          {railHidden && (
+            <Button
+              onClick={toggleRail}
+              variant="outline"
+              size="icon"
+              aria-label="Show sidebar"
+              aria-keyshortcuts="Control+B"
+              title="Show sidebar (Ctrl+B)"
+              className="fixed left-3 top-4 z-40 hidden shadow-sm backdrop-blur-sm bg-background/80 md:inline-flex"
+            >
+              <PanelLeftOpen />
+            </Button>
+          )}
         </>
       )}
 
