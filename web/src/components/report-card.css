@@ -47,7 +47,19 @@
               left 420ms cubic-bezier(0.22, 0.61, 0.36, 1),
               width 420ms cubic-bezier(0.22, 0.61, 0.36, 1);
 }
-.report-card-panel-blur { filter: blur(28px); opacity: 0.6; }
+/* The glow is a HOVER state, not a resting one. At rest it put a permanent
+   coloured haze around every card, which on a wall of cards reads as noise
+   rather than emphasis — and emphasis that is always on is not emphasis. */
+.report-card-panel-blur {
+  filter: blur(28px);
+  opacity: 0;
+  transition: opacity 300ms ease;
+}
+.report-card:hover .report-card-panel-blur,
+.report-card:focus-within .report-card-panel-blur { opacity: 0.6; }
+@media (prefers-reduced-motion: reduce) {
+  .report-card-panel-blur { transition: none; }
+}
 
 /* A second sweep at a different angle, so the panel reads as a surface catching
    light rather than a flat ramp. Decorative only. */
