@@ -44,6 +44,25 @@ export interface RouteDef {
   purpose: string;
 }
 
+/* Build-time flags, read as RAW literals so Rollup can fold them.
+ *
+ * A maskable route's entry must be dead-code-eliminated from a masked build,
+ * strings and all: release.sh step 5 greps the bundle to prove that a masked
+ * surface's path and title are ABSENT. Declaring them as plain array members
+ * would bundle them unconditionally — which is exactly the leak this guard
+ * exists to catch, and which this registry originally introduced.
+ *
+ * `false ? [{...}] : []` folds at build time and the object never ships. Do NOT
+ * hoist these into a helper or an object lookup: the literal check must sit
+ * directly in the expression for the fold to happen. */
+const PREVIEW   = import.meta.env.VITE_PREVIEW_SURFACES === "true";
+const F_REWRITE   = import.meta.env.VITE_SURFACE_REWRITE   === "true" || PREVIEW;
+const F_VENDORS   = import.meta.env.VITE_SURFACE_VENDORS   === "true" || PREVIEW;
+const F_CROSSWALK = import.meta.env.VITE_SURFACE_CROSSWALK === "true" || PREVIEW;
+const F_TRUST     = import.meta.env.VITE_SURFACE_TRUST     === "true" || PREVIEW;
+const F_PARTNER   = import.meta.env.VITE_SURFACE_PARTNER   === "true" || PREVIEW;
+const F_BULK      = import.meta.env.VITE_SURFACE_BULK      === "true" || PREVIEW;
+
 export const ROUTES: RouteDef[] = [
   // ── Workspace ────────────────────────────────────────────────────────────
   {
@@ -63,18 +82,18 @@ export const ROUTES: RouteDef[] = [
     roles: ["customer", "sme", "admin"],
     purpose: "Start an assessment; work continues in the background.",
   },
-  {
+  ...(F_REWRITE ? ([{
     path: "/rewrite", title: "Trust Language Studio",
     navLabel: "Rewrite", group: "workspace",
     roles: ["sme", "admin"], surface: "REWRITE",
     purpose: "Draft clearer notice language against the assessed original.",
-  },
-  {
+  }] as RouteDef[]) : []),
+  ...(F_VENDORS ? ([{
     path: "/vendors", title: "Vendor Due Diligence",
     navLabel: "Vendors", group: "workspace",
     roles: ["admin"], surface: "VENDORS",
     purpose: "Screen a vendor's public notice and record a procurement decision.",
-  },
+  }] as RouteDef[]) : []),
   {
     path: "/workbench", title: "SME Workbench",
     navLabel: "Workbench", group: "workspace",
@@ -89,12 +108,12 @@ export const ROUTES: RouteDef[] = [
     surface: "QUARTERLY", editorialCover: true,
     purpose: "Public corpus-wide intelligence for the quarter.",
   },
-  {
+  ...(F_CROSSWALK ? ([{
     path: "/crosswalk", title: "Framework Crosswalk",
     navLabel: "Crosswalk", group: "intelligence",
     roles: ["admin"], surface: "CROSSWALK",
     purpose: "How our domains and finding codes relate to external frameworks.",
-  },
+  }] as RouteDef[]) : []),
   {
     path: "/finding-codes", title: "Finding Code Definitions",
     navLabel: "Finding Codes", group: "intelligence",
@@ -107,12 +126,12 @@ export const ROUTES: RouteDef[] = [
     navLabel: "Methodology", group: "intelligence",
     purpose: "The formulas, the review gate, and the reproducibility guarantees.",
   },
-  {
+  ...(F_TRUST ? ([{
     path: "/trust", title: "Trust Center",
     navLabel: "Trust Center", group: "intelligence",
     roles: ["admin"], surface: "TRUST", editorialCover: true,
     purpose: "Public statement of what we claim, what we do not, and how data is handled.",
-  },
+  }] as RouteDef[]) : []),
 
   // ── Administration ───────────────────────────────────────────────────────
   {
@@ -121,18 +140,18 @@ export const ROUTES: RouteDef[] = [
     roles: ["admin"],
     purpose: "System health, gate mode, batch operations and training-label stats.",
   },
-  {
+  ...(F_PARTNER ? ([{
     path: "/partner", title: "Partner Portal",
     navLabel: "Partner", group: "administration",
     roles: ["admin", "partner_admin"], surface: "PARTNER",
     purpose: "Partner-scoped client list and white-labelled report delivery.",
-  },
-  {
+  }] as RouteDef[]) : []),
+  ...(F_BULK ? ([{
     path: "/screening", title: "Bulk Screening",
     navLabel: "Screening", group: "administration",
     roles: ["admin"], surface: "BULK",
     purpose: "Screen many notices at once for draft-grade triage.",
-  },
+  }] as RouteDef[]) : []),
 
   // ── Routed but not in the nav ────────────────────────────────────────────
   {
@@ -164,7 +183,10 @@ export const ROUTE_REDIRECTS: Record<string, string> = {
   "/monitor": "/assessments",
   "/codex": "/finding-codes",
   "/review": "/workbench",
-  "/bulk": "/screening",
+  // Gated for the same reason the entry is: a redirect naming a masked path
+  // puts that path back in the bundle, and there is nothing to redirect TO
+  // when the surface is absent.
+  ...(F_BULK ? { "/bulk": "/screening" } : {}),
 };
 
 export const NAV_GROUPS: { id: NavGroup; label: string }[] = [

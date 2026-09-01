@@ -33,7 +33,10 @@ def parse_registry() -> dict[str, dict]:
     src = REGISTRY.read_text(encoding="utf-8")
     body = src[src.index("export const ROUTES"):src.index("export const ROUTE_REDIRECTS")]
     out: dict[str, dict] = {}
-    for block in re.split(r"\n  \{", body)[1:]:
+    # Entries are either plain `{ ... }` members or, for maskable surfaces,
+    # `...(FLAG ? [{ ... }] : [])` so Rollup can fold them out of a masked
+    # build. Both forms declare a route and both must be checked.
+    for block in re.split(r"\n  (?:\{|\.\.\.\([A-Z_]+ \? \(\[\{)", body)[1:]:
         path = re.search(r'path:\s*"([^"]+)"', block)
         if not path:
             continue

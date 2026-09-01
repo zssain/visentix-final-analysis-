@@ -25,12 +25,21 @@ import {
 // NB: both routes AND nav links check `import.meta.env.VITE_SURFACE_* === "true"`
 // INLINE (never via a shared object) so Rollup DCEs the whole block — even the
 // nav label string — out of a masked build.
-const S_BULK      = import.meta.env.VITE_SURFACE_BULK === "true";
-const S_PARTNER   = import.meta.env.VITE_SURFACE_PARTNER === "true";
-const S_REWRITE   = import.meta.env.VITE_SURFACE_REWRITE === "true";
-const S_VENDORS   = import.meta.env.VITE_SURFACE_VENDORS === "true";
-const S_TRUST     = import.meta.env.VITE_SURFACE_TRUST === "true";
-const S_CROSSWALK = import.meta.env.VITE_SURFACE_CROSSWALK === "true";
+// VITE_PREVIEW_SURFACES is the documented master switch (see web/.env.example):
+// one flag that opens every preview surface for internal builds, instead of
+// setting seven. It was documented but never implemented — the code only ever
+// read the individual flags, so the documented contract did nothing.
+//
+// Both operands are compile-time literals, so `false || false` still folds to
+// `false` and Rollup's DCE is unaffected: an un-flagged build still has the
+// masked chunks — and their nav label strings — absent from the bundle, which
+// release.sh step 5 proves by grep.
+const S_BULK      = import.meta.env.VITE_SURFACE_BULK      === "true" || import.meta.env.VITE_PREVIEW_SURFACES === "true";
+const S_PARTNER   = import.meta.env.VITE_SURFACE_PARTNER   === "true" || import.meta.env.VITE_PREVIEW_SURFACES === "true";
+const S_REWRITE   = import.meta.env.VITE_SURFACE_REWRITE   === "true" || import.meta.env.VITE_PREVIEW_SURFACES === "true";
+const S_VENDORS   = import.meta.env.VITE_SURFACE_VENDORS   === "true" || import.meta.env.VITE_PREVIEW_SURFACES === "true";
+const S_TRUST     = import.meta.env.VITE_SURFACE_TRUST     === "true" || import.meta.env.VITE_PREVIEW_SURFACES === "true";
+const S_CROSSWALK = import.meta.env.VITE_SURFACE_CROSSWALK === "true" || import.meta.env.VITE_PREVIEW_SURFACES === "true";
 const S_QUARTERLY = import.meta.env.VITE_SURFACE_QUARTERLY !== "false";
 
 /** The flag set the registry consults. Kept next to the raw reads above so a new
@@ -46,17 +55,20 @@ const SURFACE_FLAGS: Record<string, boolean> = {
 const ROUTE_ICONS: Record<string, typeof Activity> = {
   "/assessments": Activity,
   "/intake": FilePlus2,
-  "/rewrite": PenLine,
-  "/vendors": Building2,
   "/workbench": ClipboardCheck,
   "/quarterly": Newspaper,
-  "/crosswalk": Grid3x3,
   "/finding-codes": BookMarked,
   "/methodology": Compass,
-  "/trust": ShieldCheck,
   "/admin": Settings,
-  "/partner": Handshake,
-  "/screening": ScanSearch,
+  // Maskable paths are keys too, so they must be gated exactly like the routes
+  // themselves — an unconditional key puts a masked path string back into the
+  // bundle that DCE just removed from the registry.
+  ...(S_REWRITE   ? { "/rewrite": PenLine } : {}),
+  ...(S_VENDORS   ? { "/vendors": Building2 } : {}),
+  ...(S_CROSSWALK ? { "/crosswalk": Grid3x3 } : {}),
+  ...(S_TRUST     ? { "/trust": ShieldCheck } : {}),
+  ...(S_PARTNER   ? { "/partner": Handshake } : {}),
+  ...(S_BULK      ? { "/screening": ScanSearch } : {}),
 };
 
 import { cn } from "@/lib/utils";
@@ -87,32 +99,32 @@ import { TaskTracker }           from "./jobs/TaskTracker";
 // (and thus the chunk) vanishes from the bundle when off (see note above).
 const susp = (el: React.ReactNode) => <Suspense fallback={null}>{el}</Suspense>;
 const maskedRoutes: React.ReactNode[] = [];
-if (import.meta.env.VITE_SURFACE_REWRITE === "true") {
+if (import.meta.env.VITE_SURFACE_REWRITE === "true" || import.meta.env.VITE_PREVIEW_SURFACES === "true") {
   const NoticeRewrite = lazy(() => import("./pages/rewrite/NoticeRewrite").then(m => ({ default: m.NoticeRewrite })));
   maskedRoutes.push(<Route key="rewrite" path="/rewrite" element={
     <ProtectedRoute allowedRoles={["sme", "admin"]}>{susp(<NoticeRewrite />)}</ProtectedRoute>} />);
 }
-if (import.meta.env.VITE_SURFACE_VENDORS === "true") {
+if (import.meta.env.VITE_SURFACE_VENDORS === "true" || import.meta.env.VITE_PREVIEW_SURFACES === "true") {
   const VendorDueDiligence = lazy(() => import("./pages/vendors/VendorDueDiligence").then(m => ({ default: m.VendorDueDiligence })));
   maskedRoutes.push(<Route key="vendors" path="/vendors" element={
     <ProtectedRoute allowedRoles={["admin"]}>{susp(<VendorDueDiligence />)}</ProtectedRoute>} />);
 }
-if (import.meta.env.VITE_SURFACE_CROSSWALK === "true") {
+if (import.meta.env.VITE_SURFACE_CROSSWALK === "true" || import.meta.env.VITE_PREVIEW_SURFACES === "true") {
   const FrameworkCrosswalk = lazy(() => import("./pages/crosswalk/FrameworkCrosswalk").then(m => ({ default: m.FrameworkCrosswalk })));
   maskedRoutes.push(<Route key="crosswalk" path="/crosswalk" element={
     <ProtectedRoute allowedRoles={["admin"]}>{susp(<FrameworkCrosswalk />)}</ProtectedRoute>} />);
 }
-if (import.meta.env.VITE_SURFACE_TRUST === "true") {
+if (import.meta.env.VITE_SURFACE_TRUST === "true" || import.meta.env.VITE_PREVIEW_SURFACES === "true") {
   const TrustCenter = lazy(() => import("./pages/trust/TrustCenter").then(m => ({ default: m.TrustCenter })));
   maskedRoutes.push(<Route key="trust" path="/trust" element={
     <ProtectedRoute allowedRoles={["admin"]}>{susp(<TrustCenter />)}</ProtectedRoute>} />);
 }
-if (import.meta.env.VITE_SURFACE_PARTNER === "true") {
+if (import.meta.env.VITE_SURFACE_PARTNER === "true" || import.meta.env.VITE_PREVIEW_SURFACES === "true") {
   const PartnerPortal = lazy(() => import("./pages/partner/PartnerPortal").then(m => ({ default: m.PartnerPortal })));
   maskedRoutes.push(<Route key="partner" path="/partner" element={
     <ProtectedRoute allowedRoles={["partner_admin", "admin"]}>{susp(<PartnerPortal />)}</ProtectedRoute>} />);
 }
-if (import.meta.env.VITE_SURFACE_BULK === "true") {
+if (import.meta.env.VITE_SURFACE_BULK === "true" || import.meta.env.VITE_PREVIEW_SURFACES === "true") {
   const BulkAnalysis = lazy(() => import("./pages/bulk/BulkAnalysis").then(m => ({ default: m.BulkAnalysis })));
   maskedRoutes.push(<Route key="bulk" path="/screening" element={
     <ProtectedRoute allowedRoles={["admin"]}>{susp(<BulkAnalysis />)}</ProtectedRoute>} />);

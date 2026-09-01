@@ -122,10 +122,18 @@ MASKED="$(y masked_surfaces)"
 import sys, json
 js = open(sys.argv[1], encoding="utf-8", errors="ignore").read()
 # distinctive identifiers per masked surface
+# Identifiers must match what the code actually ships. This list went stale
+# once (it still named "Bulk Analysis" and "/bulk" after the screens were
+# renamed), which would have let the REAL identifiers leak while the gate
+# passed. Both the old and the new tokens are checked: the old ones must stay
+# absent too, since a stale redirect would reintroduce them.
 IDENT = {
-  "bulk": ["Bulk Analysis", "/bulk"], "partner": ["Partner Workspace", "/partner"],
-  "rewrite": ["Trust Language Studio", "/rewrite"], "vendors": ["Vendor Due Diligence", "/vendors"],
-  "trust": ["Trust Center", "/trust"], "crosswalk": ["Framework Crosswalk", "/crosswalk"],
+  "bulk":      ["Bulk Screening", "Bulk Analysis", "/screening", "/bulk"],
+  "partner":   ["Partner Workspace", "Partner Portal", "/partner"],
+  "rewrite":   ["Trust Language Studio", "Illustrative Clause Rewrite", "/rewrite"],
+  "vendors":   ["Vendor Due Diligence", "/vendors"],
+  "trust":     ["Trust Center", "/trust"],
+  "crosswalk": ["Framework Crosswalk", "/crosswalk"],
 }
 leaked = []
 for surf in json.loads(sys.argv[2]):
