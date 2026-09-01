@@ -1191,6 +1191,50 @@ def _sec_reduction(c: dict) -> str:
 
 # ── Section 11: Source Traceability ─────────────────────────────────────────
 
+def _render_source_summary(c: dict) -> str:
+    """RPT-007 — what the judgments rest on, and where the base is thin.
+
+    Rendered at the head of Traceability & Method. Per-figure lineage already
+    says where each number came from; this says which evidence is CARRYING the
+    conclusions. Absent on snapshots frozen before RPT-007 — rendered as honest
+    absence, never back-filled (Hard Rule 6).
+    """
+    summary = c.get("source_summary")
+    if not summary:
+        return (
+            '<p class="absent">No source summary was recorded for this snapshot. '
+            'Per-figure lineage is unaffected and appears in the table below.</p>'
+        )
+
+    strength_chip = {"strong": "chip-low", "moderate": "chip-moderate", "limited": "chip-na"}
+
+    driver_rows = "".join(
+        f'<tr><td>{_esc(d.get("judgment") or "")}</td>'
+        f'<td>{_esc(d.get("rests_on") or "")}</td>'
+        f'<td><span class="chip {strength_chip.get(d.get("strength"), "chip-na")}">'
+        f'{_esc(str(d.get("strength") or "not recorded")).upper()}</span></td>'
+        f'<td>{_esc(d.get("why") or "")}</td></tr>'
+        for d in (summary.get("drivers") or [])
+    ) or '<tr><td colspan="4"><span class="absent">No judgment drivers recorded.</span></td></tr>'
+
+    def _list(items: list, empty: str) -> str:
+        if not items:
+            return f'<p class="absent">{empty}</p>'
+        return "<ul>" + "".join(f"<li>{_esc(x)}</li>" for x in items) + "</ul>"
+
+    return (
+        '<p>The figures in this report rest on the evidence below. '
+        'Where that evidence is thin, it is named rather than smoothed over.</p>'
+        '<table class="data-table">'
+        '<tr><th>Judgment</th><th>Rests on</th><th>Evidence base</th><th>Detail</th></tr>'
+        f'{driver_rows}</table>'
+        '<p style="margin-top:8pt;"><b>Strengths of this evidence base</b></p>'
+        f'{_list(summary.get("strengths") or [], "No particular strengths recorded.")}'
+        '<p><b>Limitations of this evidence base</b></p>'
+        f'{_list(summary.get("limitations") or [], "No limitations recorded.")}'
+    )
+
+
 def _sec_traceability(c: dict) -> str:
     snap = _esc(c.get("snapshot_id", "") or "N/A")
     versions = c.get("formula_versions_used", []) or []
@@ -1202,6 +1246,8 @@ def _sec_traceability(c: dict) -> str:
         f'<tr><td>{_esc(v)}</td><td>Contributed to the scored snapshot</td></tr>'
         for v in versions
     ) or '<tr><td colspan="2"><span class="absent">No formula versions recorded.</span></td></tr>'
+
+    source_summary = _render_source_summary(c)
 
     table = (
         '<table class="data-table"><tr><th>Formula version</th><th>Role</th></tr>'
@@ -1255,7 +1301,7 @@ def _sec_traceability(c: dict) -> str:
     note = _prose(c.get("note", ""))
     snapline = f'<div class="snapline">{note}</div>' if note else (
         f'<div class="snapline">Snapshot {snap}.</div>')
-    return table + receipt + token_receipt + quality_receipt + finding_table + snapline
+    return source_summary + table + receipt + token_receipt + quality_receipt + finding_table + snapline
 
 
 # ── Section 12: Trend & Emerging Risk ───────────────────────────────────────

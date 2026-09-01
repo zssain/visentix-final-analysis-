@@ -2,6 +2,7 @@
 
 Format: `YYYY-MM-DD · who · decision · one-line why`
 
+- 2026-08-31 · engineer · Source summary (RPT-007) added to Traceability & Method · research finding: per-figure lineage does not say which evidence carries the conclusion, which is what a third-party reader opens with; basis is analogical (ICD 203/IIA), placement still open
 - 2026-08-31 · owner · Rebuild the UI on shadcn/Tailwind v4 with the supplied oklch token set · reverses the earlier recommendation to keep hand-rolled CSS; owner decided, recorded in design-system 1.8 §3.1
 - 2026-08-31 · owner · PDF keeps its own stylesheet, tuned closer to the web · Tailwind cannot reach WeasyPrint and WeasyPrint does not parse oklch(); OD-17 narrowed to 'generate the PDF hexes from theme.css'
 - 2026-08-31 · owner · Motion principle amended: figures may animate to their value · design-system §1's 'motion exists only to reveal evidence' reversed for arrival animation only, under four constraints (§7)

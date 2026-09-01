@@ -1,6 +1,7 @@
 import { ProvenanceRibbon } from "../../components/ProvenanceRibbon";
 import type { ReportSection } from "../types";
 import { SectionHeading } from "../SectionHeading";
+import { SourceSummary } from "./SourceSummary";
 
 export function Traceability({ content }: { content: ReportSection["content"] }) {
   const snapshotId  = (content.snapshot_id     as string | undefined) ?? "—" /* honest absence — never a plausible-looking fake ID (Hard Rule 7) */;
@@ -14,6 +15,12 @@ export function Traceability({ content }: { content: ReportSection["content"] })
   const guardrail = content.guardrail as { status?: string } | undefined;
   const templateTokens = content.template_tokens as { status?: string } | undefined;
   const extraction = content.extraction_quality as { status?: string } | undefined;
+  const sourceSummary = content.source_summary as {
+    drivers?: { judgment?: string; rests_on?: string; strength?: string; why?: string }[];
+    strengths?: string[];
+    limitations?: string[];
+  } | undefined;
+
   const findingEvidence = (content.finding_evidence as {
     id?: string; formula_version?: string; confidence?: string | number;
     evidence?: { clause_id?: string; section_reference?: string; excerpt?: string; source_reference?: string }[];
@@ -31,8 +38,10 @@ export function Traceability({ content }: { content: ReportSection["content"] })
       />
 
       {note && (
-        <p style={{ color: "var(--text-secondary)", marginBottom: 16, fontSize: "0.88rem" }}>{note}</p>
+        <p className="mb-4 text-sm text-muted-foreground">{note}</p>
       )}
+
+      <SourceSummary summary={sourceSummary} />
 
       {/* Traceability table */}
       <div style={{

@@ -147,3 +147,24 @@ def test_hash_changes_when_a_score_changes():
     assert _content_hash(asdict(r_base)) != _content_hash(asdict(r_changed)), (
         "content_hash did not change when a score changed — no tamper-evidence."
     )
+
+
+def test_source_summary_prose_carries_no_timestamp():
+    """RPT-007 regression.
+
+    The source summary's `why` strings are meaningful content and ARE hashed.
+    An earlier version embedded the cohort date in one of them, which made two
+    byte-identical reports hash differently across days — the exact property
+    DATA-002 exists to protect. Guard the narrow rule rather than the symptom.
+    """
+    r = _make_report(cohort_date="2026-01-15", snapshot_id="snap-aaaaaaaa")
+    summary = next(
+        s.content["source_summary"] for s in r.sections if "source_summary" in s.content
+    )
+    for driver in summary["drivers"]:
+        assert "2026" not in (driver.get("why") or ""), (
+            f"source-summary prose embeds a date: {driver['why']!r} — "
+            "put timestamps in structural keys the canonicalizer excludes, not in hashed text."
+        )
+    for line in summary["strengths"] + summary["limitations"]:
+        assert "2026" not in line, f"source-summary prose embeds a date: {line!r}"

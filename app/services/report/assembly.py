@@ -35,6 +35,162 @@ class ReportPayload:
     vci_label: str = ""
 
 
+
+def _build_source_summary(
+    *,
+    findings_table: list[dict],
+    scores: dict[str, dict],
+    cohort_size: int,
+    cohort_date: str,
+    vci: dict,
+    guardrail_result: dict | None,
+    extraction_quality: dict | None,
+    assessment_scope: dict | None,
+    enforcement_heatmap: list[dict],
+) -> dict:
+    """Holistic statement of what the judgments rest on (F05 RPT-007).
+
+    Per-figure lineage already answers "where did this number come from". It does
+    not answer the question a third-party reader actually opens with: *which
+    evidence is carrying the conclusion, and where is it thin?* This assembles
+    that from values ALREADY in the snapshot.
+
+    Hard Rule 7 discipline: every field below is counted or copied, never
+    estimated. A missing input produces an explicit absence, never a default that
+    reads like a measurement. Nothing here is a new claim -- if a fact is not in
+    the snapshot, it does not appear.
+    """
+    total = len(findings_table)
+    evidenced = sum(1 for f in findings_table if f.get("clause_ids") or f.get("evidence"))
+    with_obligation = sum(1 for f in findings_table if f.get("obligation_refs"))
+    with_enforcement = sum(1 for f in findings_table if f.get("enforcement_refs"))
+
+    scope = assessment_scope or {}
+    source_label = scope.get("source_label") or scope.get("source") or None
+    captured_at = scope.get("captured_at") or scope.get("assessed_at") or None
+
+    extraction_status = (extraction_quality or {}).get("status") or "not_recorded"
+    guardrail_status = (guardrail_result or {}).get("status") or "not_recorded"
+    vci_label = vci.get("label") or None
+    vci_score = vci.get("score") if isinstance(vci.get("score"), (int, float)) else None
+
+    # ── Which sources drive the key judgments ────────────────────────────────
+    # One row per headline score that is actually present. `strength` describes
+    # the EVIDENCE BASE, not the score: a good score on thin evidence is still
+    # thin evidence, and that distinction is the whole point of this block.
+    drivers: list[dict] = []
+
+    if "f010" in scores:
+        drivers.append({
+            "judgment": "Overall standing",
+            "rests_on": "This organization's published notice, compared against the peer cohort",
+            "strength": "limited" if cohort_size == 0 else ("moderate" if cohort_size < 10 else "strong"),
+            "why": (
+                "No peer cohort was constructed, so the overall figure describes this notice "
+                "on its own scale rather than against comparable organizations."
+                if cohort_size == 0 else
+                # DATA-002: no date in this string. It is meaningful content and
+                # IS hashed, so a timestamp inside it would make byte-identical
+                # reports hash differently across days. The as-of date lives
+                # structurally in `evidence_base.cohort_date`, which the
+                # canonicalizer excludes by name.
+                f"Compared against {cohort_size} comparable organizations."
+            ),
+        })
+
+    if total:
+        drivers.append({
+            "judgment": "Individual findings",
+            "rests_on": "Clauses extracted from the assessed notice",
+            # A majority must be evidenced to read as "moderate": 1 of 3 cited
+            # clauses is a limited base, not a middling one.
+            "strength": (
+                "strong" if evidenced == total else
+                "moderate" if evidenced * 2 >= total else
+                "limited"
+            ),
+            "why": f"{evidenced} of {total} findings cite a specific clause from the notice.",
+        })
+
+    if "f002" in scores:
+        drivers.append({
+            "judgment": "Regulator exposure",
+            "rests_on": "Published regulator expectations mapped to disclosure domains",
+            "strength": "limited" if not enforcement_heatmap else "moderate",
+            "why": (
+                "No regulator baselines were available for this assessment."
+                if not enforcement_heatmap else
+                f"{len(enforcement_heatmap)} regulators' published expectations were in scope."
+            ),
+        })
+
+    # ── Strengths and limitations of the evidence base ────────────────────────
+    strengths: list[str] = []
+    limitations: list[str] = []
+
+    if evidenced == total and total:
+        strengths.append("Every finding cites a specific clause from the assessed notice.")
+    elif evidenced:
+        limitations.append(
+            f"{total - evidenced} of {total} findings are not tied to a specific clause, "
+            "so they are weaker evidence than the rest."
+        )
+
+    if cohort_size >= 10:
+        strengths.append(f"The peer comparison uses {cohort_size} comparable organizations.")
+    elif cohort_size > 0:
+        limitations.append(
+            f"The peer cohort is small ({cohort_size}), so comparative figures should be read "
+            "as indicative rather than settled."
+        )
+    else:
+        limitations.append(
+            "No peer cohort was constructed, so no comparative position is reported."
+        )
+
+    if with_obligation:
+        strengths.append(f"{with_obligation} findings reference a citable published obligation.")
+    if with_enforcement:
+        strengths.append(f"{with_enforcement} findings reference recorded enforcement activity.")
+
+    if extraction_status not in ("not_recorded", "ok", "passed"):
+        limitations.append(f"Clause extraction quality was recorded as \"{extraction_status}\".")
+    if extraction_status == "not_recorded":
+        limitations.append("Clause extraction quality was not recorded for this assessment.")
+
+    if not source_label:
+        limitations.append("The assessed source was not recorded on this snapshot.")
+    if not captured_at:
+        limitations.append("The date the notice was captured was not recorded on this snapshot.")
+
+    limitations.append(
+        "This assessment reads the organization's published notice only. It does not "
+        "observe internal practice, contracts, or systems, so it cannot report whether "
+        "what the notice says matches what the organization does."
+    )
+
+    return {
+        "drivers": drivers,
+        "evidence_base": {
+            "findings_total": total,
+            "findings_clause_evidenced": evidenced,
+            "findings_with_obligation_ref": with_obligation,
+            "findings_with_enforcement_ref": with_enforcement,
+            "cohort_size": cohort_size,
+            "cohort_date": cohort_date,
+            "regulators_in_scope": len(enforcement_heatmap),
+            "extraction_status": extraction_status,
+            "guardrail_status": guardrail_status,
+            "confidence_label": vci_label,
+            "confidence_score": vci_score,
+            "source_label": source_label,
+            "captured_at": captured_at,
+        },
+        "strengths": strengths,
+        "limitations": limitations,
+    }
+
+
 def assemble_report(
     assessment_id: str,
     org_name: str,
@@ -243,6 +399,20 @@ def assemble_report(
         "template_tokens": (guardrail_result or {}).get("template_tokens", {"status": "not_recorded"}),
         "extraction_quality": extraction_quality,
         "finding_evidence": findings_table,
+        # RPT-007 source summary — which evidence carries the conclusions, and
+        # where the base is thin. Assembled here so it FREEZES into the snapshot
+        # (DIR-008: presentation never recalculates).
+        "source_summary": _build_source_summary(
+            findings_table=findings_table,
+            scores=scores,
+            cohort_size=cohort_size,
+            cohort_date=cohort_date,
+            vci=vci,
+            guardrail_result=guardrail_result,
+            extraction_quality=extraction_quality,
+            assessment_scope=assessment_scope,
+            enforcement_heatmap=enforcement_heatmap,
+        ),
         # DATA-002: this `note` is DERIVED PROSE that re-states volatile data
         # (the snapshot id + "as of <date>") already carried structurally by the
         # `snapshot_id`, `cohort_size` and `cohort_date` keys. It is excluded from
