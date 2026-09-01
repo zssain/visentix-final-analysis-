@@ -13,11 +13,23 @@
  */
 import { useState, useCallback, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
+import { CheckCircle2, FileText, Info, ListChecks, Upload } from "lucide-react";
 import { api } from "../../lib/api";
 import { PageHeader } from "../../components/PageHeader";
 import { MultiSelectDropdown, type MSDOption } from "../../components/MultiSelectDropdown";
 import { useTasks } from "../../jobs/TasksProvider";
 import { Button } from "@/components/ui/button";
+import {
+  Card, CardContent, CardDescription, CardHeader, CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 
 type Step = "idle" | "submitting" | "done" | "error";
@@ -31,6 +43,55 @@ const ACCEPT_MIME = new Set([
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   "text/plain",
 ]);
+
+// Radix Select items cannot carry an empty value, but "not specified" must stay
+// a first-class choice; this sentinel maps back to "" in state.
+const UNSPECIFIED = "__unspecified__";
+
+function StepBadge({ n }: { n: number }) {
+  return (
+    <span aria-hidden className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-[11px] font-semibold text-primary-foreground">
+      {n}
+    </span>
+  );
+}
+
+/** A single optional org-profile dropdown ("Not specified" is a real choice). */
+function ProfileSelect({ id, label, value, onChange, options, disabled }: {
+  id: string; label: string; value: string;
+  onChange: (v: string) => void; options: MSDOption[]; disabled: boolean;
+}) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <Label htmlFor={id}>{label}</Label>
+      <Select
+        value={value || UNSPECIFIED}
+        onValueChange={v => onChange(v === UNSPECIFIED ? "" : v)}
+        disabled={disabled}
+      >
+        <SelectTrigger id={id} className="w-full">
+          <SelectValue placeholder="Not specified" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={UNSPECIFIED} className="text-muted-foreground">Not specified</SelectItem>
+          {options.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
+
+/** One row of the analysis-scope summary: muted when the value is a fallback. */
+function ScopeRow({ label, value, fallback }: { label: string; value?: string; fallback: string }) {
+  return (
+    <div className="flex flex-col gap-0.5 py-2.5 first:pt-0 last:pb-0 sm:grid sm:grid-cols-[11rem_1fr] sm:items-baseline sm:gap-4">
+      <span className="text-sm text-muted-foreground">{label}</span>
+      {value
+        ? <span className="text-sm font-medium">{value}</span>
+        : <span className="text-sm text-muted-foreground italic">{fallback}</span>}
+    </div>
+  );
+}
 
 export function Intake() {
   const { track } = useTasks();
@@ -206,6 +267,14 @@ export function Intake() {
     industries, organizationName, organizationSize, publicPrivate, geography, stateFootprint,
     selectedLaws, dataCategories, businessPractices]);
 
+  // Analysis-scope summary values (undefined = fall back to the muted default).
+  const profileParts = [
+    organizationName,
+    sizeOpts.find(o => o.value === organizationSize)?.label ?? organizationSize,
+    publicPrivateOpts.find(o => o.value === publicPrivate)?.label ?? publicPrivate,
+    geographyOpts.find(o => o.value === geography)?.label ?? geography,
+  ].filter(Boolean);
+
   return (
     <div>
       <PageHeader
@@ -214,261 +283,280 @@ export function Intake() {
         description="Add a notice by URL, pasted text, or an uploaded document (PDF, Word, or text). Visentix extracts clauses, classifies each into a privacy domain, and scores the notice against normalized peers."
       />
 
-      <div className="mx-auto w-full max-w-3xl">
-      {/* ─── LEFT PANE: Form ─── */}
-      <div className="flex flex-col gap-6">
-        <div className="flex flex-col gap-3">
-          <h2>Privacy Notice</h2>
-          <div className="inline-flex gap-1 rounded-lg border bg-muted/40 p-1" role="tablist" aria-label="Input method">
-            {(["url", "text", "upload"] as InputMode[]).map(m => (
-              <button
-                key={m}
-                className={cn(
-                  "rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
-                  mode === m
-                    ? "bg-background text-foreground shadow-xs"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-                role="tab"
-                aria-selected={mode === m}
-                onClick={() => { setMode(m); setErrorMsg(""); }}
-              >
-                {m === "url" ? "URL" : m === "text" ? "Paste Text" : "Upload"}
-              </button>
-            ))}
-          </div>
-        </div>
+      <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
 
-        <div className="flex flex-col gap-4">
-          {mode === "url" && (
-            <div className="flex flex-col gap-1.5">
-              <label htmlFor="intake-url">Privacy Notice URL</label>
-              <input
-                id="intake-url"
-                type="url"
-                placeholder="https://example.com/privacy"
-                value={urlVal}
-                onChange={e => setUrlVal(e.target.value)}
-                disabled={isProcessing}
-              />
-            </div>
-          )}
-          {mode === "text" && (
-            <div className="flex flex-col gap-1.5">
-              <label htmlFor="intake-text">Notice Text</label>
-              <textarea
-                id="intake-text"
-                rows={12}
-                placeholder="Paste the full text of the privacy notice…"
-                value={textVal}
-                onChange={e => setTextVal(e.target.value)}
-                disabled={isProcessing}
-              />
-            </div>
-          )}
-          {mode === "upload" && (
-            <div className="flex flex-col gap-1.5">
-              <label htmlFor="intake-file">Notice Document</label>
-              <label
-                htmlFor="intake-file"
-                className={cn(
-                  "flex min-h-32 cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed p-6 transition-colors",
-                  dragOver ? "border-ring bg-accent/50" : "hover:bg-accent/30",
-                  fileVal && "border-solid bg-muted/40"
-                )}
-                onDragOver={e => { e.preventDefault(); if (!isProcessing) setDragOver(true); }}
-                onDragLeave={() => setDragOver(false)}
-                onDrop={e => {
-                  e.preventDefault();
-                  setDragOver(false);
-                  if (isProcessing) return;
-                  pickFile(e.dataTransfer.files?.[0] ?? null);
-                }}
-              >
-                <input
-                  id="intake-file"
-                  type="file"
-                  accept={ACCEPT_EXT}
+        {/* ─── Step 1: the notice itself ─── */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2.5">
+              <StepBadge n={1} />
+              Provide the notice
+            </CardTitle>
+            <CardDescription className="pl-[2.125rem]">
+              Link to it, paste its text, or upload the document.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Tabs value={mode} onValueChange={v => { setMode(v as InputMode); setErrorMsg(""); }}>
+              <TabsList className="grid w-full grid-cols-3" aria-label="Input method">
+                <TabsTrigger value="url" disabled={isProcessing}>URL</TabsTrigger>
+                <TabsTrigger value="text" disabled={isProcessing}>Paste text</TabsTrigger>
+                <TabsTrigger value="upload" disabled={isProcessing}>Upload</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="url" className="mt-3 flex flex-col gap-1.5">
+                <Label htmlFor="intake-url">Privacy Notice URL</Label>
+                <Input
+                  id="intake-url"
+                  type="url"
+                  placeholder="https://example.com/privacy"
+                  value={urlVal}
+                  onChange={e => setUrlVal(e.target.value)}
                   disabled={isProcessing}
-                  onChange={e => pickFile(e.target.files?.[0] ?? null)}
-                  style={{ display: "none" }}
                 />
-                {fileVal ? (
-                  <div className="flex items-center gap-2 text-sm font-medium">
-                    <strong>{fileVal.name}</strong>
-                    <span>{(fileVal.size / 1024).toFixed(0)} KB · click to replace</span>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center gap-1 text-center">
-                    <div className="text-2xl text-muted-foreground">↥</div>
-                    <p><strong>Drag a file here</strong> or click to browse</p>
-                    <p className="text-xs text-muted-foreground">PDF, Word (.docx), or plain text — up to 10 MB</p>
-                  </div>
-                )}
-              </label>
+                <p className="text-xs text-muted-foreground">We fetch the page and read the notice exactly as published.</p>
+              </TabsContent>
+
+              <TabsContent value="text" className="mt-3 flex flex-col gap-1.5">
+                <Label htmlFor="intake-text">Notice text</Label>
+                <Textarea
+                  id="intake-text"
+                  rows={10}
+                  className="min-h-48"
+                  placeholder="Paste the full text of the privacy notice…"
+                  value={textVal}
+                  onChange={e => setTextVal(e.target.value)}
+                  disabled={isProcessing}
+                />
+              </TabsContent>
+
+              <TabsContent value="upload" className="mt-3">
+                <label
+                  htmlFor="intake-file"
+                  className={cn(
+                    "group flex min-h-40 cursor-pointer flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed border-input p-8 text-center transition-colors",
+                    dragOver ? "border-ring bg-accent/60" : "hover:border-ring/60 hover:bg-accent/40",
+                    fileVal && "border-solid bg-muted/40",
+                    isProcessing && "pointer-events-none opacity-50",
+                  )}
+                  onDragOver={e => { e.preventDefault(); if (!isProcessing) setDragOver(true); }}
+                  onDragLeave={() => setDragOver(false)}
+                  onDrop={e => {
+                    e.preventDefault();
+                    setDragOver(false);
+                    if (isProcessing) return;
+                    pickFile(e.dataTransfer.files?.[0] ?? null);
+                  }}
+                >
+                  <input
+                    id="intake-file"
+                    type="file"
+                    accept={ACCEPT_EXT}
+                    disabled={isProcessing}
+                    onChange={e => pickFile(e.target.files?.[0] ?? null)}
+                    className="hidden"
+                  />
+                  {fileVal ? (
+                    <>
+                      <span className="flex size-10 items-center justify-center rounded-full bg-muted">
+                        <FileText className="size-5 text-muted-foreground" />
+                      </span>
+                      <span className="text-sm font-medium">{fileVal.name}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {(fileVal.size / 1024).toFixed(0)} KB · click to replace
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="flex size-10 items-center justify-center rounded-full bg-muted transition-colors group-hover:bg-accent">
+                        <Upload className="size-5 text-muted-foreground" />
+                      </span>
+                      <span className="text-sm">
+                        <span className="font-medium">Drag a file here</span>
+                        <span className="text-muted-foreground"> or click to browse</span>
+                      </span>
+                      <span className="text-xs text-muted-foreground">PDF, Word (.docx), or plain text — up to 10 MB</span>
+                    </>
+                  )}
+                </label>
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+        </Card>
+
+        {/* ─── Step 2: ARCH-001A intake filters (industry + scope) ─── */}
+        <Card data-testid="intake-filters">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2.5">
+              <StepBadge n={2} />
+              Describe your organization
+            </CardTitle>
+            <CardDescription className="pl-[2.125rem]">
+              Optional, but it sharpens your peer benchmark and the legal scope of the assessment.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-5">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="flex flex-col gap-1.5">
+                <Label id="intake-industry-label">Industry</Label>
+                <MultiSelectDropdown
+                  testId="intake-industry"
+                  ariaLabel="Industry"
+                  placeholder="Select industries…"
+                  options={industryChoices}
+                  selected={industries}
+                  onChange={setIndustries}
+                  disabled={isProcessing}
+                />
+                <p className="text-xs text-muted-foreground">Determines your peer benchmark cohort — the first selection is primary.</p>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="organization-name">Organization name</Label>
+                <Input
+                  id="organization-name"
+                  placeholder="Acme Inc."
+                  value={organizationName}
+                  onChange={e => setOrganizationName(e.target.value)}
+                  disabled={isProcessing}
+                />
+              </div>
             </div>
-          )}
-        </div>
 
-        {/* ── ARCH-001A: intake filters (industry + state privacy laws) ── */}
-        <div className="flex flex-col gap-4 rounded-lg border bg-card p-5" data-testid="intake-filters">
-          <div className="flex flex-col gap-1.5">
-            <label id="intake-industry-label">INDUSTRY</label>
-            <MultiSelectDropdown
-              testId="intake-industry"
-              ariaLabel="Industry"
-              placeholder="Select industries…"
-              options={industryChoices}
-              selected={industries}
-              onChange={setIndustries}
-              disabled={isProcessing}
-            />
-            <span className="text-xs text-muted-foreground">Determines your peer benchmark cohort (first selection is primary).</span>
-          </div>
-
-          <details className="rounded-lg border bg-muted/30 px-4 py-3" open>
-            <summary>Organization profile</summary>
-            <div className="mt-3 grid gap-3 sm:grid-cols-2">
-              <div className="flex flex-col gap-1.5"><label htmlFor="organization-name">Organization name</label>
-                <input id="organization-name" value={organizationName} onChange={e => setOrganizationName(e.target.value)} disabled={isProcessing} /></div>
-              <div className="flex flex-col gap-1.5"><label htmlFor="organization-size">Organization size</label>
-                <select id="organization-size" value={organizationSize} onChange={e => setOrganizationSize(e.target.value)} disabled={isProcessing}>
-                  <option value="">Not specified</option>{sizeOpts.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                </select></div>
-              <div className="flex flex-col gap-1.5"><label htmlFor="public-private">Ownership</label>
-                <select id="public-private" value={publicPrivate} onChange={e => setPublicPrivate(e.target.value)} disabled={isProcessing}>
-                  <option value="">Not specified</option>{publicPrivateOpts.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                </select></div>
-              <div className="flex flex-col gap-1.5"><label htmlFor="geography">Geography</label>
-                <select id="geography" value={geography} onChange={e => setGeography(e.target.value)} disabled={isProcessing}>
-                  <option value="">Not specified</option>{geographyOpts.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                </select></div>
+            <div className="grid gap-4 sm:grid-cols-3">
+              <ProfileSelect id="organization-size" label="Organization size"
+                value={organizationSize} onChange={setOrganizationSize}
+                options={sizeOpts} disabled={isProcessing} />
+              <ProfileSelect id="public-private" label="Ownership"
+                value={publicPrivate} onChange={setPublicPrivate}
+                options={publicPrivateOpts} disabled={isProcessing} />
+              <ProfileSelect id="geography" label="Geography"
+                value={geography} onChange={setGeography}
+                options={geographyOpts} disabled={isProcessing} />
             </div>
-          </details>
 
-          <details className="rounded-lg border bg-muted/30 px-4 py-3" open>
-            <summary>Footprint and assessment scope</summary>
-          <div className="flex flex-col gap-1.5">
-            <label id="intake-footprint-label">WHERE YOU HAVE CONSUMERS OR OPERATE</label>
-            <MultiSelectDropdown
-              testId="intake-footprint"
-              ariaLabel="State footprint"
-              placeholder="Select footprint states…"
-              options={footprintOpts}
-              selected={stateFootprint}
-              onChange={setStateFootprint}
-              disabled={isProcessing}
-            />
-            <span className="text-xs text-muted-foreground">This factual footprint informs regulatory scrutiny.</span>
-          </div>
+            <Separator />
 
-          <div className="flex flex-col gap-1.5">
-            <label id="intake-selected-laws-label">LAWS TO INCLUDE IN THIS ASSESSMENT</label>
-            <MultiSelectDropdown
-              testId="intake-selected-laws"
-              ariaLabel="Selected legal scope"
-              placeholder="Select assessment laws…"
-              options={jurisdictionChoices}
-              selected={selectedLaws}
-              onChange={setSelectedLaws}
-              disabled={isProcessing}
-            />
-            <span className="text-xs text-muted-foreground">This controls the requested assessment scope; it does not change your factual footprint.</span>
-          </div>
-          </details>
-
-          <details className="rounded-lg border bg-muted/30 px-4 py-3">
-            <summary>Data and business practices</summary>
-            <div className="flex flex-col gap-1.5">
-              <label>DATA CATEGORIES PROCESSED</label>
-              <MultiSelectDropdown testId="intake-data-categories" ariaLabel="Data categories processed"
-                placeholder="Select data categories…" options={dataCategoryOpts} selected={dataCategories}
-                onChange={setDataCategories} disabled={isProcessing} />
+            <div className="flex flex-col gap-4">
+              <h3 className="text-sm font-semibold">Footprint and assessment scope</h3>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="flex flex-col gap-1.5">
+                  <Label id="intake-footprint-label">Where you have consumers or operate</Label>
+                  <MultiSelectDropdown
+                    testId="intake-footprint"
+                    ariaLabel="State footprint"
+                    placeholder="Select footprint states…"
+                    options={footprintOpts}
+                    selected={stateFootprint}
+                    onChange={setStateFootprint}
+                    disabled={isProcessing}
+                  />
+                  <p className="text-xs text-muted-foreground">This factual footprint informs regulatory scrutiny.</p>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label id="intake-selected-laws-label">Laws to include in this assessment</Label>
+                  <MultiSelectDropdown
+                    testId="intake-selected-laws"
+                    ariaLabel="Selected legal scope"
+                    placeholder="Select assessment laws…"
+                    options={jurisdictionChoices}
+                    selected={selectedLaws}
+                    onChange={setSelectedLaws}
+                    disabled={isProcessing}
+                  />
+                  <p className="text-xs text-muted-foreground">Sets the requested assessment scope; it does not change your factual footprint.</p>
+                </div>
+              </div>
             </div>
-            <div className="flex flex-col gap-1.5">
-              <label>BUSINESS PRACTICES</label>
-              <MultiSelectDropdown testId="intake-business-practices" ariaLabel="Business practices"
-                placeholder="Select business practices…" options={practiceOpts} selected={businessPractices}
-                onChange={setBusinessPractices} disabled={isProcessing} />
-            </div>
-          </details>
 
-          {filtersBlank && (
-            <p className="text-xs text-muted-foreground" data-testid="intake-filters-note">
-              Without this, your notice is scored against a broad cohort and general US exposure.
+            <Separator />
+
+            <div className="flex flex-col gap-4">
+              <h3 className="text-sm font-semibold">Data and business practices</h3>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="flex flex-col gap-1.5">
+                  <Label>Data categories processed</Label>
+                  <MultiSelectDropdown testId="intake-data-categories" ariaLabel="Data categories processed"
+                    placeholder="Select data categories…" options={dataCategoryOpts} selected={dataCategories}
+                    onChange={setDataCategories} disabled={isProcessing} />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label>Business practices</Label>
+                  <MultiSelectDropdown testId="intake-business-practices" ariaLabel="Business practices"
+                    placeholder="Select business practices…" options={practiceOpts} selected={businessPractices}
+                    onChange={setBusinessPractices} disabled={isProcessing} />
+                </div>
+              </div>
+            </div>
+
+            {filtersBlank && (
+              <p className="flex items-start gap-2 rounded-md bg-muted/50 p-3 text-xs text-muted-foreground" data-testid="intake-filters-note">
+                <Info aria-hidden className="mt-px size-3.5 shrink-0" />
+                Without this, your notice is scored against a broad cohort and general US exposure.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* ─── Step 3: ARCH-001B review analysis scope — a live, plain-English
+            summary of what will drive the assessment, separating what you
+            DECLARED from what is DETECTED from the notice. Only reflects inputs
+            the engine actually consumes. ─── */}
+        <Card data-testid="intake-scope">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2.5">
+              <StepBadge n={3} />
+              Analysis scope
+            </CardTitle>
+            <CardDescription className="pl-[2.125rem]">
+              A live summary of what will drive this assessment — updates as you fill in the form.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="divide-y divide-border/60">
+              <ScopeRow label="Organization profile"
+                value={profileParts.length ? profileParts.join(" · ") : undefined}
+                fallback="Not specified" />
+              <ScopeRow label="Benchmark cohort"
+                value={realIndustries.length
+                  ? `${industryLabel(realIndustries[0])} peers${realIndustries.length > 1 ? ` (+${realIndustries.length - 1} more selected)` : ""}`
+                  : undefined}
+                fallback="Broad cohort — industry not specified" />
+              <ScopeRow label="State footprint"
+                value={stateFootprint.length
+                  ? stateFootprint.map(c => footprintOpts.find(o => o.value === c)?.label ?? c).join(", ")
+                  : undefined}
+                fallback="Not confirmed" />
+              <ScopeRow label="Selected legal scope"
+                value={selectedLaws.length
+                  ? selectedLaws.map(c => jurisdictionOpts.find(o => o.value === c)?.label ?? c).join(", ")
+                  : undefined}
+                fallback="Not specified" />
+              <ScopeRow label="Declared data and practices"
+                value={[...dataCategories, ...businessPractices].length
+                  ? [...dataCategories, ...businessPractices].join(", ")
+                  : undefined}
+                fallback="Not confirmed — the report will label notice-based inferences" />
+            </div>
+            <p className="mt-4 text-xs text-muted-foreground">
+              Confidence and cohort size are shown with the result; small cohorts are disclosed and may be broadened.
             </p>
-          )}
-        </div>
-
-        {/* ARCH-001B step 6: Review analysis scope — a live, plain-English summary of
-            what will drive the assessment, separating what you DECLARED from what is
-            DETECTED from the notice. Only reflects inputs the engine actually consumes. */}
-        <div className="rounded-lg border bg-card p-5" data-testid="intake-scope">
-          <div className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Analysis scope</div>
-          <ul className="flex flex-col gap-1.5 text-sm">
-            <li>
-              <span>Organization profile</span>
-              <strong>{[
-                organizationName || "name not specified",
-                sizeOpts.find(o => o.value === organizationSize)?.label ?? organizationSize,
-                publicPrivateOpts.find(o => o.value === publicPrivate)?.label ?? publicPrivate,
-                geographyOpts.find(o => o.value === geography)?.label ?? geography,
-              ].filter(Boolean).join(" · ")}</strong>
-            </li>
-            <li>
-              <span>Benchmark cohort</span>
-              <strong>{realIndustries.length
-                ? `${industryLabel(realIndustries[0])} peers${realIndustries.length > 1 ? ` (+${realIndustries.length - 1} more selected)` : ""}`
-                : "broad cohort (industry not specified)"}</strong>
-            </li>
-            <li>
-              <span>State footprint</span>
-              <strong>{stateFootprint.length
-                ? stateFootprint.map(c => jurisdictionOpts.find(o => o.value === c)?.label ?? c).join(", ")
-                : "not confirmed"}</strong>
-            </li>
-            <li>
-              <span>Selected legal scope</span>
-              <strong>{selectedLaws.length
-                ? selectedLaws.map(c => jurisdictionOpts.find(o => o.value === c)?.label ?? c).join(", ")
-                : "not specified"}</strong>
-            </li>
-            <li>
-              <span>Declared data and practices</span>
-              <strong>{[...dataCategories, ...businessPractices].length
-                ? [...dataCategories, ...businessPractices].join(", ")
-                : "not confirmed; report will label notice-based inferences"}</strong>
-            </li>
-          </ul>
-          <p className="mt-3 text-xs text-muted-foreground">
-            Confidence and cohort size are shown with the result; small cohorts are disclosed and may be broadened.
-          </p>
-        </div>
-
-        <p className="text-sm text-muted-foreground" data-testid="intake-deliverable">
-          Your deliverable includes an on-screen report and a shareable PDF.
-        </p>
+          </CardContent>
+        </Card>
 
         {reviewing && (
-          <div className="rounded-lg border bg-muted/40 p-4 text-sm" data-testid="intake-review">
-            <strong>Review assessment scope</strong>
-            <p>Confirm the notice source, organization profile, footprint, selected legal scope, data categories, business practices, and proposed peer cohort shown above.</p>
+          <div className="flex gap-3 rounded-lg border bg-muted/40 p-4" data-testid="intake-review">
+            <ListChecks aria-hidden className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+            <div className="text-sm">
+              <p className="font-medium">Review assessment scope</p>
+              <p className="mt-1 text-muted-foreground">
+                Confirm the notice source, organization profile, footprint, selected legal scope,
+                data categories, business practices, and proposed peer cohort shown above.
+              </p>
+            </div>
           </div>
         )}
 
-        {/* QA-012: honest processing / retention / confidentiality disclosure. Wording
-            matches the owner-approved privacy notice (decision-log 2026-07-28); no
-            invented legal promises. */}
-        <p className="max-w-prose text-xs leading-relaxed text-muted-foreground" data-testid="intake-disclosure">
-          <strong>How your notice is handled.</strong> It is processed on Visentix's own
-          infrastructure to generate your assessment — <strong>not</strong> sent to any
-          third-party AI provider and <strong>not</strong> used to train third-party models.
-          De-identified, aggregated patterns may improve Visentix's own accuracy. Content is
-          retained and protected per our{" "}
-          <a href="/privacy" target="_blank" rel="noopener noreferrer">Privacy Policy</a>.
-        </p>
-
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-3">
           <Button onClick={() => reviewing ? void handleSubmit() : setReviewing(true)}
             disabled={isProcessing}
             aria-busy={isProcessing}
@@ -477,44 +565,62 @@ export function Intake() {
             {isProcessing ? "Adding to queue…" : reviewing ? "Confirm and analyse" : "Review scope"}
           </Button>
           {canRetry && step === "error" && (
-            <Button variant="outline" size="sm" onClick={handleSubmit} data-testid="intake-retry" className="ml-2">
+            <Button variant="outline" size="sm" onClick={handleSubmit} data-testid="intake-retry">
               Retry
             </Button>
           )}
           {(step === "error" || errorMsg) && (
-            <span style={{ fontSize: "0.82rem", color: "var(--red)" }}>
+            <span className="text-sm text-destructive">
               {errorMsg || "Could not process this notice."}
               {mode === "upload" && step === "error" && (
-                <span style={{ color: "var(--text-muted)" }}>
+                <span className="text-muted-foreground">
                   {" "}You can also paste the text or submit the notice URL instead.
                 </span>
               )}
             </span>
           )}
         </div>
-      </div>
 
-      {/* The results pane is gone. Processing now runs in the background and
-          reports itself in the floating JobTracker, which follows the user
-          across routes and survives a refresh — so intake is a form, not a
-          waiting room. The old pane also told a lie: it said "results will
-          appear here", while the page actually sent the user to the report. */}
+        <p className="text-sm text-muted-foreground" data-testid="intake-deliverable">
+          Your deliverable includes an on-screen report and a shareable PDF.
+        </p>
 
-      {handedOff && (
-        <div className="rounded-lg border bg-card p-5" role="status" data-testid="intake-handoff">
-          <div className="text-base font-semibold">Analysing “{handedOff}” in the background</div>
-          <p>
-            You can leave this page — progress follows you, and it survives a refresh.
-            The tracker in the corner will link to the report when it is ready.
-          </p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" type="button" onClick={() => setHandedOff(null)}>
-              Submit another notice
-            </Button>
-            <Button asChild size="sm"><Link to="/assessments">Go to Assessments</Link></Button>
+        {/* QA-012: honest processing / retention / confidentiality disclosure. Wording
+            matches the owner-approved privacy notice (decision-log 2026-07-28); no
+            invented legal promises. */}
+        <p className="max-w-prose text-xs leading-relaxed text-muted-foreground" data-testid="intake-disclosure">
+          <strong className="text-foreground">How your notice is handled.</strong> It is processed on Visentix's own
+          infrastructure to generate your assessment — <strong>not</strong> sent to any
+          third-party AI provider and <strong>not</strong> used to train third-party models.
+          De-identified, aggregated patterns may improve Visentix's own accuracy. Content is
+          retained and protected per our{" "}
+          <a href="/privacy" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-foreground">Privacy Policy</a>.
+        </p>
+
+        {/* The results pane is gone. Processing now runs in the background and
+            reports itself in the floating JobTracker, which follows the user
+            across routes and survives a refresh — so intake is a form, not a
+            waiting room. The old pane also told a lie: it said "results will
+            appear here", while the page actually sent the user to the report. */}
+
+        {handedOff && (
+          <div className="flex gap-3 rounded-lg border bg-card p-5 shadow-sm" role="status" data-testid="intake-handoff">
+            <CheckCircle2 aria-hidden className="mt-0.5 size-5 shrink-0 text-standing-good" />
+            <div>
+              <div className="text-base font-semibold">Analysing “{handedOff}” in the background</div>
+              <p className="mt-1 text-sm text-muted-foreground">
+                You can leave this page — progress follows you, and it survives a refresh.
+                The tracker in the corner will link to the report when it is ready.
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button variant="outline" size="sm" type="button" onClick={() => setHandedOff(null)}>
+                  Submit another notice
+                </Button>
+                <Button asChild size="sm"><Link to="/assessments">Go to Assessments</Link></Button>
+              </div>
+            </div>
           </div>
-        </div>
-      )}
+        )}
       </div>
     </div>
   );
