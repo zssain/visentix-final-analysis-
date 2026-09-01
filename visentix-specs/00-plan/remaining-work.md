@@ -2,6 +2,9 @@
 
 **Version:** 1.0 · 2026-09-01 · Branch `feat/shadcn-ui-system`
 **Replaces:** `blocked-work.md` and `ui-migration-status.md`, both folded in here.
+**Context:** what was built, and every bug it uncovered, is recorded in
+`logs/archive/2026-09/SESSION-REPORT-2026-09-01.md`. That file is a dated
+record; this one is the live list.
 **Rule:** nothing on this list is "not done yet". Every item is either stopped on
 a named decision or dependency, or queued with its cost stated. When an item
 closes, delete its row — a list that only grows stops being read.

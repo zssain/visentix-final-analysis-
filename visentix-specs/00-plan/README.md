@@ -17,6 +17,12 @@ one thing.
 | **`version-ladder.md`** | Which surface ships with which product version |
 | **`full-app-roadmap.md`** | Long-horizon view: MVP → four commercial products. Not a work queue |
 
+## Not a plan, but read it first
+
+`logs/archive/2026-09/SESSION-REPORT-2026-09-01.md` — what was built on
+`feat/shadcn-ui-system`, the bug pattern it kept finding, and the three method
+notes that came out of it. A dated record, not a live list.
+
 ## Reading order for someone new
 
 1. `open-decisions.md` — what is undecided
