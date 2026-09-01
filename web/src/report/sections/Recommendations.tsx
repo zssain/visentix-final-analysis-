@@ -56,36 +56,66 @@ export function Recommendations({ content }: { content: ReportSection["content"]
           No recommendations to display at this time.
         </div>
       ) : (
-        <ol className="flex flex-col gap-3">
+        /* Each recommendation is a card, not a bordered paragraph.
+           The old layout gave the title and the body the same size and put the
+           body in muted ink, so the eye found the ORDER of the list but not the
+           point of any entry. Now: a rank numeral to read down, the title at
+           full contrast one step up in size, the body in body ink, and the
+           provenance in its own quiet footer so absence stays readable without
+           competing with the recommendation. */
+        <ol className="flex flex-col gap-4">
           {recs.map((r, i) => {
             const sev = r.severity.toLowerCase();
+            const rule = SEVERITY_RULE[sev] ?? "var(--border)";
             return (
               <li
                 key={i}
-                className="border-l-[3px] py-1 pl-4"
-                style={{ borderColor: SEVERITY_RULE[sev] ?? "var(--border)" }}
+                className="overflow-hidden rounded-lg border bg-card"
+                data-testid={`recommendation-${i}`}
               >
-                <div className="mb-1 flex flex-wrap items-center gap-2">
-                  <Badge className="font-data">{r.code}</Badge>
-                  <Badge variant={SEVERITY_VARIANT[sev] ?? "secondary"}>
-                    {SEVERITY_LABEL[sev] ?? r.severity}
-                  </Badge>
+                {/* Header band: rank, code, standing. The severity rail runs the
+                    full height of the card so the standing is legible from the
+                    page margin, not only from the badge. */}
+                <div className="flex items-start gap-3 border-l-[4px] px-4 py-3" style={{ borderLeftColor: rule }}>
+                  <span
+                    className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-muted font-data text-xs font-bold tabular-nums text-muted-foreground"
+                    aria-hidden="true"
+                  >
+                    {i + 1}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="mb-1.5 flex flex-wrap items-center gap-2">
+                      <Badge variant="outline" className="font-data">{r.code}</Badge>
+                      <Badge variant={SEVERITY_VARIANT[sev] ?? "secondary"}>
+                        {SEVERITY_LABEL[sev] ?? r.severity}
+                      </Badge>
+                    </div>
+                    {r.title && (
+                      <h4 className="m-0 text-base font-semibold leading-snug text-foreground">
+                        {r.title}
+                      </h4>
+                    )}
+                  </div>
                 </div>
 
-                {r.title && <div className="mb-1 text-sm font-semibold">{r.title}</div>}
-
-                <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">{r.prose}</p>
+                <div className="border-l-[4px] px-4 pb-4" style={{ borderLeftColor: rule }}>
+                  <p className="m-0 max-w-prose text-sm leading-relaxed text-foreground/85">
+                    {r.prose}
+                  </p>
+                </div>
 
                 {/* Provenance lines. Each states honest absence in its own words:
                     "no basis recorded" and "no evidence recorded" are different
-                    claims and must never collapse into one. */}
-                <dl className="mt-1.5 flex flex-col gap-0.5 text-xs text-muted-foreground">
+                    claims and must never collapse into one. Separated from the
+                    recommendation so a reader can see at a glance whether one is
+                    backed by evidence — that is the point of printing it. */}
+                <dl className="flex flex-col gap-1 border-t bg-muted/40 px-4 py-3 text-xs leading-relaxed text-muted-foreground">
                   <div>
-                    <dt className="inline font-semibold">Basis: </dt>
+                    <dt className="inline font-semibold text-foreground/70">Basis: </dt>
                     <dd className="inline">{r.basis_label ?? "Basis not recorded"}</dd>
                   </div>
                   <div>
-                    <dt className="inline font-semibold">Notice evidence: </dt>
+                    <dt className="inline font-semibold text-foreground/70">Notice evidence: </dt>
                     <dd className="inline">
                       {(r.evidence ?? []).length > 0
                         ? <>
@@ -98,7 +128,7 @@ export function Recommendations({ content }: { content: ReportSection["content"]
                   </div>
                   <div>
                     {r.source_note
-                      ? <><dt className="inline font-semibold">Authored source note: </dt><dd className="inline">{r.source_note}</dd></>
+                      ? <><dt className="inline font-semibold text-foreground/70">Authored source note: </dt><dd className="inline">{r.source_note}</dd></>
                       : <dd className="inline">No authored source citation is recorded.</dd>}
                   </div>
                 </dl>

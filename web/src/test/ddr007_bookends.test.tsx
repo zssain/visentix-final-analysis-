@@ -36,11 +36,20 @@ describe("DDR-007 revised — scope up front, one disclosure at the end", () => 
   it("the closing Disclosure exists and states both what the report is and is not", () => {
     render(<Disclosure cohortSize={42} cohortDate="2026-08-31" />);
     expect(screen.getByTestId("report-disclosure")).toBeInTheDocument();
-    expect(screen.getByText(/What this report is\./)).toBeInTheDocument();
-    expect(screen.getByText(/What it is not\./)).toBeInTheDocument();
-    // The substance the retired mark used to carry must survive the move.
-    expect(screen.getByTestId("report-disclosure").textContent)
-      .toMatch(/not legal advice/i);
+    // Anchored on the SUBSTANCE, not the punctuation. These used to assert
+    // "What this report is." with a trailing period, which was really an
+    // assertion that the copy is a bolded run-in paragraph — so turning the
+    // four paragraphs into titled blocks broke a test that had no opinion about
+    // any of that. Both headings must be present, and so must the sentence the
+    // retired per-surface mark used to carry.
+    expect(screen.getByRole("heading", { name: /what this report is/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /what it is not/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /how to use it/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /limits that apply to every figure/i })).toBeInTheDocument();
+    const text = screen.getByTestId("report-disclosure").textContent ?? "";
+    expect(text).toMatch(/not legal advice/i);
+    // The cohort is a real figure or it is absent — never a placeholder.
+    expect(text).toMatch(/n=42/);
   });
 
   it("the Disclosure is rendered by ReportView — the mark is never dropped alone", () => {

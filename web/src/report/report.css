@@ -10,7 +10,13 @@
   max-width: 900px;
   margin: 0 auto;
   color: var(--foreground);
-  line-height: 1.6;
+  /* 16px/1.7 rather than the inherited 14px/1.6. This document is meant to be
+     forwarded and read end to end by someone who did not commission it, often
+     on a screen they did not choose, and a 14px base with long measures is the
+     single biggest barrier to that. Sub-elements that set their own rem sizes
+     scale with it. */
+  font-size: 1rem;
+  line-height: 1.7;
   position: relative;
 }
 
@@ -247,28 +253,142 @@
 
 /* ── Grouped report parts ─────────────────────────────────────────────────────
    The report is presented as six parts + an appendix; the frozen snapshot still
-   carries its original twelve blocks (sectionGroups.ts). A part heading names
-   the reader's question; the blocks inside it carry sub-headings. */
-.report-part-head { margin-bottom: 18px; }
-.report-part-head h2 { margin-bottom: 6px; }
+   carries its original twelve blocks (sectionGroups.ts). One heading shape for
+   every part, so a reader learns the pattern once and can then navigate by
+   shape rather than by reading. */
+.report-part { scroll-margin-top: 24px; }
+
+.report-part-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.report-part-num {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: color-mix(in oklab, var(--provisional) 14%, transparent);
+  color: var(--provisional);
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 1.25rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.report-part-titles { min-width: 0; }
+.report-part-head h2 {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: var(--foreground);
+  margin: 0 0 4px;
+  padding: 0;
+  border: none;
+}
+.report-part-head h2::after { content: none; }
 .report-part-lede {
   margin: 0;
-  font-size: 0.92rem;
+  font-size: 0.95rem;
   color: var(--muted-foreground);
   max-width: 68ch;
+  line-height: 1.6;
 }
+
+/* A sub-heading inside a part. Rule ABOVE, never below: it separates this block
+   from the previous one, and a rule under a heading reads as a second part
+   heading (which is what the old h2-style border did). */
 .report-subhead {
   font-family: 'Fraunces', Georgia, serif;
-  font-size: 1.05rem;
+  font-size: 1.15rem;
   font-weight: 600;
-  color: var(--primary);
-  margin: 26px 0 10px;
-  padding-top: 14px;
+  color: var(--foreground);
+  margin: 28px 0 12px;
+  padding-top: 20px;
   border-top: 1px solid var(--border);
 }
 /* The first sub-heading in a part sits directly under the lede — no extra rule. */
-.report-part-head + div > div:first-child .report-subhead {
+.report-part-head + div > div:first-child .report-subhead,
+.report-section > .report-subhead:first-child {
   margin-top: 0;
   padding-top: 0;
   border-top: none;
+}
+
+/* ── Contents ─────────────────────────────────────────────────────────────────
+   The map of the document, for a reader who was forwarded it and needs to see
+   its shape before committing to reading it. */
+.report-contents {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 22px 24px;
+  margin-bottom: 24px;
+}
+.report-contents-title {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--foreground);
+  margin: 0 0 14px;
+}
+.report-contents-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 2px;
+}
+.report-contents-item {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  padding: 9px 10px;
+  border-radius: 8px;
+  text-decoration: none;
+  color: inherit;
+  transition: background-color 120ms ease;
+}
+.report-contents-item:hover { background: var(--muted); }
+.report-contents-item:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 50%, transparent);
+}
+.report-contents-num {
+  flex-shrink: 0;
+  width: 1.4em;
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 0.95rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--provisional);
+}
+.report-contents-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.report-contents-name {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--foreground);
+}
+.report-contents-lede {
+  font-size: 0.82rem;
+  color: var(--muted-foreground);
+  line-height: 1.5;
+}
+
+@media (max-width: 640px) {
+  .report-part-head { gap: 12px; }
+  .report-part-num { width: 34px; height: 34px; font-size: 1.05rem; }
+  .report-part-head h2 { font-size: 1.25rem; }
+  .report-contents { padding: 18px 16px; }
+}
+
+@media print {
+  /* The contents is a navigation aid; in print the page numbers do not exist
+     and the links do not resolve, so it is chrome rather than content. */
+  .report-contents { display: none; }
 }

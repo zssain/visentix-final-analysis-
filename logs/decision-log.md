@@ -2,6 +2,8 @@
 
 Format: `YYYY-MM-DD · who · decision · one-line why`
 
+- 2026-09-01 · engineer · Report presentation pass: contents map, one part-heading shape, score-dial scale, badge padding, Recommendations/Traceability/Disclosure rebuilt · the document had no statement of what it contained, which is the first thing a forwarded reader needs, and its own reading order was carried by nothing but paragraph order
+- 2026-09-01 · engineer · Traceability's zebra striping was a literal white in an inline style — unreadable in dark mode · check_colors.py ran its named-colour rule over stylesheets only, because in TSX a bare `teal` is usually a variable; a QUOTED colour never is, so the guard now checks TSX too and was verified against the original line
 - 2026-09-01 · engineer · F05 AC-13 built: heatmap cells are buttons opening a snapshot-backed detail panel · an unevidenced cell withholds its intensity rather than showing the engine's regulator-baseline floor, which would read as a measurement of the reader's notice that nobody made; a below-floor cohort gets no peer comparison rather than a caveated one
 - 2026-09-01 · engineer · Section 5 payload gained snapshot_id/date/cohort_size/cohort_date · it was the only score surface without them, so its lineage drawer showed a dash for the snapshot id and n=0 on every report while the values sat two frames up the stack
 - 2026-09-01 · engineer · `HeatmapCell.vci` left unrendered and flagged · it is stored 0-1 while every other VCI is 0-100, so a surface trusting the name would misstate confidence and a `vci < 40` suppression check would treat every cell as suppressible; reconciling the scales is a scoring decision (Hard Rule 3)

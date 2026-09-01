@@ -34,7 +34,12 @@ export function ScoreDial({ score, vci }: ScoreDialProps) {
 
   return (
     <div className="score-dial" data-testid="score-dial">
-      <svg width="240" height="132" viewBox="0 0 240 132" role="img"
+      {/* The viewBox is 12px taller than the arc needs so the scale labels get
+          their own band BELOW the stroke. They used to sit at y=130 while the
+          round line cap spans y=113..127 at x=17..31 — so "0" was drawn on top
+          of the arc's own end. Both ends are now centred under their cap
+          (text-anchor=middle) on a row nothing else occupies. */}
+      <svg width="240" height="146" viewBox="0 0 240 146" role="img"
         aria-label={`Overall Privacy Intelligence Score ${clamped.toFixed(1)} of 100`}>
         {/* Track */}
         <path d={arcPath(120, 120, 96, 180)} fill="none" stroke="var(--border)" strokeWidth="14" strokeLinecap="round" />
@@ -42,9 +47,9 @@ export function ScoreDial({ score, vci }: ScoreDialProps) {
         {sweep > 0 && (
           <path d={arcPath(120, 120, 96, sweep)} fill="none" stroke={color} strokeWidth="14" strokeLinecap="round" />
         )}
-        {/* Scale hints */}
-        <text x="14" y="130" fontSize="10" fill="var(--muted-foreground)" fontFamily="'Source Sans 3', sans-serif">0</text>
-        <text x="212" y="130" fontSize="10" fill="var(--muted-foreground)" fontFamily="'Source Sans 3', sans-serif">100</text>
+        {/* Scale hints — the ends of the range the arc is drawn against. */}
+        <text x="24" y="143" fontSize="10" textAnchor="middle" fill="var(--muted-foreground)" fontFamily="'Source Sans 3', sans-serif">0</text>
+        <text x="216" y="143" fontSize="10" textAnchor="middle" fill="var(--muted-foreground)" fontFamily="'Source Sans 3', sans-serif">100</text>
       </svg>
 
       {/* The figure sits INSIDE the arc (absolutely centred — the old negative

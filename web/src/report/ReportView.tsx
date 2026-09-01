@@ -25,6 +25,7 @@ import { Traceability }       from "./sections/Traceability";
 import { TrendPanel }         from "./sections/TrendPanel";
 import { Disclosure }         from "./sections/Disclosure";
 import { REPORT_PARTS }       from "./sectionGroups";
+import { ReportContents }     from "./ReportContents";
 import { NestedSectionContext } from "./SectionHeading";
 import "./report.css";
 
@@ -96,6 +97,18 @@ export function ReportView({ report }: ReportViewProps) {
         />
       </div>
 
+      {/* The reader's map, built from the parts that actually rendered — it can
+          never list a section this snapshot does not carry. */}
+      <ReportContents
+        parts={REPORT_PARTS.filter(part =>
+          part.headed !== false &&
+          part.blocks.some(n => {
+            const sec = report.sections.find(s => s.number === n);
+            return !!sec && !!SECTION_MAP[sec.number];
+          })
+        )}
+      />
+
       {/* Presented as six parts + an appendix (see sectionGroups.ts). The payload
           is untouched — each part simply renders the blocks it groups, in order,
           and a part with no blocks present is skipped rather than left empty. */}
@@ -106,6 +119,7 @@ export function ReportView({ report }: ReportViewProps) {
         if (blocks.length === 0) return null;
 
         const headed = part.headed !== false;
+        const anchor = `part-${part.n ?? "appendix"}`;
         // One block under a part heading would otherwise print the same name
         // twice; several blocks each need naming.
         const mode = !headed ? "own" : blocks.length > 1 ? "sub" : "hidden";
@@ -130,12 +144,22 @@ export function ReportView({ report }: ReportViewProps) {
         });
 
         return (
-          <div key={part.title} className="report-page-break">
+          <div key={part.title} id={anchor} className="report-page-break report-part">
             {headed && (
-              <div className="report-part-head">
-                <h2>{part.n !== null ? `${part.n}. ${part.title}` : part.title}</h2>
-                {part.lede && <p className="report-part-lede">{part.lede}</p>}
-              </div>
+              /* One heading shape for every part, so the reader learns it once:
+                 the number as a standing marker, the title, then a plain-English
+                 statement of the question the part answers. The number used to
+                 be glued to the title as "3. Where You Stand", which reads as
+                 part of the sentence rather than as a position in a sequence. */
+              <header className="report-part-head">
+                <span className="report-part-num" aria-hidden="true">
+                  {part.n ?? "·"}
+                </span>
+                <div className="report-part-titles">
+                  <h2>{part.title}</h2>
+                  {part.lede && <p className="report-part-lede">{part.lede}</p>}
+                </div>
+              </header>
             )}
             <NestedSectionContext.Provider value={mode}>
               {body}

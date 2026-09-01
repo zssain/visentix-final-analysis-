@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
    - provisional/verified say what KIND it is     (never how good)
    A component may never pass a colour; it picks the job. */
 const badgeVariants = cva(
-  "inline-flex items-center justify-center rounded-md border px-2 py-0.5 text-xs font-medium w-fit whitespace-nowrap shrink-0 gap-1 [&>svg]:size-3 [&>svg]:pointer-events-none transition-[color,box-shadow] overflow-hidden",
+  "inline-flex items-center justify-center rounded-md border px-2.5 py-1 text-xs font-medium leading-none w-fit whitespace-nowrap shrink-0 gap-1.5 [&>svg]:size-3 [&>svg]:pointer-events-none transition-[color,box-shadow] overflow-hidden",
   {
     variants: {
       variant: {

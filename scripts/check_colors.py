@@ -37,7 +37,16 @@ EXEMPT_PATHS = {"report/report.css"}
 
 HEX = re.compile(r"#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})\b")
 RGBA = re.compile(r"\brgba?\(\s*\d+[\s,]")
-NAMED = re.compile(r"(?<![\w-])(?:background|color|border-color|fill|stroke)\s*:\s*(?:red|green|blue|orange|purple|teal|gold|navy|white|black)\b")
+_COLOUR_WORDS = "red|green|blue|orange|purple|teal|gold|navy|white|black"
+NAMED = re.compile(r"(?<![\w-])(?:background|color|border-color|fill|stroke)\s*:\s*(?:" + _COLOUR_WORDS + r")\b")
+# TSX: a named colour inside a STRING is a colour; a bare identifier is a
+# variable. `background: i % 2 ? "var(--soft-white)" : "white"` shipped a
+# literal white into a zebra-striped table, which struck five blinding bands
+# across a dark-mode panel and made its text unreadable — and this guard did not
+# see it, because NAMED ran on stylesheets only (the bare-identifier false
+# positive that exemption was written for is `color: teal ? a : b`).
+# Quoting is what separates the two, so match on the quotes.
+NAMED_TSX = re.compile(r"""["'](?:""" + _COLOUR_WORDS + r""")["']""")
 
 
 def is_true_black_or_white(line: str) -> bool:
@@ -60,11 +69,10 @@ def main() -> int:
             # Comments explain the values; they are not the values.
             if stripped.startswith(("*", "//", "/*", "#")): continue
             if is_true_black_or_white(line): continue
-            # NAMED only applies to stylesheets. In TSX `color: teal ? a : b`
-            # is a ternary on a variable called `teal`, not the CSS colour —
-            # matching it there produced a false positive on real code.
+            # A bare named colour is a stylesheet concern; a QUOTED one is a
+            # TSX concern (see the NAMED_TSX note above).
             hit = HEX.search(line) or RGBA.search(line) or (
-                NAMED.search(line) if f.suffix == ".css" else None)
+                NAMED.search(line) if f.suffix == ".css" else NAMED_TSX.search(line))
             if hit:
                 failures.append(f"web/src/{rel}:{i}: literal colour {hit.group(0)!r} — use a token from theme.css")
 
