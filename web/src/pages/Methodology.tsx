@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+import { api } from "../lib/api";
 import { PageHeader } from "../components/PageHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -40,7 +42,24 @@ function H2({ children }: { children: React.ReactNode }) {
   );
 }
 
+interface MethodVersion {
+  formula_count: number | null;
+  versions: string[] | null;
+  effective_from: string | null;
+  last_effective: string | null;
+}
+
 export function Methodology() {
+  /* The published method is versioned, and a reader who did not buy the report
+     must be able to check it — which is why the endpoint behind this is public.
+     Absence renders as absence: no version is invented if none is recorded. */
+  const [mv, setMv] = useState<MethodVersion | null>(null);
+  useEffect(() => {
+    api.get("/formulas/method-version")
+      .then(d => setMv(d as MethodVersion))
+      .catch(() => setMv(null));
+  }, []);
+
   return (
     <div className="mx-auto max-w-3xl">
       <PageHeader
@@ -48,6 +67,50 @@ export function Methodology() {
         title="How Visentix Works"
         description="Privacy intelligence built on deterministic formulas, human expert review, and honest benchmarking. Every figure is traceable. Every report is reproducible."
       />
+
+      {/* Method version + change policy */}
+      <section className="mb-12">
+        <H2>Method Version</H2>
+        <Card className="gap-2 py-4">
+          <CardContent className="flex flex-col gap-3 px-4">
+            <dl className="grid gap-3 sm:grid-cols-3">
+              <div>
+                <dt className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  Formula set
+                </dt>
+                <dd className="font-data text-lg font-bold">
+                  {mv?.versions?.length
+                    ? mv.versions.join(" · ")
+                    : <span className="text-sm font-normal text-muted-foreground">Not recorded</span>}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  Formulas published
+                </dt>
+                <dd className="font-data text-lg font-bold">
+                  {mv?.formula_count ?? <span className="text-sm font-normal text-muted-foreground">Not recorded</span>}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  In effect since
+                </dt>
+                <dd className="font-data text-lg font-bold">
+                  {mv?.effective_from ?? <span className="text-sm font-normal text-muted-foreground">Not recorded</span>}
+                </dd>
+              </div>
+            </dl>
+            <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
+              Every score records the formula version that produced it, and a report
+              frozen under one version is never re-scored under another — re-scoring
+              creates a new snapshot and the original is kept. Where a figure's
+              version is not recorded, the report says so rather than showing a
+              version it cannot evidence.
+            </p>
+          </CardContent>
+        </Card>
+      </section>
 
       {/* The formulas */}
       <section className="mb-12">

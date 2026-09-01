@@ -36,9 +36,14 @@ becomes an opinion.
 | **Criticality rating + condition/criteria/cause/effect per observation** (IIA) | We carry severity and evidence. We do **not** carry *criteria* (what was expected) or *effect* (what follows) as structured fields | Schema + expert |
 | **Named dispute/appeal path** (Bitsight, open even to non-customers, published resolution times) | Nothing exists — no endpoint, no screen, no process | Product; staffing before code |
 | **Quantified band-to-outcome validation** | We assert bands mean something; nothing measures it against outcomes | Expert + data we do not yet have |
-| **Published, versioned methodology with change notice** | `/methodology` exists but is not versioned and announces no changes in advance | Cheap; unqueued |
-| **Hedging audit** (ICAEW: stacked qualifiers read as high subjectivity) | No guard checks generated prose for piled-up modal verbs | Cheap; a guard like the banned-term filter |
 | **Executive summary that selects, not summarises** (SEC) | Ours is generated prose of fixed shape; nobody has measured whether it *orients* | Needs a read-through, not code |
+
+## Shipped since 1.0
+
+| Finding | What it changed |
+|---|---|
+| **Published, versioned methodology** | `GET /formulas/method-version` — **public**, because `/methodology` is public and a reader who did not buy the report must be able to check the method. Exposes only version, count and effective dates; never a weight or a threshold. A missing version renders as absence, never as a plausible number |
+| **Hedging reads as evasion** | `scripts/check_hedging.py` fails on any reader-facing sentence stacking two or more qualifiers. It flags **stacking, not hedging** — ICAEW is explicit that *"No-one would thank auditors for being definitive where genuine uncertainty exists"*, so the guard keeps uncertainty and only refuses to let it pile up |
 
 ## Adopted as constraints — things the research told us NOT to do
 
