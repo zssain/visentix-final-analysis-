@@ -10,7 +10,7 @@ one thing.
 | Document | Authoritative for |
 |---|---|
 | **`open-decisions.md`** | Every decision awaiting a human. **The register — if a decision is not here, it does not exist** |
-| **`remaining-work.md`** | Everything left to build, and who unblocks each item. Merges the former `blocked-work.md` and `ui-migration-status.md` |
+| **`remaining-work.md`** | Everything left to build, and who unblocks each item. **Open items only** — nothing completed is kept, so its length tracks what is actually outstanding |
 | **`route-and-surface-plan.md`** | Routes, screen splits, missing surfaces, and background-task policy (§D2) |
 | **`research-to-plan.md`** | What the language research changed, requires, forbids, and did **not** settle |
 | **`mock-tracker.md`** | Every mock in the product; the badge on each surface names its row here. Guarded by `check_mocks.py` |

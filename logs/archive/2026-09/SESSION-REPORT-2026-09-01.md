@@ -4,9 +4,10 @@
 **Gate at close:** pytest **1186 passed**, vitest **181/181**, `tsc -b` clean, build clean, **ten CI guards green**
 **Known-failing:** the OD-18 PDF byte-identity pair — pre-existing, measured at 5 failures in 10 runs on an *unmodified* tree
 
-This is a dated record: true on its date. The live list of what is left is
-[`visentix-specs/00-plan/remaining-work.md`](../../../visentix-specs/00-plan/remaining-work.md);
-every decision awaiting a human is in
+This is a dated record: true on its date, and it keeps the completed work so the
+live list does not have to. What is still outstanding is in
+[`visentix-specs/00-plan/remaining-work.md`](../../../visentix-specs/00-plan/remaining-work.md),
+which holds **open items only**; every decision awaiting a human is in
 [`open-decisions.md`](../../../visentix-specs/00-plan/open-decisions.md).
 
 ---

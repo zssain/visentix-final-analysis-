@@ -100,6 +100,12 @@
      never silently restate the other. */
   --provisional: oklch(0.640 0.098 74.0);  /* draft / mock / not-yet-verified */
   --verified:    oklch(0.560 0.086 196.0); /* approved / live / frozen */
+
+  /* ── Brand ─────────────────────────────────────────────────────────────────
+     The blue of the V mark in public/logo.png. IDENTITY, not judgement: it may
+     wash a surface or tint a watermark, but it must never colour a score, a
+     band, or anything a reader could mistake for one (OD-13). */
+  --brand: oklch(0.560 0.140 252.0);
 }
 
 .dark {
@@ -152,6 +158,9 @@
 
   --provisional: oklch(0.780 0.098 74.0);
   --verified:    oklch(0.740 0.086 196.0);
+
+  /* Lifted, like every dark value — never the light hex reused. */
+  --brand: oklch(0.700 0.120 252.0);
 }
 
 @theme inline {
@@ -192,6 +201,7 @@
   --color-standing-bad:  var(--standing-bad);
   --color-provisional:   var(--provisional);
   --color-verified:      var(--verified);
+  --color-brand:         var(--brand);
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
