@@ -133,20 +133,6 @@
 }
 
 /* Cards */
-.explain-card {
-  border: 1px solid var(--border, var(--border));
-  border-radius: 6px;
-  padding: 12px 14px;
-  background: var(--soft-white, var(--muted));
-}
-.explain-card-title {
-  font-size: 0.7rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--text-muted, var(--muted-foreground));
-  margin-bottom: 6px;
-}
 
 /* Audit cards (findings plain view) */
 .explain-audit-cards {
@@ -211,17 +197,6 @@
   font-weight: 600;
 }
 .legal-link:hover { text-decoration: underline; }
-
-.badge-primary {
-  font-size: 0.62rem;
-  font-weight: 700;
-  padding: 1px 6px;
-  border-radius: 3px;
-  background: var(--navy, var(--primary));
-  color: var(--primary-foreground);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
 
 .chip-pending {
   display: inline-block;

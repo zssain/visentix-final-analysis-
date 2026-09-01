@@ -162,10 +162,6 @@
 }
 
 /* Severity tiers */
-.tier-high     { color: var(--standing-bad); font-weight: 700; }
-.tier-elevated { color: var(--provisional); font-weight: 700; }
-.tier-moderate { color: var(--primary); font-weight: 700; }
-.tier-low      { color: var(--standing-good); font-weight: 700; }
 
 /* Disable all animations for Playwright PDF capture */
 .chart-container * {
