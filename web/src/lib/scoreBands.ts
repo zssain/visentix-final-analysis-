@@ -32,6 +32,20 @@ export function scoreBandColor(score: number): string {
 }
 
 /**
+ * Band LABEL for an exposure score, read off the SAME thresholds
+ * `scoreBandColor` uses — never a second copy of 70/45 (Hard Rule 3).
+ *
+ * The words are the exposure vocabulary from `lib/labels.ts`, so one standing
+ * reads identically whether it arrives as a finding severity or as a heatmap
+ * cell. AC-11: no score renders as a bare number.
+ */
+export function exposureBand(score: number): string {
+  if (score >= SCORE_BAND_HIGH) return "High exposure";
+  if (score >= SCORE_BAND_ELEVATED) return "Elevated exposure";
+  return "Lower exposure";
+}
+
+/**
  * MATURITY scores (higher = better): color follows the canonical VICBNF
  * maturity bands so the color always agrees with the band label —
  * ≥75 green (Mature/Leading) · ≥60 yellow (Developing) · below red

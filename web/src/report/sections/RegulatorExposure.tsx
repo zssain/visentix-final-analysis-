@@ -1,16 +1,13 @@
+import { useState } from "react";
 import { ScoreCell }    from "../../components/ScoreCell";
 import { domainLabel } from "../../lib/domainLabels";
-import { scoreBandColor } from "../../lib/scoreBands";
+import { exposureBand, scoreBandColor } from "../../lib/scoreBands";
 import type { ReportSection } from "../types";
 import { SectionHeading } from "../SectionHeading";
+import { HeatmapCellPanel, type HeatmapCellData } from "../HeatmapCellPanel";
 import { cn } from "@/lib/utils";
 
-interface HeatmapCell {
-  domain: string;
-  intensity: number;
-  clause_density: number;
-  evidenced?: boolean;
-}
+type HeatmapCell = HeatmapCellData;
 interface RegulatorRow {
   regulator_id: string;
   regulator_name: string;
@@ -44,6 +41,10 @@ export function RegulatorExposure({ content }: { content: ReportSection["content
   const frozenDate      = (content.date        as string | undefined) ?? "—";
   const cohortSize      = (content.cohort_size as number | undefined) ?? 0;
   const cohortDate      = (content.cohort_date as string | undefined) ?? "—";
+
+  /* The cell a reader activated, with its row — the panel needs the regulator,
+     and a cell alone does not carry one. */
+  const [openCell, setOpenCell] = useState<{ row: RegulatorRow; cell: HeatmapCell } | null>(null);
 
   const allCells      = regulators.flatMap(r => r.cells);
   const evidencedCells = allCells.filter(isEvidenced).length;
@@ -109,10 +110,31 @@ export function RegulatorExposure({ content }: { content: ReportSection["content
                 <td style={td} className="font-semibold">{r.regulator_name}<div className="text-[11px] text-muted-foreground">{r.jurisdiction}</div></td>
                 {r.cells.map(cell => <td
                   key={cell.domain}
-                  style={{ ...td, background: cellColor(cell) }}
-                  className={cn("text-center", isEvidenced(cell) ? "text-[var(--primary-foreground)]" : "text-muted-foreground")}
+                  style={{ ...td, background: cellColor(cell), padding: 0 }}
+                  className="text-center"
                 >
-                  {isEvidenced(cell) ? cell.intensity.toFixed(1) : "—"}
+                  {/* A real <button> so activation works with mouse AND keyboard
+                      and lands in the tab order with a visible focus ring
+                      (AC-13). A div with onClick would have given the mouse
+                      half only. The accessible name carries the band label and
+                      the evidence state, so a screen reader is never asked to
+                      infer either from the cell's fill. */}
+                  <button
+                    type="button"
+                    onClick={() => setOpenCell({ row: r, cell })}
+                    data-testid={`heatmap-cell-${r.regulator_id}-${cell.domain}`}
+                    aria-label={isEvidenced(cell)
+                      ? `${r.regulator_name}, ${domainLabel(cell.domain)}: ${exposureBand(cell.intensity)}, ${cell.intensity.toFixed(1)}. Open cell detail.`
+                      : `${r.regulator_name}, ${domainLabel(cell.domain)}: no evidence from your notice. Open cell detail.`}
+                    className={cn(
+                      "w-full px-3 py-2.5 text-center text-[0.88rem] cursor-pointer",
+                      "transition-[box-shadow] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:ring-inset",
+                      "hover:ring-2 hover:ring-inset hover:ring-foreground/25",
+                      isEvidenced(cell) ? "text-[var(--primary-foreground)]" : "text-muted-foreground",
+                    )}
+                  >
+                    {isEvidenced(cell) ? cell.intensity.toFixed(1) : "—"}
+                  </button>
                 </td>)}
               </tr>
             ))}
@@ -130,7 +152,21 @@ export function RegulatorExposure({ content }: { content: ReportSection["content
       {regulators.length > 0 && evidencedCells > 0 && <div className="mt-2 text-xs text-muted-foreground">
         Hatched cells are regulator baselines with no clause from your notice mapped to that domain.
         {" "}{evidencedCells} of {allCells.length} cells are backed by notice-clause evidence.
+        {" "}Select any cell for its detail.
       </div>}
+
+      <HeatmapCellPanel
+        open={openCell !== null}
+        onClose={() => setOpenCell(null)}
+        cell={openCell?.cell ?? null}
+        regulatorName={openCell?.row.regulator_name ?? ""}
+        jurisdiction={openCell?.row.jurisdiction ?? ""}
+        evidenced={openCell ? isEvidenced(openCell.cell) : false}
+        snapshotId={snapshotId}
+        frozenDate={frozenDate}
+        cohortSize={cohortSize}
+        cohortDate={cohortDate}
+      />
     </div>
   );
 }

@@ -36,7 +36,7 @@ claim is never made on a tree that is not:
 
 | Test | Cause |
 |---|---|
-| `test_report_design.py::test_pdf_byte_identical_across_simulated_date_change` | **OD-18** — pre-existing, measured 4–6 failures in 10 runs on an unmodified tree |
+| `test_pdf_determinism.py::test_frozen_snapshot_pdf_is_byte_identical` and `test_report_design.py::test_pdf_byte_identical_across_simulated_date_change` | **OD-18.** Pre-existing and intermittent: **5 failures in 10 runs on an unmodified tree**, re-measured 2026-09-01. Which of the two manifests varies between runs, so a single full-suite run names one of them and a re-run names the other. Judge it on ten runs, never on one — four consecutive results here pointed the wrong way |
 | `tests/test_training_labels.py` (3 tests) | Environmental: they hit the live database, and *which* three fail changes between a full run and an isolated one — an order/state dependency in the fixtures, not a regression |
 
 ---
@@ -109,7 +109,6 @@ Nothing here needs a decision.
 
 | Item | Size | Note |
 |---|---|---|
-| **Explorable heatmap cell** (F05 AC-13) | ~half day | Specced, unbuilt |
 | **`report.css` generated from `theme.css`** | ~1 day | The concrete half of **OD-17**. WeasyPrint does not parse `oklch()` and Tailwind does not reach it, so the PDF keeps its own stylesheet (owner-confirmed 2026-08-31) — but its values must be **generated**, not hand-copied, or screen and print drift again |
 | **Remaining page stylesheets → Tailwind** | ~3 days | See §6. Stylistic uniformity only |
 | **`tests/test_training_labels.py` order dependency** | ~2h | Three of its tests fail against the live DB, and *which* three changes between a full run and an isolated one. A test whose result depends on run order cannot tell you anything |

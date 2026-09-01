@@ -315,6 +315,19 @@ def assemble_report(
         "tier": reg_tier,
         "heatmap": enforcement_heatmap,
         "lineage": scores.get("f002", {}).get("lineage", {}),
+        # Provenance + cohort, carried like sections 2 and 3 already carry them.
+        # Section 5 was the only score surface without them, so its lineage
+        # drawer rendered "-" for the snapshot id and n=0 for the cohort on
+        # every report — honest absence, but absence of data that existed two
+        # frames up the stack. The heatmap cell panel (AC-13) gates its peer
+        # comparison on the cohort, and a cohort that is always 0 makes that
+        # gate untestable. `snapshot_id` and `cohort_date` are excluded from the
+        # content hash by name (_CONTENT_HASH_EXCLUDE_KEYS); `cohort_size` is a
+        # counted figure and hashes as content, which is correct.
+        "snapshot_id": snapshot_id,
+        "date": cohort_date,
+        "cohort_size": cohort_size,
+        "cohort_date": cohort_date,
     })
 
     # Section 6: Disclosure Findings Table
