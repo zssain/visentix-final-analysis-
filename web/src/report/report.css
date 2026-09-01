@@ -527,9 +527,11 @@
   border-radius: 4px;
 }
 /* The active part carries a rule AND full-contrast weight — never colour
-   alone, so the reader's position survives a monochrome screen. */
+   alone, so the reader's position survives a monochrome screen. Teal, matching
+   the sidebar's selected item: "you are here" is one colour in this product,
+   whether the thing you are in is a screen or a section. */
 .report-rail-item-active {
-  border-left-color: var(--provisional);
+  border-left-color: var(--verified);
   color: var(--foreground);
   font-weight: 600;
 }

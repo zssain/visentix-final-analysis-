@@ -51,6 +51,8 @@
   --radius: 0.45rem;
   --sidebar: oklch(0.987 0.002 197.1);
   --sidebar-foreground: oklch(0.148 0.004 228.8);
+  /* The selected nav item. Neutral-dark in light mode reads as a solid chip;
+     the brand accent arrives via --sidebar-accent-* below. */
   --sidebar-primary: oklch(0.218 0.008 223.9);
   --sidebar-primary-foreground: oklch(0.987 0.002 197.1);
   --sidebar-accent: oklch(0.963 0.002 197.1);
@@ -107,8 +109,16 @@
   --chart-5: oklch(0.432 0.095 166.913);
   --sidebar: oklch(0.218 0.008 223.9);
   --sidebar-foreground: oklch(0.987 0.002 197.1);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.987 0.002 197.1);
+  /* Was oklch(0.488 0.243 264.376) — a vivid blue at hue 264, chroma 0.243.
+     shadcn's stock dark sidebar accent, shipped with the token set and never
+     replaced: every other neutral in this block sits at hue 217-224 with chroma
+     <= 0.011, so the selected nav item was the one saturated blue in a product
+     that has no blue. It is now the proper inverse of the light-mode pair — a
+     near-white chip with near-black text — so a caller that does want a solid
+     selected chip gets a legible, on-palette one.
+     (The nav itself no longer uses a solid chip; see App.tsx.) */
+  --sidebar-primary: oklch(0.987 0.002 197.1);
+  --sidebar-primary-foreground: oklch(0.148 0.004 228.8);
   --sidebar-accent: oklch(0.275 0.011 216.9);
   --sidebar-accent-foreground: oklch(0.987 0.002 197.1);
   --sidebar-border: oklch(1 0 0 / 10%);

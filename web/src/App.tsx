@@ -141,8 +141,14 @@ function NavLink({ to, label, children, onClick }: { to: string; label?: string;
       className={cn(
         "flex items-center gap-2.5 rounded-md px-3 h-9 text-sm font-medium transition-colors no-underline",
         "[&>svg]:size-[17px] [&>svg]:shrink-0",
+        /* Selected is a brand-tinted surface with a teal rule and a teal icon,
+           not a solid chip. A saturated fill makes the current item shout in a
+           list whose whole job is quiet orientation, and the fill that shipped
+           was a stock blue this product has no other use for. Three cues carry
+           it — rule, tint, and full-contrast text — so it is never colour
+           alone, and aria-current="page" states it outright. */
         active
-          ? "bg-sidebar-primary text-sidebar-primary-foreground"
+          ? "relative bg-[color-mix(in_oklab,var(--verified)_14%,transparent)] text-sidebar-foreground font-semibold [&>svg]:text-[var(--verified)] before:absolute before:left-0 before:top-1.5 before:bottom-1.5 before:w-[3px] before:rounded-full before:bg-[var(--verified)]"
           : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
       )}
       aria-label={label ?? undefined}
@@ -215,8 +221,22 @@ function AppRoutes() {
               Maskable surfaces show only when their build flag is on AND role allows. */}
           <nav
             className={cn(
-              "fixed md:sticky top-0 z-50 h-screen w-64 shrink-0 flex flex-col",
-              "bg-sidebar border-r border-sidebar-border",
+              "fixed md:sticky z-50 shrink-0 flex flex-col",
+              /* Mobile: a full-height drawer, flush to the edge — a floating
+                 card would leave a strip of page showing beside a panel that is
+                 meant to cover it. */
+              "top-0 h-screen w-64 border-r border-sidebar-border rounded-none",
+              /* Desktop: a card that floats on the page, with the content it
+                 scrolls over showing faintly through it. `supports-` keeps the
+                 fallback honest — where backdrop-filter is unavailable the
+                 panel is opaque rather than a washed-out, unreadable tint. */
+              /* Margins, not offsets: a sticky element positioned with `left`
+                 slides out of its own flex slot and floats over the content.
+                 Margin reserves the gutter in the layout, so nothing overlaps. */
+              "md:top-3 md:my-3 md:ml-3 md:h-[calc(100vh-1.5rem)] md:w-60",
+              "md:rounded-2xl md:border md:border-sidebar-border md:shadow-lg",
+              "bg-sidebar supports-[backdrop-filter]:md:bg-[color-mix(in_oklab,var(--sidebar)_72%,transparent)]",
+              "md:backdrop-blur-xl",
               "transition-transform duration-200 ease-out md:transition-none",
               "motion-reduce:transition-none",
               navOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
@@ -224,7 +244,7 @@ function AppRoutes() {
             role="navigation"
             aria-label="Main navigation"
           >
-            <div className="h-16 flex items-center px-5 border-b border-sidebar-border shrink-0">
+            <div className="h-16 flex items-center px-5 border-b border-sidebar-border shrink-0 md:mx-3 md:px-2">
               <img src="/wordmark logo for white background.png" alt="Visentix" className="h-7 w-auto dark:hidden" />
               <img src="/wordmark logo for dark background.png" alt="Visentix" className="h-7 w-auto hidden dark:block" />
             </div>
@@ -255,7 +275,7 @@ function AppRoutes() {
             </div>
 
             {/* User area pinned to the bottom */}
-            <div className="shrink-0 border-t border-sidebar-border p-3 flex items-center justify-between gap-2">
+            <div className="shrink-0 border-t border-sidebar-border p-3 flex items-center justify-between gap-2 md:mx-3 md:px-0">
               <span className="text-xs font-medium capitalize text-muted-foreground truncate">{role ?? ""}</span>
               <ThemeToggle />
               <Button
