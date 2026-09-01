@@ -1,32 +1,53 @@
 import { Monitor, Moon, Sun } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuRadioGroup,
-  DropdownMenuRadioItem, DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
 import { useTheme } from "./ThemeProvider";
 
 /** Three states, not two: a plain light/dark switch cannot express "follow my
  *  OS", so a reader who has set their system to dark would be overridden on
- *  first load and have no way back. */
-export function ThemeToggle() {
+ *  first load and have no way back.
+ *
+ *  Rendered as a segmented control rather than a dropdown: all three states
+ *  visible at once, current one marked, one click to change — no menu to open. */
+const OPTIONS = [
+  { value: "light", label: "Light theme", Icon: Sun },
+  { value: "system", label: "Follow system theme", Icon: Monitor },
+  { value: "dark", label: "Dark theme", Icon: Moon },
+] as const;
+
+export function ThemeToggle({ className }: { className?: string }) {
   const { theme, setTheme } = useTheme();
-  const Icon = theme === "dark" ? Moon : theme === "light" ? Sun : Monitor;
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" aria-label={`Theme: ${theme}. Change theme`}>
-          <Icon />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuRadioGroup value={theme} onValueChange={(v) => setTheme(v as "light" | "dark" | "system")}>
-          <DropdownMenuRadioItem value="light"><Sun className="mr-2" />Light</DropdownMenuRadioItem>
-          <DropdownMenuRadioItem value="dark"><Moon className="mr-2" />Dark</DropdownMenuRadioItem>
-          <DropdownMenuRadioItem value="system"><Monitor className="mr-2" />System</DropdownMenuRadioItem>
-        </DropdownMenuRadioGroup>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <div
+      role="radiogroup"
+      aria-label="Theme"
+      className={cn(
+        "inline-flex items-center gap-0.5 rounded-full border border-border bg-muted/60 p-0.5",
+        className
+      )}
+    >
+      {OPTIONS.map(({ value, label, Icon }) => {
+        const active = theme === value;
+        return (
+          <button
+            key={value}
+            type="button"
+            role="radio"
+            aria-checked={active}
+            aria-label={label}
+            title={label}
+            onClick={() => setTheme(value)}
+            className={cn(
+              "inline-flex size-6.5 items-center justify-center rounded-full transition-colors",
+              active
+                ? "bg-background text-foreground shadow-sm ring-1 ring-border"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <Icon className="size-3.5" aria-hidden />
+          </button>
+        );
+      })}
+    </div>
   );
 }

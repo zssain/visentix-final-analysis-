@@ -7,6 +7,7 @@ import { BrowserRouter, Link, Navigate, Route, Routes, useLocation } from "react
 import {
   Activity, FilePlus2, ClipboardCheck, Newspaper, BookMarked,
   Compass, Settings, Grid3x3, PenLine, ShieldCheck, Handshake, ScanSearch, Building2,
+  LogOut,
 } from "lucide-react";
 
 // ── Build-level surface masking (release system) ───────────────────────────
@@ -183,7 +184,7 @@ function RoleBasedHome() {
 }
 
 function AppRoutes() {
-  const { session, profile, signOut } = useAuth();
+  const { session, user, profile, signOut } = useAuth();
   const role = profile?.role;
   const location = useLocation();
   const [navOpen, setNavOpen] = useState(false);
@@ -299,19 +300,33 @@ function AppRoutes() {
               })}
             </div>
 
-            {/* User area pinned to the bottom */}
-            <div className="shrink-0 border-t border-sidebar-border p-3 flex items-center justify-between gap-2 md:mx-3 md:px-0">
-              <span className="text-xs font-medium capitalize text-muted-foreground truncate">{role ?? ""}</span>
-              <ThemeToggle />
-              <Button
-                onClick={signOut}
-                variant="ghost"
-                size="sm"
-                id="nav-signout-btn"
-                aria-label="Sign out"
-              >
-                Sign Out
-              </Button>
+            {/* User area pinned to the bottom: identity row (who am I, one
+                click out), theme control on its own line below. */}
+            <div className="shrink-0 border-t border-sidebar-border p-3 flex flex-col gap-2.5 md:mx-3 md:px-0">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div
+                  className="flex size-8 shrink-0 items-center justify-center rounded-full bg-sidebar-accent text-sm font-semibold uppercase text-sidebar-accent-foreground"
+                  aria-hidden
+                >
+                  {(user?.email ?? "?").charAt(0)}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-sm font-medium text-sidebar-foreground">{user?.email ?? ""}</div>
+                  <div className="truncate text-xs capitalize text-muted-foreground">{role ?? ""}</div>
+                </div>
+                <Button
+                  onClick={signOut}
+                  variant="ghost"
+                  size="icon"
+                  id="nav-signout-btn"
+                  aria-label="Sign out"
+                  title="Sign out"
+                  className="shrink-0 text-muted-foreground hover:text-foreground"
+                >
+                  <LogOut />
+                </Button>
+              </div>
+              <ThemeToggle className="self-start" />
             </div>
           </nav>
         </>

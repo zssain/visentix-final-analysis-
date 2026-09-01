@@ -7,6 +7,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Eye, EyeOff } from "lucide-react";
+import { ThemeToggle } from "@/theme/ThemeToggle";
 
 function roleLanding(role: string): string {
   switch (role) {
@@ -51,7 +52,11 @@ export function Login() {
     <div className="grid min-h-screen lg:grid-cols-2">
       {/* Form pane */}
       <div className="flex flex-col justify-between p-6 md:p-10">
-        <img src="/wordmark logo for white background.png" alt="Visentix" className="h-7 w-auto self-start" />
+        <div className="flex items-center justify-between">
+          <img src="/wordmark logo for white background.png" alt="Visentix" className="h-7 w-auto dark:hidden" />
+          <img src="/wordmark logo for dark background.png" alt="Visentix" className="hidden h-7 w-auto dark:block" />
+          <ThemeToggle />
+        </div>
 
         <div className="mx-auto w-full max-w-sm py-12">
           <h1 className="font-display text-3xl font-semibold tracking-tight">Sign in</h1>
@@ -141,7 +146,9 @@ export function Login() {
       </div>
 
       {/* Artwork pane — hidden below lg; it is decoration, not content. */}
-      <div className="relative hidden overflow-hidden bg-sidebar lg:block">
+      {/* Blueish-teal wash (hue ~205 matches the beam palette): a soft tint in
+          light mode, a deep saturated ground in dark mode. */}
+      <div className="relative hidden overflow-hidden bg-[oklch(0.945_0.032_205)] dark:bg-[oklch(0.235_0.045_210)] lg:m-4 lg:block lg:rounded-2xl">
         <BeamsBackground>
           <div className="flex h-full flex-col justify-center gap-4 p-12">
             <img src="/logo.png" className="mb-2 h-14 w-14" alt="" aria-hidden="true" />
