@@ -33,15 +33,15 @@ vi.mock("react-router-dom", () => ({
 }));
 
 import { Intake } from "../pages/customer/Intake";
-import { IntakeJobsProvider } from "../jobs/IntakeJobsProvider";
+import { TasksProvider } from "../jobs/TasksProvider";
 
 /** Intake now hands submitted jobs to the app-shell tracker, so it renders
  *  inside the provider, as it does in the app. */
 function renderIntake() {
   return render(
-    <IntakeJobsProvider>
+    <TasksProvider>
       <Intake />
-    </IntakeJobsProvider>,
+    </TasksProvider>,
   );
 }
 

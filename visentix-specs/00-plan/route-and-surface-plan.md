@@ -130,6 +130,54 @@ Spec §6, the code, and the nav each carry a different name:
 
 ---
 
+## D2. Background work — one pattern, not three
+
+### The problem
+
+There are **three unrelated job concepts** in the product today, and none of them can be reused for a fourth thing:
+
+| System | Table | Drives | Reusable? |
+|---|---|---|---|
+| Scheduled jobs (`jobs/framework.py`) | `job_run` | cron: monitor_notices, pull_regulators, refresh_benchmarks | No — cron-shaped, no user waiting |
+| Intake jobs (`intake/jobs.py`) | `assessment_job` | one thing: intake | No — columns are intake-shaped |
+| Bulk jobs | `/bulk/jobs` | one thing: bulk screening | No |
+
+Meanwhile **two user-triggered operations still block the HTTP request end to end**:
+
+- `POST /admin/trigger-assessment` re-scores *every notice in an organization* inline. On a real org this is a long request that a proxy may cut before it finishes — and the user watches a disabled button the whole time.
+- `POST /admin/quarterly` builds a quarterly snapshot inline, same shape.
+
+Two more are slow but bounded, and worth queueing rather than blocking: **report PDF render** (WeasyPrint, and OD-18 already shows it is not fast or deterministic) and **clause rewrite** (an LLM round-trip).
+
+### The rule
+
+> **If an operation can outlive a reader's patience, it hands off and reports back. There is one way to hand off, one place to watch it, and one vocabulary for its states.**
+
+Intake already works this way and is the pattern to generalize — not to copy a fourth time.
+
+### Backend
+
+One additive migration puts a `kind` on `assessment_job` (`intake` | `reassessment` | `quarterly_build` | `report_pdf` | `rewrite`); `assessment_id` is already nullable, so a non-intake task simply leaves it null. `intake/jobs.py` generalizes to `app/services/tasks.py` — `create` · `set_stage` · `complete` · `fail` · `get` — and the async endpoints become thin wrappers that return a task id immediately.
+
+`job_run` is **left alone**. Cron jobs have no user waiting on them, and merging the two would give a scheduled job a progress bar nobody is watching.
+
+### Frontend
+
+`IntakeJobsProvider` / `JobTracker` generalize to `TasksProvider` / `TaskTracker`: `track({ kind, label, poll })` accepts any operation. Same resume-on-mount, same backoff, same honest `still_running` after the wall-clock budget.
+
+### The four rules that keep this from confusing people
+
+1. **One tracker, one place.** Every background task appears in the same floating panel, bottom-right, whatever started it. A second progress affordance somewhere else is how a user loses track of what is running.
+2. **The button says what will happen.** "Start — runs in the background", not "Run". A reader should never learn an operation was async by watching the page not change.
+3. **The screen never traps you.** Handing off means you can navigate away immediately. Anything that must be watched was mis-classified and should have been synchronous.
+4. **A finished task offers exactly one next action** — open the report, open the snapshot — and can be dismissed. A completed task that just sits there is noise.
+
+### What stays synchronous
+
+Sign-in, filter changes, gate-mode toggles, exemplar clean/approve, notification settings. These are sub-second, and putting a task card behind an instant action is its own kind of confusion.
+
+---
+
 ## E. Sequence
 
 | # | Work | Depends on | Size |

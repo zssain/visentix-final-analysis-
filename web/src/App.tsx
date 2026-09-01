@@ -80,8 +80,8 @@ import { QuarterlyReport }       from "./pages/quarterly/QuarterlyReport";
 import { Privacy }               from "./pages/legal/Privacy";
 import { Terms }                 from "./pages/legal/Terms";
 import { Footer }                from "./components/Footer";
-import { IntakeJobsProvider }    from "./jobs/IntakeJobsProvider";
-import { JobTracker }            from "./jobs/JobTracker";
+import { TasksProvider }         from "./jobs/TasksProvider";
+import { TaskTracker }           from "./jobs/TaskTracker";
 
 // Maskable-surface routes — registered only when the surface is on; the import()
 // (and thus the chunk) vanishes from the bundle when off (see note above).
@@ -325,7 +325,7 @@ function AppRoutes() {
       {/* Assessments keep running when you leave the page — this is the surface
           that makes leaving safe. Renders nothing when there is nothing to
           report (DDR-011). */}
-      {session && <JobTracker />}
+      {session && <TaskTracker />}
     </div>
   );
 }
@@ -335,9 +335,9 @@ export default function App() {
     <BrowserRouter>
       <AuthProvider>
         <ExplainProvider>
-          <IntakeJobsProvider>
+          <TasksProvider>
             <ThemeProvider><TooltipProvider delayDuration={200}><AppRoutes /></TooltipProvider></ThemeProvider>
-          </IntakeJobsProvider>
+          </TasksProvider>
         </ExplainProvider>
       </AuthProvider>
     </BrowserRouter>

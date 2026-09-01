@@ -16,7 +16,7 @@ import { Link } from "react-router-dom";
 import { api } from "../../lib/api";
 import { PageHeader } from "../../components/PageHeader";
 import { MultiSelectDropdown, type MSDOption } from "../../components/MultiSelectDropdown";
-import { useIntakeJobs } from "../../jobs/IntakeJobsProvider";
+import { useTasks } from "../../jobs/TasksProvider";
 import "./intake.css";
 import { Button } from "@/components/ui/button";
 
@@ -33,7 +33,7 @@ const ACCEPT_MIME = new Set([
 ]);
 
 export function Intake() {
-  const { track } = useIntakeJobs();
+  const { track } = useTasks();
   /** Label of the notice just handed to the background tracker, for the inline
    *  confirmation. Cleared as soon as the user edits the form again. */
   const [handedOff, setHandedOff] = useState<string | null>(null);
@@ -186,7 +186,7 @@ export function Intake() {
       // Hand the job to the app-shell tracker. From here it is genuinely a
       // background task: the user may navigate away or refresh, and progress
       // keeps reporting itself from server state (F01 AC-15/16).
-      track({ jobId: sub.assessment_id, label, status: "queued", stage: sub.stage || "queued" });
+      track({ taskId: sub.assessment_id, kind: "intake", label, status: "queued", stage: sub.stage || "queued" });
       setStep("idle");
       setReviewing(false);
       idempotencyKey.current = "";
