@@ -17,8 +17,8 @@ import { api } from "../../lib/api";
 import { PageHeader } from "../../components/PageHeader";
 import { MultiSelectDropdown, type MSDOption } from "../../components/MultiSelectDropdown";
 import { useTasks } from "../../jobs/TasksProvider";
-import "./intake.css";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 type Step = "idle" | "submitting" | "done" | "error";
 type InputMode = "url" | "text" | "upload";
@@ -214,16 +214,21 @@ export function Intake() {
         description="Add a notice by URL, pasted text, or an uploaded document (PDF, Word, or text). Visentix extracts clauses, classifies each into a privacy domain, and scores the notice against normalized peers."
       />
 
-      <div className="intake-page">
+      <div className="mx-auto w-full max-w-3xl">
       {/* ─── LEFT PANE: Form ─── */}
-      <div className="intake-main">
-        <div className="intake-left-header">
+      <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-3">
           <h2>Privacy Notice</h2>
-          <div className="intake-tabs" role="tablist" aria-label="Input method">
+          <div className="inline-flex gap-1 rounded-lg border bg-muted/40 p-1" role="tablist" aria-label="Input method">
             {(["url", "text", "upload"] as InputMode[]).map(m => (
               <button
                 key={m}
-                className={`intake-tab ${mode === m ? "active" : ""}`}
+                className={cn(
+                  "rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                  mode === m
+                    ? "bg-background text-foreground shadow-xs"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
                 role="tab"
                 aria-selected={mode === m}
                 onClick={() => { setMode(m); setErrorMsg(""); }}
@@ -234,9 +239,9 @@ export function Intake() {
           </div>
         </div>
 
-        <div className="intake-form-body">
+        <div className="flex flex-col gap-4">
           {mode === "url" && (
-            <div className="intake-field">
+            <div className="flex flex-col gap-1.5">
               <label htmlFor="intake-url">Privacy Notice URL</label>
               <input
                 id="intake-url"
@@ -249,7 +254,7 @@ export function Intake() {
             </div>
           )}
           {mode === "text" && (
-            <div className="intake-field">
+            <div className="flex flex-col gap-1.5">
               <label htmlFor="intake-text">Notice Text</label>
               <textarea
                 id="intake-text"
@@ -262,11 +267,15 @@ export function Intake() {
             </div>
           )}
           {mode === "upload" && (
-            <div className="intake-field">
+            <div className="flex flex-col gap-1.5">
               <label htmlFor="intake-file">Notice Document</label>
               <label
                 htmlFor="intake-file"
-                className={`intake-dropzone ${dragOver ? "dragover" : ""} ${fileVal ? "has-file" : ""}`}
+                className={cn(
+                  "flex min-h-32 cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed p-6 transition-colors",
+                  dragOver ? "border-ring bg-accent/50" : "hover:bg-accent/30",
+                  fileVal && "border-solid bg-muted/40"
+                )}
                 onDragOver={e => { e.preventDefault(); if (!isProcessing) setDragOver(true); }}
                 onDragLeave={() => setDragOver(false)}
                 onDrop={e => {
@@ -285,15 +294,15 @@ export function Intake() {
                   style={{ display: "none" }}
                 />
                 {fileVal ? (
-                  <div className="intake-dropzone-file">
+                  <div className="flex items-center gap-2 text-sm font-medium">
                     <strong>{fileVal.name}</strong>
                     <span>{(fileVal.size / 1024).toFixed(0)} KB · click to replace</span>
                   </div>
                 ) : (
-                  <div className="intake-dropzone-prompt">
-                    <div className="intake-dropzone-icon">↥</div>
+                  <div className="flex flex-col items-center gap-1 text-center">
+                    <div className="text-2xl text-muted-foreground">↥</div>
                     <p><strong>Drag a file here</strong> or click to browse</p>
-                    <p className="intake-dropzone-hint">PDF, Word (.docx), or plain text — up to 10 MB</p>
+                    <p className="text-xs text-muted-foreground">PDF, Word (.docx), or plain text — up to 10 MB</p>
                   </div>
                 )}
               </label>
@@ -302,8 +311,8 @@ export function Intake() {
         </div>
 
         {/* ── ARCH-001A: intake filters (industry + state privacy laws) ── */}
-        <div className="intake-filters" data-testid="intake-filters">
-          <div className="intake-field">
+        <div className="flex flex-col gap-4 rounded-lg border bg-card p-5" data-testid="intake-filters">
+          <div className="flex flex-col gap-1.5">
             <label id="intake-industry-label">INDUSTRY</label>
             <MultiSelectDropdown
               testId="intake-industry"
@@ -314,32 +323,32 @@ export function Intake() {
               onChange={setIndustries}
               disabled={isProcessing}
             />
-            <span className="intake-field-help">Determines your peer benchmark cohort (first selection is primary).</span>
+            <span className="text-xs text-muted-foreground">Determines your peer benchmark cohort (first selection is primary).</span>
           </div>
 
-          <details className="intake-details" open>
+          <details className="rounded-lg border bg-muted/30 px-4 py-3" open>
             <summary>Organization profile</summary>
-            <div className="intake-detail-grid">
-              <div className="intake-field"><label htmlFor="organization-name">Organization name</label>
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              <div className="flex flex-col gap-1.5"><label htmlFor="organization-name">Organization name</label>
                 <input id="organization-name" value={organizationName} onChange={e => setOrganizationName(e.target.value)} disabled={isProcessing} /></div>
-              <div className="intake-field"><label htmlFor="organization-size">Organization size</label>
+              <div className="flex flex-col gap-1.5"><label htmlFor="organization-size">Organization size</label>
                 <select id="organization-size" value={organizationSize} onChange={e => setOrganizationSize(e.target.value)} disabled={isProcessing}>
                   <option value="">Not specified</option>{sizeOpts.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select></div>
-              <div className="intake-field"><label htmlFor="public-private">Ownership</label>
+              <div className="flex flex-col gap-1.5"><label htmlFor="public-private">Ownership</label>
                 <select id="public-private" value={publicPrivate} onChange={e => setPublicPrivate(e.target.value)} disabled={isProcessing}>
                   <option value="">Not specified</option>{publicPrivateOpts.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select></div>
-              <div className="intake-field"><label htmlFor="geography">Geography</label>
+              <div className="flex flex-col gap-1.5"><label htmlFor="geography">Geography</label>
                 <select id="geography" value={geography} onChange={e => setGeography(e.target.value)} disabled={isProcessing}>
                   <option value="">Not specified</option>{geographyOpts.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select></div>
             </div>
           </details>
 
-          <details className="intake-details" open>
+          <details className="rounded-lg border bg-muted/30 px-4 py-3" open>
             <summary>Footprint and assessment scope</summary>
-          <div className="intake-field">
+          <div className="flex flex-col gap-1.5">
             <label id="intake-footprint-label">WHERE YOU HAVE CONSUMERS OR OPERATE</label>
             <MultiSelectDropdown
               testId="intake-footprint"
@@ -350,10 +359,10 @@ export function Intake() {
               onChange={setStateFootprint}
               disabled={isProcessing}
             />
-            <span className="intake-field-help">This factual footprint informs regulatory scrutiny.</span>
+            <span className="text-xs text-muted-foreground">This factual footprint informs regulatory scrutiny.</span>
           </div>
 
-          <div className="intake-field">
+          <div className="flex flex-col gap-1.5">
             <label id="intake-selected-laws-label">LAWS TO INCLUDE IN THIS ASSESSMENT</label>
             <MultiSelectDropdown
               testId="intake-selected-laws"
@@ -364,19 +373,19 @@ export function Intake() {
               onChange={setSelectedLaws}
               disabled={isProcessing}
             />
-            <span className="intake-field-help">This controls the requested assessment scope; it does not change your factual footprint.</span>
+            <span className="text-xs text-muted-foreground">This controls the requested assessment scope; it does not change your factual footprint.</span>
           </div>
           </details>
 
-          <details className="intake-details">
+          <details className="rounded-lg border bg-muted/30 px-4 py-3">
             <summary>Data and business practices</summary>
-            <div className="intake-field">
+            <div className="flex flex-col gap-1.5">
               <label>DATA CATEGORIES PROCESSED</label>
               <MultiSelectDropdown testId="intake-data-categories" ariaLabel="Data categories processed"
                 placeholder="Select data categories…" options={dataCategoryOpts} selected={dataCategories}
                 onChange={setDataCategories} disabled={isProcessing} />
             </div>
-            <div className="intake-field">
+            <div className="flex flex-col gap-1.5">
               <label>BUSINESS PRACTICES</label>
               <MultiSelectDropdown testId="intake-business-practices" ariaLabel="Business practices"
                 placeholder="Select business practices…" options={practiceOpts} selected={businessPractices}
@@ -385,7 +394,7 @@ export function Intake() {
           </details>
 
           {filtersBlank && (
-            <p className="intake-filters-note" data-testid="intake-filters-note">
+            <p className="text-xs text-muted-foreground" data-testid="intake-filters-note">
               Without this, your notice is scored against a broad cohort and general US exposure.
             </p>
           )}
@@ -394,9 +403,9 @@ export function Intake() {
         {/* ARCH-001B step 6: Review analysis scope — a live, plain-English summary of
             what will drive the assessment, separating what you DECLARED from what is
             DETECTED from the notice. Only reflects inputs the engine actually consumes. */}
-        <div className="intake-scope" data-testid="intake-scope">
-          <div className="intake-scope-title">Analysis scope</div>
-          <ul className="intake-scope-list">
+        <div className="rounded-lg border bg-card p-5" data-testid="intake-scope">
+          <div className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Analysis scope</div>
+          <ul className="flex flex-col gap-1.5 text-sm">
             <li>
               <span>Organization profile</span>
               <strong>{[
@@ -431,17 +440,17 @@ export function Intake() {
                 : "not confirmed; report will label notice-based inferences"}</strong>
             </li>
           </ul>
-          <p className="intake-scope-foot">
+          <p className="mt-3 text-xs text-muted-foreground">
             Confidence and cohort size are shown with the result; small cohorts are disclosed and may be broadened.
           </p>
         </div>
 
-        <p className="intake-deliverable" data-testid="intake-deliverable">
+        <p className="text-sm text-muted-foreground" data-testid="intake-deliverable">
           Your deliverable includes an on-screen report and a shareable PDF.
         </p>
 
         {reviewing && (
-          <div className="intake-review" data-testid="intake-review">
+          <div className="rounded-lg border bg-muted/40 p-4 text-sm" data-testid="intake-review">
             <strong>Review assessment scope</strong>
             <p>Confirm the notice source, organization profile, footprint, selected legal scope, data categories, business practices, and proposed peer cohort shown above.</p>
           </div>
@@ -450,7 +459,7 @@ export function Intake() {
         {/* QA-012: honest processing / retention / confidentiality disclosure. Wording
             matches the owner-approved privacy notice (decision-log 2026-07-28); no
             invented legal promises. */}
-        <p className="intake-disclosure" data-testid="intake-disclosure">
+        <p className="max-w-prose text-xs leading-relaxed text-muted-foreground" data-testid="intake-disclosure">
           <strong>How your notice is handled.</strong> It is processed on Visentix's own
           infrastructure to generate your assessment — <strong>not</strong> sent to any
           third-party AI provider and <strong>not</strong> used to train third-party models.
@@ -459,7 +468,7 @@ export function Intake() {
           <a href="/privacy" target="_blank" rel="noopener noreferrer">Privacy Policy</a>.
         </p>
 
-        <div className="intake-actions">
+        <div className="flex flex-wrap items-center gap-2">
           <Button onClick={() => reviewing ? void handleSubmit() : setReviewing(true)}
             disabled={isProcessing}
             aria-busy={isProcessing}
@@ -468,7 +477,7 @@ export function Intake() {
             {isProcessing ? "Adding to queue…" : reviewing ? "Confirm and analyse" : "Review scope"}
           </Button>
           {canRetry && step === "error" && (
-            <Button variant="outline" size="sm" onClick={handleSubmit} data-testid="intake-retry" style={{ marginLeft: 8 }}>
+            <Button variant="outline" size="sm" onClick={handleSubmit} data-testid="intake-retry" className="ml-2">
               Retry
             </Button>
           )}
@@ -492,13 +501,13 @@ export function Intake() {
           appear here", while the page actually sent the user to the report. */}
 
       {handedOff && (
-        <div className="intake-handoff" role="status" data-testid="intake-handoff">
-          <div className="intake-handoff-title">Analysing “{handedOff}” in the background</div>
+        <div className="rounded-lg border bg-card p-5" role="status" data-testid="intake-handoff">
+          <div className="text-base font-semibold">Analysing “{handedOff}” in the background</div>
           <p>
             You can leave this page — progress follows you, and it survives a refresh.
             The tracker in the corner will link to the report when it is ready.
           </p>
-          <div className="intake-handoff-actions">
+          <div className="mt-3 flex flex-wrap gap-2">
             <Button variant="outline" size="sm" type="button" onClick={() => setHandedOff(null)}>
               Submit another notice
             </Button>
