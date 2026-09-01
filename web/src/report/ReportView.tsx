@@ -3,12 +3,14 @@
  * This SAME component drives both the portal view and the Playwright PDF.
  * It displays data only — no client-side score recomputation.
  *
- * DDR-001: draft_banner replaced by ProvenanceRibbon + diagonal watermark.
+ * DDR-001: draft_banner replaced by the provenance ribbon + diagonal watermark.
+ * The ribbon renders ONCE, in Traceability, where the rest of the machinery
+ * lives. It used to open the report as well — so a reader met a snapshot ID and
+ * a formula version before they met the organisation the report is about.
  */
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ReportPayload } from "./types";
 import { api } from "../lib/api";
-import { ProvenanceRibbon } from "../components/ProvenanceRibbon";
 import { useExplain } from "./explain/ExplainContext";
 import "./explain/explain.css";
 import { Cover }              from "./sections/Cover";
@@ -26,6 +28,7 @@ import { TrendPanel }         from "./sections/TrendPanel";
 import { Disclosure }         from "./sections/Disclosure";
 import { REPORT_PARTS }       from "./sectionGroups";
 import { ReportContents }     from "./ReportContents";
+import { ReportRail, partAnchor } from "./ReportRail";
 import { NestedSectionContext } from "./SectionHeading";
 import "./report.css";
 
@@ -49,6 +52,7 @@ interface ReportViewProps { report: ReportPayload; }
 export function ReportView({ report }: ReportViewProps) {
   const isDraft = !!report.draft_banner;
   const { prefetch } = useExplain();
+  const contentsRef = useRef<HTMLElement>(null);
 
   // M-10: real plain-English formula descriptions from formula_version.description
   // (14/14 populated). Threaded into every section so lineage drawers stop using
@@ -79,35 +83,31 @@ export function ReportView({ report }: ReportViewProps) {
     ?? (coverContent.snapshot_id as string | undefined)
     ?? "—";
   const formulaVer   = coverContent.formula_version as string | undefined;
-  const frozenDate   = (report._generated_at ?? report.generated_date ?? "—").slice(0, 10) || "—";
+
+  // Parts whose blocks are actually in this payload. Computed once so the
+  // contents map, the rail, and the rendered parts cannot disagree.
+  const presentParts = REPORT_PARTS.filter(part =>
+    part.blocks.some(n => {
+      const sec = report.sections.find(s => s.number === n);
+      return !!sec && !!SECTION_MAP[sec.number];
+    })
+  );
 
   return (
+    <div className="report-shell">
     <div
       className={`report-container ${isDraft ? "draft-watermark-wrap" : ""}`}
       data-testid="report-view"
     >
-      {/* DDR-004 + DDR-001: THE provenance ribbon — rendered once, here only
-          (audit 2026-07-16: Cover previously rendered a duplicate). */}
-      <div className="mb-6">
-        <ProvenanceRibbon
-          snapshotId={snapshotId}
-          formulaVersion={formulaVer}
-          frozenDate={frozenDate}
-          status={isDraft ? "draft" : "approved"}
-        />
-      </div>
-
       {/* The reader's map, built from the parts that actually rendered — it can
-          never list a section this snapshot does not carry. */}
-      <ReportContents
-        parts={REPORT_PARTS.filter(part =>
-          part.headed !== false &&
-          part.blocks.some(n => {
-            const sec = report.sections.find(s => s.number === n);
-            return !!sec && !!SECTION_MAP[sec.number];
-          })
-        )}
-      />
+          never list a section this snapshot does not carry.
+
+          The cover is included even though it prints no part heading of its
+          own. Excluding it made the index open at "2. Executive Summary",
+          which tells a reader either that part 1 is missing or that the index
+          is wrong. A contents list numbers the DOCUMENT, not the subset of it
+          that happens to carry a heading. */}
+      <ReportContents parts={presentParts} innerRef={contentsRef} />
 
       {/* Presented as six parts + an appendix (see sectionGroups.ts). The payload
           is untouched — each part simply renders the blocks it groups, in order,
@@ -119,7 +119,7 @@ export function ReportView({ report }: ReportViewProps) {
         if (blocks.length === 0) return null;
 
         const headed = part.headed !== false;
-        const anchor = `part-${part.n ?? "appendix"}`;
+        const anchor = partAnchor(part);
         // One block under a part heading would otherwise print the same name
         // twice; several blocks each need naming.
         const mode = !headed ? "own" : blocks.length > 1 ? "sub" : "hidden";
@@ -134,6 +134,10 @@ export function ReportView({ report }: ReportViewProps) {
             cohort_size:   report.cohort_size,
             cohort_date:   report.cohort_date,
             date:          report.generated_date,
+            // The cover carries the formula version; Traceability is where it is
+            // labelled. A block that already has its own wins — this only fills
+            // a gap, it never overwrites what the snapshot froze.
+            formula_version: section.content.formula_version ?? formulaVer,
             assessment_id: report.assessment_id,
           };
           return (
@@ -180,6 +184,10 @@ export function ReportView({ report }: ReportViewProps) {
         &nbsp;·&nbsp;Assessment: {report.assessment_id?.slice(0, 12)}
         &nbsp;·&nbsp;Cohort: n={report.cohort_size} as of {report.cohort_date}
       </div>
+    </div>
+
+    {/* Pinned "on this page", revealed once the contents card scrolls away. */}
+    <ReportRail parts={presentParts} revealAfter={contentsRef} />
     </div>
   );
 }

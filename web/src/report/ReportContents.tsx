@@ -15,17 +15,21 @@
  * saved page, with JavaScript disabled, and under the PDF renderer.
  */
 import type { ReportPart } from "./sectionGroups";
+import { partAnchor } from "./ReportRail";
 
-export function ReportContents({ parts }: { parts: ReportPart[] }) {
+export function ReportContents({ parts, innerRef }: {
+  parts: ReportPart[];
+  innerRef?: React.Ref<HTMLElement>;
+}) {
   if (parts.length === 0) return null;
 
   return (
-    <nav className="report-contents" aria-label="Report contents" data-testid="report-contents">
+    <nav ref={innerRef} className="report-contents" aria-label="Report contents" data-testid="report-contents">
       <h2 className="report-contents-title">What is in this report</h2>
       <ol className="report-contents-list">
         {parts.map(part => (
           <li key={part.title}>
-            <a href={`#part-${part.n ?? "appendix"}`} className="report-contents-item">
+            <a href={`#${partAnchor(part)}`} className="report-contents-item">
               <span className="report-contents-num" aria-hidden="true">
                 {part.n ?? "·"}
               </span>
