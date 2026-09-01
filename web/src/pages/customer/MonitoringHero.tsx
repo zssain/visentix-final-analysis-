@@ -9,6 +9,7 @@
  */
 import { useEffect, useState } from "react";
 import { api } from "../../lib/api";
+import { useAuth } from "../../auth/AuthProvider";
 import { trendColor } from "../../lib/scoreBands";
 import { NotificationsCard } from "./NotificationsCard";
 import { Card } from "@/components/ui/card";
@@ -108,9 +109,18 @@ export function MonitoringHero() {
   const [alerts, setAlerts] = useState<AlertsResponse | null>(null);
   const [deliveries, setDeliveries] = useState<DeliveriesResponse["deliveries"]>({});
   const [loading, setLoading] = useState(true);
+  const { profile } = useAuth();
 
   useEffect(() => {
-    // Customer role → endpoints auto-scope to the caller's org (no org_id needed).
+    // Only a customer session auto-scopes to an org; sme/admin have no own org,
+    // so these org-scoped endpoints require an explicit org_id and otherwise
+    // 400. This surface is customer-only anyway (and renders nothing when
+    // unpopulated), so for non-customers we skip the calls entirely — no console
+    // 400 noise, same visual result.
+    if (profile?.role !== "customer") {
+      setLoading(false);
+      return;
+    }
     Promise.all([
       api.get("/api/monitoring/trend").catch(() => null),
       api.get("/api/monitoring/events").catch(() => null),
@@ -122,7 +132,7 @@ export function MonitoringHero() {
       setAlerts(a as AlertsResponse);
       if (d) setDeliveries((d as DeliveriesResponse).deliveries ?? {});
     }).finally(() => setLoading(false));
-  }, []);
+  }, [profile]);
 
   if (loading) return null;
 
