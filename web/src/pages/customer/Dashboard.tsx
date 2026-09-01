@@ -16,6 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardAction } from "@/componen
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { StatTile } from "@/components/ui/stat-tile";
+import { Skeleton, SkeletonGroup } from "@/components/ui/skeleton";
 import { ChevronDown } from "lucide-react";
 import { AnimatedNumber } from "@/components/ui/animated-number";
 
@@ -256,7 +257,17 @@ export function CustomerDashboard() {
           whole portfolio. Two columns, because they answer different questions:
           "what is the most recent thing" and "what does everything add up to". */}
       <div className="mb-5 grid gap-5 lg:grid-cols-[340px_minmax(0,1fr)]">
-        {latest ? (
+        {loading ? (
+          /* While the request is in flight this slot used to render "No report
+             yet — Start Intake": a STATEMENT OF FACT, made before any fact was
+             in. The same page also said "No scores computed yet" and
+             "Active Assessments (0)". Three assertions of absence, all of them
+             about data that was still loading, and two of them wrong within the
+             second. A skeleton says "not yet known", which is the truth. */
+          <SkeletonGroup label="Loading the latest report" className="report-card-stage" data-testid="report-card-skeleton">
+            <Skeleton className="aspect-[8.5/11] w-full rounded-xl" />
+          </SkeletonGroup>
+        ) : latest ? (
           <ReportCard
             organization={latest.organization?.name ?? "Organisation not recorded"}
             reportId={latest.notice_id}
@@ -279,7 +290,24 @@ export function CustomerDashboard() {
         <div className="flex flex-col gap-5">
           {/* Portfolio counts. Real values only — an absent stat shows an em
               dash, never a zero standing in for unknown. */}
-          {stats && (
+          {loading ? (
+            <Card className="py-4">
+              <CardContent>
+                <SkeletonGroup label="Loading portfolio counts" className="grid grid-cols-2 gap-x-8 gap-y-4 sm:grid-cols-4">
+                {["Assessments", "Findings", "High exposure", "Elevated exposure"].map(label => (
+                  <div key={label} className="flex flex-col gap-2">
+                    {/* The LABELS are known before the data — they are the
+                        page's structure, not its content. Showing them holds
+                        the layout still, so nothing jumps when the figures
+                        land. Only the figures are unknown. */}
+                    <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</div>
+                    <Skeleton className="h-7 w-14" />
+                  </div>
+                ))}
+                </SkeletonGroup>
+              </CardContent>
+            </Card>
+          ) : stats ? (
             <Card className="py-4">
               <CardContent className="grid grid-cols-2 gap-x-8 gap-y-4 sm:grid-cols-4">
                 <StatTile label="Assessments" value={stats.assessment_count} />
@@ -288,7 +316,7 @@ export function CustomerDashboard() {
                 <StatTile label="Elevated exposure" value={stats.medium_findings} tone="mid" />
               </CardContent>
             </Card>
-          )}
+          ) : null}
 
           {/* Overall score — the BAND leads, the number follows (design-system §2).
               "Developing" is what a reader can act on; 71.7 is not. The figure is
@@ -298,7 +326,18 @@ export function CustomerDashboard() {
               <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                 Overall Privacy Intelligence
               </div>
-              {overallScore != null ? (
+              {loading ? (
+                <SkeletonGroup label="Loading the overall score" className="flex flex-col gap-3">
+                  <Skeleton className="h-9 w-56" />
+                  <Skeleton className="h-4 w-72" />
+                  <Skeleton className="mt-2 h-1.5 w-full rounded-full" />
+                  <div className="flex flex-col gap-2">
+                    <Skeleton className="h-3 w-full" />
+                    <Skeleton className="h-3 w-5/6" />
+                    <Skeleton className="h-3 w-4/6" />
+                  </div>
+                </SkeletonGroup>
+              ) : overallScore != null ? (
                 <>
                   <div className="flex flex-wrap items-baseline gap-3">
                     <span
@@ -378,7 +417,9 @@ export function CustomerDashboard() {
           {/* Assessments list */}
           <Card className="gap-0 overflow-hidden py-0">
             <CardHeader className="flex-row items-center border-b py-4">
-              <CardTitle>Active Assessments ({assessments.length})</CardTitle>
+              <CardTitle>
+                Active Assessments{loading ? "" : ` (${assessments.length})`}
+              </CardTitle>
               <CardAction>
                 <Button asChild variant="outline" size="sm" id="new-assessment-btn">
                   <Link to="/intake">+ New Assessment</Link>
@@ -386,7 +427,20 @@ export function CustomerDashboard() {
               </CardAction>
             </CardHeader>
             {loading ? (
-              <div className="px-6 py-10 text-center text-sm text-muted-foreground">Loading assessments...</div>
+              /* Skeleton ROWS, not "Loading assessments…": the table's shape is
+                 already known, so showing it means the page does not reflow
+                 when the data lands. A sentence in the middle of an empty card
+                 is the same silhouette as an empty state. */
+              <SkeletonGroup label="Loading assessments" className="flex flex-col gap-0" data-testid="assessments-skeleton">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="flex items-center gap-6 border-b px-6 py-3.5 last:border-0">
+                    <Skeleton className="h-4 w-40" />
+                    <Skeleton className="h-4 w-28" />
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="ml-auto h-8 w-20" />
+                  </div>
+                ))}
+              </SkeletonGroup>
             ) : error ? (
               <div className="px-6 py-10 text-center text-sm text-[var(--standing-bad)]">{error}</div>
             ) : assessments.length === 0 ? (

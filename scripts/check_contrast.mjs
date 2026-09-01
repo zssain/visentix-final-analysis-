@@ -50,9 +50,20 @@ function token(block, name) {
   return oklchToRgb(+m[1], +m[2], +m[3]);
 }
 
+// Secondary text has to clear AA on EVERY surface it can land on, not just the
+// card. `--muted-foreground` was shipping at 4.45:1 on the sidebar — below AA,
+// and unnoticed because this guard only ever looked at the standing scale on a
+// card. Most of the words on a screen are muted-foreground; it is the last token
+// that should go unchecked.
 const CASES = [
-  [":root", "card", ["standing-good", "standing-mid", "standing-bad"]],
-  [".dark", "card", ["standing-good", "standing-mid", "standing-bad"]],
+  [":root", "card",       ["standing-good", "standing-mid", "standing-bad", "muted-foreground"]],
+  [":root", "background", ["muted-foreground", "foreground"]],
+  [":root", "sidebar",    ["muted-foreground", "sidebar-foreground"]],
+  [":root", "muted",      ["muted-foreground"]],
+  [".dark", "card",       ["standing-good", "standing-mid", "standing-bad", "muted-foreground"]],
+  [".dark", "background", ["muted-foreground", "foreground"]],
+  [".dark", "sidebar",    ["muted-foreground", "sidebar-foreground"]],
+  [".dark", "muted",      ["muted-foreground"]],
 ];
 
 let failed = 0;
@@ -62,11 +73,11 @@ for (const [block, bgName, fgNames] of CASES) {
     const ratio = contrast(token(block, fg), bg);
     const ok = ratio >= AA;
     if (!ok) failed++;
-    console.log(`${ok ? "PASS" : "FAIL"}  ${block.padEnd(6)} --${fg.padEnd(14)} on --${bgName}  ${ratio.toFixed(2)}:1  (need ${AA})`);
+    console.log(`${ok ? "PASS" : "FAIL"}  ${block.padEnd(6)} --${fg.padEnd(18)} on --${bgName.padEnd(10)} ${ratio.toFixed(2)}:1  (need ${AA})`);
   }
 }
 if (failed) {
-  console.error(`\n${failed} standing colour(s) below WCAG AA ${AA}:1 as text. Fix theme.css.`);
+  console.error(`\n${failed} colour pair(s) below WCAG AA ${AA}:1 as text. Fix theme.css.`);
   process.exit(1);
 }
-console.log("\nAll standing colours clear WCAG AA as text.");
+console.log(`\nAll ${CASES.reduce((n, [, , f]) => n + f.length, 0)} text/surface pairs clear WCAG AA.`);

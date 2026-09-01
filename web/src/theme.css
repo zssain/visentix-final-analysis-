@@ -25,7 +25,16 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: oklch(1 0 0);
+  /* The page ground. It was oklch(1 0 0) — pure white — and so was --card, a
+     lightness gap of EXACTLY ZERO: cards did not sit on the page, they were the
+     page, separated only by a hairline border. Dark mode had a 0.070 gap
+     (0.148 ground, 0.218 card) and read with depth; light mode looked flat next
+     to it for that one reason.
+     Pure white was also the only place in the palette with no brand hue at all
+     — every other neutral sits near 197-228. The ground now carries it, cards
+     stay white, and the sidebar sits between them, so the three surfaces read
+     as three levels instead of one. */
+  --background: oklch(0.972 0.004 197.1);
   --foreground: oklch(0.148 0.004 228.8);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.148 0.004 228.8);
@@ -33,15 +42,25 @@
   --popover-foreground: oklch(0.148 0.004 228.8);
   --primary: oklch(0.218 0.008 223.9);
   --primary-foreground: oklch(0.987 0.002 197.1);
-  --secondary: oklch(0.963 0.002 197.1);
+  --secondary: oklch(0.948 0.003 197.1);
   --secondary-foreground: oklch(0.218 0.008 223.9);
-  --muted: oklch(0.963 0.002 197.1);
-  --muted-foreground: oklch(0.56 0.021 213.5);
-  --accent: oklch(0.963 0.002 197.1);
+  /* --muted is a surface tint (table zebra, quiet panels). It has to stay
+     distinguishable from the new ground as well as from the card, so it steps
+     down with it. */
+  --muted: oklch(0.948 0.003 197.1);
+  /* Was 0.56, which measured 4.45:1 on the sidebar — already BELOW AA before
+     the ground moved, and unnoticed because the contrast guard only checked the
+     standing scale on a card. Solved against the DARKEST surface this text can
+     land on (--muted), not the lightest: 4.50 on --muted, 4.83 on the ground,
+     5.05 on the sidebar, 5.23 on a card. */
+  --muted-foreground: oklch(0.530 0.021 213.5);
+  --accent: oklch(0.948 0.003 197.1);
   --accent-foreground: oklch(0.218 0.008 223.9);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.925 0.005 214.3);
-  --input: oklch(0.925 0.005 214.3);
+  /* A white card on a tinted ground needs its edge to survive; 0.925 read as a
+     smudge once the page stopped being the same colour as the card. */
+  --border: oklch(0.905 0.006 214.3);
+  --input: oklch(0.905 0.006 214.3);
   --ring: oklch(0.723 0.014 214.4);
   --chart-1: oklch(0.845 0.143 164.978);
   --chart-2: oklch(0.696 0.17 162.48);
@@ -55,7 +74,7 @@
      the brand accent arrives via --sidebar-accent-* below. */
   --sidebar-primary: oklch(0.218 0.008 223.9);
   --sidebar-primary-foreground: oklch(0.987 0.002 197.1);
-  --sidebar-accent: oklch(0.963 0.002 197.1);
+  --sidebar-accent: oklch(0.948 0.003 197.1);
   --sidebar-accent-foreground: oklch(0.218 0.008 223.9);
   --sidebar-border: oklch(0.925 0.005 214.3);
   --sidebar-ring: oklch(0.723 0.014 214.4);
