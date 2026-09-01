@@ -7,6 +7,7 @@ import { domainLabel } from "../../lib/domainLabels";
 import type { ReportSection } from "../types";
 import { SectionHeading } from "../SectionHeading";
 import { Button } from "@/components/ui/button";
+import { severityLabel } from "../../lib/labels";
 
 interface Finding {
   id: string;
@@ -82,7 +83,7 @@ export function FindingsTable({ content }: { content: ReportSection["content"] }
                   </td>
                   <td style={td}>
                     <span className={`badge ${severityBadgeClass(f.severity)}`}>
-                      {f.severity}
+                      {severityLabel(f.severity)}
                     </span>
                   </td>
                   <td style={td} className="font-data tabular-nums">

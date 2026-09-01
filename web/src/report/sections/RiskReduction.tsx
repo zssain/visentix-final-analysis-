@@ -2,6 +2,7 @@ import type { ReportSection } from "../types";
 import { SectionHeading } from "../SectionHeading";
 import { Badge } from "@/components/ui/badge";
 import { StatTile } from "@/components/ui/stat-tile";
+import { domainLabel } from "../../lib/labels";
 
 interface Priority {
   code: string;
@@ -46,7 +47,7 @@ export function RiskReduction({ content }: { content: ReportSection["content"] }
                   <div className="mb-1 flex flex-wrap items-center gap-2">
                     <Badge className="font-data">{p.code}</Badge>
                     <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      {p.domain.replace(/_/g, " ")}
+                      {domainLabel(p.domain)}
                     </span>
                   </div>
                   <p className="text-sm leading-relaxed text-muted-foreground">{p.description}</p>

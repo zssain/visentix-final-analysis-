@@ -6,6 +6,7 @@
  */
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell } from "recharts";
 import { Badge } from "@/components/ui/badge";
+import { domainLabel, humanize, severityLabel } from "../lib/labels";
 
 export interface ExplainPanelProps {
   explanation: Record<string, unknown>;
@@ -60,7 +61,7 @@ function InputsTable({ inputs }: { inputs: Record<string, unknown> }) {
       <tbody>
         {entries.map(([key, val]) => (
           <tr key={key}>
-            <td style={tdStyle}>{key.replace(/_/g, " ")}</td>
+            <td style={tdStyle}>{humanize(key)}</td>
             <td style={tdStyle}>{String(val)}</td>
           </tr>
         ))}
@@ -116,10 +117,10 @@ function FindingExplanation({ explanation }: { explanation: Record<string, unkno
   return (
     <>
       <div style={{ margin: "8px 0" }}>
-        <strong>Domain:</strong> {(explanation.domain as string)?.replace(/_/g, " ")}
+        <strong>Domain:</strong> {explanation.domain ? domainLabel(explanation.domain as string) : "Not recorded"}
         {" · "}
         <strong>Severity:</strong>{" "}
-        <span className={`tier-${explanation.severity}`}>{explanation.severity as string}</span>
+        <span className={`tier-${explanation.severity}`}>{severityLabel(explanation.severity as string)}</span>
         {" · "}
         <strong>Score:</strong> {String(explanation.score)}
       </div>

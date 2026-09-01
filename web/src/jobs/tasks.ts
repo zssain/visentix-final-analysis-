@@ -1,3 +1,5 @@
+import { humanize } from "../lib/labels";
+
 /**
  * Background-task model — shared by the provider and the tracker widget.
  *
@@ -85,7 +87,9 @@ export const STAGE_LABELS: Record<string, string> = {
 };
 
 export function stageLabel(stage: string): string {
-  return STAGE_LABELS[stage] ?? stage.replace(/_/g, " ");
+  // An unmapped stage falls through to the shared registry rather than being
+  // formatted here — one humanising rule, not two.
+  return STAGE_LABELS[stage] ?? humanize(stage);
 }
 
 /**

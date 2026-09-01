@@ -1,5 +1,6 @@
 import { ScoreDial } from "../ScoreDial";
 import type { ReportSection } from "../types";
+import { humanize } from "../../lib/labels";
 
 /**
  * Cover — editorial first page: eyebrow, Fraunces org name, meta row,
@@ -70,7 +71,7 @@ export function Cover({ content }: { content: ReportSection["content"] }) {
         <table className="w-full border-collapse text-xs">
           <tbody>{Object.entries(scopeLabels).map(([key, label]) => {
             const item = scope[key] ?? {};
-            return <tr key={key}><th className="px-1.5 py-1 text-left">{label}</th><td className="px-1.5 py-1">{displayValue(item.value)}</td><td className="px-1.5 py-1 text-muted-foreground">{(item.provenance ?? "not recorded").replace(/_/g, " ")}</td></tr>;
+            return <tr key={key}><th className="px-1.5 py-1 text-left">{label}</th><td className="px-1.5 py-1">{displayValue(item.value)}</td><td className="px-1.5 py-1 text-muted-foreground">{humanize(item.provenance ?? "not recorded")}</td></tr>;
           })}</tbody>
         </table>
         <p className="cover-scope-text">Unconfirmed values are shown as assumptions; legacy assessments are not back-filled.</p>

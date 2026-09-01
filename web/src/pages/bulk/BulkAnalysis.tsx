@@ -24,6 +24,7 @@ import "./bulk.css";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { statusLabel } from "../../lib/labels";
 
 // 8 taxonomy domains (backend heatmap TAXONOMY_DOMAINS order) + short labels.
 const DOMAINS = [
@@ -53,7 +54,7 @@ const DraftBadge = () => (
 );
 
 const StatusChip = ({ status }: { status: string }) => (
-  <span className={`bulk-status-chip st-${status}`}>{status.replace(/_/g, " ")}</span>
+  <span className={`bulk-status-chip st-${status}`}>{statusLabel(status)}</span>
 );
 
 // ── Parse + validate the upload before submit ────────────────

@@ -113,7 +113,10 @@ describe("ExplainPanel — score", () => {
 
     const table = screen.getByTestId("inputs-table");
     expect(table).toBeInTheDocument();
-    expect(table.textContent).toContain("total clauses");
+    // The rule is that a reader never sees the raw key. Assert BOTH halves:
+    // the humanised label is present and the underscored original is not.
+    expect(table.textContent).toContain("Total clauses");
+    expect(table.textContent).not.toContain("total_clauses");
     expect(table.textContent).toContain("41");
   });
 

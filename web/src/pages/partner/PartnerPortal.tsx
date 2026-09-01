@@ -16,6 +16,7 @@ import { api, ApiError } from "../../lib/api";
 import "./partner.css";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { statusLabel } from "../../lib/labels";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? (import.meta.env.DEV ? "http://localhost:8000" : "");
 // Same gate language customers see — no special casing (F20).
@@ -33,7 +34,7 @@ function authToken(): string {
 
 const StatusChip = ({ status }: { status: string }) => (
   <span className={`pp-chip st-${status}`} title={status === "draft" ? DRAFT_GATE_TEXT : status}>
-    {status === "draft" ? DRAFT_GATE_TEXT : status.replace(/_/g, " ")}
+    {status === "draft" ? DRAFT_GATE_TEXT : statusLabel(status)}
   </span>
 );
 

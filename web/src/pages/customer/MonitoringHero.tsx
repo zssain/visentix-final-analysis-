@@ -12,6 +12,7 @@ import { api } from "../../lib/api";
 import { trendColor } from "../../lib/scoreBands";
 import { NotificationsCard } from "./NotificationsCard";
 import { Card } from "@/components/ui/card";
+import { humanize, severityLabel } from "../../lib/labels";
 
 interface DeliveriesResponse {
   deliveries: Record<string, { channel: string | null; status: string | null }>;
@@ -98,7 +99,7 @@ function Sparkline({ data }: { data: number[] }) {
 }
 
 function fmtType(t: string): string {
-  return t.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+  return humanize(t);
 }
 
 export function MonitoringHero() {
@@ -216,7 +217,7 @@ export function MonitoringHero() {
                     {fmtType(ev.type)}
                     {ev.severity && (
                       <span style={{ fontSize: "0.66rem", marginLeft: 6, color: "var(--text-muted)" }}>
-                        · {ev.severity}
+                        · {severityLabel(ev.severity)}
                       </span>
                     )}
                     {deliveryChip(ev.event_id)}

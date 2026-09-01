@@ -34,6 +34,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { domainLabel, humanize, statusLabel } from "../../lib/labels";
 
 const NR = "—"; // honest absence — never a fabricated value (DATA-003)
 
@@ -377,7 +378,7 @@ export function ReviewQueue() {
                       </span>
                     </span>
                     <span className={`badge ${item.status === "in_review" ? "badge-gold" : "badge-draft"}`}>
-                      {item.status.replace(/_/g, " ")}
+                      {statusLabel(item.status)}
                     </span>
                   </button>
                 );
@@ -403,7 +404,7 @@ export function ReviewQueue() {
                 <div className="wb-subject">
                   <strong>{selected.organization_name || "Organization not recorded"}</strong>
                   {selected.source_label && <span> · {shortSource(selected.source_label)}</span>}
-                  {selected.industry && <span> · {selected.industry.replace(/_/g, " ")}</span>}
+                  {selected.industry && <span> · {humanize(selected.industry)}</span>}
                   <code title="Assessment id">{selected.assessment_id}</code>
                 </div>
                 <div className="wb-finding-head">
@@ -439,7 +440,7 @@ export function ReviewQueue() {
                   <div><span>Score</span><strong>{fmt(current.score)}</strong></div>
                   <div><span>Confidence</span><strong>{fmt(current.confidence_score, 2)}</strong></div>
                   <div><span>Benchmark deviation</span><strong>{fmt(current.benchmark_deviation_score)}</strong></div>
-                  <div><span>Domain</span><strong>{current.domain?.replace(/_/g, " ") || NR}</strong></div>
+                  <div><span>Domain</span><strong>{current.domain ? domainLabel(current.domain) : NR}</strong></div>
                 </div>
 
                 <div className="wb-block">
@@ -493,7 +494,7 @@ export function ReviewQueue() {
                   <button key={ex.id} onClick={() => pickExemplar(ex)}
                     className={`wb-queue-item ${exSelected?.id === ex.id ? "sel" : ""}`}
                     data-testid={`exemplar-${ex.id}`}>
-                    <span className="wb-qid">{ex.domain?.replace(/_/g, " ") || NR}</span>
+                    <span className="wb-qid">{ex.domain ? domainLabel(ex.domain) : NR}</span>
                     <Badge variant="provisional">{ex.id.slice(0, 6)}…</Badge>
                   </button>
                 ))}

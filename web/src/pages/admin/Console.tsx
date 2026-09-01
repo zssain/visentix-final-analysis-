@@ -13,6 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { cn } from "@/lib/utils";
 import { StatusDot } from "@/components/StatusDot";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { domainLabel, humanize } from "../../lib/labels";
 
 interface TrainingStats {
   total_labels: number;
@@ -68,7 +69,7 @@ export function AdminConsole() {
     setGateModeError(null);
     try {
       await api.post("/review/gate-mode", { mode });
-      setGateModeStatus(`Gate mode updated to ${mode.replace(/_/g, " ")}`);
+      setGateModeStatus(`Gate mode updated to ${humanize(mode)}`);
       setTimeout(() => setGateModeStatus(null), 4000);
     } catch {
       setGateMode(prev); // roll back the optimistic switch
@@ -176,7 +177,7 @@ export function AdminConsole() {
                   {Object.entries(rowCounts).length > 0 ? (
                     Object.entries(rowCounts).map(([table, count]) => (
                       <TableRow key={table}>
-                        <TableCell className="font-medium capitalize">{table.replace(/_/g, " ")}</TableCell>
+                        <TableCell className="font-medium capitalize">{humanize(table)}</TableCell>
                         <TableCell className="text-right font-data tabular-nums font-semibold">
                           {typeof count === "number" ? count.toLocaleString() : count}
                         </TableCell>
@@ -375,7 +376,7 @@ export function AdminConsole() {
                       return (
                         <div key={domain}>
                           <div className="mb-1 flex justify-between text-sm text-muted-foreground">
-                            <span className="capitalize">{domain.replace(/_/g, " ")}</span>
+                            <span className="capitalize">{domainLabel(domain)}</span>
                             <span className="font-data font-semibold tabular-nums">{count}</span>
                           </div>
                           <div className="h-1 overflow-hidden rounded-sm bg-border">

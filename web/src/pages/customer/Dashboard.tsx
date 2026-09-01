@@ -25,6 +25,7 @@ const DIRECTION_HINT: Record<string, string> = {
   exposure: "lower is better",
 };
 import { StatusDot } from "@/components/StatusDot";
+import { noticeTypeLabel } from "../../lib/labels";
 
 interface Assessment {
   notice_id: string;
@@ -258,7 +259,7 @@ export function CustomerDashboard() {
                         <td className="px-6 py-3 capitalize text-muted-foreground">{a.organization?.industry ?? "—"}</td>
                         <td className="px-6 py-3">
                           <Badge variant={a.notice_type === "live_assessment" ? "verified" : "provisional"}>
-                            {a.notice_type?.replace(/_/g, " ")}
+                            {noticeTypeLabel(a.notice_type)}
                           </Badge>
                         </td>
                         <td className="px-6 py-3">

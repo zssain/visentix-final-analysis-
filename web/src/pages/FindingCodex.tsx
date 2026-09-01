@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { domainLabel } from "../lib/labels";
 
 /** Severity is a STANDING, so it uses the traffic-light scale (OD-13).
  *  An unrecognised severity gets a neutral pill rather than a guessed colour. */
@@ -28,10 +29,6 @@ const DOMAINS = [
   "children_teens", "ai_automated_decisions", "other",
 ] as const;
 type Domain = typeof DOMAINS[number];
-
-function domainLabel(d: string): string {
-  return d.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
-}
 
 interface CodexEntry {
   code: string;

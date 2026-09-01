@@ -10,6 +10,7 @@ import type { ExplainEnvelope } from "./ExplainContext";
 import "./explain.css";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { humanize } from "../../lib/labels";
 
 interface Props {
   envelope: ExplainEnvelope | null;
@@ -152,7 +153,7 @@ export function ExplanationPanel({ envelope, elementType, elementKey, label, onC
               {/* Versioning footer */}
               <div className="explain-footer" data-testid="explain-versioning">
                 {Object.entries(envelope.versioning || {}).filter(([, v]) => !!v).map(([k, v]) => (
-                  <span key={k}>{k.replace(/_/g, " ")}: {String(v).slice(0, 20)}</span>
+                  <span key={k}>{humanize(k)}: {String(v).slice(0, 20)}</span>
                 ))}
               </div>
             </>
@@ -241,7 +242,7 @@ function TechnicalView({ envelope }: { envelope: ExplainEnvelope }) {
             {Object.entries(tech.inputs as Record<string, unknown>)
               .filter(([, v]) => typeof v !== "object" || v === null)
               .map(([k, v]) => (
-                <tr key={k}><td>{k.replace(/_/g, " ")}</td><td>{String(v)}</td></tr>
+                <tr key={k}><td>{humanize(k)}</td><td>{String(v)}</td></tr>
               ))}
           </tbody>
         </table>

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { api } from "../lib/api";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { domainLabel, severityLabel } from "../lib/labels";
 
 interface CodexEntry {
   code: string;
@@ -55,7 +56,7 @@ export function CodexTooltip({ code, children }: CodexTooltipProps) {
         <div className="font-data text-[11px] font-bold tracking-wide">{code}</div>
         <div className="font-semibold">{entry.title}</div>
         <div className="opacity-80 capitalize">
-          {entry.domain?.replace(/_/g, " ")} — {entry.default_severity} severity
+          {entry.domain ? domainLabel(entry.domain) : "Not recorded"} — {severityLabel(entry.default_severity)}
         </div>
       </TooltipContent>
     </Tooltip>
