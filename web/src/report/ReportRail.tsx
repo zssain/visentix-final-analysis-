@@ -6,8 +6,10 @@
  * deep in a long report — especially for a reader who was forwarded it and
  * arrived by a link rather than by reading from the start.
  *
- * The rail appears only once the contents card has scrolled away, so the
- * document never shows two indexes competing at the top.
+ * It is always visible. It used to reveal itself only after the contents card
+ * scrolled away, which meant the one aid for "where am I" was missing for
+ * exactly as long as the reader was still deciding where to go — and its
+ * appearance mid-scroll was itself a distraction.
  *
  * Determinism: the rail is chrome, not content. It is `display: none` in print,
  * so it cannot reach the PDF renderer or affect a byte-identical re-pull.
@@ -41,13 +43,8 @@ export function activeIndexFor(tops: number[], readingLine: number): number {
 /** Distance from the viewport top at which a heading counts as "reached". */
 const READING_LINE = 140;
 
-export function ReportRail({ parts, revealAfter }: {
-  parts: ReportPart[];
-  /** The element whose exit reveals the rail — normally the contents card. */
-  revealAfter?: React.RefObject<HTMLElement | null>;
-}) {
+export function ReportRail({ parts }: { parts: ReportPart[] }) {
   const [active, setActive] = useState(0);
-  const [shown, setShown] = useState(!revealAfter);
   const frame = useRef<number | null>(null);
 
   useEffect(() => {
@@ -76,35 +73,10 @@ export function ReportRail({ parts, revealAfter }: {
     };
   }, [parts]);
 
-  useEffect(() => {
-    const el = revealAfter?.current;
-    if (!el) return;
-    // No IntersectionObserver (old browser, a test environment, a saved page
-    // opened oddly): show the rail rather than lose it. The reveal is a
-    // refinement; the index itself is the feature.
-    if (typeof IntersectionObserver === "undefined") { setShown(true); return; }
-    // Reveal once the contents card is gone; hide again when it returns, so
-    // scrolling back up restores the original reading order.
-    const io = new IntersectionObserver(
-      ([entry]) => setShown(!entry.isIntersecting),
-      { threshold: 0 },
-    );
-    io.observe(el);
-    return () => io.disconnect();
-  }, [revealAfter]);
-
   if (parts.length === 0) return null;
 
   return (
-    <nav
-      className={cn("report-rail", shown && "report-rail-shown")}
-      aria-label="On this page"
-      data-testid="report-rail"
-      /* Hidden from assistive tech while invisible: the contents card is the
-         index at that point, and two indexes in the tab order is worse than
-         one. */
-      aria-hidden={!shown}
-    >
+    <nav className="report-rail" aria-label="On this page" data-testid="report-rail">
       <div className="report-rail-label">On this page</div>
       <ol className="report-rail-list">
         {parts.map((part, i) => (
@@ -113,7 +85,6 @@ export function ReportRail({ parts, revealAfter }: {
               href={`#${partAnchor(part)}`}
               className={cn("report-rail-item", i === active && "report-rail-item-active")}
               aria-current={i === active ? "true" : undefined}
-              tabIndex={shown ? undefined : -1}
             >
               <span className="report-rail-num" aria-hidden="true">{part.n ?? "·"}</span>
               <span className="report-rail-name">{part.title}</span>

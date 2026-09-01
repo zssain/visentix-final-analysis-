@@ -84,6 +84,14 @@ describe("pinned rail — which part am I reading", () => {
     expect(activeIndexFor([-500, Number.POSITIVE_INFINITY, -100], 140)).toBe(2);
   });
 
+  it("is present from the first frame — 'where am I' never waits on a scroll", () => {
+    // It used to reveal itself only after the contents card scrolled away, so
+    // the one aid for orientation was missing for exactly as long as the reader
+    // was still deciding where to go.
+    render(<ReportRail parts={REPORT_PARTS} />);
+    expect(screen.getByTestId("report-rail")).not.toHaveAttribute("aria-hidden");
+  });
+
   it("renders one entry per part, each pointing at that part's anchor", () => {
     render(<ReportRail parts={REPORT_PARTS} />);
     const links = within(screen.getByTestId("report-rail")).getAllByRole("link");

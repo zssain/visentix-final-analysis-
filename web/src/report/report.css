@@ -323,7 +323,9 @@
    carries its original twelve blocks (sectionGroups.ts). One heading shape for
    every part, so a reader learns the pattern once and can then navigate by
    shape rather than by reading. */
-.report-part { scroll-margin-top: 24px; }
+/* A jump from the contents or the rail must land the part heading BELOW the
+   pinned header, not underneath it. Matches the rail's own offset. */
+.report-part { scroll-margin-top: 108px; }
 
 .report-part-head {
   display: flex;
@@ -476,20 +478,18 @@
   .report-rail {
     display: block;
     position: sticky;
-    top: 88px;
+    /* Clears the pinned report header, which sits at top:12px and stands about
+       76px tall. The rail used to stick at 88px — computed before that header
+       existed — so its first entries slid underneath it. 12 + 76 + 20 of air. */
+    top: 108px;
     align-self: start;
-    max-height: calc(100vh - 120px);
+    max-height: calc(100vh - 140px);
     overflow-y: auto;
-    /* Revealed by ReportRail once the contents card leaves the viewport, so the
-       document never shows two indexes at once. */
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 180ms ease;
+    /* Overscroll containment: the rail is a short scrollable inside a long
+       page, and without this, reaching its end hands the wheel to the document
+       mid-gesture. */
+    overscroll-behavior: contain;
   }
-  .report-rail-shown { opacity: 1; visibility: visible; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .report-rail { transition: none; }
 }
 
 .report-rail-label {

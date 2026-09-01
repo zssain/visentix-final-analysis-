@@ -8,7 +8,7 @@
  * lives. It used to open the report as well — so a reader met a snapshot ID and
  * a formula version before they met the organisation the report is about.
  */
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import type { ReportPayload } from "./types";
 import { api } from "../lib/api";
 import { useExplain } from "./explain/ExplainContext";
@@ -52,7 +52,6 @@ interface ReportViewProps { report: ReportPayload; }
 export function ReportView({ report }: ReportViewProps) {
   const isDraft = !!report.draft_banner;
   const { prefetch } = useExplain();
-  const contentsRef = useRef<HTMLElement>(null);
 
   // M-10: real plain-English formula descriptions from formula_version.description
   // (14/14 populated). Threaded into every section so lineage drawers stop using
@@ -184,7 +183,7 @@ export function ReportView({ report }: ReportViewProps) {
           which tells a reader either that part 1 is missing or that the index
           is wrong. A contents list numbers the DOCUMENT, not the subset of it
           that happens to carry a heading. */}
-      <ReportContents parts={presentParts} innerRef={contentsRef} />
+      <ReportContents parts={presentParts} />
 
       {/* Presented as six parts + an appendix (see sectionGroups.ts). The payload
           is untouched — each part simply renders the blocks it groups, in order,
@@ -205,8 +204,9 @@ export function ReportView({ report }: ReportViewProps) {
       </div>
     </div>
 
-    {/* Pinned "on this page", revealed once the contents card scrolls away. */}
-    <ReportRail parts={presentParts} revealAfter={contentsRef} />
+    {/* Pinned "on this page" — always present, so "where am I" never depends
+        on how far the reader has scrolled. */}
+    <ReportRail parts={presentParts} />
     </div>
   );
 }
