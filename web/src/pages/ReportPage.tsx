@@ -9,6 +9,7 @@ import { api, ApiError } from "../lib/api";
 import { ReportView } from "../report/ReportView";
 import type { ReportPayload } from "../report/types";
 import { Button } from "@/components/ui/button";
+import { ReportHeader } from "./ReportHeader";
 
 export function ReportPage() {
   const { assessmentId } = useParams<{ assessmentId: string }>();
@@ -125,23 +126,14 @@ function ReportLoader({ assessmentId }: { assessmentId: string }) {
   // Render the report — same ReportView used by Playwright PDF renderer
   return (
     <div>
-      <div style={{ marginBottom: 16, display: "flex", alignItems: "center", gap: 16 }}>
-        {/* "/" is the ROLE-BASED home (App.tsx RoleBasedHome): admin lands on
-            the Console, sme on the Workbench. A link that says "Back to
-            Assessments" must go to /assessments, or the label lies to every
-            reader who is not a customer. */}
-        <Link to="/assessments" style={{ color: "var(--text-secondary)", fontSize: "0.9rem" }}>
-          ← Back to Assessments
-        </Link>
-        <Button variant="outline" size="sm" type="button" onClick={downloadPdf} disabled={downloading}>
-          {downloading ? "Downloading…" : "Download PDF"}
-        </Button>
-        {downloadError && (
-          <span role="alert" style={{ color: "var(--red)", fontSize: "0.85rem" }}>
-            {downloadError}
-          </span>
-        )}
-      </div>
+      <ReportHeader
+        organization={report.organization_name}
+        generatedDate={report.generated_date}
+        isDraft={!!report.draft_banner}
+        onDownload={downloadPdf}
+        downloading={downloading}
+        downloadError={downloadError}
+      />
 
       <ReportView report={report} />
     </div>
