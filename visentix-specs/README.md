@@ -10,7 +10,13 @@
 visentix-specs/
 ├── README.md                        ← you are here: how the spec system works
 ├── 00-plan/
-│   ├── mvp-completion-plan.md       ← finish the current MVP (mock closure, gaps, gates)
+│   ├── README.md                    ← which plan document is authoritative for what
+│   ├── remaining-work.md            ← the single list of what is left, and who unblocks each item
+│   ├── open-decisions.md            ← the register: every decision awaiting a human
+│   ├── route-and-surface-plan.md    ← routes, screen splits, background-task policy
+│   ├── research-to-plan.md          ← what the language research changed, requires, and forbids
+│   ├── mock-tracker.md              ← every mock in the product (guarded by check_mocks.py)
+│   ├── version-ladder.md            ← which surface ships with which product version
 │   └── full-app-roadmap.md          ← MVP → four commercial products
 ├── 01-foundation/                   ← cross-cutting truth; features may not contradict these
 │   ├── schema.md                    ← canonical data model (tables, fields, relationships, lineage)
@@ -50,4 +56,4 @@ Rules for agents:
 
 ## Current product context (July 2026)
 
-The MVP (FastAPI + React/TS + Postgres/Supabase + local LLM + MiniLM embeddings) is functionally complete through Phase 11: intake → decomposition → classification → profiling → normalization → scoring (F-002–F-014) → findings → SME gate → 12-section report → monitoring surfaces. Full test suite green. Remaining work is defined in `00-plan/mvp-completion-plan.md`.
+The MVP (FastAPI + React/TS + Postgres/Supabase + local LLM + MiniLM embeddings) is functionally complete through Phase 11: intake → decomposition → classification → profiling → normalization → scoring (F-002–F-014) → findings → SME gate → 12-section report → monitoring surfaces. Full test suite green. Remaining work is defined in `00-plan/remaining-work.md`.

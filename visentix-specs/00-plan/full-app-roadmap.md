@@ -7,7 +7,7 @@
 
 ## Release 1 — "Assessment" (MVP complete → first revenue)
 
-*Scope:* the current build finished per `mvp-completion-plan.md`.
+*Scope:* the current build. What is left of it is in `remaining-work.md`.
 - Product 1 fully live: intake → decompose → classify → profile → normalize → score → SME review → 12-section reproducible report + PDF.
 - Monitoring dashboard live for single-org customers (trend, change feed, alerts) — the "it's watching" proof.
 - Corpus: seed benchmark corpus with priority-industry public notices (Retail, SaaS, Healthcare, Financial per ICP) so cohorts hit n≥20 in demo industries.

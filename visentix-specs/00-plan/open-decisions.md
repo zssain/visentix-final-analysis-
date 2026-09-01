@@ -1,7 +1,7 @@
 # Open Decisions (OD) Register
 
 **Version:** 1.7 · 2026-08-31
-**Authority:** the live register of product/content decisions that block MVP completion. Each OD has a recommendation to unblock, an owner, and a status. When an OD is decided, set Status = **Decided** with the date and the outcome, and reflect it in the feature spec(s) it governs. `mvp-completion-plan.md` Workstream C references this file.
+**Authority:** the live register of product/content decisions that block MVP completion. Each OD has a recommendation to unblock, an owner, and a status. When an OD is decided, set Status = **Decided** with the date and the outcome, and reflect it in the feature spec(s) it governs. `remaining-work.md` names what each open OD blocks.
 
 **Status values:** **Open** (undecided) · **Recommended** (a recommendation is on the table, awaiting sign-off) · **Decided** (outcome recorded; propagate to specs).
 

@@ -1,7 +1,7 @@
 # MOCK TRACKER — the MVP mock-closure punch list
 
 **Version:** 2.2 · 2026-08-31
-**Authority:** this is the live, canonical tracker of every mock in the product. It replaces the `MOCK TRACKER` section of the archived `docs/old-docs/UI_SPEC.md`. `00-plan/mvp-completion-plan.md` Workstream A drives these to closure; each feature spec's Mocks section points here.
+**Authority:** this is the live, canonical tracker of every mock in the product. It replaces the `MOCK TRACKER` section of the retired `UI_SPEC.md`. Each feature spec's Mocks section points here, and `scripts/check_mocks.py` fails if a mocked surface ships without a badge naming its row.
 
 **Rule (unchanged):** every mock must be replaced with real data before shipping to a real client. Never display a hardcoded score, cohort `n`, snapshot ID, or count. Status values: **Open** (still mocked) · **In progress** · **Replaced** (real data wired, verified).
 

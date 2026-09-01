@@ -6,7 +6,6 @@
 \.claude/
 scripts/data/
 scripts/build_agents_md\.py
-docs/old-docs/
 logs/
 AGENTS\.md
 visentix-onboarding/

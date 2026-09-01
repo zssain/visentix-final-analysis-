@@ -25,7 +25,7 @@ becomes an opinion.
 | **Disclosed evidence quality** (ICD 203 Tradecraft Standard 1) | **RPT-007 source summary** — per-judgment rests-on + evidence-base strength, plus named strengths and limitations. Frozen into the snapshot, never recomputed. Evidence-base strength is stated *separately from the score* |
 | **No document-specific acronyms** (SEC: *"don't create new jargon that's unique to your document"*) | VCI → "Confidence", PGMS → "Privacy programme maturity", `/codex` → `/finding-codes`, house mock codes out of user-facing copy. `scripts/check_acronyms.py` |
 | **Observations ordered by significance** (IIA) | **Fixed 2026-08-31.** Findings were sorted *alphabetically by code*, and takeaways/recommendations took `findings[:5]` — so a low-severity `AI-004` displaced a high-severity `SH-002` because A precedes S. Now ordered by severity → score → code, the last for determinism (Hard Rule 6) |
-| **Substantiate credibility externally, don't assert it** | Marketing-voice titles flagged: "Trust Language Studio" is promotional for what is an *illustrative* rewrite (A1 in `blocked-work.md`) |
+| **Substantiate credibility externally, don't assert it** | Marketing-voice titles flagged: "Trust Language Studio" is promotional for what is an *illustrative* rewrite (A1 in `remaining-work.md`) |
 
 ## Required, not yet built
 

@@ -1,7 +1,7 @@
 # Route & Surface Plan
 
 **Version:** 1.0 · 2026-08-31 · **Status:** proposed — owner decisions marked ⬥
-**Supersedes** the route half of `standardization-plan.md` Workstream 3.
+**Supersedes** the route half of the retired `standardization-plan.md` (Workstream 3).
 **Governing spec:** `01-foundation/design-system.md` §6.
 
 ## The naming rule

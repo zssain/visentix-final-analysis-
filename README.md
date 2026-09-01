@@ -87,7 +87,6 @@ is compiled from them so it can never drift. See `docs/runbooks/AUTOMATION.md` f
 | `AGENTS.md` | AI agents | Standing rules. Generated sections (`<!-- BEGIN GENERATED … -->`) are rebuilt by `scripts/build_agents_md.py` from the foundation specs — **never hand-edit inside the markers**; edit the source spec and regenerate |
 | `docs/runbooks/AUTOMATION.md` + `docs/runbooks/logging-and-audit.md` | Maintainers | The self-maintaining feedback loop: `spec-update` skill (`.claude/skills/spec-update/`), `.github/` workflows, `logs/` |
 | `docs/` | Operators | Live operational docs: `SETUP.md`, `DEMO_RUNBOOK.md`, `DB_GROUND_TRUTH.md` |
-| `docs/old-docs/` | Reference | Pre-restructure docs, archived 2026-07-15 — superseded by `visentix-specs/`; see its `README.md` |
 
 **Feedback flow:** relay any verbal feedback in a Claude session in this repo → the
 `spec-update` skill classifies it, edits the specs (with version bumps + changelogs),
