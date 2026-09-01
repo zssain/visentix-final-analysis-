@@ -17,7 +17,10 @@ interface RegulatorRow {
   cells: HeatmapCell[];
 }
 
-const HATCH = "repeating-linear-gradient(135deg, #f4f5f7, #f4f5f7 4px, #e3e6ea 4px, #e3e6ea 8px)";
+/* Hatch marks a cell with no evidence. Token-built so it inverts with the theme
+   — a light hatch on a dark card would read as a filled cell, i.e. as evidence
+   that is not there. */
+const HATCH = "repeating-linear-gradient(135deg, var(--muted), var(--muted) 4px, var(--border) 4px, var(--border) 8px)";
 
 function isEvidenced(cell: HeatmapCell): boolean {
   return cell.evidenced ?? cell.clause_density > 0;

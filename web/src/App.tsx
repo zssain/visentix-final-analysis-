@@ -159,7 +159,9 @@ function RoleBasedHome() {
   // and fails the release.sh masked-surface grep. In v1 (S_PARTNER=false) a
   // partner_admin (not a v1-provisioned role) falls through to the customer home.
   if (S_PARTNER && profile?.role === "partner_admin") return <Navigate to="/partner" replace />;
-  return <CustomerDashboard />;
+  // Redirect, not render: `/` and `/assessments` must not be two URLs for the
+  // same screen.
+  return <Navigate to="/assessments" replace />;
 }
 
 function AppRoutes() {
@@ -287,6 +289,9 @@ function AppRoutes() {
           } />
 
           {/* Root → role-based landing */}
+          {/* `/` is a redirect, never a screen. It used to render
+              CustomerDashboard directly, which made it a second URL for the
+              same screen as /assessments — two addresses for one thing. */}
           <Route path="/" element={<Guarded path="/"><RoleBasedHome /></Guarded>} />
 
           {/* Monitor (was /assessments — the nav and the title both said Monitor,

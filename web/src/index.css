@@ -162,7 +162,7 @@
   /* Status */
   .badge-teal     { background: color-mix(in oklab, var(--verified) 15%, transparent);  color: var(--verified); }
   .badge-gold     { background: color-mix(in oklab, var(--provisional) 20%, transparent);  color: var(--provisional); border: 1px dashed var(--gold); }
-  .badge-navy     { background: var(--navy); color: white; }
+  .badge-navy     { background: var(--navy); color: var(--primary-foreground); }
   .badge-draft    { background: color-mix(in oklab, var(--provisional) 12%, transparent); color: var(--provisional); border: 1px dashed var(--gold); }
   .badge-approved { background: color-mix(in oklab, var(--verified) 12%, transparent);  color: var(--verified); border: 1px solid var(--teal); }
 
@@ -172,7 +172,7 @@
     align-items: center;
     gap: 5px;
     background: var(--navy);
-    color: white;
+    color: var(--primary-foreground);
     padding: 3px 9px;
     border-radius: 5px;
     font-family: var(--font-data);
@@ -208,13 +208,13 @@
   }
   .btn:focus-visible { outline: 2px solid var(--exec-blue); outline-offset: 2px; }
 
-  .btn-primary   { background: var(--navy);      color: white; }
+  .btn-primary   { background: var(--navy);      color: var(--primary-foreground); }
   .btn-primary:hover { background: var(--navy-light); transform: translateY(-1px); box-shadow: var(--shadow); }
 
   .btn-teal      { background: var(--teal);      color: var(--navy); }
   .btn-teal:hover { background: var(--teal-light); }
 
-  .btn-gold      { background: var(--gold);      color: white; }
+  .btn-gold      { background: var(--gold);      color: var(--primary-foreground); }
   .btn-gold:hover { background: var(--gold-light); }
 
   .btn-outline   { background: transparent; color: var(--navy); border: 1.5px solid var(--border); }
@@ -223,7 +223,7 @@
   .btn-ghost     { background: transparent; color: var(--text-secondary); }
   .btn-ghost:hover { background: color-mix(in oklab, var(--primary) 5%, transparent); color: var(--navy); }
 
-  .btn-danger    { background: var(--red); color: white; }
+  .btn-danger    { background: var(--red); color: var(--primary-foreground); }
   .btn-danger:hover { opacity: 0.9; }
 
   .btn-sm  { padding: 6px 14px; font-size: 0.8rem; }

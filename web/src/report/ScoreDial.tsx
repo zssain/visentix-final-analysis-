@@ -37,7 +37,7 @@ export function ScoreDial({ score, vci }: ScoreDialProps) {
       <svg width="240" height="132" viewBox="0 0 240 132" role="img"
         aria-label={`Overall Privacy Intelligence Score ${clamped.toFixed(1)} of 100`}>
         {/* Track */}
-        <path d={arcPath(120, 120, 96, 180)} fill="none" stroke="#E4E8ED" strokeWidth="14" strokeLinecap="round" />
+        <path d={arcPath(120, 120, 96, 180)} fill="none" stroke="var(--border)" strokeWidth="14" strokeLinecap="round" />
         {/* Value arc — band-colored */}
         {sweep > 0 && (
           <path d={arcPath(120, 120, 96, sweep)} fill="none" stroke={color} strokeWidth="14" strokeLinecap="round" />

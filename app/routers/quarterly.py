@@ -9,7 +9,9 @@ anonymization gate, and approve through the expert-review permission.
 import html as _html
 import json
 
-from fastapi import APIRouter, HTTPException, status
+import logging
+
+from fastapi import BackgroundTasks, APIRouter, HTTPException, status
 from fastapi.responses import Response
 from pydantic import BaseModel, Field
 
@@ -22,6 +24,8 @@ log = get_logger(__name__)
 # Public reader surface (no auth — approved + suppression-safe only).
 public_router = APIRouter(prefix="/quarterly", tags=["quarterly"])
 # Admin/expert surface.
+log = logging.getLogger(__name__)
+
 admin_router = APIRouter(prefix="/admin/quarterly", tags=["quarterly-admin"])
 
 
@@ -75,6 +79,45 @@ async def build(body: BuildIn, user: AuthenticatedUser = require_role("admin")):
     except ValueError as e:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, str(e))
     return out  # {snapshot_id, quarter, gate_result, metric_count}
+
+
+@admin_router.post("/build/async", status_code=status.HTTP_202_ACCEPTED)
+async def build_async(
+    body: BuildIn,
+    background: BackgroundTasks,
+    user: AuthenticatedUser = require_role("admin"),
+):
+    """Build a quarterly snapshot in the BACKGROUND, returning a task handle.
+
+    The synchronous sibling aggregates the whole corpus inside one request. This
+    returns immediately; progress is polled from `GET /tasks/{id}`.
+    """
+    from app.services import tasks as task_service
+
+    quarter = body.quarter.strip()
+    task = await task_service.create(
+        kind="quarterly_build",
+        created_by=user.email or user.user_id,
+        # A double-click must not build the same quarter twice.
+        idempotency_key=f"quarterly_build:{quarter}",
+    )
+    task_id = task["job_id"]
+    if task.get("_idempotent_replay"):
+        return {"task_id": task_id, "status": task.get("status", "queued"),
+                "stage": task.get("stage", "queued")}
+
+    async def _run() -> None:
+        try:
+            await task_service.set_stage(task_id, "aggregating")
+            out = await Q.build_quarterly(quarter)
+            await task_service.complete(
+                task_id, result=out, result_id=str(out.get("snapshot_id") or ""))
+        except Exception as e:  # noqa: BLE001 — the task must record why it died
+            log.exception("quarterly build task %s failed", task_id)
+            await task_service.fail(task_id, str(e))
+
+    background.add_task(_run)
+    return {"task_id": task_id, "status": "queued", "stage": "queued"}
 
 
 @admin_router.get("")

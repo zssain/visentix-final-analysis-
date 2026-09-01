@@ -58,6 +58,7 @@ Ordered by how much damage each does while open.
 
 | Item | Blocked on |
 |---|---|
+| **Migration 0049** (`assessment_job.kind`) | An out-of-band apply to the shared database. The file is written, registered in `APPLY_NOW` per the runner's own rule, and additive + idempotent — but `test_schema_migrations_rows_match_file_checksums` compares against the LIVE ledger, so it fails until applied. Applying to a shared DB is not a call to make unilaterally. **The two async endpoints cannot run until this lands.** |
 | **Continuous monitoring UI** | The four `/api/monitoring/*` endpoints returning populated data. `MonitoringHero` is correct; it has nothing to draw. `/monitor` is reserved and deliberately unused until then |
 | **Assessment history** (F07 AC-9/10) | No endpoint serves it |
 | **Explorable heatmap cell** (F05 AC-13) | Specced, unbuilt — not blocked, just unqueued |
@@ -69,7 +70,6 @@ Ordered by how much damage each does while open.
 
 | Lesson | What is still missing |
 |---|---|
-| **L-016** | The literal-colour lint. Badges were fixed, but nothing yet *prevents* a stylesheet writing a hex outside `theme.css`, so that class of bug can recur |
 | **L-012** | An assertion covering "no cohort ⇒ no percentile" |
 | **L-011** | F07 AC-11…AC-14 |
 

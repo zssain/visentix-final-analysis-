@@ -1,11 +1,14 @@
 """Admin endpoints — system configuration and catalog management."""
 
+import logging
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, HTTPException, status
 from pydantic import BaseModel
 
 from app.auth import AuthenticatedUser, require_role
+
+log = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -177,6 +180,57 @@ async def trigger_assessment(
         )
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
+class TriggerAssessmentAsyncResponse(BaseModel):
+    task_id: str
+    status: str
+    stage: str
+
+
+@router.post("/trigger-assessment/async", status_code=status.HTTP_202_ACCEPTED)
+async def trigger_assessment_async(
+    body: TriggerAssessmentRequest,
+    background: BackgroundTasks,
+    user: AuthenticatedUser = require_role("admin"),
+):
+    """Re-score an org's notices in the BACKGROUND, returning a task handle.
+
+    The synchronous sibling above re-scores every notice in an organization
+    inside one HTTP request. On a real org that is a request a proxy may cut
+    before it finishes, and the caller has no handle to reconnect to. This
+    returns immediately; progress is polled from `GET /tasks/{id}`.
+
+    The sync endpoint is kept for scripted callers that genuinely want to block.
+    """
+    from app.services import tasks as task_service
+    from app.services.reassessment import trigger_reassessment
+
+    task = await task_service.create(
+        kind="reassessment",
+        organization_id=body.org_id,
+        created_by=user.email or user.user_id,
+    )
+    task_id = task["job_id"]
+
+    async def _run() -> None:
+        try:
+            await task_service.set_stage(task_id, "loading_notices")
+            out = await trigger_reassessment(
+                org_id=body.org_id,
+                notice_ids=body.notice_ids,
+                triggered_by=user.email or user.user_id,
+            )
+            # `run_id` is what an operator can look up afterwards, so it is the
+            # openable result rather than a count.
+            await task_service.complete(
+                task_id, result=out, result_id=str(out.get("run_id") or ""))
+        except Exception as e:  # noqa: BLE001 — the task must record why it died
+            log.exception("reassessment task %s failed", task_id)
+            await task_service.fail(task_id, str(e))
+
+    background.add_task(_run)
+    return TriggerAssessmentAsyncResponse(task_id=task_id, status="queued", stage="queued")
 
 
 @router.get("/training-stats")

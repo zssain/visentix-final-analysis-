@@ -125,7 +125,7 @@ export function BenchmarkIntelligence({ content }: { content: ReportSection["con
       {methodology?.low_confidence && (
         <div style={{
           marginTop: 10, padding: "8px 12px",
-          background: "rgba(200,164,106,0.09)", border: "1px dashed var(--gold)",
+          background: "color-mix(in oklab, var(--provisional) 9%, transparent)", border: "1px dashed var(--gold)",
           borderRadius: "var(--radius)", fontSize: "0.78rem", color: "var(--provisional)", fontWeight: 600,
         }}>
           ⚠ Low-confidence benchmarking — cohort size n={cohortSize} is small.

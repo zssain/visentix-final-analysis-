@@ -27,8 +27,8 @@ interface Job {
 
 const CHIP: Record<string, { bg: string; fg: string; label: string }> = {
   running: { bg: "var(--border)", fg: "var(--text-muted)", label: "running…" },
-  succeeded: { bg: "rgba(20,138,120,0.1)", fg: "var(--teal)", label: "succeeded" },
-  failed: { bg: "rgba(200,50,50,0.1)", fg: "var(--red)", label: "failed" },
+  succeeded: { bg: "color-mix(in oklab, var(--verified) 10%, transparent)", fg: "var(--verified)", label: "succeeded" },
+  failed: { bg: "color-mix(in oklab, var(--standing-bad) 10%, transparent)", fg: "var(--standing-bad)", label: "failed" },
   none: { bg: "var(--soft-white)", fg: "var(--text-muted)", label: "never run" },
 };
 
@@ -104,7 +104,7 @@ export function JobsPanel() {
 
       {suppressed > 0 && (
         <div style={{
-          background: "rgba(200,164,106,0.1)", border: "1px solid var(--gold)",
+          background: "color-mix(in oklab, var(--provisional) 10%, transparent)", border: "1px solid var(--gold)",
           borderRadius: "var(--radius)", padding: "10px 14px", marginBottom: 14,
           fontSize: "0.85rem", color: "var(--provisional)", fontWeight: 600,
         }}>

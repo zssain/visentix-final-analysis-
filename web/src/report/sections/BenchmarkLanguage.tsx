@@ -45,7 +45,7 @@ function DiffView({ your, exemplar }: { your: string; exemplar: string }) {
     <p style={{ fontSize: "0.85rem", lineHeight: 1.85, color: "var(--text)", margin: 0 }}>
       {segs.map((s, i) => {
         if (s.type === "added")
-          return <span key={i} style={{ background: "rgba(200,164,106,0.22)", color: "var(--provisional)", borderRadius: 2 }}>{s.text}</span>;
+          return <span key={i} style={{ background: "color-mix(in oklab, var(--provisional) 22%, transparent)", color: "var(--provisional)", borderRadius: 2 }}>{s.text}</span>;
         if (s.type === "removed")
           return <span key={i} style={{ color: "var(--muted-foreground)", textDecoration: "line-through" }}>{s.text}</span>;
         return <span key={i}>{s.text}</span>;
@@ -63,7 +63,7 @@ export function BenchmarkLanguage({ content }: { content: ReportSection["content
       <div data-testid="section-8" className="report-section">
         <SectionHeading n={8} title="Benchmark Language Comparison" />
         <div data-testid="exemplar-placeholder" style={{
-          background: "rgba(200,164,106,0.08)", border: "1px dashed var(--gold)",
+          background: "color-mix(in oklab, var(--provisional) 8%, transparent)", border: "1px dashed var(--gold)",
           padding: "16px 20px", borderRadius: "var(--radius)",
           color: "var(--text-secondary)", fontSize: "0.88rem",
         }}>
@@ -90,7 +90,7 @@ export function BenchmarkLanguage({ content }: { content: ReportSection["content
           style={{
             fontSize: "0.74rem", fontWeight: 600, padding: "5px 12px",
             border: `1px solid ${showDiff ? "var(--gold)" : "var(--border)"}`,
-            background: showDiff ? "rgba(200,164,106,0.12)" : "white",
+            background: showDiff ? "color-mix(in oklab, var(--provisional) 12%, transparent)" : "white",
             color: showDiff ? "var(--provisional)" : "var(--text-secondary)",
             borderRadius: "var(--radius)", cursor: "pointer", whiteSpace: "nowrap",
           }}
@@ -100,7 +100,7 @@ export function BenchmarkLanguage({ content }: { content: ReportSection["content
       </div>
       {showDiff && (
         <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginBottom: 14 }}>
-          <span style={{ background: "rgba(200,164,106,0.22)", color: "var(--provisional)", padding: "0 4px", borderRadius: 2 }}>gold</span> = exemplar adds ·{" "}
+          <span style={{ background: "color-mix(in oklab, var(--provisional) 22%, transparent)", color: "var(--provisional)", padding: "0 4px", borderRadius: 2 }}>gold</span> = exemplar adds ·{" "}
           <span style={{ color: "var(--muted-foreground)", textDecoration: "line-through" }}>strike-through</span> = your notice drops
         </div>
       )}
@@ -127,7 +127,7 @@ export function BenchmarkLanguage({ content }: { content: ReportSection["content
             {showDiff && hasExemplar && hasYour ? (
               <div style={{
                 padding: "16px 18px", border: "1px solid var(--border)",
-                borderRadius: "var(--radius)", background: "rgba(9,35,79,0.02)",
+                borderRadius: "var(--radius)", background: "color-mix(in oklab, var(--primary) 2%, transparent)",
               }}>
                 <div style={{
                   fontSize: "0.68rem", fontWeight: 700, textTransform: "uppercase",
@@ -183,7 +183,7 @@ export function BenchmarkLanguage({ content }: { content: ReportSection["content
               {hasExemplar && (
                 <div style={{
                   padding: "16px 18px",
-                  background: "rgba(9,35,79,0.02)",
+                  background: "color-mix(in oklab, var(--primary) 2%, transparent)",
                 }}>
                   <div style={{
                     fontSize: "0.68rem", fontWeight: 700, textTransform: "uppercase",
@@ -200,7 +200,7 @@ export function BenchmarkLanguage({ content }: { content: ReportSection["content
                 </div>
               )}
               {!hasExemplar && (
-                <div style={{ padding: "16px 18px", background: "rgba(9,35,79,0.02)" }}>
+                <div style={{ padding: "16px 18px", background: "color-mix(in oklab, var(--primary) 2%, transparent)" }}>
                   <div style={{ fontSize: "0.68rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.09em", color: "var(--exec-blue)", marginBottom: 10 }}>
                     Approved Peer Comparator
                   </div>

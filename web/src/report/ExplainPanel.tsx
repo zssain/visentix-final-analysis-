@@ -33,7 +33,7 @@ function VciComponents({ components }: { components: Record<string, number> }) {
             {data.map((d, i) => (
               <Cell
                 key={i}
-                fill={d.value >= 70 ? "#22c55e" : d.value >= 40 ? "#f59e0b" : "#dc2626"}
+                fill={d.value >= 70 ? "var(--chart-3)" : d.value >= 40 ? "var(--chart-2)" : "var(--chart-1)"}
               />
             ))}
           </Bar>
@@ -159,8 +159,8 @@ function NarrativeExplanation({ explanation }: { explanation: Record<string, unk
           const g = (explanation.guardrail as string) ?? "not_recorded";
           const isPass = g === "passed";
           const isAbsent = g === "not_recorded" || !explanation.guardrail;
-          const bg = isPass ? "#dcfce7" : isAbsent ? "var(--muted)" : "color-mix(in oklab, var(--standing-bad) 8%, var(--card))";
-          const fg = isPass ? "#166534" : isAbsent ? "#4b5563" : "#991b1b";
+          const bg = isPass ? "color-mix(in oklab, var(--standing-good) 12%, var(--card))" : isAbsent ? "var(--muted)" : "color-mix(in oklab, var(--standing-bad) 8%, var(--card))";
+          const fg = isPass ? "var(--standing-good)" : isAbsent ? "var(--muted-foreground)" : "var(--standing-bad)";
           return (
             <Badge variant="secondary" data-testid="guardrail-badge" className="explain-badge" style={{ background: bg, color: fg, padding: "2px 8px", borderRadius: 4, fontSize: "0.85em", fontWeight: 600, }} title={ isAbsent ? "Guardrail status was not recorded for this snapshot." : undefined }>
               {isAbsent
@@ -227,5 +227,5 @@ export function ExplainPanel({ explanation, kind, label, onClose }: ExplainPanel
   );
 }
 
-const thStyle: React.CSSProperties = { border: "1px solid #d1d5db", padding: "6px 10px", textAlign: "left" };
-const tdStyle: React.CSSProperties = { border: "1px solid #d1d5db", padding: "6px 10px" };
+const thStyle: React.CSSProperties = { border: "1px solid var(--border)", padding: "6px 10px", textAlign: "left" };
+const tdStyle: React.CSSProperties = { border: "1px solid var(--border)", padding: "6px 10px" };

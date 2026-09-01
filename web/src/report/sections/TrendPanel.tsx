@@ -54,7 +54,7 @@ export function TrendPanel({ content }: { content: ReportSection["content"] }) {
 
       {noPrior ? (
         <div style={{
-          background: "rgba(200,164,106,0.08)", border: "1px dashed var(--gold)",
+          background: "color-mix(in oklab, var(--provisional) 8%, transparent)", border: "1px dashed var(--gold)",
           borderRadius: "var(--radius)", padding: "14px 18px",
           color: "var(--text-secondary)", fontSize: "0.88rem",
         }}>

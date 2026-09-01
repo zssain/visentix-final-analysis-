@@ -156,9 +156,9 @@ export function MonitoringHero() {
     return (
       <span style={{
         fontSize: "0.6rem", fontWeight: 700, marginLeft: 6, padding: "1px 6px", borderRadius: 4,
-        color: teal ? "var(--teal)" : "var(--text-muted)",
-        background: teal ? "rgba(20,138,120,0.08)" : "var(--soft-white)",
-        border: `1px solid ${teal ? "rgba(20,138,120,0.25)" : "var(--border)"}`,
+        color: teal ? "var(--verified)" : "var(--muted-foreground)",
+        background: teal ? "color-mix(in oklab, var(--verified) 8%, transparent)" : "var(--muted)",
+        border: `1px solid ${teal ? "color-mix(in oklab, var(--verified) 25%, transparent)" : "var(--border)"}`,
       }}>{label}</span>
     );
   };

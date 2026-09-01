@@ -92,6 +92,7 @@ APPLY_NOW = [
     "0046_reapply_notice_rls_policies.sql",      # SEC-008 — re-apply 0011's notice-table RLS policies absent in live schema (ledger drift); prod apply = external step
     "0047_assessment_id_uuid_check.sql",         # DB-002 — CHECK assessment_id is UUID-shaped (NOT VALID, data-safe); type→uuid+FK is a staged external step
     "0048_assessment_intake_scope.sql",           # F01 INT-10 — immutable per-notice declared scope + provenance (additive, RLS-on)
+    "0049_assessment_job_kind.sql",              # BG-TASKS — assessment_job.kind generalizes the table to any long user-triggered task (additive, DEFAULT 'intake' so no backfill)
 ]
 
 # ── DB-001: migration numbering & ordering (documented) ──────────────────────

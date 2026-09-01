@@ -16,7 +16,7 @@ const VCI_DISPLAY: Record<string, string> = {
 };
 
 const VCI_COLORS: Record<string, string> = {
-  "Very High": "#0d6b5c",
+  "Very High": "var(--verified)",
   "High": "var(--primary)",
   "Moderate": "var(--provisional)",
   "Low": "var(--standing-bad)",

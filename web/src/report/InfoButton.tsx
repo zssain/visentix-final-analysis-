@@ -26,7 +26,7 @@ export function InfoButton({ explanation, kind, label }: InfoButtonProps) {
         aria-label={`Explain ${label ?? kind}`}
         title={`How was this ${kind} computed?`}
       >
-        &#8505;&#65039;
+        &var(--muted-foreground);&#65039;
       </button>
       {open && (
         <ExplainPanel

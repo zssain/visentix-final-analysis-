@@ -140,7 +140,7 @@ describe("F12 AC-8 — trendColor polarity (DDR-009 + design-system §2)", () =>
   // point of the test is that IMPROVEMENT is green and worsening is red, not
   // which hex the palette currently uses. A palette change (OD-13) must not
   // require editing an assertion — that is how a guard silently rots.
-  const MUTED = "#8896A5";
+  const MUTED = "var(--muted-foreground)";
 
   it("exposure: falling = improving (green), rising = worsening (red)", () => {
     expect(trendColor(-2.5, "exposure")).toBe(STANDING_GOOD);

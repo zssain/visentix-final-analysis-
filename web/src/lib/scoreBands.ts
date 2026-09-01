@@ -6,15 +6,20 @@
  * runs. Teal and gold are no longer standing colors — they keep their
  * non-standing jobs (verified/approved/live; draft/provisional/added-diff).
  *
- * The values are deliberately ink-weight rather than pastel: these strings color
- * NUMBERS and strokes on a near-white surface, and the previous pastels
- * (#55C7B3 / #C8A46A / #F87171) failed AA as text — a washed-out score is a
- * legibility bug. Mirrored as --good / --mid / --bad in index.css so the same
- * judgement reads identically in CSS and in SVG fill attributes.
+ * These are TOKEN REFERENCES, not values. They used to be literal hex, which
+ * gave the standing scale two sources of truth: theme.css (oklch, one value per
+ * mode) and this file (hex, light-mode only). Every caller of scoreBandColor()
+ * therefore rendered the LIGHT standing colour in dark mode — where the light
+ * values measure 2.64–3.34:1 on the card and fail AA badly.
+ *
+ * A var() string works everywhere these are used: CSS properties, inline
+ * `style`, and SVG `fill`/`stroke` attributes. The one place it does not is a
+ * canvas 2D context, which resolves no custom properties — nothing here draws
+ * to canvas, and check_colors.py keeps a literal from creeping back.
  */
-export const STANDING_GOOD = "#0E7C57";
-export const STANDING_MID = "#A87400";
-export const STANDING_BAD = "#B42318";
+export const STANDING_GOOD = "var(--standing-good)";
+export const STANDING_MID = "var(--standing-mid)";
+export const STANDING_BAD = "var(--standing-bad)";
 
 export const SCORE_BAND_HIGH = 70;
 export const SCORE_BAND_ELEVATED = 45;
@@ -38,8 +43,8 @@ export function maturityBandColor(score: number): string {
   return STANDING_BAD;                   // Lagging / Deficient
 }
 
-/** Neutral navy for metrics whose polarity is unknown — never a guessed judgement. */
-export const NEUTRAL_SCORE_COLOR = "#09234F";
+/** Neutral ink for metrics whose polarity is unknown — never a guessed judgement. */
+export const NEUTRAL_SCORE_COLOR = "var(--foreground)";
 
 /** Color a score by its own polarity; unknown polarity renders neutral. */
 export function bandColor(score: number, polarity: MetricPolarity | undefined): string {
@@ -127,7 +132,7 @@ export type MetricPolarity = "exposure" | "maturity";
  * their behavior unchanged.
  */
 export function trendColor(delta: number, polarity: MetricPolarity = "exposure"): string {
-  if (delta === 0) return "#8896A5"; // text-muted — no movement
+  if (delta === 0) return "var(--muted-foreground)"; // no movement
   const improving = polarity === "maturity" ? delta > 0 : delta < 0;
   return improving ? STANDING_GOOD : STANDING_BAD;
 }

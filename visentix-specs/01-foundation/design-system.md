@@ -1,6 +1,6 @@
 # Design System — Tokens, Furniture, DDR Summary
 
-**Version:** 1.8 · 2026-08-31 · Condenses the Brand Guide, DDRs, and UI_SPEC §0 into one authority. Design principle: **legal-and-regulator "premium" is confident stillness plus evidence everywhere.**
+**Version:** 1.9 · 2026-08-31 · Condenses the Brand Guide, DDRs, and UI_SPEC §0 into one authority. Design principle: **legal-and-regulator "premium" is confident stillness plus evidence everywhere.**
 
 **Motion — amended 2026-08-31 (owner).** The previous rule read *"Motion exists only to reveal evidence."* The owner has asked for figures and charts that animate to their value. This is a deliberate reversal, recorded as such rather than allowed to drift in. Motion is now permitted for **arrival** only, under four binding constraints (§7).
 
@@ -112,24 +112,38 @@ Responsive 375/768/1280 · visible keyboard focus · `prefers-reduced-motion` re
 
 ## 6. Route map
 
+**Generated truth check:** `scripts/check_routes.py` fails if this table,
+`web/src/routes/registry.ts`, and the router disagree on any path, nav label or
+title. The registry is the declaration; this table is the spec's copy of it, and
+the guard exists because the two silently diverged before.
+
 | Route | Nav label | Title |
 |---|---|---|
-| `/assessments` | Monitor | Privacy Intelligence Monitor |
+| `/assessments` | Assessments | Your Assessments |
 | `/intake` | Intake | Submit a Privacy Notice |
 | `/rewrite` | Rewrite | Trust Language Studio |
 | `/vendors` | Vendors | Vendor Due Diligence |
-| `/review` | Workbench | SME Workbench |
+| `/workbench` | Workbench | SME Workbench |
 | `/quarterly` | Quarterly | Quarterly Intelligence Report * |
 | `/crosswalk` | Crosswalk | Framework Crosswalk |
-| `/codex` | Codex | Finding Codex |
+| `/finding-codes` | Finding Codes | Finding Code Definitions |
 | `/methodology` | Methodology | How Visentix Works |
 | `/trust` | Trust Center | Trust Center * |
 | `/admin` | Admin | Admin Console |
 | `/partner` | Partner | Partner Portal |
-| `/bulk` | Bulk | Bulk Analysis |
-| `/reports/:assessmentId` | — | Report reader |
+| `/screening` | Screening | Bulk Screening |
+| `/reports/:assessmentId` | — | Report |
+| `/` | — | Home |
+| `/login` | — | Sign in |
+| `/privacy` | — | Privacy |
+| `/terms` | — | Terms |
+| `/unauthorized` | — | Not permitted |
 
-Nav is a grouped sidebar: **Workspace** (Monitor, Intake, Rewrite, Vendors, Workbench) · **Intelligence** (Quarterly, Crosswalk, Codex, Methodology, Trust Center) · **Administration** (Admin, Partner, Bulk). Below 900px it collapses to a hamburger drawer.
+Nav is a grouped sidebar: **Workspace** (Assessments, Intake, Rewrite, Vendors, Workbench) · **Intelligence** (Quarterly, Crosswalk, Finding Codes, Methodology, Trust Center) · **Administration** (Admin, Partner, Screening). Below `md` it collapses to a hamburger drawer.
+
+**Renamed paths keep a permanent redirect** (`ROUTE_REDIRECTS`): `/monitor` → `/assessments`, `/codex` → `/finding-codes`, `/review` → `/workbench`, `/bulk` → `/screening`. A bookmark, or a link inside an already-delivered report, must not 404 because a screen was renamed. `/intake/:assessmentId` is the one deletion rather than redirect — it has had no caller since intake became a background job.
+
+**Two naming corrections, both 2026-08-31.** `/monitor` was adopted and reverted the same day: the screen lists assessments, while the continuous-monitoring capability renders nothing whenever its endpoints are unpopulated, so the route promised what the screen does not deliver. **"Monitor" is now reserved and deliberately unused** until that feature can populate. `/codex` → `/finding-codes` because "Codex" was a house coinage on a reader-facing page — the same class of vendor jargon as the acronyms removed under §2.
 
 \* **Recorded DDR-008 exception:** the two public *editorial* pages (`/quarterly`, `/trust`) open with a full-bleed editorial cover/hero instead of the shared PageHeader — like the report reader, they are documents, not workflow screens. Every other routed screen keeps PageHeader with eyebrow = nav label.
 
@@ -145,6 +159,8 @@ Figures and charts may animate **to** their value. Four constraints, all load-be
 Implementation: `web/src/components/ui/animated-number.tsx`.
 
 ## Changelog
+
+- 1.9 (2026-08-31): §6 route map trued up against `routes/registry.ts` and the router, and put under `scripts/check_routes.py`, which fails on any disagreement between the three. The guard found 14 on its first run — five routes absent from §6 entirely, three renamed paths still listed under their old names, and two title/label mismatches. Records the `/monitor` → `/assessments` reversion (the route named a capability the screen does not deliver; "Monitor" is now reserved) and `/codex` → `/finding-codes` (house coinage on a reader-facing page). All renamed paths keep permanent redirects.
 
 - 1.8 (2026-08-31): **shadcn/Tailwind v4 adopted (owner).** §1 rewritten around the owner-supplied oklch token set with `theme.css` as the single source of colour; standing scale restated per-mode with computed AA ratios and a CI guard (`scripts/check_contrast.mjs`) after measurement found `--mid` shipping at 4.07:1 as text and the light standing values at 2.64–3.34:1 on dark. Added §1.2 non-standing status tokens, §1.3 sequential chart ramp (magnitude only), §1.4 the temporary legacy bridge, §1.5 dark mode (three states). Added §3.1 component-system rules including the `@layer legacy` cascade rule (L-015). Live-Dot superseded by StatusDot. **§7 records the owner's reversal of the motion principle** — arrival animation permitted under four constraints. OD-17 narrowed: the PDF keeps its own stylesheet (owner-confirmed) but must generate its values from `theme.css`.
 - 1.7 (2026-08-31): **OD-13 Decided (owner) — the traffic-light standing scale is live.** §1 records the adopted values: Green `#0E7C57`, Yellow `#A87400`, Red (standing) `#B42318`, chosen ink-weight so scores clear AA as text — the superseded pastels did not, which is why scores read washed out. Single source of truth `scoreBands.ts` (`STANDING_GOOD`/`STANDING_MID`/`STANDING_BAD`) mirrored as `--good`/`--mid`/`--bad`. The DDR-001 draft-watermark collision is **resolved**: gold stays the watermark and now carries no judgement anywhere, so the two roles never overlap. **Band thresholds are unchanged** (exposure 45/70, maturity 60/75) — only the colors moved. New **OD-17** records the residue: the PDF renderer's `_RAMP` uses different hexes over four bands at 25/50/75, so palette *and* threshold parity between screen and PDF still needs resolving — the thresholds are expert-owned (Hard Rule 3). Source: owner (product).
