@@ -83,8 +83,8 @@ export function QuarterlyReport() {
     <div>
       <PageHeader eyebrow="Quarterly" title="Global Privacy Intelligence Report"
         description="The published, anonymized market briefing. Every statistic is drawn only from cohorts large enough that no company can be identified, and traces to a frozen snapshot." />
-      {loading ? <Card className="rounded-lg border bg-card p-5 shadow-sm mb-5"><div className="px-5 py-6 text-center text-[0.86rem] text-muted-foreground">Loading…</div></Card>
-        : payload ? <PublicReport p={payload} /> : <Card className="rounded-lg border bg-card p-5 shadow-sm mb-5"><div className="px-5 py-6 text-center text-[0.86rem] text-muted-foreground">No approved quarterly report has been published yet.</div></Card>}
+      {loading ? <Card className="rounded-lg border bg-card p-5 mb-5"><div className="px-5 py-6 text-center text-[0.86rem] text-muted-foreground">Loading…</div></Card>
+        : payload ? <PublicReport p={payload} /> : <Card className="rounded-lg border bg-card p-5 mb-5"><div className="px-5 py-6 text-center text-[0.86rem] text-muted-foreground">No approved quarterly report has been published yet.</div></Card>}
       {isAdmin && <AdminPanel onPublished={() => fetchPublic("/quarterly/latest").then(setPayload)} />}
     </div>
   );
@@ -103,7 +103,7 @@ function PublicReport({ p }: { p: Payload }) {
     <div >
       {/* Hero */}
       <section className="rounded-lg border bg-card p-6 mb-5">
-        <div className="font-display text-[1.6rem] font-bold">{m.quarter}</div>
+        <div className="font-sans text-[1.6rem] font-bold">{m.quarter}</div>
         <div className="flex flex-wrap gap-8 my-4.5">
           {c.organizations != null && <Stat n={c.organizations} label="organizations" />}
           {c.clauses_analyzed != null && <Stat n={c.clauses_analyzed} label="clauses analyzed" />}
@@ -115,8 +115,8 @@ function PublicReport({ p }: { p: Payload }) {
 
       {/* Indicator cards */}
       {(dmi || ai) && (
-        <Card className="rounded-lg border bg-card p-5 shadow-sm mb-5">
-          <div className="font-display text-[1.05rem] font-semibold mb-1.5">Intelligence indicators</div>
+        <Card className="rounded-lg border bg-card p-5 mb-5">
+          <div className="font-sans text-[1.05rem] font-semibold mb-1.5">Intelligence indicators</div>
           <div className="flex flex-wrap gap-4.5">
             {dmi && <Indicator name="Disclosure Maturity Index" value={dmi.value} n={dmi.population_n} />}
             {ai && <Indicator name="AI Transparency Index" value={ai.value} n={ai.population_n} />}
@@ -126,8 +126,8 @@ function PublicReport({ p }: { p: Payload }) {
 
       {/* Top gaps */}
       {gaps.length > 0 && (
-        <Card className="rounded-lg border bg-card p-5 shadow-sm mb-5">
-          <div className="font-display text-[1.05rem] font-semibold mb-1.5">Top disclosure gaps</div>
+        <Card className="rounded-lg border bg-card p-5 mb-5">
+          <div className="font-sans text-[1.05rem] font-semibold mb-1.5">Top disclosure gaps</div>
           <div className="text-[0.82rem] text-muted-foreground mb-3.5">Most frequent finding types across the corpus. Descriptive prevalence — not a verdict on any organisation.</div>
           <ol className="list-decimal pl-5.5">
             {gaps.map((g, i) => (
@@ -143,8 +143,8 @@ function PublicReport({ p }: { p: Payload }) {
 
       {/* Enforcement themes */}
       {themes.length > 0 && (
-        <Card className="rounded-lg border bg-card p-5 shadow-sm mb-5">
-          <div className="font-display text-[1.05rem] font-semibold mb-1.5">Enforcement theme shares</div>
+        <Card className="rounded-lg border bg-card p-5 mb-5">
+          <div className="font-sans text-[1.05rem] font-semibold mb-1.5">Enforcement theme shares</div>
           <div className="text-[0.82rem] text-muted-foreground mb-3.5">Share of resolved enforcement records by theme (resolved records only). Observed activity, not risk scores.</div>
           {themes.map((t, i) => (
             <div key={i} className="grid grid-cols-[160px_1fr_48px] items-center gap-3 py-1.5">
@@ -157,8 +157,8 @@ function PublicReport({ p }: { p: Payload }) {
       )}
 
       {/* Methodology */}
-      <Card className="rounded-lg border bg-card p-5 shadow-sm mb-5">
-        <div className="font-display text-[1.05rem] font-semibold mb-1.5">Methodology</div>
+      <Card className="rounded-lg border bg-card p-5 mb-5">
+        <div className="font-sans text-[1.05rem] font-semibold mb-1.5">Methodology</div>
         {m.intro && <p className="text-[0.82rem] text-muted-foreground mb-3.5">{m.intro}</p>}
         <div className="flex flex-col gap-0.5">
           {m.quarter_window && <MethRow k="Data window" v={m.quarter_window.join(" to ")} />}
@@ -245,8 +245,8 @@ function AdminPanel({ onPublished }: { onPublished: () => void }) {
   };
 
   return (
-    <Card className="rounded-lg border-2 border-ring bg-card p-5 shadow-sm mb-5">
-      <div className="font-display text-[1.05rem] font-semibold mb-1.5">Admin · build &amp; publish</div>
+    <Card className="rounded-lg border-2 border-ring bg-card p-5 mb-5">
+      <div className="font-sans text-[1.05rem] font-semibold mb-1.5">Admin · build &amp; publish</div>
       <FlashNotice message={flash} />
       <div className="my-3 flex flex-wrap gap-2.5">
         <input className="h-9 rounded-md border bg-transparent px-3 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50" value={quarter} onChange={e => setQuarter(e.target.value)} placeholder="2026-Q3" />

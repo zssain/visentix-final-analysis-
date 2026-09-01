@@ -239,7 +239,7 @@ function AppRoutes() {
                  slides out of its own flex slot and floats over the content.
                  Margin reserves the gutter in the layout, so nothing overlaps. */
               "md:top-3 md:my-3 md:ml-3 md:h-[calc(100vh-1.5rem)] md:w-60",
-              "md:rounded-2xl md:border md:border-sidebar-border md:shadow-lg",
+              "md:rounded-xl md:border md:border-sidebar-border md:shadow-sm",
               "bg-sidebar supports-[backdrop-filter]:md:bg-[color-mix(in_oklab,var(--sidebar)_72%,transparent)]",
               "md:backdrop-blur-xl md:overflow-hidden md:isolate",
               "transition-transform duration-200 ease-out md:transition-none",

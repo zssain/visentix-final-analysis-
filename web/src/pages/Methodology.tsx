@@ -38,7 +38,7 @@ const SME_STEPS = [
 /** One section heading, so all five match. */
 function H2({ children }: { children: React.ReactNode }) {
   return (
-    <h2 className="mb-1.5 font-display text-2xl font-semibold tracking-tight">{children}</h2>
+    <h2 className="mb-1.5 font-sans text-2xl font-semibold tracking-tight">{children}</h2>
   );
 }
 
@@ -137,7 +137,7 @@ export function Methodology() {
       <section className="mb-12">
         <H2>Intelligence, Not Legal Verdicts</H2>
         <blockquote className="my-4 border-l-[3px] border-[var(--provisional)] pl-5">
-          <p className="mb-2 font-display text-lg italic leading-relaxed">
+          <p className="mb-2 font-sans text-lg italic leading-relaxed">
             Visentix answers "compared to whom, with what exposure, at what confidence."
             It never answers "is this legal?"
           </p>

@@ -183,7 +183,7 @@ function UploadStep({ onSubmitted, showFlash }: { onSubmitted: (id: string) => v
 
   return (
     <div className="grid gap-6">
-      <Card className="rounded-lg border bg-card px-5.5 py-5 shadow-sm">
+      <Card className="rounded-lg border bg-card px-5.5 py-5">
         <div className="mb-2.5 text-[0.7rem] font-bold uppercase tracking-wider text-muted-foreground">Upload company list</div>
         <input className="mb-3 h-9 w-full rounded-md border bg-transparent px-3 py-1 text-[0.86rem] shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50" placeholder="Label (optional) — e.g. Q3 retail sector scan"
                value={label} onChange={e => setLabel(e.target.value)} />
@@ -203,7 +203,7 @@ function UploadStep({ onSubmitted, showFlash }: { onSubmitted: (id: string) => v
         </div>
       </Card>
 
-      <Card className="rounded-lg border bg-card px-5.5 py-5 shadow-sm">
+      <Card className="rounded-lg border bg-card px-5.5 py-5">
         <div className="mb-2.5 text-[0.7rem] font-bold uppercase tracking-wider text-muted-foreground">Validation preview</div>
         {rows.length === 0 ? (
           <div className="px-5 py-6 text-center text-[0.86rem] text-muted-foreground">Paste or drop a list to preview it before submitting.</div>
@@ -248,10 +248,10 @@ function JobList({ jobs, onOpen, onRefresh }: { jobs: Job[]; onOpen: (id: string
     return () => clearInterval(t);
   }, [anyRunning, onRefresh]);
 
-  if (!jobs.length) return <Card className="rounded-lg border bg-card px-5.5 py-5 shadow-sm"><div className="px-5 py-6 text-center text-[0.86rem] text-muted-foreground">No screening jobs yet. Start one with “New screening”.</div></Card>;
+  if (!jobs.length) return <Card className="rounded-lg border bg-card px-5.5 py-5"><div className="px-5 py-6 text-center text-[0.86rem] text-muted-foreground">No screening jobs yet. Start one with “New screening”.</div></Card>;
   return (
-    <Card className="rounded-lg border bg-card px-5.5 py-5 shadow-sm">
-      <Card className="mb-3.5 flex items-center justify-between font-display text-[1.05rem] font-semibold"><span>Screening jobs</span></Card>
+    <Card className="rounded-lg border bg-card px-5.5 py-5">
+      <Card className="mb-3.5 flex items-center justify-between font-sans text-[1.05rem] font-semibold"><span>Screening jobs</span></Card>
       <table className="w-full border-collapse text-[0.84rem] [&_th]:border-b [&_th]:px-2.5 [&_th]:py-2.5 [&_th]:text-left [&_th]:text-[0.72rem] [&_th]:uppercase [&_th]:tracking-wider [&_th]:text-muted-foreground [&_td]:border-b [&_td]:px-2.5 [&_td]:py-2.5 [&_td]:text-left">
         <thead><tr><th>Label</th><th>Status</th><th>Progress</th><th>Created</th><th></th></tr></thead>
         <tbody>
@@ -347,7 +347,7 @@ function ResultsGrid({ jobId, onBack, showFlash }: { jobId: string; onBack: () =
     <div>
       <div className="mb-4.5 flex flex-wrap items-center gap-3">
         <Button onClick={onBack}>← Jobs</Button>
-        <span className="flex items-center gap-2 font-display text-[1.1rem] font-semibold">{job?.label || "Screening"} <StatusChip status={job?.status || "…"} /></span>
+        <span className="flex items-center gap-2 font-sans text-[1.1rem] font-semibold">{job?.label || "Screening"} <StatusChip status={job?.status || "…"} /></span>
         <DraftBadge />
         <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
           <span className="text-[0.74rem] tabular-nums text-muted-foreground">{job ? `${job.completed_count + job.failed_count}/${job.row_count} processed` : ""}</span>
@@ -356,7 +356,7 @@ function ResultsGrid({ jobId, onBack, showFlash }: { jobId: string; onBack: () =
       </div>
 
       {/* Sector heat strip — aggregate domain means over succeeded rows */}
-      <Card className="rounded-lg border bg-card px-5.5 py-5 shadow-sm">
+      <Card className="rounded-lg border bg-card px-5.5 py-5">
         <div className="mb-2.5 text-[0.7rem] font-bold uppercase tracking-wider text-muted-foreground">Sector heat strip · aggregate domain means (succeeded rows)</div>
         <div className="grid grid-cols-4 gap-1.5 md:grid-cols-8">
           {DOMAINS.map(d => {
@@ -384,7 +384,7 @@ function ResultsGrid({ jobId, onBack, showFlash }: { jobId: string; onBack: () =
         {domainFilter.size > 0 && <Button type="button" size="sm" variant="ghost" className="rounded-full italic" onClick={() => setDomainFilter(new Set())}>Clear</Button>}
       </div>
 
-      <Card className="overflow-x-auto rounded-lg border bg-card px-5.5 py-5 shadow-sm">
+      <Card className="overflow-x-auto rounded-lg border bg-card px-5.5 py-5">
         {results.length === 0 ? (
           <div className="px-5 py-6 text-center text-[0.86rem] text-muted-foreground">{job && (job.status === "running" || job.status === "queued") ? "Scoring in progress — succeeded rows will appear here as they finish." : "No succeeded rows yet."}</div>
         ) : (
@@ -423,7 +423,7 @@ function ResultsGrid({ jobId, onBack, showFlash }: { jobId: string; onBack: () =
 
       {/* Non-scored rows — honest per-row explanation */}
       {nonScored.length > 0 && (
-        <Card className="rounded-lg border bg-card px-5.5 py-5 shadow-sm">
+        <Card className="rounded-lg border bg-card px-5.5 py-5">
           <div className="mb-2.5 text-[0.7rem] font-bold uppercase tracking-wider text-muted-foreground">Rows not scored ({nonScored.length})</div>
           {nonScored.map((r, i) => (
             <div key={i} className={cn(

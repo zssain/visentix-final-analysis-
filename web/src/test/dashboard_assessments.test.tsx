@@ -171,3 +171,28 @@ describe("bandKey — absence and zero are different facts", () => {
     expect(STANDING_RANK.mid).toBeLessThan(STANDING_RANK.good);
   });
 });
+
+// ── The card reads crisp at rest ──────────────────────────────
+
+import { readFileSync as readCss } from "node:fs";
+import { fileURLToPath as toPath } from "node:url";
+import { resolve as res, dirname as dir } from "node:path";
+
+const CARD_CSS = readCss(
+  res(dir(toPath(import.meta.url)), "../components/report-card.css"), "utf-8",
+);
+
+describe("ReportCard surface", () => {
+  it("the sheet is opaque, so the card is not blurred by its own backdrop", () => {
+    // It was a translucent sheet with backdrop-blur over a coloured gradient
+    // panel sitting directly behind it, so at rest the panel bled through and
+    // the whole card read as out of focus. The glass was blurring the only
+    // thing it covered.
+    expect(CARD_CSS).toMatch(/\.report-card-sheet\s*\{[^}]*background:\s*var\(--card\);/);
+    expect(CARD_CSS).not.toMatch(/\.report-card-sheet\s*\{[^}]*backdrop-filter/);
+  });
+
+  it("uses the UI sans — it is a dashboard tile, not the report", () => {
+    expect(CARD_CSS).toMatch(/\.report-card-org\s*\{[^}]*font-family:\s*var\(--font-sans\)/);
+  });
+});

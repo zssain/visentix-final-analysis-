@@ -118,12 +118,12 @@ function ClientsTab({ onOpen, showFlash }: { onOpen: (w: Workspace) => void; sho
         <Button onClick={() => setModalOpen(true)}>+ New Client</Button>
       </div>
       {workspaces.length === 0 ? (
-        <Card className="rounded-lg border bg-card px-5.5 py-5 shadow-sm"><div className="px-5 py-6 text-center text-[0.86rem] text-muted-foreground">No client workspaces yet. Create one to begin.</div></Card>
+        <Card className="rounded-lg border bg-card px-5.5 py-5"><div className="px-5 py-6 text-center text-[0.86rem] text-muted-foreground">No client workspaces yet. Create one to begin.</div></Card>
       ) : (
         <div className="grid gap-3.5 [grid-template-columns:repeat(auto-fill,minmax(240px,1fr))]">
           {workspaces.map(w => (
-            <button key={w.id} className="rounded-lg border bg-card p-4 text-left shadow-sm hover:border-ring focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50" onClick={() => onOpen(w)}>
-              <div className="mb-2 font-display text-base font-bold">{w.name}</div>
+            <button key={w.id} className="rounded-lg border bg-card p-4 text-left hover:border-ring focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50" onClick={() => onOpen(w)}>
+              <div className="mb-2 font-sans text-base font-bold">{w.name}</div>
               <div className="mb-2">
                 {w.latest_status ? <StatusChip status={w.latest_status.review_status} /> : <Badge variant="secondary">No assessment yet</Badge>}
               </div>
@@ -136,7 +136,7 @@ function ClientsTab({ onOpen, showFlash }: { onOpen: (w: Workspace) => void; sho
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[color-mix(in_oklab,var(--primary)_35%,transparent)]" onClick={() => setModalOpen(false)}>
           <div className="w-[min(440px,92vw)] rounded-lg border bg-card p-6 shadow-lg" onClick={e => e.stopPropagation()}>
-            <div className="mb-4 font-display text-[1.1rem] font-bold">New Client</div>
+            <div className="mb-4 font-sans text-[1.1rem] font-bold">New Client</div>
             <label className="mb-3 block text-[0.8rem] font-semibold text-muted-foreground">Workspace name<input className="mt-1.5 block w-full rounded-md border bg-transparent px-3 py-2 text-[0.88rem] shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50" value={name} onChange={e => setName(e.target.value)} placeholder="Acme Retail" /></label>
             <label className="mb-3 block text-[0.8rem] font-semibold text-muted-foreground">Client organisation<input className="mt-1.5 block w-full rounded-md border bg-transparent px-3 py-2 text-[0.88rem] shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50" value={clientName} onChange={e => setClientName(e.target.value)} placeholder="Acme Retail Inc." /></label>
             <label className="mb-3 block text-[0.8rem] font-semibold text-muted-foreground">Industry
@@ -207,10 +207,10 @@ function ClientView({ ws, onBack, showFlash }: { ws: Workspace; onBack: () => vo
   return (
     <div>
       <Button onClick={onBack}>← Clients</Button>
-      <h2 className="my-3 mb-4.5 font-display text-lg font-semibold">{ws.name}</h2>
+      <h2 className="my-3 mb-4.5 font-sans text-lg font-semibold">{ws.name}</h2>
 
-      <Card className="rounded-lg border bg-card px-5.5 py-5 shadow-sm">
-        <Card className="mb-1 font-display text-[1.1rem] font-semibold">New assessment</Card>
+      <Card className="rounded-lg border bg-card px-5.5 py-5">
+        <Card className="mb-1 font-sans text-[1.1rem] font-semibold">New assessment</Card>
         <div className="mb-3 flex gap-2">
           {(["url", "text", "upload"] as const).map(m => (
             <Button key={m} type="button" size="sm" variant={mode === m ? "default" : "outline"}
@@ -225,8 +225,8 @@ function ClientView({ ws, onBack, showFlash }: { ws: Workspace; onBack: () => vo
         <Button style={{ marginTop: 12 }} disabled={busy} onClick={submit}>{busy ? "Submitting…" : "Run assessment"}</Button>
       </Card>
 
-      <Card className="rounded-lg border bg-card px-5.5 py-5 shadow-sm">
-        <Card className="mb-1 font-display text-[1.1rem] font-semibold">Reports</Card>
+      <Card className="rounded-lg border bg-card px-5.5 py-5">
+        <Card className="mb-1 font-sans text-[1.1rem] font-semibold">Reports</Card>
         {!latest ? (
           <div className="px-5 py-6 text-center text-[0.86rem] text-muted-foreground">No assessments yet for this client.</div>
         ) : (
@@ -273,8 +273,8 @@ function FeedTab({ showFlash }: { showFlash: (m: string) => void }) {
 
   return (
     <div>
-      <Card className="rounded-lg border bg-card px-5.5 py-5 shadow-sm">
-        <Card className="mb-1 font-display text-[1.1rem] font-semibold">White-label data feed</Card>
+      <Card className="rounded-lg border bg-card px-5.5 py-5">
+        <Card className="mb-1 font-sans text-[1.1rem] font-semibold">White-label data feed</Card>
         <Card className="mb-4 text-[0.82rem] leading-snug text-muted-foreground">
           Aggregate privacy intelligence by industry cohort. No organisation identities, cohort membership, or raw
           clause text is included; cohorts below the minimum sample are suppressed. Redistribution requires a data
@@ -294,8 +294,8 @@ function FeedTab({ showFlash }: { showFlash: (m: string) => void }) {
         )}
       </Card>
 
-      <Card className="rounded-lg border bg-card px-5.5 py-5 shadow-sm">
-        <Card className="mb-1 font-display text-[1.1rem] font-semibold">Keys</Card>
+      <Card className="rounded-lg border bg-card px-5.5 py-5">
+        <Card className="mb-1 font-sans text-[1.1rem] font-semibold">Keys</Card>
         {keys.length === 0 ? <div className="px-5 py-6 text-center text-[0.86rem] text-muted-foreground">No API keys yet.</div> : (
           <table className="w-full border-collapse [&_th]:border-b [&_th]:px-2.5 [&_th]:py-2 [&_th]:text-left [&_th]:text-[0.68rem] [&_th]:font-bold [&_th]:uppercase [&_th]:tracking-wider [&_th]:text-muted-foreground [&_td]:border-b [&_td]:p-2.5 [&_td]:align-middle [&_td]:text-[0.82rem] [&_tr:last-child_td]:border-b-0">
             <thead><tr><th>Label</th><th>Key</th><th>Last used</th><th>Status</th><th></th></tr></thead>
@@ -336,8 +336,8 @@ function BrandingTab({ showFlash }: { showFlash: (m: string) => void }) {
   };
 
   return (
-    <Card className="rounded-lg border bg-card px-5.5 py-5 shadow-sm">
-      <Card className="mb-1 font-display text-[1.1rem] font-semibold">Branding</Card>
+    <Card className="rounded-lg border bg-card px-5.5 py-5">
+      <Card className="mb-1 font-sans text-[1.1rem] font-semibold">Branding</Card>
       <Card className="mb-4 text-[0.82rem] leading-snug text-muted-foreground">Applied as a header band on branded reports. Branding never changes any number or wording in the report body, and a report keeps the branding it had when the Visentix expert approved it.</Card>
       <div className="mt-3 grid gap-5 md:grid-cols-2">
         <div>

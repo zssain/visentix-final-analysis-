@@ -9,10 +9,11 @@
  * border, wash, hairline and top offset — so the two read as one piece of
  * chrome rather than two adjacent surfaces.
  *
- * TYPOGRAPHY. The title wears the display face at the top of the heading scale
- * (`design-system.md` §4): display for headings, sans for body and labels, data
- * for figures. One rule, so a heading never announces itself by being the odd
- * font on the screen.
+ * TYPOGRAPHY. The UI sans. The display serif belongs to the REPORT — it is the
+ * artifact a customer forwards, and its editorial voice is the point. Wearing
+ * it in the application chrome made every screen look like a document it is
+ * not, and made a serif page title outweigh the content beneath it
+ * (`design-system.md` §1).
  *
  * All decoration is `aria-hidden`; the words, the heading level and the reading
  * order are the component's only content.
@@ -29,8 +30,8 @@ interface PageHeaderProps {
 
 export function PageHeader({ eyebrow, title, description, actions, className }: PageHeaderProps) {
   return (
-    <div className={cn("relative mb-7 isolate", className)}>
-      <header className="relative flex flex-wrap items-start justify-between gap-x-6 gap-y-4 overflow-hidden rounded-2xl border px-6 py-6 shadow-lg backdrop-blur-xl md:px-7 md:py-7 bg-card supports-[backdrop-filter]:bg-[color-mix(in_oklab,var(--card)_72%,transparent)] print:border print:bg-card print:shadow-none print:backdrop-blur-none">
+    <div className={cn("relative mb-5 isolate", className)}>
+      <header className="relative flex flex-wrap items-start justify-between gap-x-6 gap-y-3 overflow-hidden rounded-xl border px-5 py-4 backdrop-blur-xl md:px-6 md:py-5 bg-card supports-[backdrop-filter]:bg-[color-mix(in_oklab,var(--card)_72%,transparent)] print:border print:bg-card print:backdrop-blur-none">
         {/* Wash. Anchored top-left behind the title so it reads as light falling
             on the panel rather than a tinted box. */}
         <div
@@ -38,8 +39,8 @@ export function PageHeader({ eyebrow, title, description, actions, className }: 
           className="pointer-events-none absolute inset-0 -z-10 print:hidden"
           style={{
             background:
-              "radial-gradient(70% 120% at 0% 0%, color-mix(in oklab, var(--verified) 10%, transparent) 0%, transparent 62%)," +
-              "radial-gradient(55% 110% at 100% 0%, color-mix(in oklab, var(--provisional) 8%, transparent) 0%, transparent 60%)",
+              "radial-gradient(70% 120% at 0% 0%, color-mix(in oklab, var(--verified) 7%, transparent) 0%, transparent 58%)," +
+              "radial-gradient(55% 110% at 100% 0%, color-mix(in oklab, var(--provisional) 5%, transparent) 0%, transparent 56%)",
           }}
         />
 
@@ -55,10 +56,15 @@ export function PageHeader({ eyebrow, title, description, actions, className }: 
               {eyebrow}
             </span>
           </div>
-          <h1 className="font-display text-[1.75rem] font-semibold leading-[1.15] tracking-[-0.02em] md:text-[2.125rem]">
+          {/* Down from 1.75/2.125rem, and on the UI sans. A page title is a
+              label for where you are, not the headline of the screen; at
+              display size in a serif it outweighed the content it introduces,
+              which is the opposite of its job. The REPORT's own cover keeps
+              both the serif and the scale — that one IS a headline. */}
+          <h1 className="font-sans text-[1.3rem] font-semibold leading-[1.2] tracking-[-0.015em] md:text-[1.55rem]">
             {title}
           </h1>
-          <p className="m-0 max-w-prose text-sm leading-relaxed text-muted-foreground">
+          <p className="m-0 max-w-prose text-[0.82rem] leading-relaxed text-muted-foreground">
             {description}
           </p>
         </div>
@@ -75,7 +81,7 @@ export function PageHeader({ eyebrow, title, description, actions, className }: 
           style={{
             background:
               "linear-gradient(90deg, var(--verified) 0%, var(--provisional) 26%, transparent 72%)",
-            opacity: 0.7,
+            opacity: 0.55,
           }}
         />
       </header>

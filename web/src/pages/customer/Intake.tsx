@@ -604,7 +604,7 @@ export function Intake() {
             appear here", while the page actually sent the user to the report. */}
 
         {handedOff && (
-          <div className="flex gap-3 rounded-lg border bg-card p-5 shadow-sm" role="status" data-testid="intake-handoff">
+          <div className="flex gap-3 rounded-lg border bg-card p-5" role="status" data-testid="intake-handoff">
             <CheckCircle2 aria-hidden className="mt-0.5 size-5 shrink-0 text-standing-good" />
             <div>
               <div className="text-base font-semibold">Analysing “{handedOff}” in the background</div>

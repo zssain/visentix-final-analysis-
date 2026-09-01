@@ -59,7 +59,7 @@ export function Login() {
         </div>
 
         <div className="mx-auto w-full max-w-sm py-12">
-          <h1 className="font-display text-3xl font-semibold tracking-tight">Sign in</h1>
+          <h1 className="font-sans text-3xl font-semibold tracking-tight">Sign in</h1>
           <p className="mt-1.5 text-sm text-muted-foreground">Access the Privacy Intelligence Platform</p>
 
           {error && <Alert variant="destructive" className="mt-6" role="alert"><AlertDescription>{error}</AlertDescription></Alert>}
@@ -155,7 +155,7 @@ export function Login() {
             <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
               Privacy Intelligence
             </div>
-            <h2 className="font-display text-3xl font-semibold leading-tight tracking-tight text-balance">
+            <h2 className="font-sans text-3xl font-semibold leading-tight tracking-tight text-balance">
               Compared to whom, with what exposure, at what confidence.
             </h2>
             <p className="max-w-md text-sm leading-relaxed text-muted-foreground">

@@ -21,7 +21,7 @@ export function TrustCenter() {
       {/* Hero */}
       <div className="mb-8 rounded-xl bg-[linear-gradient(155deg,var(--primary)_0%,color-mix(in_oklab,var(--primary)_78%,var(--verified))_75%,var(--verified)_100%)] px-10 py-11 text-[var(--primary-foreground)] max-md:px-5.5 max-md:py-8">
         <div className="text-[0.72rem] font-bold uppercase tracking-[0.16em] text-[var(--provisional)]">Trust Center</div>
-        <h1 className="my-2.5 max-w-[22ch] font-display text-[clamp(1.8rem,4vw,2.6rem)] font-semibold leading-[1.08] tracking-tight">
+        <h1 className="my-2.5 max-w-[22ch] font-sans text-[clamp(1.8rem,4vw,2.6rem)] font-semibold leading-[1.08] tracking-tight">
           Intelligence you can check, line by line.
         </h1>
         <p className="m-0 max-w-[60ch] text-base leading-relaxed text-[color-mix(in_oklab,var(--primary-foreground)_82%,transparent)]">
@@ -40,7 +40,7 @@ export function TrustCenter() {
       <div className="mb-3"><MockBadge id="M-27" /></div>
       <div className="mb-9 grid gap-3.5 [grid-template-columns:repeat(auto-fit,minmax(180px,1fr))]">
         {metrics.map(m => (
-          <div key={m.label} className="rounded-lg border bg-card px-4.5 py-4 shadow-sm">
+          <div key={m.label} className="rounded-lg border bg-card px-4.5 py-4">
             <div className="font-data text-[1.9rem] font-bold leading-none tabular-nums">{m.value}</div>
             <div className="my-2 text-[0.82rem] font-bold">{m.label}</div>
             <div className="text-[0.74rem] leading-relaxed text-muted-foreground">{m.sourceNote}</div>
@@ -50,7 +50,7 @@ export function TrustCenter() {
 
       {/* 1 · What we claim */}
       <section className="mb-10">
-        <h2 className="mb-1.5 font-display text-[1.4rem] font-semibold tracking-tight">What we claim — and what we don't</h2>
+        <h2 className="mb-1.5 font-sans text-[1.4rem] font-semibold tracking-tight">What we claim — and what we don't</h2>
         <p className="mb-4.5 max-w-[66ch] text-[0.9rem] leading-relaxed text-muted-foreground">
           Visentix answers "compared to whom, with what exposure, at what confidence." It never answers "is this
           legal?" Our reports speak in exposure, maturity, likelihood, benchmark position, and confidence.
@@ -79,7 +79,7 @@ export function TrustCenter() {
 
       {/* 2 · Your data */}
       <section className="mb-10">
-        <h2 className="mb-1.5 font-display text-[1.4rem] font-semibold tracking-tight">Your data</h2>
+        <h2 className="mb-1.5 font-sans text-[1.4rem] font-semibold tracking-tight">Your data</h2>
         <p className="mb-4.5 max-w-[66ch] text-[0.9rem] leading-relaxed text-muted-foreground">
           Trust starts with restraint. Here is exactly what we do — and do not — do with what you send us.
         </p>
@@ -95,7 +95,7 @@ export function TrustCenter() {
 
       {/* 3 · How the intelligence is made */}
       <section className="mb-10">
-        <h2 className="mb-1.5 font-display text-[1.4rem] font-semibold tracking-tight">How the intelligence is made</h2>
+        <h2 className="mb-1.5 font-sans text-[1.4rem] font-semibold tracking-tight">How the intelligence is made</h2>
         <p className="mb-4.5 max-w-[66ch] text-[0.9rem] leading-relaxed text-muted-foreground">
           Deterministic formulas, a human expert review gate, and frozen snapshots — the details are public.
         </p>
@@ -117,7 +117,7 @@ export function TrustCenter() {
 
       {/* 4 · Traceability guarantee */}
       <section className="mb-10">
-        <h2 className="mb-1.5 font-display text-[1.4rem] font-semibold tracking-tight">The traceability guarantee</h2>
+        <h2 className="mb-1.5 font-sans text-[1.4rem] font-semibold tracking-tight">The traceability guarantee</h2>
         <p className="mb-4.5 max-w-[66ch] text-[0.9rem] leading-relaxed text-muted-foreground">
           No score exists without its lineage. Every derived value stores four things, and every report
           regenerates identically from the snapshot it was frozen into.

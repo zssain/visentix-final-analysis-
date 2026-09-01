@@ -40,8 +40,8 @@ export function ReportHeader({
       className="sticky top-[calc(3.5rem+0.75rem)] md:top-3 z-30 mb-6 print:static print:mb-4"
       data-testid="report-header"
     >
-      <div className="relative overflow-hidden rounded-2xl border shadow-lg backdrop-blur-xl bg-card supports-[backdrop-filter]:bg-[color-mix(in_oklab,var(--card)_72%,transparent)] print:border print:bg-card print:shadow-none print:backdrop-blur-none">
-        <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 px-5 py-3.5 md:px-6">
+      <div className="relative overflow-hidden rounded-xl border shadow-sm backdrop-blur-xl bg-card supports-[backdrop-filter]:bg-[color-mix(in_oklab,var(--card)_72%,transparent)] print:border print:bg-card print:shadow-none print:backdrop-blur-none">
+        <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 px-4 py-3 md:px-5">
           <div className="flex min-w-0 flex-col gap-1">
             {/* Breadcrumb. `/assessments`, never `/` — "/" is the ROLE-BASED
                 home, so an admin would land on the Console and an SME on the
@@ -64,7 +64,7 @@ export function ReportHeader({
                   Not an <h1>: the report's own cover carries that, and two
                   first-level headings on one page is worse than a bar that
                   reads slightly differently from a screen header. */}
-              <p className="m-0 min-w-0 truncate font-display text-lg font-semibold leading-tight tracking-[-0.01em]">
+              <p className="m-0 min-w-0 truncate font-sans text-base font-semibold leading-tight tracking-[-0.01em]">
                 {organization}
               </p>
               {/* Draft state where it cannot be missed. The report carries its
@@ -113,7 +113,7 @@ export function ReportHeader({
           style={{
             background:
               "linear-gradient(90deg, var(--verified) 0%, var(--provisional) 26%, transparent 72%)",
-            opacity: 0.7,
+            opacity: 0.55,
           }}
         />
       </div>

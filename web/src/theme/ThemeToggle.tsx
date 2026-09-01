@@ -40,7 +40,7 @@ export function ThemeToggle({ className }: { className?: string }) {
             className={cn(
               "inline-flex size-6.5 items-center justify-center rounded-full transition-colors",
               active
-                ? "bg-background text-foreground shadow-sm ring-1 ring-border"
+                ? "bg-background text-foreground ring-1 ring-border"
                 : "text-muted-foreground hover:text-foreground"
             )}
           >

@@ -10,6 +10,9 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { PageHeader } from "../components/PageHeader";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { resolve, dirname } from "node:path";
 
 function renderHeader() {
   return render(
@@ -46,21 +49,27 @@ describe("PageHeader", () => {
   });
 });
 
-describe("heading typeface is one rule across the product", () => {
-  it("the page title wears the display face", () => {
+describe("the serif is the report's voice, not the app's", () => {
+  it("the page title is on the UI sans", () => {
     renderHeader();
-    expect(screen.getByRole("heading", { level: 1 })).toHaveClass("font-display");
+    // The display serif briefly ran across the whole product. It made every
+    // screen look like a document it is not, and a serif page title outweighed
+    // the content it introduces.
+    expect(screen.getByRole("heading", { level: 1 })).toHaveClass("font-sans");
+    expect(screen.getByRole("heading", { level: 1 })).not.toHaveClass("font-display");
   });
 
-  it("a card title wears the same face — it was the one heading on the UI sans", () => {
+  it("a card title is on the UI sans too", () => {
     render(<Card><CardHeader><CardTitle>Active Assessments</CardTitle></CardHeader></Card>);
-    expect(screen.getByText("Active Assessments")).toHaveClass("font-display");
+    expect(screen.getByText("Active Assessments")).toHaveClass("font-sans");
+    expect(screen.getByText("Active Assessments")).not.toHaveClass("font-display");
   });
 
-  it("the eyebrow is a LABEL, so it stays on the UI sans", () => {
-    renderHeader();
-    // Display for headings, sans for labels and body. An eyebrow in the display
-    // face would make the label read as a second, smaller heading.
-    expect(screen.getByText("Assessments")).toHaveClass("font-sans");
+  it("no application screen wears the display face", () => {
+    // The report keeps it — that artifact's editorial voice is the point, and
+    // AdvisorNote's Fraunces lede is DDR-002. Everything else is chrome.
+    const src = readFileSync(
+      resolve(dirname(fileURLToPath(import.meta.url)), "../components/PageHeader.tsx"), "utf-8");
+    expect(src).not.toMatch(/className="[^"]*font-display/);
   });
 });

@@ -1,6 +1,6 @@
 # Design System — Tokens, Furniture, DDR Summary
 
-**Version:** 1.12 · 2026-09-01 · Condenses the Brand Guide, DDRs, and UI_SPEC §0 into one authority. Design principle: **legal-and-regulator "premium" is confident stillness plus evidence everywhere.**
+**Version:** 1.13 · 2026-09-01 · Condenses the Brand Guide, DDRs, and UI_SPEC §0 into one authority. Design principle: **legal-and-regulator "premium" is confident stillness plus evidence everywhere.**
 
 **Motion — amended 2026-08-31 (owner).** The previous rule read *"Motion exists only to reveal evidence."* The owner has asked for figures and charts that animate to their value. This is a deliberate reversal, recorded as such rather than allowed to drift in. Motion is now permitted for **arrival** only, under four binding constraints (§7).
 
@@ -44,24 +44,22 @@ The old brand names (`--navy`, `--exec-blue`, `--teal`, `--gold`, `--soft-white`
 
 **Typography:** Fraunces (display/serif) · Inter (UI chrome) · Source Sans 3 (data/numerics, `tabular-nums` required on all figures). Marketing/site may also use Aptos/Avenir per Brand Guide.
 
-**One rule for which face a thing wears (2026-09-01):**
+**Which face a thing wears — the report is editorial, the app is not (2026-09-01):**
 
-| Role | Face | Where |
+| Where | Face | Why |
 |---|---|---|
-| **Heading** — anything that names a region | **Fraunces** (`font-display`) | page title, card title, report part heads and sub-heads, panel titles |
-| **Label and body** — anything that describes | Inter (`font-sans`) | eyebrows, field labels, descriptions, prose |
-| **Figure** | Source Sans 3 (`font-data`) | every score, count and identifier |
+| **The report** — cover, part heads, sub-heads, the Advisor lede (DDR-002) | **Fraunces** (`font-display`) | This is the artifact a customer forwards. Its editorial voice is the point |
+| **The application** — page titles, card titles, panel headings, nav | Inter (`font-sans`) | Chrome. A serif page title made every screen look like a document it is not, and outweighed the content it introduces |
+| **Labels** — eyebrows, field labels, table headers | Inter (`font-sans`) | An eyebrow is a label, not a small heading: in the display face it reads as a second heading stacked above the real one |
+| **Figures** — every score, count and identifier | Source Sans 3 (`font-data`) | `tabular-nums` required |
 
-An eyebrow is a LABEL, not a small heading: in the display face it reads as a
-second heading stacked above the real one. `CardTitle` was the one heading still
-on the UI sans, which is what made the set look unplanned — a card title sat
-beside a page title and a report sub-head in a different typeface.
-
-### 1.5 Dark mode
-
-Three states — light · dark · **system** — because a two-way switch cannot express "follow my OS" and would override a reader whose system is dark with no way back. Choice persists to `localStorage` (guarded; private mode throws) and sets `root.style.colorScheme` so native scrollbars and form controls follow. Every token has a dark value; **a surface that hard-codes a colour cannot respond to the theme**, which is why §1's no-colour-outside-the-token-layer rule is enforced rather than advisory.
-
-**Open residue (OD-17): the PDF renderer still has its own ramp.** `app/services/report/renderer.py` `_RAMP` renders four bands at 25/50/75 with its own hexes — different values *and* different thresholds from the web scale's 45/70. Tailwind cannot reach WeasyPrint, and WeasyPrint does not parse `oklch()`. The PDF therefore keeps its own stylesheet (owner-confirmed 2026-08-31), but its values must be **generated from `theme.css`, not hand-copied**. Reconciling the palette is a design call; reconciling the **thresholds** is a Hard Rule 3 matter and is expert-owned. Do not unilaterally change either.
+**Elevation is reserved for things that float (2026-09-01).** A card carried a
+border, a shadow *and* — once the ground stopped being the same white as the
+card — a lightness step. Any one separates it; all three read as chrome
+competing with the content. Cards and report sections have a border and no
+shadow. Shadow means: dialog, popover, dropdown, sheet, sidebar, sticky header.
+It is also the one cue that survives neither print nor forced-colors, so it may
+never be the only thing distinguishing a surface.
 
 ## 2. Semantic rules (single sources of truth in code)
 
@@ -186,6 +184,7 @@ meaning and is `aria-hidden`.
 
 ## Changelog
 
+- 1.13 (2026-09-01): **The serif is the report's voice, not the app's**, and **elevation is reserved for things that float.** 1.11 had put the display face on every heading in the product; wearing it in the application chrome made each screen look like a document it is not, and a serif page title at display size outweighed the content beneath it. The report keeps Fraunces (cover, part heads, sub-heads, the DDR-002 Advisor lede); the application is on the UI sans. Separately, cards lost their shadow — border plus the new ground already separate them, and a third cue read as chrome competing with the content — along with a density pass (card padding 24 -> 16, page title 2.125 -> 1.55rem, report section padding 28/32 -> 22/24). Shadow now means dialog, popover, dropdown, sheet, sidebar or sticky header.
 - 1.12 (2026-09-01): **Light mode gained a page ground, and the contrast guard gained sixteen pairs.** `--background` and `--card` were both `oklch(1 0 0)` — a lightness gap of exactly zero, so a card did not sit on the page, it *was* the page, separated only by a hairline. Dark mode had a 0.070 gap and read with depth; light looked flat for that one reason. The ground is now `0.972` and carries the brand hue (pure white was the only place in the palette with none), cards stay white, and the sidebar sits between them, giving three levels instead of one. `--muted`/`--secondary`/`--accent` step down with it and `--border` strengthens, because a white card on a tinted ground needs its edge to survive. **`--muted-foreground` was measured at 4.45:1 on the sidebar — already below AA before any of this**, and unnoticed because `check_contrast.mjs` only ever checked the standing scale on a card. It is now solved against the *darkest* surface it can land on (4.50 on `--muted`), and the guard checks **18 text/surface pairs** across both modes rather than 6.
 - 1.11 (2026-09-01): §1 gained the **face-per-role** rule — display for headings, sans for labels and body, data for figures — after `CardTitle` was found to be the only heading in the product still on the UI sans, so a card title sat beside a page title and a report sub-head in a different typeface. Records that an eyebrow is a label, not a small heading. No new face was added and no token changed.
 - 1.10 (2026-09-01): §7 gained the **cover arrival** paragraph — the staggered title entrance, the gauge arc drawing to its value, and the counting figure, all inside the four existing constraints. Records why rule 4 holds structurally (the PDF is a separate Python template that executes no script) and why the cover is *additionally* print-disabled anyway, so a browser print-to-PDF of the screen view cannot capture a half-drawn arc. Records that the arc's dash length must be the arc's own computed length: a fixed dash over- or under-shoots at different scores, which renders the wrong figure. No constraint was relaxed.

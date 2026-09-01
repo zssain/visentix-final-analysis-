@@ -15,20 +15,21 @@
      on a screen they did not choose, and a 14px base with long measures is the
      single biggest barrier to that. Sub-elements that set their own rem sizes
      scale with it. */
-  font-size: 1rem;
-  line-height: 1.7;
+  font-size: 0.95rem;
+  line-height: 1.65;
   position: relative;
 }
 
 /* Every section is a quiet white card on the soft-white page — the report
    reads as a bound document, not floating fragments. */
+/* Border and ground separate a section; the shadow was a third cue on top of
+   both and made a twelve-part document read as twelve floating slabs. */
 .report-section {
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 28px 32px;
-  margin-bottom: 24px;
-  box-shadow: 0 1px 3px color-mix(in oklab, var(--primary) 5%, transparent);
+  border-radius: 10px;
+  padding: 22px 24px;
+  margin-bottom: 18px;
 }
 
 /* Editorial section headings — Fraunces, quiet gold underline */
@@ -338,13 +339,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
   background: color-mix(in oklab, var(--provisional) 14%, transparent);
   color: var(--provisional);
   font-family: 'Fraunces', Georgia, serif;
-  font-size: 1.25rem;
+  font-size: 1.05rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   line-height: 1;
@@ -352,7 +353,7 @@
 .report-part-titles { min-width: 0; }
 .report-part-head h2 {
   font-family: 'Fraunces', Georgia, serif;
-  font-size: 1.5rem;
+  font-size: 1.3rem;
   font-weight: 600;
   letter-spacing: -0.015em;
   color: var(--foreground);
@@ -374,7 +375,7 @@
    heading (which is what the old h2-style border did). */
 .report-subhead {
   font-family: 'Fraunces', Georgia, serif;
-  font-size: 1.15rem;
+  font-size: 1.05rem;
   font-weight: 600;
   color: var(--foreground);
   margin: 28px 0 12px;
@@ -395,9 +396,9 @@
 .report-contents {
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 22px 24px;
-  margin-bottom: 24px;
+  border-radius: 10px;
+  padding: 18px 20px;
+  margin-bottom: 18px;
 }
 .report-contents-title {
   font-family: 'Fraunces', Georgia, serif;

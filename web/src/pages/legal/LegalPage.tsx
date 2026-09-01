@@ -25,7 +25,7 @@ export function LegalPage({
       {sections.map((s, i) => (
         <section key={i} style={{ marginBottom: 32 }}>
           <h2 style={{
-            fontFamily: "var(--font-display)", fontSize: "1.25rem", fontWeight: 700,
+            fontSize: "1.25rem", fontWeight: 700,
             color: "var(--navy)", letterSpacing: "-0.02em", marginBottom: 10,
           }}>
             {s.heading}

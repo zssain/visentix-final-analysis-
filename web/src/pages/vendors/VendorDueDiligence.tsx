@@ -104,10 +104,10 @@ export function VendorDueDiligence() {
         </div>
 
         {/* ── Detail + decision ─────────────────────────────────────────── */}
-        <Card className="rounded-lg border bg-card px-5 py-4.5 shadow-sm">
+        <Card className="rounded-lg border bg-card px-5 py-4.5">
           <div className="mb-1 flex items-start justify-between gap-3">
             <div>
-              <div className="font-display text-[1.3rem] font-semibold">{selected.name}</div>
+              <div className="font-sans text-[1.3rem] font-semibold">{selected.name}</div>
               <div className="mb-3.5 text-[0.8rem] text-muted-foreground">
                 {selected.domain} · {selected.category} · submitted {selected.submitted}
               </div>

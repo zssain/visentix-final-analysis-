@@ -107,7 +107,7 @@ export function NoticeRewrite() {
         <div className="grid gap-5 lg:grid-cols-[360px_minmax(0,1fr)]">
           {/* Clause picker */}
           <Card className="max-h-[640px] gap-0 overflow-y-auto p-4">
-            <div className="mb-3 font-display font-semibold">
+            <div className="mb-3 font-sans font-semibold">
               Clauses{" "}
               {flagged.length > 0 && (
                 <span className="text-xs font-normal text-muted-foreground">· flagged domains first</span>

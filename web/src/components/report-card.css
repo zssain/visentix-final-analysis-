@@ -4,7 +4,7 @@
 .report-card-stage {
   perspective: 1200px;
   width: 100%;
-  max-width: 340px;
+  max-width: 296px;
 }
 
 .report-card {
@@ -93,12 +93,17 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding: 26px 24px;
+  padding: 20px 18px;
   border-radius: 12px;
   border: 1px solid var(--border);
-  background: color-mix(in oklab, var(--card) 88%, transparent);
-  backdrop-filter: blur(12px);
-  box-shadow: 0 10px 30px rgb(0 0 0 / 0.18);
+  /* OPAQUE at rest.
+     It was a translucent card over a backdrop-blur, with a coloured gradient
+     panel sitting directly behind it — so at rest the panel bled through as a
+     soft haze and the whole card read as out of focus. The glass was doing
+     nothing but blurring the thing it was covering. The panel is what slides
+     out on hover; until then the sheet is a solid sheet. */
+  background: var(--card);
+  box-shadow: 0 4px 14px rgb(0 0 0 / 0.08);
   color: var(--card-foreground);
   text-decoration: none;
   /* A one-pixel brand hairline across the top of the sheet — teal into gold —
@@ -118,19 +123,21 @@
 .report-card-sheet:focus-visible {
   outline: none;
   box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 55%, transparent),
-              0 10px 30px rgb(0 0 0 / 0.18);
+              0 4px 14px rgb(0 0 0 / 0.08);
 }
 
 .report-card-eyebrow {
-  font-size: 0.66rem;
+  font-size: 0.62rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.16em;
   color: var(--muted-foreground);
 }
 .report-card-org {
-  font-family: 'Fraunces', Georgia, serif;
-  font-size: 1.7rem;
+  /* The UI sans: this is a dashboard tile, not the report. The serif is the
+     artifact's voice and starts at its cover (design-system §1). */
+  font-family: var(--font-sans);
+  font-size: 1.4rem;
   font-weight: 600;
   line-height: 1.1;
   letter-spacing: -0.02em;
@@ -140,7 +147,7 @@
 }
 .report-card-score { display: flex; flex-direction: column; gap: 2px; margin-top: auto; }
 .report-card-band {
-  font-size: 1.25rem;
+  font-size: 1.1rem;
   font-weight: 700;
   line-height: 1.15;
   color: var(--standing);
