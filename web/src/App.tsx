@@ -33,11 +33,38 @@ const S_TRUST     = import.meta.env.VITE_SURFACE_TRUST === "true";
 const S_CROSSWALK = import.meta.env.VITE_SURFACE_CROSSWALK === "true";
 const S_QUARTERLY = import.meta.env.VITE_SURFACE_QUARTERLY !== "false";
 
+/** The flag set the registry consults. Kept next to the raw reads above so a new
+ *  surface flag is added in exactly one place. */
+const SURFACE_FLAGS: Record<string, boolean> = {
+  BULK: S_BULK, PARTNER: S_PARTNER, REWRITE: S_REWRITE, VENDORS: S_VENDORS,
+  TRUST: S_TRUST, CROSSWALK: S_CROSSWALK, QUARTERLY: S_QUARTERLY,
+};
+
+/** Icons live here, not in the registry: the registry is plain data that the
+ *  route guard reads from Python, and importing React components into it would
+ *  make it unreadable to that guard. */
+const ROUTE_ICONS: Record<string, typeof Activity> = {
+  "/assessments": Activity,
+  "/intake": FilePlus2,
+  "/rewrite": PenLine,
+  "/vendors": Building2,
+  "/workbench": ClipboardCheck,
+  "/quarterly": Newspaper,
+  "/crosswalk": Grid3x3,
+  "/finding-codes": BookMarked,
+  "/methodology": Compass,
+  "/trust": ShieldCheck,
+  "/admin": Settings,
+  "/partner": Handshake,
+  "/screening": ScanSearch,
+};
+
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/theme/ThemeProvider";
 import { ThemeToggle } from "@/theme/ThemeToggle";
+import { NAV_GROUPS, ROUTES, ROUTE_REDIRECTS, navFor } from "@/routes/registry";
 import { AuthProvider, useAuth } from "./auth/AuthProvider";
 import { ProtectedRoute }        from "./auth/ProtectedRoute";
 import { ExplainProvider }       from "./report/explain/ExplainContext";
@@ -87,7 +114,7 @@ if (import.meta.env.VITE_SURFACE_PARTNER === "true") {
 }
 if (import.meta.env.VITE_SURFACE_BULK === "true") {
   const BulkAnalysis = lazy(() => import("./pages/bulk/BulkAnalysis").then(m => ({ default: m.BulkAnalysis })));
-  maskedRoutes.push(<Route key="bulk" path="/bulk" element={
+  maskedRoutes.push(<Route key="bulk" path="/screening" element={
     <ProtectedRoute allowedRoles={["admin"]}>{susp(<BulkAnalysis />)}</ProtectedRoute>} />);
 }
 
@@ -114,10 +141,19 @@ function NavLink({ to, label, children, onClick }: { to: string; label?: string;
   );
 }
 
+/** Roles come from the registry, never re-typed at the call site — a role list
+ *  that disagrees with the registry is exactly the drift this replaces. */
+function Guarded({ path, children }: { path: string; children: React.ReactNode }) {
+  const def = ROUTES.find(r => r.path === path);
+  if (!def) throw new Error(`Route ${path} is not declared in routes/registry.ts`);
+  if (!def.roles) return <>{children}</>;
+  return <ProtectedRoute allowedRoles={def.roles}>{children}</ProtectedRoute>;
+}
+
 function RoleBasedHome() {
   const { profile } = useAuth();
   if (profile?.role === "admin") return <Navigate to="/admin" replace />;
-  if (profile?.role === "sme")   return <Navigate to="/review" replace />;
+  if (profile?.role === "sme")   return <Navigate to="/workbench" replace />;
   // Gate the partner redirect behind the build flag too, so the "/partner" string
   // is DCE-stripped from a masked build (v1) — otherwise it leaks into the bundle
   // and fails the release.sh masked-surface grep. In v1 (S_PARTNER=false) a
@@ -177,55 +213,29 @@ function AppRoutes() {
               <img src="/wordmark logo for white background.png" alt="Visentix" className="h-7 w-auto" />
             </div>
 
+            {/* Built from the route registry — the nav cannot list a screen the
+                registry does not declare, and cannot disagree with it about the
+                label, the role rule or the feature flag. */}
             <div className="flex-1 overflow-y-auto px-3 py-4 flex flex-col gap-6">
-              <div className="flex flex-col gap-0.5">
-                <div className="px-3 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Workspace</div>
-                <NavLink to="/assessments" onClick={closeNav}><Activity size={17} aria-hidden /> Monitor</NavLink>
-                <NavLink to="/intake" onClick={closeNav}><FilePlus2 size={17} aria-hidden /> Intake</NavLink>
-                {S_REWRITE && (role === "sme" || role === "admin") && (
-                  <NavLink to="/rewrite" onClick={closeNav}><PenLine size={17} aria-hidden /> Rewrite</NavLink>
-                )}
-                {S_VENDORS && role === "admin" && (
-                  <NavLink to="/vendors" onClick={closeNav}><Building2 size={17} aria-hidden /> Vendors</NavLink>
-                )}
-                {(role === "sme" || role === "admin") && (
-                  <NavLink to="/review" onClick={closeNav}><ClipboardCheck size={17} aria-hidden /> Workbench</NavLink>
-                )}
-              </div>
-
-              <div className="flex flex-col gap-0.5">
-                <div className="px-3 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Intelligence</div>
-                {S_QUARTERLY && (
-                  <NavLink to="/quarterly" onClick={closeNav}><Newspaper size={17} aria-hidden /> Quarterly</NavLink>
-                )}
-                {S_CROSSWALK && role === "admin" && (
-                  <NavLink to="/crosswalk" onClick={closeNav}><Grid3x3 size={17} aria-hidden /> Crosswalk</NavLink>
-                )}
-                <NavLink to="/codex" onClick={closeNav}><BookMarked size={17} aria-hidden /> Codex</NavLink>
-                <NavLink to="/methodology" onClick={closeNav}><Compass size={17} aria-hidden /> Methodology</NavLink>
-                {S_TRUST && role === "admin" && (
-                  <NavLink to="/trust" onClick={closeNav}><ShieldCheck size={17} aria-hidden /> Trust Center</NavLink>
-                )}
-              </div>
-
-              {S_PARTNER && role === "partner_admin" && (
-                <div className="flex flex-col gap-0.5">
-                  <div className="px-3 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Partner</div>
-                  <NavLink to="/partner" onClick={closeNav}><Handshake size={17} aria-hidden /> Partner Workspace</NavLink>
-                </div>
-              )}
-              {role === "admin" && (
-                <div className="flex flex-col gap-0.5">
-                  <div className="px-3 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Administration</div>
-                  <NavLink to="/admin" onClick={closeNav}><Settings size={17} aria-hidden /> Admin</NavLink>
-                  {S_PARTNER && (
-                    <NavLink to="/partner" onClick={closeNav}><Handshake size={17} aria-hidden /> Partner</NavLink>
-                  )}
-                  {S_BULK && (
-                    <NavLink to="/bulk" onClick={closeNav}><ScanSearch size={17} aria-hidden /> Bulk</NavLink>
-                  )}
-                </div>
-              )}
+              {NAV_GROUPS.map(group => {
+                const items = navFor(group.id, role, SURFACE_FLAGS);
+                if (items.length === 0) return null;
+                return (
+                  <div key={group.id} className="flex flex-col gap-0.5">
+                    <div className="px-3 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      {group.label}
+                    </div>
+                    {items.map(r => {
+                      const Icon = ROUTE_ICONS[r.path];
+                      return (
+                        <NavLink key={r.path} to={r.path} onClick={closeNav}>
+                          {Icon && <Icon size={17} aria-hidden />} {r.navLabel}
+                        </NavLink>
+                      );
+                    })}
+                  </div>
+                );
+              })}
             </div>
 
             {/* User area pinned to the bottom */}
@@ -251,7 +261,7 @@ function AppRoutes() {
         <Routes>
           {/* Public */}
           <Route path="/login" element={<Login />} />
-          <Route path="/codex"       element={<FindingCodex />} />
+          <Route path="/finding-codes"       element={<FindingCodex />} />
           <Route path="/methodology" element={<Methodology />} />
           {/* /quarterly is public by design (F21 — approved+suppressed data only). */}
           <Route path="/quarterly"   element={<QuarterlyReport />} />
@@ -277,51 +287,34 @@ function AppRoutes() {
           } />
 
           {/* Root → role-based landing */}
-          <Route path="/" element={
-            <ProtectedRoute allowedRoles={["customer", "sme", "admin"]}>
-              <RoleBasedHome />
-            </ProtectedRoute>
-          } />
+          <Route path="/" element={<Guarded path="/"><RoleBasedHome /></Guarded>} />
 
-          {/* Assessments / monitoring dashboard */}
-          <Route path="/assessments" element={
-            <ProtectedRoute allowedRoles={["customer", "sme", "admin"]}>
-              <CustomerDashboard />
-            </ProtectedRoute>
-          } />
+          {/* Monitor (was /assessments — the nav and the title both said Monitor,
+              only the URL said assessments) */}
+          <Route path="/assessments" element={<Guarded path="/assessments"><CustomerDashboard /></Guarded>} />
 
           {/* Intake — new and with existing assessment context */}
-          <Route path="/intake" element={
-            <ProtectedRoute allowedRoles={["customer", "sme", "admin"]}>
-              <Intake />
-            </ProtectedRoute>
-          } />
-          <Route path="/intake/:assessmentId" element={
-            <ProtectedRoute allowedRoles={["customer", "sme", "admin"]}>
-              <Intake />
-            </ProtectedRoute>
-          } />
+          <Route path="/intake" element={<Guarded path="/intake"><Intake /></Guarded>} />
 
-          {/* SME Workbench */}
-          <Route path="/review" element={
-            <ProtectedRoute allowedRoles={["sme", "admin"]}>
-              <ReviewQueue />
-            </ProtectedRoute>
-          } />
+          {/* Workbench (was /review — "review" also collides with the customer's
+              own report review, which is a different thing entirely) */}
+          <Route path="/workbench" element={<Guarded path="/workbench"><ReviewQueue /></Guarded>} />
 
           {/* Admin (admin role always reaches admin — spec v1) */}
-          <Route path="/admin" element={
-            <ProtectedRoute allowedRoles={["admin"]}>
-              <AdminConsole />
-            </ProtectedRoute>
-          } />
+          <Route path="/admin" element={<Guarded path="/admin"><AdminConsole /></Guarded>} />
 
           {/* Report view */}
-          <Route path="/reports/:assessmentId" element={
-            <ProtectedRoute allowedRoles={["customer", "sme", "admin"]}>
-              <ReportPage />
-            </ProtectedRoute>
-          } />
+          <Route path="/reports/:assessmentId" element={<Guarded path="/reports/:assessmentId"><ReportPage /></Guarded>} />
+
+          {/* Renamed screens keep their old URL working. A report link or a
+              bookmark a customer already holds must not 404 because we renamed
+              a screen. `/intake/:assessmentId` is deliberately NOT here: it is
+              deleted, not redirected — it has had no caller since intake became
+              a background job, and redirecting it would preserve a URL shape
+              that no longer means anything. */}
+          {Object.entries(ROUTE_REDIRECTS).map(([from, to]) => (
+            <Route key={from} path={from} element={<Navigate to={to} replace />} />
+          ))}
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

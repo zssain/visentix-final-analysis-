@@ -69,8 +69,8 @@ export function FindingCodex() {
   return (
     <div className="mx-auto max-w-5xl">
       <PageHeader
-        eyebrow="Codex"
-        title="Finding Codex"
+        eyebrow="Finding Codes"
+        title="Finding Code Definitions"
         description={`Definitions for all ${entries.length} finding codes from the database catalog — what each code means, the exposure it signals, and linked legal references.`}
       />
 

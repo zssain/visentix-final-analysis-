@@ -11,7 +11,7 @@ import { Eye, EyeOff } from "lucide-react";
 function roleLanding(role: string): string {
   switch (role) {
     case "admin": return "/admin";
-    case "sme": return "/review";
+    case "sme": return "/workbench";
     default: return "/assessments";
   }
 }

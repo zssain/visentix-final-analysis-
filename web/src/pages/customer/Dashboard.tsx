@@ -72,8 +72,8 @@ export function CustomerDashboard() {
   return (
     <div>
       <PageHeader
-        eyebrow="Monitor"
-        title="Privacy Intelligence Monitor"
+        eyebrow="Assessments"
+        title="Your Assessments"
         description="Real-time privacy intelligence across all assessed notices. Every number comes from the scoring pipeline — nothing is mocked."
         actions={
           <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.78rem", fontWeight: 600, color: "var(--emerald)" }}>

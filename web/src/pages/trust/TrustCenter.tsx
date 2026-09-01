@@ -103,7 +103,7 @@ export function TrustCenter() {
             <div className="tc-link-title">Methodology →</div>
             <div className="tc-link-desc">The 14 versioned formulas, the review gate, and reproducibility.</div>
           </Link>
-          <Link to="/codex" className="tc-link-card">
+          <Link to="/finding-codes" className="tc-link-card">
             <div className="tc-link-title">Finding Codex →</div>
             <div className="tc-link-desc">Every finding code with its canonical definition and exposure signal.</div>
           </Link>

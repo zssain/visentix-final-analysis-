@@ -502,7 +502,7 @@ export function Intake() {
             <Button variant="outline" size="sm" type="button" onClick={() => setHandedOff(null)}>
               Submit another notice
             </Button>
-            <Button asChild size="sm"><Link to="/assessments">Go to Monitor</Link></Button>
+            <Button asChild size="sm"><Link to="/assessments">Go to Assessments</Link></Button>
           </div>
         </div>
       )}
