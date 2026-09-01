@@ -48,6 +48,8 @@ Ordered by how much damage each does while open.
 | Item | The question | Source |
 |---|---|---|
 | **Action plans with owner + target date** | Does assignment exist in the product at all? Inventing an owner or a date to satisfy a format would break the honest-numbers rule | Language research — every assurance-report structure carries them; ours name no owner and are due never |
+| **Distribution list** | Do we record who a report was issued to? For an artifact designed to be forwarded, "who was this issued to" is the reader's first orientation question, and an audit-literate reader notices its absence | Language research (IIA) — see `research-to-plan.md` |
+| **Criticality rating + condition/criteria/cause/effect** | We carry severity and evidence but not *criteria* (what was expected) or *effect* (what follows) as structured fields. Adding them is a schema change and the wording is expert-owned | Language research (IIA) |
 | **Dispute / appeal path** | Do we commit to a named process, open even to non-customers, with published resolution times? This is headcount and process before it is code | Language research — it is how a published score survives third-party scrutiny |
 | **OD-22** — 22 SaaS crawl targets | Approve, amend, or reject. The crawler must not touch unapproved domains | Never approved, never seeded; one reason the corpus stayed narrow |
 | **OD-20** — categorical chart palette | The supplied ramp is sequential (one hue). Nothing can tell entities apart by colour, and generating hues is forbidden | Raised while adopting the token set |

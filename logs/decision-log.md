@@ -2,6 +2,7 @@
 
 Format: `YYYY-MM-DD · who · decision · one-line why`
 
+- 2026-08-31 · engineer · Report observations ordered by significance, not by finding code · takeaways and recommendations were the alphabetically-first five findings, so a low-severity AI-004 displaced a high-severity SH-002
 - 2026-08-31 · engineer · Four new CI guards: routes, literal colours, mock badges, docs layout · each was written to catch a drift already measured, and each was verified to reject a known-bad input before being relied on
 - 2026-08-31 · engineer · Standing scale in scoreBands.ts moved from literal hex to token references · it was a second source of truth, so every scoreBandColor() caller rendered the light standing colour in dark mode (2.64-3.34:1, fails AA)
 - 2026-08-31 · engineer · Root markdown reduced to README + generated AGENTS.md; 4 doc classes given one home each · a superseded status report and a live expert decision were indistinguishable sitting side by side (L-018)

@@ -550,6 +550,35 @@ def _enforce_snapshot_prose(
     }
 
 
+
+#: Severity rank for ordering observations. Lower sorts first.
+_SEVERITY_RANK = {"critical": 0, "high": 1, "medium": 2, "elevated": 2, "low": 3}
+
+
+def _significance_key(f: dict) -> tuple:
+    """Order observations by SIGNIFICANCE, not by code.
+
+    Findings were sorted alphabetically by `finding_type_code`, and the executive
+    takeaways and recommendations took `findings[:5]` — so the report led with
+    the five findings whose codes happened to sort first. A low-severity
+    "AI-004" displaced a high-severity "SH-002" because A precedes S.
+
+    Every assurance-reporting structure orders observations by significance, and
+    a reader reasonably assumes the first thing named is the most important one.
+
+    The code is the final tiebreak so the order stays DETERMINISTIC: two renders
+    of the same snapshot must produce identical bytes (Hard Rule 6), which a
+    non-total ordering would break.
+    """
+    sev = (f.get("severity") or "").lower()
+    score = f.get("score")
+    return (
+        _SEVERITY_RANK.get(sev, 9),
+        -(score if isinstance(score, (int, float)) else 0.0),
+        f.get("code") or f.get("finding_type_code") or "",
+    )
+
+
 def _recommendation_basis_label(finding: dict, selected_laws: set[str]) -> str:
     """Classify a recommendation's basis from STORED references only — never an
     LLM guess (RPT-009). Precedence, strongest signal first:
@@ -839,8 +868,14 @@ def _assemble_from_live(assessment_id: str) -> ReportPayload:
             f"Clause decomposition is available; scores will appear once the scoring pipeline runs."
         )
 
+    # Observations in order of significance. `findings` itself is re-ordered so
+    # every downstream section (findings table, risk reduction, traceability)
+    # inherits the same order rather than each picking its own.
+    findings.sort(key=_significance_key)
+    top_findings = findings[:5]
+
     takeaways = []
-    for f in sorted(findings[:5], key=lambda x: x["code"]):
+    for f in top_findings:
         sev = "elevated" if f["severity"] == "high" else "moderate"
         takeaways.append(
             f"The {f['domain'].replace('_', ' ')} domain presents {sev} exposure "
@@ -854,7 +889,7 @@ def _assemble_from_live(assessment_id: str) -> ReportPayload:
     rec_map = {r["finding_type_code"]: r for r in rec_lib}
 
     recommendations = []
-    for f in sorted(findings[:5], key=lambda x: x["code"]):
+    for f in top_findings:
         rec = rec_map.get(f["code"])
         if rec:
             selected_laws = set(intake_scope.get("selected_laws") or [])
