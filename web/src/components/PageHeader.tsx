@@ -62,20 +62,24 @@ export function PageHeader({ eyebrow, title, description, actions, className }: 
         </div>
 
         {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
-      </header>
 
-      {/* A rule that starts in the brand and fades out, rather than a grey line
-          drawn edge to edge. Decorative: the panel border above already does the
-          structural separating. */}
-      <div
-        aria-hidden="true"
-        className="mt-px h-px w-full"
-        style={{
-          background:
-            "linear-gradient(90deg, var(--verified) 0%, var(--provisional) 22%, transparent 70%)",
-          opacity: 0.5,
-        }}
-      />
+        {/* Brand hairline INSIDE the panel, along its top edge.
+            It used to sit under the panel as a full-width rule, which left a
+            visible notch at each bottom corner: a straight line drawn edge to
+            edge cannot meet a rounded border, so the curve ended and the rule
+            carried on past it. Inside, the parent's `overflow-hidden` +
+            `rounded-2xl` clip it to the same curve, so there is no corner to
+            mismatch. */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 top-0 h-px"
+          style={{
+            background:
+              "linear-gradient(90deg, var(--verified) 0%, var(--provisional) 26%, transparent 72%)",
+            opacity: 0.7,
+          }}
+        />
+      </header>
     </div>
   );
 }
