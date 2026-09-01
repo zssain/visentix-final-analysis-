@@ -202,7 +202,8 @@ function AppRoutes() {
             >
               {navOpen ? "✕" : "☰"}
             </button>
-            <img src="/wordmark logo for white background.png" alt="Visentix" className="h-6 w-auto" />
+            <img src="/wordmark logo for white background.png" alt="Visentix" className="h-6 w-auto dark:hidden" />
+            <img src="/wordmark logo for dark background.png" alt="Visentix" className="h-6 w-auto hidden dark:block" />
             <div className="ml-auto"><ThemeToggle /></div>
           </div>
 
@@ -224,7 +225,8 @@ function AppRoutes() {
             aria-label="Main navigation"
           >
             <div className="h-16 flex items-center px-5 border-b border-sidebar-border shrink-0">
-              <img src="/wordmark logo for white background.png" alt="Visentix" className="h-7 w-auto" />
+              <img src="/wordmark logo for white background.png" alt="Visentix" className="h-7 w-auto dark:hidden" />
+              <img src="/wordmark logo for dark background.png" alt="Visentix" className="h-7 w-auto hidden dark:block" />
             </div>
 
             {/* Built from the route registry — the nav cannot list a screen the
