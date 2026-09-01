@@ -50,7 +50,7 @@ _PDF_WINDOW_S = 60
 # an honest "being prepared" 503 rather than piling up and OOMing. Combined with
 # render_pdf running WeasyPrint in a worker thread, the event loop (and /health)
 # stays responsive. UPGRADE TRIGGER: if these 503s recur with >1 concurrent user,
-# resize the VM to 8 GB (see LAUNCH-READINESS-v2.md).
+# resize the VM to 8 GB (see logs/archive/2026-07/LAUNCH-READINESS-v2.md).
 import asyncio
 _PDF_RENDER_SEM = asyncio.Semaphore(1)
 

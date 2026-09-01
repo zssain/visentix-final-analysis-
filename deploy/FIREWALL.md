@@ -67,4 +67,4 @@ nmap -Pn -p 22,80,443,5432,8000,11434 <VM_PUBLIC_IP>
 
 **PASS** = only `80/tcp` + `443/tcp` (+ `443/udp`) open; `22` filtered/allow-listed;
 `8000`, `11434`, `5432` **closed/filtered**. Any of the latter three showing `open`
-is a launch blocker — record the scan output in `LAUNCH-READINESS-v2.md`.
+is a launch blocker — record the scan output in `../logs/archive/2026-07/LAUNCH-READINESS-v2.md`.

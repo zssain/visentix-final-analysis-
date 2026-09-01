@@ -284,7 +284,7 @@ def compute_readability(text: str) -> float:
 # Deterministic, explainable section-level noise detection. Uses ONLY signals
 # already available at decomposition: char length, list/link structure,
 # cross-section duplication, and section position (sequence). Approved rule
-# (DECISION-NEEDED.md Part 1). TIE-BREAK: uncertain → NOT noise — missed noise
+# (logs/archive/2026-07/DECISION-NEEDED.md Part 1). TIE-BREAK: uncertain → NOT noise — missed noise
 # is bounded, but filtering real disclosure text destroys scoring evidence. That
 # is why there is no blunt "chars < 120" predicate: an ambiguous mid-length
 # fragment (e.g. a list continuation) is kept, not filtered.

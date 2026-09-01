@@ -110,4 +110,4 @@ echo -n "  /health (int)  : "; docker compose -f "${COMPOSE}" exec -T api python
 echo -n "  /health (TLS)  : "; curl -fsS "https://${DOMAIN_VAL}/health" -o /dev/null -w '%{http_code}\n' 2>/dev/null || echo 'FAILED (TLS may still be issuing — retry in ~30s)'
 echo -n "  /docs (TLS)    : "; curl -fsS "https://${DOMAIN_VAL}/docs" -o /dev/null -w '%{http_code}\n' 2>/dev/null || echo n/a
 echo "  migration head : $(python3 scripts/db/apply_and_record.py --print-head 2>/dev/null || echo 'see step 3')"
-log "deploy complete — record digest + versions in LAUNCH-READINESS-v2.md"
+log "deploy complete — record digest + versions in logs/archive/2026-07/LAUNCH-READINESS-v2.md"

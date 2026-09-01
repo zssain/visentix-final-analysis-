@@ -10,7 +10,7 @@ The measurement harness is built and green, but its **results are honestly "awai
 
 - [ ] **Label the gold set (OQ-2).** 200 stratified, `is_noise`-excluded clauses are frozen (`logs/eval/gold_set_v1.json`). Export the CSV (`GET /eval/gold-set/export.csv`), fill `gold_domain` / `verdict` / `note` by hand, import (`POST /eval/gold-set/import.csv`). Until then classifier accuracy + VCI calibration are *awaiting* (no number is fabricated). 94 strata cells are under-populated and reported honestly — do not expect all cells filled.
 - [ ] **Bless or swap the 3 golden notices (OQ-1).** Engineer proposed `retail_strong` / `retail_mid` / `retail_weak` (rationale in `tests/golden/notices/*.json`, marked PROPOSED). Confirm they're representative retail notices spanning strong/mid/weak, or swap them; then re-freeze (`python scripts/eval/golden_notices.py`). The CI diff protects them thereafter (only a cited `formula_version` change may alter a golden file).
-- [ ] **[EXPERT] F-002 severity semantics.** The harness reports (does not assert) that `compute_f002` treats disclosure severity as clause **proportion** (volume), so "weaken a domain → exposure worsens" does not hold cleanly. Confirm whether severity should track disclosure **volume** or **quality** — any change is expert-owned (F17 changes nothing). See `INTELLIGENCE-QUALITY.md` §3.
+- [ ] **[EXPERT] F-002 severity semantics.** The harness reports (does not assert) that `compute_f002` treats disclosure severity as clause **proportion** (volume), so "weaken a domain → exposure worsens" does not hold cleanly. Confirm whether severity should track disclosure **volume** or **quality** — any change is expert-owned (F17 changes nothing). See `../../logs/archive/2026-08/INTELLIGENCE-QUALITY.md` §3.
 
 ---
 
@@ -41,7 +41,7 @@ Full audit: [`logs/audits/exemplar-triage-2026-07-27.md`](logs/audits/exemplar-t
 
 ## 4. The pilot report — findings review (F06 workbench)
 
-Run during the dress rehearsal (see `LAUNCH-READINESS.md` §Rehearsal). Gate mode **STRICT**, so the report is not customer-visible until you approve.
+Run during the dress rehearsal (see `../../logs/archive/2026-07/LAUNCH-READINESS.md` §Rehearsal). Gate mode **STRICT**, so the report is not customer-visible until you approve.
 
 - [ ] Open the SME queue: `GET /review/queue` (SME/admin token).
 - [ ] For each finding: **Confirm** (`{"action":"confirm"}`), **Edit** (`{"action":"edit","edited_fields":{…}}`), or **Dismiss** (`{"action":"dismiss"}`) via `POST /review/finding/{assessment_id}/{finding_id}`.
@@ -55,12 +55,12 @@ Run during the dress rehearsal (see `LAUNCH-READINESS.md` §Rehearsal). Gate mod
 
 ---
 
-## 6. Rehearsal diagnosis items (from `REHEARSAL-DIAGNOSIS.md`, 2026-07-28)
+## 6. Rehearsal diagnosis items (from `../../logs/archive/2026-07/REHEARSAL-DIAGNOSIS.md`, 2026-07-28)
 
 Surfaced by the 1‑800‑Flowers rehearsal. The one clear bug (cohort CQS gate) is already fixed; the rest are **expert/SME judgment** (no tuning was done):
 
 - [ ] **Sanity-check `AI-004` on the rehearsal report** — it fired solely because the AI domain had thin coverage (3 clauses → maturity 45 < 70), not because of a specific defect. Confirm that reads correctly for a comprehensive notice.
-- [ ] **PGMS-100 — cause diagnosed (`REHEARSAL-DIAGNOSIS.md` §4), two expert decisions needed.** Not a degenerate-default bug (empty input → 0.0, verified). The percentile-100 has two independent, formula-owned drivers: **(a)** 46% segmentation-noise clauses inflate the presence-count dimensions (DSI −28.6 when excluded, PGMS −6.67, AIGMS −10) → **decide: approve a decomposer noise-filtering rule (spec-first)**; **(b)** PGMS pillar-saturation thresholds (`n_categories × 3` = 3–9 clauses) max out on a modest notice — de-noised PGMS is still 93.33/"Leading", percentile 97.49 → **decide: whether the PGMS/DSI presence-count thresholds should scale with notice depth/quality** (a calibration decision, not engineering). No tuning was done.
+- [ ] **PGMS-100 — cause diagnosed (`../../logs/archive/2026-07/REHEARSAL-DIAGNOSIS.md` §4), two expert decisions needed.** Not a degenerate-default bug (empty input → 0.0, verified). The percentile-100 has two independent, formula-owned drivers: **(a)** 46% segmentation-noise clauses inflate the presence-count dimensions (DSI −28.6 when excluded, PGMS −6.67, AIGMS −10) → **decide: approve a decomposer noise-filtering rule (spec-first)**; **(b)** PGMS pillar-saturation thresholds (`n_categories × 3` = 3–9 clauses) max out on a modest notice — de-noised PGMS is still 93.33/"Leading", percentile 97.49 → **decide: whether the PGMS/DSI presence-count thresholds should scale with notice depth/quality** (a calibration decision, not engineering). No tuning was done.
 - [ ] **Finding-coverage gaps** (§2) — decide priority: (a) enforcement lineage on findings is **dead** (`pipeline.py` passes `enforcement_matches=[]`); (b) `DC-005` can't fire for ≥4-domain notices; (c) `children_teens` has no finding-type; (d) firing is dominated by clause **count**, not quality (ambiguity trigger 0.05 rarely crosses). Any threshold/rule change is expert-owned.
   - **Phase B determination (2026-07-28, engineer — none code-fixable, all need the spec/codex):** Checked against the governed `finding_type` catalog (8 codes live: AI-004, CR-001, XB-001, SH-002, DC-005, RT-003, SEC-002, TRK-007) and F08 (finding codes are governed methodology — engineer must not invent one).
     - **(a) Enforcement lineage** — `select_findings` already builds `finding.enforcement_ids` from an `enforcement_matches` list, but intake hardcodes `[]`. **Missing from the spec:** F-004 is defined at the **notice** level (`_compute_live_f004`), and no spec defines a **per-finding** enforcement-match rule (which enforcement records attach to which finding, at what similarity/domain threshold). Needs an expert-defined matching rule before wiring — **not** an engineer default.

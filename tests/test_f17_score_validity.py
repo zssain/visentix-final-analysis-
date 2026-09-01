@@ -54,7 +54,7 @@ def test_M1_F005_maturity_falls_when_domain_weakened():
 # "DS (disclosure severity) = proportion of clauses in each domain", and domain
 # proportions are coupled (Σ = 1), so the verbatim §7 formula does not license a
 # clean "weaken → exposure worsens" monotonic direction. Per the rule "if you
-# can't cite it, don't assert it," F-002 is REPORTED-only in INTELLIGENCE-QUALITY.md
+# can't cite it, don't assert it," F-002 is REPORTED-only in logs/archive/2026-08/INTELLIGENCE-QUALITY.md
 # ([EXPERT]: confirm severity should track disclosure VOLUME vs QUALITY), not asserted.
 
 

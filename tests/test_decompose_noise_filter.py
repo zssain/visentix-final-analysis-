@@ -1,6 +1,6 @@
 """Decompose-v2 noise-filter tests (F01).
 
-Covers the approved deterministic noise rule (DECISION-NEEDED.md Part 1):
+Covers the approved deterministic noise rule (logs/archive/2026-07/DECISION-NEEDED.md Part 1):
 noise clauses are KEPT + flagged (never deleted), excluded from scoring counts,
 lineage intact; the seq=9-style tie-break (uncertain → not noise); and the
 value-identical Option-1 config move of the saturation constants.

@@ -6,7 +6,7 @@
 > feed / alerts), cohort `n` is **live-queried** (retail 25 · healthcare 31 ·
 > fintech 23 — never a static number), and post-MVP surfaces are hidden unless
 > `VITE_PREVIEW_SURFACES=true`. A full end-to-end re-run **against production**
-> is pending deploy (see `LAUNCH-READINESS.md`).
+> is pending deploy (see `../logs/archive/2026-07/LAUNCH-READINESS.md`).
 
 ## Prerequisites
 
@@ -48,7 +48,7 @@ population quality depends on the org's classification at intake.
 2. **Profiling is automatic** at intake (`_ensure_org_profile`) — but sanity-check
    the resulting `organization_intelligence_profile` (esp. `pgms`: the rehearsal org
    landed at `pgms=100`/`Leading`, which drove percentile 100 — see
-   `REHEARSAL-DIAGNOSIS.md` §1b; flag any maxed PGMS to the SME).
+   `../logs/archive/2026-07/REHEARSAL-DIAGNOSIS.md` §1b; flag any maxed PGMS to the SME).
 3. **Confirm the population is CQS-gated + industry-matched:** the benchmark
    excludes CQS-ineligible (stale-corpus) orgs and discloses the hold-out on the
    cohort label (`cqs_gated_excluded_N`). Expect an industry-heavy population when an

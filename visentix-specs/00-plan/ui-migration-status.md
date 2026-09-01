@@ -52,7 +52,7 @@ v1 still ships its CSS and still has to be correct when its flag flips.
 ## Recommended order
 
 1. **Report surfaces** — the artifact customers forward, and the subject of the
-   language research (`REPORT-LANGUAGE-RESEARCH-2026-08-31.md`). Highest value.
+   language research (`../../logs/archive/2026-08/REPORT-LANGUAGE-RESEARCH-2026-08-31.md`). Highest value.
 2. **Workbench + Intake** — the two daily-driver internal screens.
 3. Flagged surfaces, in flag-flip order.
 

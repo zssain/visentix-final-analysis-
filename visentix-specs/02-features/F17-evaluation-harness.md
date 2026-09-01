@@ -10,7 +10,7 @@ Give the platform an honest, repeatable **measurement** layer: how accurate is c
 
 ## Users & entry points
 - **SME** — labels the gold set and blesses/swaps golden notices via a labeling view that reuses F06 workbench idioms; route `/eval/label`. CSV export/import for offline labeling.
-- **Eng / CI** — runs the eval scripts (`scripts/eval/*`) and the golden-notice CI diff; reads `INTELLIGENCE-QUALITY.md`.
+- **Eng / CI** — runs the eval scripts (`scripts/eval/*`) and the golden-notice CI diff; reads `../../logs/archive/2026-08/INTELLIGENCE-QUALITY.md`.
 - **Admin** — sees the finding **precision** panel (confirm/edit/dismiss rate per finding_type) in the Admin Console (F09).
 
 ## Data
@@ -36,7 +36,7 @@ Per-domain **perturbation**: synthetically weaken a domain's clauses in a copy o
 - **M-3 (§7, F-010):** "Overall Privacy Intelligence Score = 100 − weighted risk aggregate" → increasing the risk aggregate **decreases** F-010. **Asserted.**
 - **M-4 (§7, F-006):** "Transparency = Completeness × Clarity × Specificity × Explainability factor" → lowering completeness **decreases** F-006. **Asserted.**
 - **M-5 (§8, VCI):** "<40 Very Low (suppress or route to review — never present as definitive)" → an object with VCI < 40 lands in the Very-Low band (suppress/route), and VCI is monotone in its confidence inputs. **Asserted.**
-- **F-002 (§7) — REPORTED, NOT ASSERTED.** `compute_f002` defines "DS (disclosure severity) = proportion of clauses in each domain", and domain proportions are coupled (Σ = 1). The verbatim §7 formula does **not** license a clean "weaken → exposure worsens" direction, so per "if you can't cite it, don't assert it" F-002 is measured and **reported** in INTELLIGENCE-QUALITY.md — flagged **[EXPERT]** (should regulatory severity track disclosure *volume* or *quality*?), never asserted or fixed here.
+- **F-002 (§7) — REPORTED, NOT ASSERTED.** `compute_f002` defines "DS (disclosure severity) = proportion of clauses in each domain", and domain proportions are coupled (Σ = 1). The verbatim §7 formula does **not** license a clean "weaken → exposure worsens" direction, so per "if you can't cite it, don't assert it" F-002 is measured and **reported** in ../../logs/archive/2026-08/INTELLIGENCE-QUALITY.md — flagged **[EXPERT]** (should regulatory severity track disclosure *volume* or *quality*?), never asserted or fixed here.
 Failures of the asserted M-1/M-3/M-4/M-5 are **reported, not fixed** (a failing monotonicity is an eng/expert finding for review).
 
 ## GOLDEN NOTICES (component 4)
@@ -51,7 +51,7 @@ Failures of the asserted M-1/M-3/M-4/M-5 are **reported, not fixed** (a failing 
 - From `training_label.action` and `assessment_review.finding_reviews`, compute **confirm / edit / dismiss rate per `finding_type`** (join `finding_id` → `risk_finding.finding_type_code`).
 - Surface as a read-only panel in the **Admin Console (F09)**; honest empty state ("no SME review actions yet") when there is no review data.
 
-## INTELLIGENCE-QUALITY.md (component 7)
+## ../../logs/archive/2026-08/INTELLIGENCE-QUALITY.md (component 7)
 - A living report with **real numbers where data exists, else "awaiting SME labels."** Sections mirror components 2–6.
 - Every recommendation carries an **owner tag** — **[SME]** (label more, bless/swap notices, adjudicate ambiguous domains, decide any threshold change) vs **[ENG]** (fix a harness bug, wire a metric, investigate a reproducible monotonicity failure). **The harness changes no weight/threshold/formula based on results.**
 
@@ -70,7 +70,7 @@ Failures of the asserted M-1/M-3/M-4/M-5 are **reported, not fixed** (a failing 
 
 ## Guardrails & confidence
 - **Measurement only — zero tuning.** No endpoint or script in F17 writes a weight/threshold/formula/taxonomy value.
-- Banned-term filter applies to any generated prose in `INTELLIGENCE-QUALITY.md` and the Admin panel (exposure/maturity/likelihood language only).
+- Banned-term filter applies to any generated prose in `../../logs/archive/2026-08/INTELLIGENCE-QUALITY.md` and the Admin panel (exposure/maturity/likelihood language only).
 - The harness **pre-fills no gold labels**; a label without a human `labeler` is rejected.
 - Perturbation runs on **copies**; stored `disclosure_clause` / scores are never mutated. The synthetic benchmark org is removed after its test.
 
@@ -85,7 +85,7 @@ none — every number is a live query, a frozen golden file, or an honest "await
 - **AC-5** Golden-notice CI diff fails on any pipeline-output drift and names the `formula_version` that would have to change; selection rationale recorded; SME bless/swap tracked in SME-REVIEW-CHECKLIST.
 - **AC-6** Benchmark sanity confirms well-formed percentile distributions and the synthetic strong org lands upper-half; the synthetic org leaves no residue.
 - **AC-7** Finding-precision panel shows confirm/edit/dismiss per finding_type from real review data, honest empty state otherwise.
-- **AC-8** `INTELLIGENCE-QUALITY.md` shows real numbers or "awaiting SME labels", and every recommendation carries an [SME]/[ENG] owner; no weight/threshold/formula changed by this feature.
+- **AC-8** `../../logs/archive/2026-08/INTELLIGENCE-QUALITY.md` shows real numbers or "awaiting SME labels", and every recommendation carries an [SME]/[ENG] owner; no weight/threshold/formula changed by this feature.
 
 ## Test gate
 - `tests/test_f17_gold_set.py` — deterministic stratification, noise exclusion, no pre-filled labels.
@@ -101,4 +101,4 @@ none — every number is a live query, a frozen golden file, or an honest "await
 - **OQ-3 [SME/expert]** If VCI calibration shows low-VCI is **not** catching errors, any threshold change is an expert decision (out of scope here — reported only).
 
 ## Changelog
-- 0.1 (2026-07-28): Initial spec — measurement-only evaluation harness (gold set + classifier eval + score-validity/monotonicity + golden notices + benchmark sanity + finding precision + INTELLIGENCE-QUALITY.md). Zero tuning; all monotonicity assertions cited verbatim to intelligence-logic.md §7/§8. Source: engineer (F17 task).
+- 0.1 (2026-07-28): Initial spec — measurement-only evaluation harness (gold set + classifier eval + score-validity/monotonicity + golden notices + benchmark sanity + finding precision + ../../logs/archive/2026-08/INTELLIGENCE-QUALITY.md). Zero tuning; all monotonicity assertions cited verbatim to intelligence-logic.md §7/§8. Source: engineer (F17 task).

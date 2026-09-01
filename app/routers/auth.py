@@ -37,7 +37,7 @@ _USERS_FILE = Path(__file__).parent.parent.parent / "local_users.json"
 # account+IP counters. In-process (fine for a single replica). NOTE: Azure
 # Container Apps can scale to multiple replicas, where an in-memory limiter is
 # per-replica — for hard multi-replica limits move this to a shared store
-# (platform_setting/Redis). Flagged in RLS-AUDIT.md / LAUNCH-READINESS.md.
+# (platform_setting/Redis). Flagged in logs/archive/2026-08/RLS-AUDIT.md / logs/archive/2026-07/LAUNCH-READINESS.md.
 
 _RL_WINDOW_S = 15 * 60          # 15-minute window
 _RL_MAX_PER_ACCOUNT = 5         # failed sign-ins per account per window

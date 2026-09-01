@@ -1,7 +1,7 @@
 # PILOT-DAY RUNBOOK — Visentix v1
 
 _Click-by-click for the owner on pilot day. The stack was proven clean in the
-2026-07-29 prod rehearsal (see LAUNCH-READINESS-v2.md), so this executes on a
+2026-07-29 prod rehearsal (see ../../logs/archive/2026-07/LAUNCH-READINESS-v2.md), so this executes on a
 known-good platform, not a first flight._
 
 **Live URLs**
@@ -36,7 +36,7 @@ If `model_status`/`ollama_ok` is down → the pod dropped; reconnect (see LAUNCH
 
 ## 2. SME session (gate STRICT — nothing is client-visible yet)
 Log in as **sme@visentix.com** → **Workbench**.
-1. Work `SME-REVIEW-CHECKLIST.md` **in order** (if that file isn't in the repo yet, use the review panel's per-domain checklist), then the pilot queue item.
+1. Work `../../docs/runbooks/SME-REVIEW-CHECKLIST.md` **in order** (if that file isn't in the repo yet, use the review panel's per-domain checklist), then the pilot queue item.
 2. For each finding: confirm / edit / dismiss with a note. The LLM only phrases — verify no invented claims, numbers, or verdict language (exposure/likelihood only).
 3. Leave it **in_review** until you and the SME agree it's right.
 

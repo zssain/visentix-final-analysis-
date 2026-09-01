@@ -1,6 +1,6 @@
 # logs/ — Our Traces
 
-Three human-curated logs plus machine exports. The weekly audit agent reads all of it. Full discipline: see `logging-and-audit.md` at the repo root of this bundle.
+Three human-curated logs plus machine exports. The weekly audit agent reads all of it. Full discipline: see `../docs/runbooks/logging-and-audit.md` at the repo root of this bundle.
 
 | Path | What goes here | Who writes |
 |---|---|---|

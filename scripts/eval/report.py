@@ -1,4 +1,4 @@
-"""Generate INTELLIGENCE-QUALITY.md — real numbers where data exists, else
+"""Generate logs/archive/2026-08/INTELLIGENCE-QUALITY.md — real numbers where data exists, else
 "awaiting SME labels". Every recommendation carries an owner tag. This report
 MEASURES; it changes no weight/threshold/formula.
 
@@ -13,7 +13,7 @@ from datetime import date
 from scripts.eval import precision
 from scripts.eval.common import GOLD_SET_PATH, conn
 
-OUT = GOLD_SET_PATH.resolve().parents[2] / "INTELLIGENCE-QUALITY.md"
+OUT = GOLD_SET_PATH.resolve().parents[2] / "logs/archive/2026-08/INTELLIGENCE-QUALITY.md"
 
 
 def _gold_label_count() -> int:
@@ -29,7 +29,7 @@ def build() -> str:
 
     awaiting = labeled == 0
     lines = [
-        "# INTELLIGENCE-QUALITY.md",
+        "# logs/archive/2026-08/INTELLIGENCE-QUALITY.md",
         "",
         f"**Generated:** {date(2026, 7, 28).isoformat()} · F17 evaluation harness (measurement only).",
         "This report **measures**; it changes no weight, threshold, taxonomy, or formula. "

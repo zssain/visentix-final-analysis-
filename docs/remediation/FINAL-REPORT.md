@@ -46,7 +46,7 @@ Legend: RC = root cause confirmed. Evidence = test file / command.
 - **BACK-001** — jobs hang `running` forever. RC ✓. Files: `jobs/framework.py`, `admin.py`, `main.py`. Impl: age-bounded `is_running` + `reap_stale_runs` + startup reaper + `/admin/status` count. Tests: `tests/test_jobs_reaper.py` (4). **FIXED.**
 - **EVAL-001** — accuracy unmeasured; F17 never run. RC ✓. Impl: harness verified present; runbook documented. **BLOCKED — EXTERNAL** (SME gold labels + live DB/GPU; harness fabricates nothing).
 - **ARCH-001** — config not captured → generic reports. RC ✓. Files: `intake_options.py`(new), `config_routes.py`(new), `assessments.py`, `live_scoring.py`, `Intake.tsx`, migration 0044. Impl (ARCH-001A): industry+jurisdiction captured, validated, threaded, forced versioned re-profile; **behavioural tests prove a changed filter changes the score**. ARCH-001B: scope-preview shipped; data-practice declaration/competitors deferred (non-consumed). Tests: `tests/test_arch001a_intake_filters.py` (11) + `Intake.test.tsx` (2). **PARTIALLY FIXED (thin slice TESTED).**
-- **FIND-001** — enforcement lineage dead on findings. RC ✓. **BLOCKED — SME APPROVAL (GOVERNED):** `DECISION-NEEDED.md` parks it; code unchanged; exact approval + spec-update path flagged in `logs/decision-log.md`.
+- **FIND-001** — enforcement lineage dead on findings. RC ✓. **BLOCKED — SME APPROVAL (GOVERNED):** `../../logs/archive/2026-07/DECISION-NEEDED.md` parks it; code unchanged; exact approval + spec-update path flagged in `logs/decision-log.md`.
 
 ### Medium
 - **SEC-004** — SSRF port/IPv6 gaps. **FIXED** (port allowlist {80,443}, ULA/mapped-v6 rejected; `tests/test_ssrf.py`).
@@ -70,7 +70,7 @@ Legend: RC = root cause confirmed. Evidence = test file / command.
 - **SEC-010** — untyped dict bodies → **FIXED** (typed Pydantic models).
 - **SEC-011** — webhook/logo SSRF sink → **FIXED** (validate at save + IP-pin at send; `tests/test_sec011_webhook_ssrf.py` (13)).
 - **BACK-003** — bare/silent excepts → **FIXED** (narrowed + logged in reports/explain/live_scoring).
-- **AI-003** — presence-proxy scoring depth → **DOCUMENTED** (governed; Phase-5 spec item; `INTELLIGENCE-QUALITY.md`).
+- **AI-003** — presence-proxy scoring depth → **DOCUMENTED** (governed; Phase-5 spec item; `../../logs/archive/2026-08/INTELLIGENCE-QUALITY.md`).
 - **F14-001** — F-014 denominator pre-review → **FIXED (labeled)** (`review_stage:"pre_review"` in lineage).
 - **DB-001** — migration numbering collisions → **DOCUMENTED** (numbering rule + aliases in the apply manifest; no renames on a deployed DB).
 - **DB-002** — assessment_id text vs uuid → **IMPLEMENTED** (CHECK-uuid `NOT VALID` migration 0047; text→uuid conversion staged BLOCKED-EXTERNAL).
@@ -227,9 +227,9 @@ A **live browser run of the four journeys against the deployed stack was NOT per
 ## N. Documentation changes
 
 - `AGENTS.md` — §3 SSRF second-pass + new **§3a** standing rules (tenancy chokepoint + contract-test requirement, no fabricated trust defaults, guardrail-on-all-prose, async intake lifecycle, SME persistence). *(Non-generated region; GENERATED sections unchanged — no spec-source change was needed for these standing rules.)*
-- `RLS-AUDIT.md` — §7 remediation update (SEC-001/003/008/011).
+- `../../logs/archive/2026-08/RLS-AUDIT.md` — §7 remediation update (SEC-001/003/008/011).
 - `docs/DEMO_RUNBOOK.md` — removed the manual "set industry in the DB before intake" step (ARCH-001A replaces it).
-- `INTELLIGENCE-QUALITY.md` — AI-003 presence-proxy limitation note.
+- `../../logs/archive/2026-08/INTELLIGENCE-QUALITY.md` — AI-003 presence-proxy limitation note.
 - `logs/decision-log.md` — no-branch conflict, FIND-001/QA-013 governance, remediation-complete summary.
 - `docs/remediation/` — `00-BASELINE.md`, `REMEDIATION-MATRIX.md`, `PHASE{1,2,3,3A,4}-DONE.md`, this `FINAL-REPORT.md`.
 - **Flagged for follow-up (not updated this pass):** `README.md`, the hand-maintained feature checklist, `00-plan/mock-tracker.md` — these under-report the build per the review's own note; recommend a dedicated docs pass (no behaviour depends on them).

@@ -10,9 +10,9 @@ Every problem below is a rule that **already existed and was not enforced**. So 
 ## The three findings
 
 ### A. The truth model rotted once already
-[`DEV_HANDOFF-docs-restructure.md`](DEV_HANDOFF-docs-restructure.md) (2026-07-15) made `visentix-specs/` the single source of truth, archived 20 old docs, and made `AGENTS.md` compiled rather than hand-written so it could not drift.
+[`../../logs/archive/2026-07/DEV_HANDOFF-docs-restructure.md`](../../logs/archive/2026-07/DEV_HANDOFF-docs-restructure.md) (2026-07-15) made `visentix-specs/` the single source of truth, archived 20 old docs, and made `AGENTS.md` compiled rather than hand-written so it could not drift.
 
-Since then **23 root-level docs have accumulated** with no rule about which wins. Three are the same document at different moments (`LAUNCH-READINESS.md`, `LAUNCH-READINESS-v2.md`, `PILOT-READINESS.md`). None of the dated audits is marked as *not* standing truth, so a reader cannot tell a July snapshot from a current rule. **I added one of these myself last turn** — which is the point: nothing stopped me.
+Since then **23 root-level docs have accumulated** with no rule about which wins. Three are the same document at different moments (`../../logs/archive/2026-07/LAUNCH-READINESS.md`, `../../logs/archive/2026-07/LAUNCH-READINESS-v2.md`, `../../logs/archive/2026-07/PILOT-READINESS.md`). None of the dated audits is marked as *not* standing truth, so a reader cannot tell a July snapshot from a current rule. **I added one of these myself last turn** — which is the point: nothing stopped me.
 
 ### B. "Identifiers are not labels" is prose, not a guard
 DDR-011 says machinery stays on demand. It is not testable. That is precisely why bare UUIDs were removed from the dashboard and the report ribbon and then **reappeared in the workbench rewrite two turns later**. There is also no server-side answer to "what do you call this thing", so every screen improvises one.
@@ -55,7 +55,7 @@ DDR-008 already requires nav ↔ eyebrow ↔ title to agree. Unenforced, so it d
 
 **Steps**
 1. Classify all 24 root docs + 38 `docs/` files. Each dated record gets a one-line header stating its date and that it is a record, not a rule.
-2. Move ~18 dated records to `logs/archive/2026-08/`. Root keeps: `README.md`, `AGENTS.md`, `STANDARDIZATION-PLAN.md` (until done), plus the four directories.
+2. Move ~18 dated records to `logs/archive/2026-08/`. Root keeps: `README.md`, `AGENTS.md`, `../../visentix-specs/00-plan/standardization-plan.md` (until done), plus the four directories.
 3. Move deploy/pilot procedures to `docs/runbooks/`.
 4. Extract anything still *true* from a dated record into the governing spec **before** archiving it — with the spec-update workflow, so it gets a changelog entry.
 5. **Guard:** `scripts/check_docs_layout.py` in CI — fails on a new root-level `.md` outside the allowlist, and on a dated record with no status header.

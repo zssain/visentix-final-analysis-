@@ -78,20 +78,20 @@ The project contains a **FastAPI backend** (Python) and a **React + TypeScript +
 ## 📚 Documentation
 
 Documentation is **spec-driven**: the specs are the source of truth, and `AGENTS.md`
-is compiled from them so it can never drift. See `AUTOMATION.md` for the feedback loop.
+is compiled from them so it can never drift. See `docs/runbooks/AUTOMATION.md` for the feedback loop.
 
 | Location | For | What's there |
 |---|---|---|
 | `visentix-specs/` | Builders | Technical source of truth — `00-plan/`, `01-foundation/` (schema · business-logic · intelligence-logic · design-system), `02-features/` (F01–F12), `03-ideas/`, `04-lessons/` |
 | `visentix-onboarding/` | People | Plain-language onboarding (what it is, how it works, glossary, the rules, journeys, checklists) |
 | `AGENTS.md` | AI agents | Standing rules. Generated sections (`<!-- BEGIN GENERATED … -->`) are rebuilt by `scripts/build_agents_md.py` from the foundation specs — **never hand-edit inside the markers**; edit the source spec and regenerate |
-| `AUTOMATION.md` + `logging-and-audit.md` | Maintainers | The self-maintaining feedback loop: `spec-update` skill (`.claude/skills/spec-update/`), `.github/` workflows, `logs/` |
+| `docs/runbooks/AUTOMATION.md` + `docs/runbooks/logging-and-audit.md` | Maintainers | The self-maintaining feedback loop: `spec-update` skill (`.claude/skills/spec-update/`), `.github/` workflows, `logs/` |
 | `docs/` | Operators | Live operational docs: `SETUP.md`, `DEMO_RUNBOOK.md`, `DB_GROUND_TRUTH.md` |
 | `docs/old-docs/` | Reference | Pre-restructure docs, archived 2026-07-15 — superseded by `visentix-specs/`; see its `README.md` |
 
 **Feedback flow:** relay any verbal feedback in a Claude session in this repo → the
 `spec-update` skill classifies it, edits the specs (with version bumps + changelogs),
-regenerates `AGENTS.md`, and drafts a PR for expert approval. Details in `AUTOMATION.md`.
+regenerates `AGENTS.md`, and drafts a PR for expert approval. Details in `docs/runbooks/AUTOMATION.md`.
 
 ---
 

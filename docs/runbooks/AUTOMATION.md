@@ -59,9 +59,9 @@ The design principle: **automation drafts, humans approve.** The machine does 10
 | `scripts/build_agents_md.py` | Regenerates the generated sections of AGENTS.md from `visentix-specs/01-foundation/*` |
 | `scripts/data/banned_terms.txt` | The single machine-readable list of banned legal-verdict terms — read by spec-guard and the skill so the lists can't diverge |
 | `.github/workflows/spec-guard.yml` | Required check on every PR: banned-term scan (added lines only), "which spec is this?" check, AGENTS.md freshness check |
-| `.github/workflows/log-audit.yml` | Weekly: AI audit of incidents, decision log, CI failures, and merged PRs → audit report PR + lesson feedback issues (see `logging-and-audit.md`) |
+| `.github/workflows/log-audit.yml` | Weekly: AI audit of incidents, decision log, CI failures, and merged PRs → audit report PR + lesson feedback issues (see `../../docs/runbooks/logging-and-audit.md`) |
 | `.github/ISSUE_TEMPLATE/feedback.yml` + `feedback-triage.yml` | ASYNC FALLBACK only: when nobody's at a Claude session, file the issue form and the triage workflow drafts the same spec PR. Day-to-day we use the skill from Teams. |
-| `logging-and-audit.md` | The logging discipline and how audits turn caught errors into permanent spec/guard changes |
+| `../../docs/runbooks/logging-and-audit.md` | The logging discipline and how audits turn caught errors into permanent spec/guard changes |
 | `logs/` | Decision log, incident templates, audit reports, machine exports |
 | `.github/CODEOWNERS` | Routes every PR to the two of us (the only GitHub accounts); the expert's content approval happens in Teams, recorded in the PR — see the file's header |
 

@@ -57,4 +57,4 @@ Add a standing test that iterates all public base tables and asserts `rowsecurit
 - Fix: `db/migrations/0042_enable_rls_all_public.sql` (applied 2026-07-29).
 - Guard: `tests/test_rls_enabled.py`, `db/migrations/_TEMPLATE.sql`.
 - Inventory script (read-only, scratchpad): `rls_inventory.py`.
-- Decision-log: 2026-07-29 entry. Rotation: LAUNCH-READINESS-v2.md §A3 (anon + service keys — owner executes).
+- Decision-log: 2026-07-29 entry. Rotation: ../../logs/archive/2026-07/LAUNCH-READINESS-v2.md §A3 (anon + service keys — owner executes).

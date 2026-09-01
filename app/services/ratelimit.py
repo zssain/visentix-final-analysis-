@@ -9,7 +9,7 @@ raises HTTPException(429, ...) with a Retry-After header once a key exceeds
 This limiter lives in PROCESS MEMORY, so its counters are PER-REPLICA. On Azure
 Container Apps (which can scale to N replicas) the effective limit becomes N ×
 `limit`. This mirrors the known gap already flagged for auth.py's login limiter
-(RLS-AUDIT.md / LAUNCH-READINESS.md). For a HARD, cluster-wide limit this MUST be
+(logs/archive/2026-08/RLS-AUDIT.md / logs/archive/2026-07/LAUNCH-READINESS.md). For a HARD, cluster-wide limit this MUST be
 backed by a shared store (Redis, or a platform_setting counter with atomic
 increment).
 TODO(SEC-005): swap the in-process `_buckets` dict for a shared Redis-backed

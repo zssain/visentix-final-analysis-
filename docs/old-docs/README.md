@@ -1,7 +1,7 @@
 # Archived documentation (`docs/old-docs/`)
 
 These files predate the **spec-driven documentation system** that now lives at the
-repo root (`visentix-specs/`, `visentix-onboarding/`, `AGENTS.md`, `AUTOMATION.md`).
+repo root (`visentix-specs/`, `visentix-onboarding/`, `AGENTS.md`, `../../docs/runbooks/AUTOMATION.md`).
 They were moved here on **2026-07-15** during the docs restructure — nothing was
 deleted, so history and any un-migrated detail are preserved. Git history for each
 file continues across the move (`git log --follow`).
