@@ -1,13 +1,15 @@
+import { useState } from "react";
 import { CohortLabel } from "../CohortLabel";
 import type { ReportSection } from "../types";
 import { SectionHeading } from "../SectionHeading";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type Register = "executive" | "practitioner" | "plain";
 
 const REGISTER_LABELS: Record<Register, string> = {
-  executive:   "Executive",
+  executive:    "Executive",
   practitioner: "Practitioner",
-  plain:       "Plain English",
+  plain:        "Plain English",
 };
 
 export function ExecutiveSummary({ content }: { content: ReportSection["content"] }) {
@@ -16,15 +18,21 @@ export function ExecutiveSummary({ content }: { content: ReportSection["content"
   const summaryPract  = (content.summary_practitioner as string | undefined);
   const summaryPlain  = (content.summary_plain        as string | undefined);
 
-  // Reader-register toggle — stub until backend supplies the two alternative texts
-  // Rendered as a controlled element but note we don't useState here (this file is deterministic for PDF)
-  // PDF snapshot always renders the executive register.
+  /* The register control used to render three badges that did nothing — a
+     control that looks interactive and is not is worse than no control
+     (DDR-011). It is a real selector now, and it appears ONLY when the snapshot
+     actually carries alternative registers.
+
+     The PDF is unaffected: the print renderer is Python and always emits the
+     executive register, so screen interactivity cannot desynchronise it. */
   const registers: Register[] = summaryPract || summaryPlain
     ? ["executive", "practitioner", "plain"]
     : ["executive"];
 
+  const [register, setRegister] = useState<Register>("executive");
+
   const textByRegister: Record<Register, string> = {
-    executive:   summary,
+    executive:    summary,
     practitioner: summaryPract ?? summary,
     plain:        summaryPlain ?? summary,
   };
@@ -33,51 +41,46 @@ export function ExecutiveSummary({ content }: { content: ReportSection["content"
     <div data-testid="section-2" className="report-section">
       <SectionHeading n={2} title="Executive Summary" />
 
-      {/* Register tabs — shown only when alternatives exist */}
       {registers.length > 1 && (
-        <div style={{ display: "flex", gap: 4, marginBottom: 12 }}>
-          {registers.map(r => (
-            <span
-              key={r}
-              className={`badge ${r === "executive" ? "badge-navy" : "badge-moderate"}`}
-              style={{ fontSize: "0.7rem", cursor: "default" }}
-            >
-              {REGISTER_LABELS[r]}
-            </span>
-          ))}
-          <span style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginLeft: 6, lineHeight: "22px" }}>
-            (reader-register selector — stub, PDF always uses Executive register)
+        <div className="mb-3 flex flex-wrap items-center gap-3">
+          <Tabs value={register} onValueChange={v => setRegister(v as Register)}>
+            <TabsList aria-label="Reading register">
+              {registers.map(r => (
+                <TabsTrigger key={r} value={r}>{REGISTER_LABELS[r]}</TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
+          <span className="text-xs text-muted-foreground">
+            The PDF always uses the Executive register.
           </span>
         </div>
       )}
 
-      {/* Main summary paragraph */}
-      <p style={{ fontSize: "0.95rem", lineHeight: 1.8, color: "var(--text)" }}>
-        {textByRegister["executive"]}
+      <p className="max-w-prose text-[0.95rem] leading-relaxed">
+        {textByRegister[register]}
       </p>
 
-      {/* Key takeaways */}
       {takeaways.length > 0 && (
-        <div style={{ marginTop: 16 }}>
-          <div style={{
-            fontSize: "0.7rem", fontWeight: 700, textTransform: "uppercase",
-            letterSpacing: "0.09em", color: "var(--text-muted)", marginBottom: 8,
-          }}>Key Takeaways</div>
-          <ul style={{ display: "flex", flexDirection: "column", gap: 6, paddingLeft: 0, listStyle: "none" }}>
+        <div className="mt-4">
+          <div className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Key Takeaways
+          </div>
+          {/* Ordered: the list is in significance order (AC-19), and a numbered
+              list says so where a bulleted one does not. */}
+          <ol className="flex flex-col divide-y">
             {takeaways.map((t, i) => (
-              <li key={i} style={{
-                display: "flex", gap: 10, alignItems: "flex-start",
-                padding: "6px 0", borderBottom: i < takeaways.length - 1 ? "1px solid var(--border)" : "none",
-              }}>
-                <span style={{ color: "var(--teal)", fontWeight: 700, flexShrink: 0, marginTop: 1 }}>→</span>
-                <span style={{ fontSize: "0.88rem", color: "var(--text-secondary)", lineHeight: 1.5 }}>{t}</span>
+              <li key={i} className="flex items-start gap-2.5 py-1.5">
+                <span className="mt-0.5 shrink-0 font-data text-xs font-bold text-muted-foreground">
+                  {i + 1}
+                </span>
+                <span className="text-sm leading-relaxed text-muted-foreground">{t}</span>
               </li>
             ))}
-          </ul>
+          </ol>
         </div>
       )}
 
-      <div style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+      <div className="mt-3 flex flex-wrap items-center gap-4">
         <CohortLabel size={content.cohort_size as number} date={content.cohort_date as string} />
       </div>
     </div>

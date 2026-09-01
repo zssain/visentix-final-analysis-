@@ -1,5 +1,7 @@
 import type { ReportSection } from "../types";
 import { SectionHeading } from "../SectionHeading";
+import { Badge } from "@/components/ui/badge";
+import { StatTile } from "@/components/ui/stat-tile";
 
 interface Priority {
   code: string;
@@ -8,13 +10,6 @@ interface Priority {
   impact: "low" | "medium" | "high";
   description: string;
 }
-
-const EFFORT_COLOR: Record<string, string> = {
-  low: "var(--teal)", medium: "var(--gold)", high: "var(--red)",
-};
-const IMPACT_COLOR: Record<string, string> = {
-  low: "var(--warm-gray-dark)", medium: "var(--exec-blue)", high: "var(--navy)",
-};
 
 export function RiskReduction({ content }: { content: ReportSection["content"] }) {
   const highCount    = (content.high_count   as number | undefined) ?? 0;
@@ -26,101 +21,61 @@ export function RiskReduction({ content }: { content: ReportSection["content"] }
     <div data-testid="section-10" className="report-section">
       <SectionHeading n={10} title="Risk Reduction Priorities" />
 
-      {/* Summary count row */}
-      <div style={{ display: "flex", gap: 16, marginBottom: 16, flexWrap: "wrap" }}>
-        {[
-          { label: "High Exposure", count: highCount, color: "var(--red)" },
-          { label: "Elevated Exposure", count: mediumCount, color: "var(--gold)" },
-        ].map(item => (
-          <div key={item.label} style={{
-            display: "flex", alignItems: "baseline", gap: 6,
-            padding: "8px 16px",
-            background: "var(--soft-white)", border: "1px solid var(--border)",
-            borderRadius: "var(--radius)",
-          }}>
-            <span style={{
-              fontFamily: "var(--font-data)", fontVariantNumeric: "tabular-nums",
-              fontSize: "1.6rem", fontWeight: 700, color: item.color, lineHeight: 1,
-            }}>{item.count}</span>
-            <span style={{ fontSize: "0.78rem", color: "var(--text-muted)", fontWeight: 600 }}>
-              {item.label} findings
-            </span>
-          </div>
-        ))}
+      <div className="mb-4 flex flex-wrap gap-6 rounded-lg border bg-muted/40 px-4 py-3">
+        <StatTile label="High exposure findings"     value={highCount}   tone="bad" />
+        <StatTile label="Elevated exposure findings" value={mediumCount} tone="mid" />
       </div>
 
-      {/* Prose */}
       {prose && (
-        <p style={{ fontSize: "0.9rem", color: "var(--text-secondary)", lineHeight: 1.7, marginBottom: 16 }}>
-          {prose}
-        </p>
+        <p className="mb-4 max-w-prose text-sm leading-relaxed text-muted-foreground">{prose}</p>
       )}
 
-      {/* Prioritised actions */}
       {priorities.length > 0 && (
         <>
-          <div style={{
-            fontSize: "0.7rem", fontWeight: 700, textTransform: "uppercase",
-            letterSpacing: "0.09em", color: "var(--text-muted)", marginBottom: 10,
-          }}>
+          <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
             Prioritised actions — ordered by impact × effort
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <ol className="flex flex-col gap-2">
             {priorities.map((p, i) => (
-              <div key={i} style={{
-                display: "flex", gap: 14, padding: "10px 14px",
-                border: "1px solid var(--border)", borderRadius: "var(--radius)",
-                background: "var(--bg-card)", alignItems: "flex-start",
-              }}>
-                {/* Rank */}
-                <div style={{
-                  width: 24, height: 24, borderRadius: "50%",
-                  background: "var(--navy)", color: "white",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: "0.7rem", fontWeight: 800, flexShrink: 0,
-                }}>{i + 1}</div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 3, flexWrap: "wrap" }}>
-                    <span style={{
-                      background: "var(--navy)", color: "white",
-                      fontFamily: "var(--font-data)", fontSize: "0.7rem", fontWeight: 700,
-                      padding: "2px 7px", borderRadius: 4, letterSpacing: "0.04em",
-                    }}>{p.code}</span>
-                    <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{p.domain.replace(/_/g, " ")}</span>
-                  </div>
-                  <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", lineHeight: 1.5 }}>
-                    {p.description}
-                  </p>
+              <li key={i} className="flex items-start gap-3.5 rounded-lg border bg-card px-3.5 py-2.5">
+                <div className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground">
+                  {i + 1}
                 </div>
-                {/* Effort + Impact pills */}
-                <div style={{ display: "flex", flexDirection: "column", gap: 4, flexShrink: 0 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                    <span style={{ fontSize: "0.65rem", fontWeight: 700, color: "var(--text-muted)", width: 40 }}>Effort</span>
-                    <div style={{
-                      padding: "2px 8px", borderRadius: 4,
-                      background: `${EFFORT_COLOR[p.effort]}18`,
-                      color: EFFORT_COLOR[p.effort],
-                      fontSize: "0.72rem", fontWeight: 700, textTransform: "capitalize",
-                    }}>{p.effort}</div>
+
+                <div className="min-w-0 flex-1">
+                  <div className="mb-1 flex flex-wrap items-center gap-2">
+                    <Badge className="font-data">{p.code}</Badge>
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      {p.domain.replace(/_/g, " ")}
+                    </span>
                   </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                    <span style={{ fontSize: "0.65rem", fontWeight: 700, color: "var(--text-muted)", width: 40 }}>Impact</span>
-                    <div style={{
-                      padding: "2px 8px", borderRadius: 4,
-                      background: `${IMPACT_COLOR[p.impact]}18`,
-                      color: IMPACT_COLOR[p.impact],
-                      fontSize: "0.72rem", fontWeight: 700, textTransform: "capitalize",
-                    }}>{p.impact}</div>
-                  </div>
+                  <p className="text-sm leading-relaxed text-muted-foreground">{p.description}</p>
                 </div>
-              </div>
+
+                {/* Effort and impact are MAGNITUDES, not standings.
+                    They previously used red/gold/teal and navy/blue/grey, which
+                    read "high effort = bad" — high effort is not bad, it is
+                    effortful, and high impact is good. Neither belongs on the
+                    traffic-light scale, so the word carries the meaning and the
+                    pill stays neutral.
+                    (The old pills also had no background at all: the code
+                    appended a hex-alpha suffix to a var() reference —
+                    `var(--teal)18` — which is not valid CSS.) */}
+                <dl className="flex shrink-0 flex-col gap-1 text-xs">
+                  <div className="flex items-center gap-1.5">
+                    <dt className="w-10 font-semibold text-muted-foreground">Effort</dt>
+                    <dd><Badge variant="outline" className="capitalize">{p.effort}</Badge></dd>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <dt className="w-10 font-semibold text-muted-foreground">Impact</dt>
+                    <dd><Badge variant="secondary" className="capitalize">{p.impact}</Badge></dd>
+                  </div>
+                </dl>
+              </li>
             ))}
-          </div>
+          </ol>
         </>
       )}
-
-      <div style={{ marginTop: 14 }}>
-      </div>
     </div>
   );
 }
