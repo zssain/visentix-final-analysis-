@@ -231,7 +231,11 @@ export function AdminConsole() {
             <div role="radiogroup" aria-label="Gate mode" className="flex flex-col gap-3">
               {[
                 { id: "instant_draft", title: "Instant Draft (Default)",
-                  desc: "Customers view report drafts immediately marked with a gold watermark." },
+                  /* Names the consequence, not the colour: an admin picking a
+                     gate mode needs to know the customer sees an unreviewed
+                     draft and that it is marked as one. Which colour the mark
+                     is happens to be gold today and is not the decision. */
+                  desc: "Customers see the report as soon as it is built, marked as an unreviewed draft." },
                 { id: "strict", title: "Strict Mode",
                   desc: "Customers view nothing until approved by an SME reviewer." },
                 { id: "client_reviews", title: "Client Reviews",

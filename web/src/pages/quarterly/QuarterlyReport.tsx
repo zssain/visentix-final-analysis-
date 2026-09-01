@@ -11,6 +11,7 @@
  */
 import { useCallback, useEffect, useState } from "react";
 import { PageHeader } from "../../components/PageHeader";
+import { statusLabel } from "../../lib/labels";
 import { CodexTooltip } from "../../components/CodexTooltip";
 import { FlashNotice } from "../../components/FlashNotice";
 import { useFlash } from "../../lib/useFlash";
@@ -32,6 +33,27 @@ interface Methodology {
   baseline_note?: string; reproducible?: string;
 }
 interface Payload { quarter: string; status: string; snapshot_id: string; baseline: boolean; metrics: Metric[]; methodology: Methodology; }
+/* A quarterly snapshot's status. Two facts a reader needs from it: what to call
+   it, and whether the report is published.
+
+   The label used to be an inline ternary reading `draft ? "Draft — gold
+   watermark" : "Approved"`. Two things were wrong with that. The label named a
+   PDF rendering detail — the watermark the renderer stamps on a draft — on a
+   badge that is already gold, so it described its own colour and not the state.
+   And the ternary meant every status that is not literally "draft" rendered as
+   "Approved", which on this table is the difference between "nobody may see
+   this" and "this is public". An unrecognised status must never inherit the
+   safest-sounding label; it inherits the most cautious one. */
+const STATUS_VARIANT: Record<string, "provisional" | "verified" | "secondary"> = {
+  draft: "provisional",
+  approved: "verified",
+};
+
+const STATUS_MEANING: Record<string, string> = {
+  draft: "Built but not published. Only admins can open it, and its PDF carries a draft watermark.",
+  approved: "Published. This is the quarter the public report serves.",
+};
+
 interface AdminSnapshot { id: string; quarter: string; status: string; gate_result: unknown; created_at: string; approved_at: string | null; }
 
 // Public endpoint is unauthenticated — fetch without the auth client.
@@ -236,22 +258,49 @@ function AdminPanel({ onPublished }: { onPublished: () => void }) {
           {snapshots.map(s => {
             const gate = (s.gate_result && typeof s.gate_result === "object") ? s.gate_result as { passed?: boolean; violations?: unknown[] } : null;
             const passed = gate?.passed;
+            /* Approve is offered ONLY for a draft whose gate actually passed.
+               `passed` is undefined when no gate has run, and `&&` on an
+               undefined renders nothing — correct, but by accident. Stated. */
+            const canApprove = s.status === "draft" && passed === true;
             return (
               <tr key={s.id}>
                 <td>{s.quarter}</td>
                 <td>
-                  {/* The governed KIND badges: provisional = draft, verified =
-                      approved. They used to be hand-rolled pills whose colour
-                      came from a class interpolated off the raw status string. */}
-                  <Badge variant={s.status === "draft" ? "provisional" : "verified"}>
-                    {s.status === "draft" ? "Draft — gold watermark" : "Approved"}
+                  {/* The status names the STATE, not how the PDF happens to be
+                      decorated. "Draft — gold watermark" described the
+                      watermark the renderer stamps on a draft — a rendering
+                      detail, on a badge that is itself already gold, telling
+                      the reader nothing about whether the report may be
+                      published.
+                      What matters is: a draft is not published; an approved
+                      one is. That is what the label and its title say now. */}
+                  <Badge
+                    variant={STATUS_VARIANT[s.status] ?? "secondary"}
+                    title={STATUS_MEANING[s.status] ?? "Status not recognised — this report is not published."}
+                  >
+                    {statusLabel(s.status)}
                   </Badge>
                 </td>
-                <td>{passed === true ? <span className="font-bold text-[var(--verified)]">passed</span> : passed === false ? <span className="font-bold text-[var(--standing-bad)]" title={JSON.stringify(gate?.violations)}>failed · {gate?.violations?.length} violations</span> : "—"}</td>
+                {/* Three states, not two: passed, failed, and NOT YET RUN.
+                    An em dash for "no gate result" is indistinguishable from a
+                    missing cell, and it used to sit in the same column as a
+                    real verdict. */}
+                <td>
+                  {passed === true ? (
+                    <span className="font-bold text-[var(--verified)]">Passed</span>
+                  ) : passed === false ? (
+                    <span className="font-bold text-[var(--standing-bad)]">
+                      Failed · {gate?.violations?.length ?? 0}{" "}
+                      {gate?.violations?.length === 1 ? "violation" : "violations"}
+                    </span>
+                  ) : (
+                    <span className="italic text-muted-foreground">Not run</span>
+                  )}
+                </td>
                 <td>{new Date(s.created_at).toLocaleString()}</td>
                 <td>
                   <Button variant="outline" disabled={previewing === s.id} onClick={() => preview(s.id)}>{previewing === s.id ? "Opening…" : "Preview PDF"}</Button>
-                  {s.status === "draft" && passed && <Button onClick={() => approve(s.id)}>Approve</Button>}
+                  {canApprove && <Button onClick={() => approve(s.id)}>Approve</Button>}
                 </td>
               </tr>
             );
