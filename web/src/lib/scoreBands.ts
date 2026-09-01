@@ -57,6 +57,30 @@ export function maturityBandColor(score: number): string {
   return STANDING_BAD;                   // Lagging / Deficient
 }
 
+/**
+ * The standing a score sits in, as a KEY rather than a colour.
+ *
+ * Colour is for rendering; a key is for counting, sorting and testing. Deriving
+ * "how many metrics are poor" by comparing colour strings works right up until
+ * two standings share a colour, which is exactly what happens on the four-label
+ * severity scale. Both read the same thresholds, so they can never disagree.
+ *
+ * `undefined` for an unknown polarity or an absent score — never a guess.
+ */
+export type StandingKey = "good" | "mid" | "bad";
+
+export function bandKey(score: number | null | undefined, polarity: MetricPolarity | undefined): StandingKey | undefined {
+  if (score === null || score === undefined || !Number.isFinite(score)) return undefined;
+  if (polarity === "maturity") return score >= 75 ? "good" : score >= 60 ? "mid" : "bad";
+  if (polarity === "exposure") return score >= SCORE_BAND_HIGH ? "bad" : score >= SCORE_BAND_ELEVATED ? "mid" : "good";
+  return undefined;
+}
+
+/** Rank for ordering "what needs attention first". Deterministic; callers must
+ *  still add a stable tiebreak (Hard Rule 6). An unknown standing sorts last —
+ *  it is not a judgement, so it must not lead a list of judgements. */
+export const STANDING_RANK: Record<StandingKey, number> = { bad: 0, mid: 1, good: 2 };
+
 /** Neutral ink for metrics whose polarity is unknown — never a guessed judgement. */
 export const NEUTRAL_SCORE_COLOR = "var(--foreground)";
 

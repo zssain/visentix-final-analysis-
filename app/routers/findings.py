@@ -156,11 +156,18 @@ async def dashboard_stats(
             f"{org_clause}"
             f"&order=generated_at.desc&limit=1"
         )
+        # Absence is null, never 0 (Hard Rule 7). Emitting 0 for "no row" forced
+        # the client to guess the difference back with `score > 0`, which got it
+        # wrong in both directions: a genuine 0 — the BEST possible result on an
+        # exposure metric — rendered as "not recorded", and a fabricated 0 could
+        # render as a real figure anywhere that guess was not repeated. The bulk
+        # path (F19) already emits null for the same absence; this endpoint was
+        # the outlier.
         domain_scores.append({
             "domain": label,
             "object_type": otype,
-            "score": rows[0]["score"] if rows else 0,
-            "confidence": rows[0].get("confidence_score", 0) if rows else 0,
+            "score": rows[0].get("score") if rows else None,
+            "confidence": rows[0].get("confidence_score") if rows else None,
         })
 
     # Finding counts

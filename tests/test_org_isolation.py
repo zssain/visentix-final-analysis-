@@ -134,6 +134,50 @@ async def test_dashboard_stats_scopes_customer_queries():
 
 
 @pytest.mark.anyio
+async def test_dashboard_stats_absent_metric_is_null_never_zero():
+    """A metric with no stored row must come back as null.
+
+    It used to come back as 0, which forced the client to recover the
+    difference with `score > 0` — and that guess is wrong in both directions.
+    A genuine 0 is the BEST possible result on an exposure metric, so it
+    rendered as "not recorded"; and any surface that did not repeat the guess
+    would print a fabricated 0 as a real figure (Hard Rule 7).
+    """
+    import app.routers.findings as F
+    transport = ASGITransport(app=app)
+    # No rows for anything: every derived metric is absent.
+    with patch.object(F, "_sb_get", lambda p: []):
+        async with AsyncClient(transport=transport, base_url="http://test") as c:
+            r = await c.get("/findings/dashboard-stats", headers=_hdr("admin"))
+    assert r.status_code == 200
+    body = r.json()
+    assert body["domain_scores"], "expected the metric list, absent values and all"
+    for m in body["domain_scores"]:
+        assert m["score"] is None, f"{m['domain']} fabricated a score"
+        assert m["confidence"] is None, f"{m['domain']} fabricated a confidence"
+
+
+@pytest.mark.anyio
+async def test_dashboard_stats_real_zero_survives_as_zero():
+    """A stored 0 must arrive as 0, not be flattened into absence."""
+    import app.routers.findings as F
+    transport = ASGITransport(app=app)
+
+    def _sb(path):
+        if path.startswith("derived_data_item"):
+            return [{"score": 0, "confidence_score": 0.42}]
+        return []
+
+    with patch.object(F, "_sb_get", _sb):
+        async with AsyncClient(transport=transport, base_url="http://test") as c:
+            r = await c.get("/findings/dashboard-stats", headers=_hdr("admin"))
+    assert r.status_code == 200
+    scores = r.json()["domain_scores"]
+    assert scores and all(m["score"] == 0 for m in scores)
+    assert all(m["score"] is not None for m in scores)
+
+
+@pytest.mark.anyio
 async def test_dashboard_stats_customer_without_org_gets_empty():
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as c:

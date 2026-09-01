@@ -103,7 +103,7 @@ function ReportLoader({ assessmentId }: { assessmentId: string }) {
           {error.status === 403 ? "403 — Not Permitted" : error.status === 404 ? "404 — Not Found" : "Error"}
         </h2>
         <p style={{ color: "var(--text-muted)", marginTop: 8 }}>{error.message}</p>
-        <Button asChild style={{ marginTop: 24, display: "inline-flex" }}><Link to="/">
+        <Button asChild style={{ marginTop: 24, display: "inline-flex" }}><Link to="/assessments">
           Back to Assessments
         </Link></Button>
       </div>
@@ -115,7 +115,7 @@ function ReportLoader({ assessmentId }: { assessmentId: string }) {
     return (
       <div style={{ textAlign: "center", padding: "60px 24px" }}>
         <p style={{ color: "var(--text-muted)" }}>No report data available.</p>
-        <Button asChild variant="outline" style={{ marginTop: 16, display: "inline-flex" }}><Link to="/">
+        <Button asChild variant="outline" style={{ marginTop: 16, display: "inline-flex" }}><Link to="/assessments">
           Back to Assessments
         </Link></Button>
       </div>
@@ -126,7 +126,11 @@ function ReportLoader({ assessmentId }: { assessmentId: string }) {
   return (
     <div>
       <div style={{ marginBottom: 16, display: "flex", alignItems: "center", gap: 16 }}>
-        <Link to="/" style={{ color: "var(--text-secondary)", fontSize: "0.9rem" }}>
+        {/* "/" is the ROLE-BASED home (App.tsx RoleBasedHome): admin lands on
+            the Console, sme on the Workbench. A link that says "Back to
+            Assessments" must go to /assessments, or the label lies to every
+            reader who is not a customer. */}
+        <Link to="/assessments" style={{ color: "var(--text-secondary)", fontSize: "0.9rem" }}>
           ← Back to Assessments
         </Link>
         <Button variant="outline" size="sm" type="button" onClick={downloadPdf} disabled={downloading}>

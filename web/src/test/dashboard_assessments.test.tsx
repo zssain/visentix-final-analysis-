@@ -128,3 +128,46 @@ describe("paginate — clamping is the whole job", () => {
     expect(seen.size).toBe(items.length);
   });
 });
+
+// ── Standing keys and the absent-vs-zero distinction ──────────
+
+import { bandKey, STANDING_RANK } from "../lib/scoreBands";
+
+describe("bandKey — absence and zero are different facts", () => {
+  it("a genuine 0 on an exposure metric is the BEST standing, not 'not recorded'", () => {
+    // The bug this exists for: the dashboard emitted 0 for absence and the
+    // client un-guessed it with `score > 0`, so a real 0 — no regulatory
+    // exposure at all — rendered as an em dash.
+    expect(bandKey(0, "exposure")).toBe("good");
+  });
+
+  it("a genuine 0 on a maturity metric is the WORST standing, not 'not recorded'", () => {
+    expect(bandKey(0, "maturity")).toBe("bad");
+  });
+
+  it("null and undefined have no standing — never a guess", () => {
+    expect(bandKey(null, "exposure")).toBeUndefined();
+    expect(bandKey(undefined, "maturity")).toBeUndefined();
+    expect(bandKey(Number.NaN, "exposure")).toBeUndefined();
+  });
+
+  it("an unknown polarity has no standing — direction is required to judge", () => {
+    expect(bandKey(50, undefined)).toBeUndefined();
+  });
+
+  it("agrees with the colour rule at every threshold", () => {
+    expect(bandKey(70, "exposure")).toBe("bad");
+    expect(bandKey(69.9, "exposure")).toBe("mid");
+    expect(bandKey(45, "exposure")).toBe("mid");
+    expect(bandKey(44.9, "exposure")).toBe("good");
+    expect(bandKey(75, "maturity")).toBe("good");
+    expect(bandKey(74.9, "maturity")).toBe("mid");
+    expect(bandKey(60, "maturity")).toBe("mid");
+    expect(bandKey(59.9, "maturity")).toBe("bad");
+  });
+
+  it("orders poor before middling before good, so the collapsed view is the useful three", () => {
+    expect(STANDING_RANK.bad).toBeLessThan(STANDING_RANK.mid);
+    expect(STANDING_RANK.mid).toBeLessThan(STANDING_RANK.good);
+  });
+});

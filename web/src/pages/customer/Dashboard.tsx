@@ -11,7 +11,7 @@ import { SnapshotReference } from "./SnapshotReference";
 import "../../components/report-card.css";
 import { PageHeader }       from "../../components/PageHeader";
 import { MonitoringHero }   from "./MonitoringHero";
-import { bandColor, maturityBandColor, maturityBand, metricPolarity, vciBand } from "../../lib/scoreBands";
+import { bandKey, maturityBandColor, maturityBand, metricPolarity, vciBand, STANDING_RANK, type StandingKey } from "../../lib/scoreBands";
 import { Card, CardContent, CardHeader, CardTitle, CardAction } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -45,13 +45,118 @@ interface Assessment {
 interface DashboardStats {
   overall_score: number | null;
   overall_confidence: number;
-  domain_scores: { domain: string; object_type: string; score: number; confidence: number }[];
+  /* score/confidence are null when nothing was computed. They used to arrive as
+     0, which the client had to un-guess with `score > 0` — and that guess was
+     wrong in both directions (a genuine 0 is the BEST result on an exposure
+     metric, and it rendered as "not recorded"). Fixed server-side; the type
+     records the contract. */
+  domain_scores: { domain: string; object_type: string; score: number | null; confidence: number | null }[];
   finding_count: number;
   high_findings: number;
   medium_findings: number;
   assessment_count: number;
   snapshot: { id: string | null; date: string | null; benchmark_population_version: number | null };
   training_stats: { confirmed: number; edited: number; dismissed: number };
+}
+
+
+/** One metric, ready to render: the raw row plus the standing it sits in. */
+interface Metric {
+  domain: string;
+  object_type: string;
+  score: number | null;
+  confidence: number | null;
+  polarity: ReturnType<typeof metricPolarity>;
+  standing: StandingKey | undefined;
+}
+
+const STANDING_COLOR: Record<StandingKey, string> = {
+  good: "var(--standing-good)",
+  mid:  "var(--standing-mid)",
+  bad:  "var(--standing-bad)",
+};
+
+const STANDING_WORD: Record<StandingKey, string> = {
+  good: "good", mid: "needs attention", bad: "poor",
+};
+
+/**
+ * The mix of standings across every scored metric, as one bar.
+ *
+ * It is a proportion of a known whole, so it is a stacked bar, not a chart —
+ * and the counts are printed beside it, because a reader must never have to
+ * measure a bar to recover a number they could have been told.
+ */
+function StandingMix({ counts, total }: {
+  counts: Record<StandingKey | "unknown", number>;
+  total: number;
+}) {
+  const order: (StandingKey | "unknown")[] = ["good", "mid", "bad", "unknown"];
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="flex h-1.5 overflow-hidden rounded-full bg-border" role="img"
+        aria-label={order
+          .filter(k => counts[k] > 0)
+          .map(k => `${counts[k]} ${k === "unknown" ? "not recorded" : STANDING_WORD[k]}`)
+          .join(", ")}>
+        {order.map(k => counts[k] > 0 && (
+          <span
+            key={k}
+            style={{
+              width: `${(counts[k] / total) * 100}%`,
+              background: k === "unknown" ? "var(--muted-foreground)" : STANDING_COLOR[k],
+            }}
+          />
+        ))}
+      </div>
+      <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground">
+        {order.filter(k => counts[k] > 0).map(k => (
+          <span key={k}>
+            <b className="font-data tabular-nums" style={{
+              color: k === "unknown" ? "var(--muted-foreground)" : STANDING_COLOR[k],
+            }}>{counts[k]}</b>{" "}
+            {k === "unknown" ? "not recorded" : STANDING_WORD[k]}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** One compact metric line: name, meter, figure. */
+function MetricRow({ metric }: { metric: Metric }) {
+  const { domain, score, standing, polarity } = metric;
+  const hasScore = score !== null && score !== undefined;
+  const color = standing ? STANDING_COLOR[standing] : "var(--muted-foreground)";
+  return (
+    <li className="flex items-center gap-2.5 text-xs">
+      <span className="min-w-0 flex-1 truncate text-muted-foreground">
+        {domain}
+        {polarity && (
+          <span className="ml-1 text-[10px] opacity-70">· {DIRECTION_HINT[polarity]}</span>
+        )}
+      </span>
+      <span
+        className="h-1 w-16 shrink-0 overflow-hidden rounded-full bg-border"
+        role="img"
+        aria-label={hasScore
+          ? `${domain} ${score.toFixed(1)} out of 100`
+          : `${domain} not recorded`}
+      >
+        {hasScore && (
+          <span
+            className="block h-full rounded-full"
+            style={{ width: `${Math.min(Math.max(score, 0), 100)}%`, background: color }}
+          />
+        )}
+      </span>
+      <span className="w-10 shrink-0 text-right font-data font-bold tabular-nums" style={{ color }}>
+        {/* A genuine 0 prints as 0.0. Absence prints as an em dash. They are
+            different facts and this line is the only place a reader sees which. */}
+        {hasScore ? score.toFixed(1) : "\u2014"}
+      </span>
+    </li>
+  );
 }
 
 export function CustomerDashboard() {
@@ -104,6 +209,29 @@ export function CustomerDashboard() {
     rows: pageRows, page: safePage, pageCount,
     first: firstRow, last: lastRow,
   } = paginate(assessments, page, PAGE_SIZE);
+
+  /* Metrics, ordered by what needs attention first — poor, then middling, then
+     good, then anything with no standing at all. The name is the tiebreak, so
+     two renders of one payload always agree (Hard Rule 6). Ordering by
+     attention is why the collapsed view can show three rows and still be the
+     useful three. */
+  const metrics: Metric[] = useMemo(() => {
+    const rows = (stats?.domain_scores ?? []).map(ds => {
+      const polarity = metricPolarity(ds.domain);
+      return { ...ds, polarity, standing: bandKey(ds.score, polarity) };
+    });
+    return rows.sort((a, b) => {
+      const ra = a.standing ? STANDING_RANK[a.standing] : 3;
+      const rb = b.standing ? STANDING_RANK[b.standing] : 3;
+      return ra - rb || a.domain.localeCompare(b.domain);
+    });
+  }, [stats]);
+
+  const standingCounts = useMemo(() => {
+    const c = { good: 0, mid: 0, bad: 0, unknown: 0 };
+    for (const m of metrics) c[m.standing ?? "unknown"] += 1;
+    return c;
+  }, [metrics]);
 
   return (
     <div>
@@ -194,19 +322,42 @@ export function CustomerDashboard() {
                   <p className="m-0 text-xs text-muted-foreground">
                     benchmarked against your peer cohort · higher is better
                   </p>
-                  {stats && stats.domain_scores.length > 0 && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="mt-auto w-fit"
-                      aria-expanded={breakdownOpen}
-                      aria-controls="score-breakdown"
-                      onClick={() => setBreakdownOpen(o => !o)}
-                      data-testid="toggle-breakdown"
-                    >
-                      {breakdownOpen ? "Hide score breakdown" : "Show score breakdown"}
-                      <ChevronDown className={breakdownOpen ? "rotate-180 transition-transform motion-reduce:transition-none" : "transition-transform motion-reduce:transition-none"} />
-                    </Button>
+
+                  {/* The space under the headline used to be empty with a
+                      toggle stranded at the bottom. It now answers the question
+                      the headline provokes — WHY is it Deficient — without
+                      needing a click: the mix of standings, then the metrics
+                      that need attention first. The full list is one click
+                      further, in the same card. */}
+                  {metrics.length > 0 && (
+                    <div className="mt-4 flex min-h-0 flex-1 flex-col gap-3" data-testid="score-breakdown">
+                      <StandingMix counts={standingCounts} total={metrics.length} />
+
+                      <ul className="m-0 flex list-none flex-col gap-1.5 p-0">
+                        {(breakdownOpen ? metrics : metrics.slice(0, 3)).map(m => (
+                          <MetricRow key={m.object_type} metric={m} />
+                        ))}
+                      </ul>
+
+                      {metrics.length > 3 && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="-ml-2 w-fit"
+                          aria-expanded={breakdownOpen}
+                          aria-controls="score-breakdown"
+                          onClick={() => setBreakdownOpen(o => !o)}
+                          data-testid="toggle-breakdown"
+                        >
+                          {breakdownOpen
+                            ? "Show fewer"
+                            : `Show all ${metrics.length} metrics`}
+                          <ChevronDown className={breakdownOpen
+                            ? "rotate-180 transition-transform motion-reduce:transition-none"
+                            : "transition-transform motion-reduce:transition-none"} />
+                        </Button>
+                      )}
+                    </div>
                   )}
                 </>
               ) : (
@@ -224,72 +375,6 @@ export function CustomerDashboard() {
           {/* M-06/07/08: continuous-monitoring hero. Renders nothing at all while
               every monitoring endpoint is unpopulated — F07 surfacing rule. */}
           <MonitoringHero />
-
-          {/* Domain scorecards — from real data. Collapsed by default: eight
-              metrics is the detail behind the headline, not the headline. */}
-          {stats && stats.domain_scores.length > 0 && breakdownOpen && (
-            <section id="score-breakdown">
-              <h2 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                Score Breakdown
-              </h2>
-              {/* Legend: colour = judgement, and ONLY judgement (OD-13 traffic light) */}
-              <p className="mt-1 mb-2.5 text-xs text-muted-foreground">
-                <span className="font-bold text-[var(--standing-good)]">Green good</span> ·{" "}
-                <span className="font-bold text-[var(--standing-mid)]">yellow needs attention</span> ·{" "}
-                <span className="font-bold text-[var(--standing-bad)]">red poor</span>. Each metric notes which direction is better.
-              </p>
-              <div className="grid gap-2.5 [grid-template-columns:repeat(auto-fit,minmax(215px,1fr))]">
-                {stats.domain_scores.map(ds => {
-                  const polarity = metricPolarity(ds.domain);
-                  const hasScore = ds.score > 0;
-                  const color = hasScore ? bandColor(ds.score, polarity) : "var(--muted-foreground)";
-                  return (
-                    /* Compact tile: name + direction, figure, confidence as one quiet
-                       chip rather than two repeated lines on every card (DDR-011). */
-                    <Card key={ds.object_type} className="gap-0 py-3">
-                      <CardContent className="px-3.5">
-                        <div className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                          {ds.domain}
-                          {polarity && (
-                            <span className="ml-1.5 font-medium normal-case tracking-normal">
-                              · {DIRECTION_HINT[polarity]}
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex items-baseline gap-2">
-                          <span
-                            className="font-data text-xl font-bold leading-tight"
-                            style={{ color }}
-                          >
-                            {hasScore ? <AnimatedNumber value={ds.score} decimals={1} /> : "—"}
-                          </span>
-                          <span
-                            title={VCI_TITLE}
-                            className="ml-auto text-[11px] text-muted-foreground cursor-help underline decoration-dotted"
-                          >
-                            {vciBand((ds.confidence || 0) * 100).toLowerCase()} conf.
-                          </span>
-                        </div>
-                        {/* Meter, not a chart: one value against a fixed 0-100 scale. */}
-                        <div
-                          className="mt-1.5 h-[3px] overflow-hidden rounded-sm bg-border"
-                          role="img"
-                          aria-label={hasScore ? `${ds.domain} ${ds.score.toFixed(1)} out of 100` : `${ds.domain} not recorded`}
-                        >
-                          {hasScore && (
-                            <div
-                              className="h-full rounded-sm transition-[width] duration-700 ease-out motion-reduce:transition-none"
-                              style={{ width: `${Math.min(ds.score, 100)}%`, background: color }}
-                            />
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
-            </section>
-          )}
 
           {/* Assessments list */}
           <Card className="gap-0 overflow-hidden py-0">
