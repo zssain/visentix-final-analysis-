@@ -93,12 +93,89 @@ export function ReportView({ report }: ReportViewProps) {
     })
   );
 
+  // One part, rendered. Pulled out of the JSX so the contents card can be
+  // placed BETWEEN parts rather than before all of them.
+  function renderPart(part: typeof REPORT_PARTS[number]) {
+    const blocks = part.blocks
+      .map(n => report.sections.find(s => s.number === n))
+      .filter((s): s is NonNullable<typeof s> => !!s && !!SECTION_MAP[s.number]);
+    if (blocks.length === 0) return null;
+
+    const headed = part.headed !== false;
+    const anchor = partAnchor(part);
+    // One block under a part heading would otherwise print the same name
+    // twice; several blocks each need naming.
+    const mode = !headed ? "own" : blocks.length > 1 ? "sub" : "hidden";
+    const body = blocks.map((section) => {
+      const Component = SECTION_MAP[section.number]!;
+      // Thread snapshot context into every section's content
+      const enrichedContent = {
+        ...section.content,
+        snapshot_id:   snapshotId,
+        is_draft:      isDraft,
+        formula_descs: formulaDescs,
+        cohort_size:   report.cohort_size,
+        cohort_date:   report.cohort_date,
+        date:          report.generated_date,
+        // The cover carries the formula version; Traceability is where it is
+        // labelled. A block that already has its own wins — this only fills
+        // a gap, it never overwrites what the snapshot froze.
+        formula_version: section.content.formula_version ?? formulaVer,
+        assessment_id: report.assessment_id,
+      };
+      return (
+        <div key={section.number} id={`section-${section.number}`}>
+          <Component content={enrichedContent} />
+        </div>
+      );
+    });
+
+    return (
+      <div key={part.title} id={anchor} className="report-page-break report-part">
+        {headed && (
+          /* One heading shape for every part, so the reader learns it once:
+             the number as a standing marker, the title, then a plain-English
+             statement of the question the part answers. The number used to
+             be glued to the title as "3. Where You Stand", which reads as
+             part of the sentence rather than as a position in a sequence. */
+          <header className="report-part-head">
+            <span className="report-part-num" aria-hidden="true">
+              {part.n ?? "\u00b7"}
+            </span>
+            <div className="report-part-titles">
+              <h2>{part.title}</h2>
+              {part.lede && <p className="report-part-lede">{part.lede}</p>}
+            </div>
+          </header>
+        )}
+        <NestedSectionContext.Provider value={mode}>
+          {body}
+        </NestedSectionContext.Provider>
+      </div>
+    );
+  }
+
+  // The contents belongs AFTER the front matter, not above it. A reader opens
+  // a report expecting to learn whose it is before being offered a map of it —
+  // every bound document in the language research puts the title page first.
+  //
+  // Front matter is the LEADING run of parts that print no heading of their
+  // own, not every such part: a filter would silently hoist a later unheaded
+  // part to the top and reorder the document. Splitting at the first headed
+  // part keeps document order whatever sectionGroups.ts grows into.
+  const firstHeaded = presentParts.findIndex(p => p.headed !== false);
+  const splitAt     = firstHeaded === -1 ? presentParts.length : firstHeaded;
+  const frontMatter = presentParts.slice(0, splitAt);
+  const bodyParts   = presentParts.slice(splitAt);
+
   return (
     <div className="report-shell">
     <div
       className={`report-container ${isDraft ? "draft-watermark-wrap" : ""}`}
       data-testid="report-view"
     >
+      {frontMatter.map(renderPart)}
+
       {/* The reader's map, built from the parts that actually rendered — it can
           never list a section this snapshot does not carry.
 
@@ -112,65 +189,7 @@ export function ReportView({ report }: ReportViewProps) {
       {/* Presented as six parts + an appendix (see sectionGroups.ts). The payload
           is untouched — each part simply renders the blocks it groups, in order,
           and a part with no blocks present is skipped rather than left empty. */}
-      {REPORT_PARTS.map((part) => {
-        const blocks = part.blocks
-          .map(n => report.sections.find(s => s.number === n))
-          .filter((s): s is NonNullable<typeof s> => !!s && !!SECTION_MAP[s.number]);
-        if (blocks.length === 0) return null;
-
-        const headed = part.headed !== false;
-        const anchor = partAnchor(part);
-        // One block under a part heading would otherwise print the same name
-        // twice; several blocks each need naming.
-        const mode = !headed ? "own" : blocks.length > 1 ? "sub" : "hidden";
-        const body = blocks.map((section) => {
-          const Component = SECTION_MAP[section.number]!;
-          // Thread snapshot context into every section's content
-          const enrichedContent = {
-            ...section.content,
-            snapshot_id:   snapshotId,
-            is_draft:      isDraft,
-            formula_descs: formulaDescs,
-            cohort_size:   report.cohort_size,
-            cohort_date:   report.cohort_date,
-            date:          report.generated_date,
-            // The cover carries the formula version; Traceability is where it is
-            // labelled. A block that already has its own wins — this only fills
-            // a gap, it never overwrites what the snapshot froze.
-            formula_version: section.content.formula_version ?? formulaVer,
-            assessment_id: report.assessment_id,
-          };
-          return (
-            <div key={section.number} id={`section-${section.number}`}>
-              <Component content={enrichedContent} />
-            </div>
-          );
-        });
-
-        return (
-          <div key={part.title} id={anchor} className="report-page-break report-part">
-            {headed && (
-              /* One heading shape for every part, so the reader learns it once:
-                 the number as a standing marker, the title, then a plain-English
-                 statement of the question the part answers. The number used to
-                 be glued to the title as "3. Where You Stand", which reads as
-                 part of the sentence rather than as a position in a sequence. */
-              <header className="report-part-head">
-                <span className="report-part-num" aria-hidden="true">
-                  {part.n ?? "·"}
-                </span>
-                <div className="report-part-titles">
-                  <h2>{part.title}</h2>
-                  {part.lede && <p className="report-part-lede">{part.lede}</p>}
-                </div>
-              </header>
-            )}
-            <NestedSectionContext.Provider value={mode}>
-              {body}
-            </NestedSectionContext.Provider>
-          </div>
-        );
-      })}
+      {bodyParts.map(renderPart)}
 
       {/* Closing bookend (revised DDR-007): one Disclosure where the reader
           finishes, paired with the scope statement where they started. */}

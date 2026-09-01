@@ -167,3 +167,35 @@ describe("ReportView", () => {
     expect(screen.getByTestId("report-view")).toBeInTheDocument();
   });
 });
+
+describe("front matter comes before the contents map", () => {
+  it("the cover is the first thing in the document, then the index", () => {
+    const { container } = renderReport(FIXTURE);
+    const cover    = container.querySelector('[data-testid="section-1"]');
+    const contents = container.querySelector('[data-testid="report-contents"]');
+    expect(cover).not.toBeNull();
+    expect(contents).not.toBeNull();
+    // A reader opens a report expecting to learn whose it is before being
+    // handed a map of it. DOCUMENT_POSITION_FOLLOWING === the contents comes
+    // after the cover.
+    expect(cover!.compareDocumentPosition(contents!) & Node.DOCUMENT_POSITION_FOLLOWING)
+      .toBeTruthy();
+  });
+
+  it("the contents still precedes every part it links to", () => {
+    const { container } = renderReport(FIXTURE);
+    const contents = container.querySelector('[data-testid="report-contents"]')!;
+    // Part 1 is the cover (front matter, above the index); every OTHER part it
+    // lists must come after it, or the map is pointing backwards.
+    const links = Array.from(contents.querySelectorAll("a"))
+      .map(a => a.getAttribute("href")!)
+      .filter(h => h !== "#part-1");
+    expect(links.length).toBeGreaterThan(0);
+    for (const href of links) {
+      const target = container.querySelector(`[id="${href.slice(1)}"]`);
+      expect(target, `${href} has no target`).not.toBeNull();
+      expect(contents.compareDocumentPosition(target!) & Node.DOCUMENT_POSITION_FOLLOWING)
+        .toBeTruthy();
+    }
+  });
+});
