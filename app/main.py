@@ -7,7 +7,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.logging import get_logger, setup_logging
-from app.routers import admin, assessments, auth, bulk, explain, feed, findings, formulas, health, monitoring, partner, quarterly, reports, review
+from app.middleware.audit import AuditMiddleware
+from app.routers import account, admin, assessments, auth, bulk, explain, feed, findings, formulas, health, monitoring, partner, quarterly, reports, review
 from app.routers import config_routes, tasks
 from app.routers import eval as eval_router
 from app.routers import notifications
@@ -58,6 +59,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(AuditMiddleware)
 
 app.include_router(health.router)
 app.include_router(assessments.router)
@@ -66,6 +68,7 @@ app.include_router(reports.router)
 app.include_router(admin.router)
 app.include_router(review.router)
 app.include_router(auth.router)
+app.include_router(account.router)
 app.include_router(explain.router)
 app.include_router(feed.router)
 app.include_router(monitoring.router)

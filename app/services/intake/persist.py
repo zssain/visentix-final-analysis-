@@ -95,6 +95,7 @@ async def persist_notice(
     upload_filename: str | None = None,
     upload_mime: str | None = None,
     upload_file_hash: str | None = None,
+    workspace_organization_id: str | None = None,
 ) -> str:
     """Persist a decomposed notice (privacy_notice + sections + clauses).
 
@@ -113,6 +114,7 @@ async def persist_notice(
     notice_payload = {
         "notice_id": notice_id,
         "organization_id": org_id,
+        "workspace_organization_id": workspace_organization_id,
         "notice_type": "live_assessment",
         "url": source_url or "",
         "effective_date": str(date.today()),
@@ -131,6 +133,7 @@ async def persist_notice(
         # decompose-v2 noise filter version tag — marks this assessment as
         # noise-filtered so older assessments (NULL) stay untouched (Rule 4).
         "decompose_version": DECOMPOSE_VERSION,
+        "monitoring_enabled": False,
         "ai_disclosure_presence": any(
             c.category == "ai_automated_decisions" for c in notice.clauses
         ),

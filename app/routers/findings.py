@@ -8,7 +8,7 @@ from fastapi import APIRouter
 from app.auth import AuthenticatedUser, require_role
 from app.config import settings
 from app.db import get_service_headers
-from app.services.tenancy import customer_org_scope
+from app.services.tenancy import customer_org_scope, customer_workspace_scope
 
 router = APIRouter(prefix="/findings", tags=["findings"])
 
@@ -32,7 +32,7 @@ async def list_findings(
     Scoping goes through the centralized `customer_org_scope` helper
     (SEC-003 minimum backstop) so it cannot drift from `dashboard_stats`.
     """
-    scope = customer_org_scope(user)
+    scope = customer_workspace_scope(user)
     if not scope.allowed:
         return []
     rows = _sb_get(
@@ -116,7 +116,7 @@ async def dashboard_stats(
     # Customer → scope every query to their org; sme/admin → platform-wide.
     # Centralized via customer_org_scope (SEC-003 minimum backstop); a customer
     # with no org is denied and gets empty stats, never another org's data.
-    scope = customer_org_scope(user)
+    scope = customer_workspace_scope(user)
     if not scope.allowed:
         return {
             "overall_score": None, "overall_confidence": 0, "domain_scores": [],

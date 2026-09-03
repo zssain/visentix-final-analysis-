@@ -1,5 +1,7 @@
 """Guardrail tests — banned terms blocked, exposure phrasing passes, edge cases."""
 
+from pathlib import Path
+
 import pytest
 
 from app.services.guardrail import (
@@ -14,11 +16,7 @@ from app.services.guardrail import (
 
 # ── Banned terms blocked ─────────────────────────────────────
 
-@pytest.mark.parametrize("term", [
-    "violation", "violates", "illegal", "unlawful",
-    "non-compliant", "noncompliant", "breach of law",
-    "guilty", "liable",
-])
+@pytest.mark.parametrize("term", load_banned_terms())
 def test_banned_term_blocked(term):
     text = f"This practice is a {term} of privacy standards."
     spans = check_generated_prose(text)
@@ -172,6 +170,29 @@ def test_banned_terms_loaded_from_config():
     assert len(terms) >= 8  # at least the core terms
 
 
+def test_banned_term_lists_are_identical():
+    root = Path(__file__).resolve().parents[1]
+    source = load_banned_terms(root / "scripts" / "data" / "banned_terms.txt")
+    runtime = load_banned_terms(root / "config" / "banned_terms.txt")
+    assert set(source) == set(runtime)
+
+
+@pytest.mark.parametrize("term", [
+    "compliant",
+    "non-compliant",
+    "violation",
+    "violates",
+    "illegal",
+    "unlawful",
+    "breach of law",
+    "guilty",
+    "liable",
+    "complies with",
+])
+def test_hard_rule_1_terms_all_blocked(term):
+    assert check_generated_prose(f"Generated prose says {term}.")
+
+
 def test_config_comments_ignored():
     terms = load_banned_terms()
     assert not any(t.startswith("#") for t in terms)
@@ -187,6 +208,10 @@ def test_word_boundary_prevents_false_positives():
     """'viable' contains 'liable' but should NOT trigger (word boundary)."""
     spans = check_generated_prose("This approach is viable and reasonable.")
     assert len(spans) == 0, "'viable' should not trigger 'liable'"
+
+
+def test_reliable_does_not_match_liable():
+    assert check_generated_prose("This is a reliable source.") == []
 
 
 def test_illegality_not_blocked():

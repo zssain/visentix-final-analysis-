@@ -1,6 +1,8 @@
 # F11 — White-Label Portal & Intelligence APIs
 
-**Status:** shipped UI — partner portal built, all data mocked (M-19–M-22); Intelligence APIs, tenancy & metering backend proposed · **Release:** R3 · **Depends on:** F03, F04, F05, F10 (tenancy), business-logic.md §3/§6
+> **Superseded by F20 (2026-07-28).**
+
+**Status:** superseded by F20 (2026-07-28) · **Release:** R3 · **Depends on:** F03, F04, F05, F10 (tenancy), business-logic.md §3/§6
 
 ## Purpose
 Product 3: let consulting/law/audit/insurance partners deliver Visentix intelligence under their brand — partner portal with client workspaces, branded report templates, anonymized data feeds, and the public Intelligence API suite.

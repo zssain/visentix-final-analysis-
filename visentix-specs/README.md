@@ -25,7 +25,7 @@ visentix-specs/
 │   └── design-system.md             ← tokens, typography, cross-screen furniture, DDR summary
 ├── 02-features/                     ← one spec per feature (feature-based architecture)
 │   ├── _TEMPLATE.md                 ← copy this for every new feature
-│   ├── F01 … F12                    ← the feature catalog
+│   ├── F01 … F26                    ← the feature catalog
 ├── 03-ideas/
 │   └── further-ideas.md             ← parked ideas, future-state, patent-adjacent concepts
 ├── 04-lessons/
@@ -54,6 +54,6 @@ Rules for agents:
 - **Never hardcode display values** — every number in the UI comes from a derived_data_item / API (DIR-008).
 - **Mock data must be registered** in the feature spec's Mock section with a replacement plan (continuing the MOCK TRACKER discipline).
 
-## Current product context (July 2026)
+## Current product context (September 2026)
 
 The MVP (FastAPI + React/TS + Postgres/Supabase + local LLM + MiniLM embeddings) is functionally complete through Phase 11: intake → decomposition → classification → profiling → normalization → scoring (F-002–F-014) → findings → SME gate → 12-section report → monitoring surfaces. Full test suite green. Remaining work is defined in `00-plan/remaining-work.md`.

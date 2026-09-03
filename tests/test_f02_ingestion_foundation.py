@@ -119,6 +119,9 @@ def test_apply_now_order_and_step_a_first():
         "0047_assessment_id_uuid_check.sql",
         "0048_assessment_intake_scope.sql",
         "0049_assessment_job_kind.sql",
+        "0050_f26_audit_event.sql",
+        "0051_submission_entity_flag.sql",
+        "0052_f23_internal_demo_workspace.sql",
     ]
 
 

@@ -19,6 +19,7 @@ from app.services.report.renderer import (
     render_pdf_weasyprint,
     _strip_placeholders,
 )
+from app.services.report.report_tokens import REPORT_COLORS
 from app.services.scoring.heatmap import build_regulator_heatmap, heatmap_to_serializable
 
 
@@ -75,6 +76,10 @@ def _full_payload(**overrides):
         cohort_date="2026-08-05",
         snapshot_id="a1b2c3d4e5f600112233",
         guardrail_result={"status": "passed", "checked": 12},
+        assessment_scope={
+            "source": {"value": "https://example.test/privacy", "provenance": "submitted"},
+            "organization_name": {"value": "Brex, Inc.", "provenance": "submitted"},
+        },
     )
     defaults.update(overrides)
     return assemble_report(**defaults)
@@ -175,6 +180,28 @@ def test_absent_score_is_not_rendered_as_zero():
     assert seg.count("Not recorded") >= 2
 
 
+def test_report_has_editorial_cover_and_complete_closing_structure():
+    html = render_html(_full_payload())
+    body = _body_only(html)
+    assert "Privacy Notice<br>Intelligence Assessment" in body
+    assert 'class="cover-subtitle"' in body
+    assert body.count('id="section-disclosure"') == 1
+    assert body.index('class="scope-front"') < body.index('id="section-2"')
+    assert body.index('id="section-next-steps"') < body.index('id="section-disclosure"')
+
+
+def test_findings_and_dashboard_use_expected_structural_components():
+    body = _body_only(render_html(_full_payload()))
+    findings = body.split('id="section-6"', 1)[1].split('id="section-7"', 1)[0]
+    assert 'class="data-table findings-table"' in findings
+    assert "<thead>" in findings and "<tbody>" in findings
+    executive = body.split('id="section-2"', 1)[1].split('id="section-3"', 1)[0]
+    assert executive.count('class="kpi-card') == 3
+    dashboard = body.split('id="section-3"', 1)[1].split('id="section-4"', 1)[0]
+    assert dashboard.count('class="gauge"') == 3
+    assert dashboard.count('class="metric-card') == 4
+
+
 # ── Guardrail stays in the path ─────────────────────────────────────────────
 
 def test_guardrail_still_fails_closed_after_restyle():
@@ -213,7 +240,7 @@ def test_branding_rejects_css_injection_color():
     # SEC-006: the malicious color is dropped for the safe default; the payload
     # never reaches the CSS context.
     assert "display:none" not in branded
-    assert "#0f3460" in branded  # the safe default color
+    assert REPORT_COLORS["brand"] in branded  # generated safe default color
 
 
 # ── Placeholder leak ────────────────────────────────────────────────────────

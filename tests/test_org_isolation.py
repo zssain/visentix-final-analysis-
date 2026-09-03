@@ -102,7 +102,8 @@ async def test_list_assessments_filters_customer_by_org():
     with patch.object(A, "supabase_rest_get", _get):
         async with AsyncClient(transport=transport, base_url="http://test") as c:
             await c.get("/assessments/", headers=_hdr("customer"))
-    assert f"organization_id=eq.{MINE}" in seen["filters"]
+    assert f"workspace_organization_id.eq.{MINE}" in seen["filters"]
+    assert f"organization_id.eq.{MINE}" in seen["filters"]  # legacy NULL fallback
 
     with patch.object(A, "supabase_rest_get", _get):
         async with AsyncClient(transport=transport, base_url="http://test") as c:
@@ -219,7 +220,8 @@ async def test_dashboard_stats_scopes_customer_queries():
     data_paths = [p for p in paths if p.startswith(("derived_data_item", "risk_finding",
                                                      "report_snapshot", "privacy_notice"))]
     assert data_paths, "expected data queries"
-    assert all(f"organization_id=eq.{MINE}" in p for p in data_paths)
+    assert all(f"workspace_organization_id.eq.{MINE}" in p for p in data_paths)
+    assert all(f"organization_id.eq.{MINE}" in p for p in data_paths)
 
 
 @pytest.mark.anyio
@@ -330,11 +332,33 @@ async def _capture_assessments(headers):
     return r, filters_list
 
 
+async def _capture_account_audit(headers):
+    """Drive GET /account/audit and capture its caller+workspace filter."""
+    import app.routers.account as A
+
+    class _Resp:
+        status_code = 200
+        def json(self): return []
+
+    filters_list: list[str] = []
+
+    async def _get(table, *, select="*", filters="", limit=1000, count=False):
+        filters_list.append(filters)
+        return _Resp()
+
+    transport = ASGITransport(app=app)
+    with patch.object(A, "supabase_rest_get", _get):
+        async with AsyncClient(transport=transport, base_url="http://test") as c:
+            r = await c.get("/account/audit", headers=headers)
+    return r, filters_list
+
+
 # CAPTURE_ROUTES: (id, capture_fn, needle_fmt) — needle_fmt.format(org=...) is the
 # per-org marker that must appear only for the caller's own org.
 CAPTURE_ROUTES = [
-    ("findings_list", _capture_findings, "organization_id=eq.{org}"),
-    ("assessments_list", _capture_assessments, "organization_id=eq.{org}"),
+    ("findings_list", _capture_findings, "workspace_organization_id.eq.{org}"),
+    ("assessments_list", _capture_assessments, "workspace_organization_id.eq.{org}"),
+    ("account_audit", _capture_account_audit, "organization_id=eq.{org}"),
 ]
 
 
@@ -358,8 +382,13 @@ async def test_admin_list_platform_wide(route_id, capture, needle_fmt):
     r, queries = await capture(_hdr("admin", org=ORG_A))
     assert r.status_code == 200
     # admin/sme oversee all orgs → no org filter on any query
-    assert all("organization_id=eq." not in q for q in queries), \
-        f"{route_id}: admin query was unexpectedly org-scoped: {queries}"
+    if route_id == "account_audit":
+        # F26 is caller-only even for platform roles; it is intentionally not a
+        # platform-wide surveillance endpoint.
+        assert all(f"organization_id=eq.{ORG_A}" in q for q in queries)
+    else:
+        assert all("organization_id.eq." not in q for q in queries), \
+            f"{route_id}: admin query was unexpectedly org-scoped: {queries}"
 
 
 @pytest.mark.anyio

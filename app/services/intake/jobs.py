@@ -41,13 +41,15 @@ async def find_by_idempotency_key(key: str | None) -> dict | None:
 
 
 async def create_job(*, organization_id: str | None, created_by: str | None,
-                     idempotency_key: str | None = None) -> dict:
+                     idempotency_key: str | None = None,
+                     workspace_organization_id: str | None = None) -> dict:
     """Create a queued job. On an idempotency-key race (unique-index conflict),
     return the existing job instead of creating a duplicate."""
     job_id = str(uuid4())
     payload = {
         "job_id": job_id,
         "organization_id": organization_id,
+        "workspace_organization_id": workspace_organization_id,
         "created_by": created_by,
         "idempotency_key": idempotency_key,
         "status": "queued",
@@ -71,11 +73,20 @@ async def set_stage(job_id: str, stage: str, *, status: str = "running") -> None
         {"stage": stage, "status": status, "updated_at": _now()})
 
 
-async def complete_job(job_id: str, *, assessment_id: str | None, result: dict) -> None:
+async def complete_job(
+    job_id: str,
+    *,
+    assessment_id: str | None,
+    result: dict,
+    organization_id: str | None = None,
+    workspace_organization_id: str | None = None,
+) -> None:
     await supabase_rest_patch(
         "assessment_job", f"job_id=eq.{job_id}",
         {"status": "complete", "stage": "complete", "assessment_id": assessment_id,
-         "result": result, "updated_at": _now()})
+         "result": result, "organization_id": organization_id,
+         "workspace_organization_id": workspace_organization_id,
+         "updated_at": _now()})
 
 
 async def fail_job(job_id: str, error: str) -> None:

@@ -76,6 +76,11 @@ def build_current_versions() -> str:
 def build_spec_index() -> str:
     lines = ["## Feature spec index"]
     for spec in sorted(FEATURES.glob("F*.md")):
+        # Amendments intentionally share a feature id with their canonical
+        # feature.  The generated index lists the canonical feature once; the
+        # primary spec links to each amendment from its changelog.
+        if "-amendment-" in spec.stem:
+            continue
         text = spec.read_text(encoding="utf-8")
         # Accept em-dash or hyphen between the ID and the name so a typo doesn't
         # silently collapse the title to the filename.

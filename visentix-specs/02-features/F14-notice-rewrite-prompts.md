@@ -1,6 +1,8 @@
 # F14 — Notice Rewrite Prompts (Trust Language Studio)
 
-**Status:** shipped UI — studio built, all data mocked (M-26); suggestion library + backend proposed · **Release:** R2 · **Depends on:** F04 (findings/gaps), F06 (exemplar de-id + approval), F08 (Codex domains), business-logic.md §2, design-system.md
+> **Superseded by F18 (2026-07-28).**
+
+**Status:** superseded by F18 (2026-07-28) · **Release:** R2 · **Depends on:** F04 (findings/gaps), F06 (exemplar de-id + approval), F08 (Codex domains), business-logic.md §2, design-system.md
 
 ## Purpose
 A trust/marketing tool for the customer's own team: for each disclosure gap in their notice, show a **benchmark-informed language pattern** — an example of how top-quartile peers phrase the same disclosure — so the team can improve clarity and reader trust. Suggestions are **language patterns, not legal drafting**: they never tell an organisation what it must do or assert compliance; they show how clearer notices in the cohort tend to read. This framing (and the guardrail behind it) is what lets a privacy-intelligence product offer wording help at all.

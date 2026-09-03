@@ -6,10 +6,17 @@ compliant
 non-compliant
 noncompliant
 violation
+violations
+violate
 violates
+violated
+violating
 illegal
 unlawful
 breach of law
 guilty
 liable
 complies with
+in violation of
+found guilty
+legally liable

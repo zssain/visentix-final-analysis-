@@ -44,8 +44,10 @@ async def test_async_submit_returns_202_and_job_handle():
     async def fake_find(key):
         return None
 
-    async def fake_create(*, organization_id, created_by, idempotency_key=None):
+    async def fake_create(*, organization_id, created_by, idempotency_key=None,
+                          workspace_organization_id=None):
         created["org"] = organization_id
+        created["workspace"] = workspace_organization_id
         return {"job_id": "job-1", "status": "queued", "stage": "queued"}
 
     transport = ASGITransport(app=app)
@@ -60,6 +62,7 @@ async def test_async_submit_returns_202_and_job_handle():
     assert body["assessment_id"] == "job-1"
     assert body["status"] == "queued"
     assert created["org"] == ORG  # customer's job scoped to their org
+    assert created["workspace"] == ORG
 
 
 @pytest.mark.anyio
@@ -113,7 +116,8 @@ async def test_idempotency_conflict_race_does_not_schedule_duplicate_pipeline():
                 "_idempotent_replay": True}
 
     def capture_task(coro):
-        scheduled["count"] += 1
+        if getattr(coro, "cr_code", None) and coro.cr_code.co_name == "_run_intake_job":
+            scheduled["count"] += 1
         coro.close()
 
     transport = ASGITransport(app=app)
@@ -161,7 +165,8 @@ async def test_runner_records_stages_and_completes():
     async def fake_set_stage(job_id, stage, *, status="running"):
         stages.append(stage)
 
-    async def fake_complete(job_id, *, assessment_id, result):
+    async def fake_complete(job_id, *, assessment_id, result, organization_id=None,
+                            workspace_organization_id=None):
         completed["assessment_id"] = assessment_id
         completed["result"] = result
 
@@ -170,7 +175,13 @@ async def test_runner_records_stages_and_completes():
         # drive a couple of stages like the real pipeline does
         await on_stage("segmenting")
         await on_stage("scoring")
-        return {"assessment_id": "notice-9", "status": "scored", "scores": {"f010": 62}}
+        return {
+            "assessment_id": "notice-9",
+            "status": "scored",
+            "scores": {"f010": 62},
+            "target_organization_id": ORG,
+            "workspace_organization_id": ORG,
+        }
 
     with patch.object(A.intake_jobs, "set_stage", fake_set_stage), \
          patch.object(A.intake_jobs, "complete_job", fake_complete), \

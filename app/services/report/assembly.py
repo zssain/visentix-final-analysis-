@@ -220,15 +220,15 @@ def assemble_report(
     if not cohort_date:
         cohort_date = str(date.today())
 
-    overall = scores.get("f010", {}).get("score", 0)
-    percentile = scores.get("f011", {}).get("score", 0)
-    regulatory = scores.get("f002", {}).get("score", 0)
+    overall = scores.get("f010", {}).get("score")
+    percentile = scores.get("f011", {}).get("score")
+    regulatory = scores.get("f002", {}).get("score")
     reg_tier = scores.get("f002", {}).get("tier", "")
-    benchmark_dev = scores.get("f003", {}).get("score", 0)
-    disclosure = scores.get("f005", {}).get("score", 0)
-    transparency = scores.get("f006", {}).get("score", 0)
-    ai_score = scores.get("f007", {}).get("score", 0)
-    compound = scores.get("f008", {}).get("score", 0)
+    benchmark_dev = scores.get("f003", {}).get("score")
+    disclosure = scores.get("f005", {}).get("score")
+    transparency = scores.get("f006", {}).get("score")
+    ai_score = scores.get("f007", {}).get("score")
+    compound = scores.get("f008", {}).get("score")
 
     extraction_quality = extraction_quality or {"status": "not_recorded"}
     cohort_methodology = cohort_methodology or {}
@@ -337,7 +337,7 @@ def assemble_report(
             "id": f.get("code", ""),
             "domain": f.get("domain", ""),
             "severity": f.get("severity", ""),
-            "score": f.get("score", 0),
+            "score": f.get("score"),
             # RPT-005: per-finding confidence shows the finding's REAL stored
             # value or honest absence — never the global VCI label, which would
             # mask a missing per-finding value with a plausible one. Renderer
@@ -393,11 +393,14 @@ def assemble_report(
     # Section 10: Reduce Risks by Severity
     high = [f for f in findings if f.get("severity") == "high"]
     medium = [f for f in findings if f.get("severity") == "medium"]
+    low = [f for f in findings if f.get("severity") == "low"]
     s10 = ReportSection(10, "Risk Reduction Priorities", {
         "high_severity": [{"code": f["code"], "domain": f["domain"]} for f in high],
         "medium_severity": [{"code": f["code"], "domain": f["domain"]} for f in medium],
+        "low_severity": [{"code": f["code"], "domain": f["domain"]} for f in low],
         "high_count": len(high),
         "medium_count": len(medium),
+        "low_count": len(low),
     })
 
     # Section 11: Source Traceability

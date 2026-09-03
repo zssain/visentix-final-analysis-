@@ -15,6 +15,7 @@ import httpx
 from fastapi import APIRouter, HTTPException, Query, status
 
 from app.auth import AuthenticatedUser, require_role
+from app.services.tenancy import customer_can_access_workspace_row
 from app.config import settings
 from app.db import get_service_headers
 from app.services.review import customer_can_view
@@ -85,9 +86,9 @@ async def get_explain(
                                 detail="Report pending expert review.")
 
     # Resolve notice + org
-    notices = _sb_get(f"privacy_notice?select=notice_id,organization_id&notice_id=eq.{assessment_id}&limit=1")
+    notices = _sb_get(f"privacy_notice?select=notice_id,organization_id,workspace_organization_id&notice_id=eq.{assessment_id}&limit=1")
     if not notices:
-        notices = _sb_get(f"privacy_notice?select=notice_id,organization_id&organization_id=eq.{assessment_id}&order=retrieval_date.desc&limit=1")
+        notices = _sb_get(f"privacy_notice?select=notice_id,organization_id,workspace_organization_id&organization_id=eq.{assessment_id}&order=retrieval_date.desc&limit=1")
     if not notices:
         raise HTTPException(status_code=404, detail="Assessment not found")
 
@@ -96,7 +97,7 @@ async def get_explain(
     org_id = notice["organization_id"]
 
     # F10: a customer may only explain its own organization's assessment.
-    if user.role == "customer" and org_id != user.organization_id:
+    if user.role == "customer" and not customer_can_access_workspace_row(user, notice):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
                             detail="Not permitted to view this assessment.")
 
@@ -116,9 +117,9 @@ async def get_explain_all(
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
                                 detail="Report pending expert review.")
 
-    notices = _sb_get(f"privacy_notice?select=notice_id,organization_id&notice_id=eq.{assessment_id}&limit=1")
+    notices = _sb_get(f"privacy_notice?select=notice_id,organization_id,workspace_organization_id&notice_id=eq.{assessment_id}&limit=1")
     if not notices:
-        notices = _sb_get(f"privacy_notice?select=notice_id,organization_id&organization_id=eq.{assessment_id}&order=retrieval_date.desc&limit=1")
+        notices = _sb_get(f"privacy_notice?select=notice_id,organization_id,workspace_organization_id&organization_id=eq.{assessment_id}&order=retrieval_date.desc&limit=1")
     if not notices:
         raise HTTPException(status_code=404, detail="Assessment not found")
 
@@ -127,7 +128,7 @@ async def get_explain_all(
     org_id = notice["organization_id"]
 
     # F10: a customer may only prefetch its own organization's explains.
-    if user.role == "customer" and org_id != user.organization_id:
+    if user.role == "customer" and not customer_can_access_workspace_row(user, notice):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
                             detail="Not permitted to view this assessment.")
 

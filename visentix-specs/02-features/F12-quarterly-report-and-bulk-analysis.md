@@ -1,6 +1,8 @@
 # F12 — Quarterly Intelligence Report & Bulk Analysis
 
-**Status:** shipped UI — Quarterly reader page + bulk-analysis workflow real, all data mocked (M-15–M-24); aggregation/publication + batch-pipeline backend proposed · **Release:** R4 · **Depends on:** F02 (corpus scale), F03, F04, F11 (anonymization)
+> **Superseded by F21 (quarterly) + F19 (bulk).**
+
+**Status:** superseded by F21 (quarterly) + F19 (bulk) · **Release:** R4 · **Depends on:** F02 (corpus scale), F03, F04, F11 (anonymization)
 
 ## Purpose
 Product 4: the redacted, industry-wide Quarterly Global Privacy Intelligence Report — top-of-funnel marketing engine and analyst/regulator credibility asset — plus the V2 bulk-analysis workflows (regulator sector scans, law-firm screens, audit prospecting) that reuse the same aggregation machinery.

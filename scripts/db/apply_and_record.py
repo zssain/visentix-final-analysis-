@@ -93,6 +93,9 @@ APPLY_NOW = [
     "0047_assessment_id_uuid_check.sql",         # DB-002 — CHECK assessment_id is UUID-shaped (NOT VALID, data-safe); type→uuid+FK is a staged external step
     "0048_assessment_intake_scope.sql",           # F01 INT-10 — immutable per-notice declared scope + provenance (additive, RLS-on)
     "0049_assessment_job_kind.sql",              # BG-TASKS — assessment_job.kind generalizes the table to any long user-triggered task (additive, DEFAULT 'intake' so no backfill)
+    "0050_f26_audit_event.sql",                  # F26 — append-only per-user request metadata (backend-only)
+    "0051_submission_entity_flag.sql",           # F01 — deterministic multi-notice submission flag (score-neutral)
+    "0052_f23_internal_demo_workspace.sql",      # F23 — private workspace/target ownership split for internal demo assessments
 ]
 
 # ── DB-001: migration numbering & ordering (documented) ──────────────────────
@@ -104,7 +107,7 @@ APPLY_NOW = [
 #   0011_live_assessment_isolation / 0011_local_users (UNTRACKED) / 0011_reference_corpus
 #   0012_finding_content / 0012_versioning_metadata ; 0013_clause_taxonomy_v2 / 0013_enforcement_extra_cols
 # RULE FOR NEW MIGRATIONS: use the next strictly-increasing zero-padded integer with
-# NO collision against any existing prefix (next free is 0049), append to APPLY_NOW.
+# NO collision against any existing prefix (next free is 0053), append to APPLY_NOW.
 # A clean monotonic renumber is only safe on a fresh, never-deployed DB.
 
 # NOT tracked: paste bundles, the ambiguous local_users migration, and the
@@ -187,7 +190,9 @@ def _conn_kwargs() -> tuple[dict, str]:
           "dbname": dbname or "postgres", "connect_timeout": 20, "sslmode": "require"}
     if "sslmode=" in params:
         kw["sslmode"] = params.split("sslmode=", 1)[1].split("&", 1)[0]
-    return kw, f"{label} host={host}"
+    # Never print the database/Supabase hostname (AGENTS.md §3). The connection
+    # mode is enough operational context for success/failure messages.
+    return kw, label
 
 
 def run() -> int:

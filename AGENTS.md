@@ -53,7 +53,7 @@ A normalized corpus already lives in Supabase. You did not create it and you mus
 <!-- BEGIN GENERATED: HARD RULES (source: 01-foundation/business-logic.md, intelligence-logic.md) -->
 ## Hard rules — violating any of these fails review automatically
 
-1. **No legal verdicts.** Never generate these words in any UI copy, report text, API field, comment, template, or test fixture that could reach output: "compliant", "non-compliant", "violation", "violates", "illegal", "unlawful", "breach of law", "guilty", "liable", "complies with". Use: exposure, maturity, likelihood, benchmark position, regulator sensitivity, confidence. The phrasing guardrail runs at draft time and must hard-fail report builds containing a banned term.
+1. **No legal verdicts.** Never generate these words in any UI copy, report text, API field, comment, template, or test fixture that could reach output: "compliant", "non-compliant", "violation", "violations", "violate", "violates", "violated", "violating", "illegal", "unlawful", "breach of law", "guilty", "liable", "complies with", "in violation of", "found guilty", "legally liable". Use: exposure, maturity, likelihood, benchmark position, regulator sensitivity, confidence. The phrasing guardrail runs at draft time and must hard-fail report builds containing a banned term.
 2. **The model classifies and phrases — it never invents.** No claim, number, score, finding, or recommendation originates from an LLM. Scores come from the formula engine; findings from the fixed finding-type catalog; recommendations from the authored library. The LLM only smooths tone over pre-computed, guardrailed statements.
 3. **Never invent numbers.** Formula definitions, weights, thresholds, taxonomy codes, and score bands come only from `intelligence-logic.md` and the `formula_version` table. Do not adjust a weight, add a formula, or create a finding code — propose a spec change instead.
 4. **No score without lineage.** Every derived value stores formula_version id, input refs (source/clause/regulator/benchmark_population), a VCI confidence score, and generated_at. Presentation layers consume `derived_data_item` records and never recalculate.
@@ -66,7 +66,7 @@ A normalized corpus already lives in Supabase. You did not create it and you mus
 
 <!-- BEGIN GENERATED: CURRENT VERSIONS (source: 01-foundation changelogs) -->
 ## Current versions
-- schema.md: v1.3.10 (2026-08-21)
+- schema.md: v1.3.12 (2026-09-03)
 - business-logic.md: v1.3 (2026-08-31)
 - intelligence-logic.md: v1.7 (2026-08-31)
 - design-system.md: v1.14 (2026-09-01)
@@ -86,11 +86,11 @@ A normalized corpus already lives in Supabase. You did not create it and you mus
 - F07 — Continuous Monitoring Dashboard (Hero) — shipped (R1) — Dashboard is real-data (assessments + stats); the monitoring hero (trend sparkline, change feed, alert center) is built and wired to live endpoints (M-06/M-07/M-08 Replaced 2026-07-27)
 - F08 — Finding Codex & Methodology Pages — shipped (M-11 replaced — Codex reads the real `/findings/codex` route)
 - F09 — Admin Console — shipped (gate mode + batch trigger real; M-13/M-14 Replaced 2026-07-27)
-- F10 — Auth, Roles & Multi-Tenancy — shipped (custom local JWT); hardening R1→R2
-- F11 — White-Label Portal & Intelligence APIs — shipped UI — partner portal built, all data mocked (M-19–M-22); Intelligence APIs, tenancy & metering backend proposed
-- F12 — Quarterly Intelligence Report & Bulk Analysis — shipped UI — Quarterly reader page + bulk-analysis workflow real, all data mocked (M-15–M-24); aggregation/publication + batch-pipeline backend proposed
+- F10 — Auth, Roles & Multi-Tenancy — shipped code; live demo-user provisioning blocked by Supabase gateway HTTP 402 (2026-09-03)
+- F11 — White-Label Portal & Intelligence APIs — superseded by F20 (2026-07-28)
+- F12 — Quarterly Intelligence Report & Bulk Analysis — superseded by F21 (quarterly) + F19 (bulk)
 - F13 — Framework Crosswalk Explorer — shipped UI — explorer built, all data mocked (M-25); crosswalk backend + copy sign-off proposed
-- F14 — Notice Rewrite Prompts (Trust Language Studio) — shipped UI — studio built, all data mocked (M-26); suggestion library + backend proposed
+- F14 — Notice Rewrite Prompts (Trust Language Studio) — superseded by F18 (2026-07-28)
 - F15 — Public Trust Center — shipped UI — center built, trust metrics mocked (M-27); metrics feed proposed
 - F16 — Vendor Due Diligence Mode — shipped UI — workflow built, all data mocked (M-28); vendor pipeline + persistence proposed
 - F17 — Evaluation Harness (Measurement Only) — proposed
@@ -98,6 +98,8 @@ A normalized corpus already lives in Supabase. You did not create it and you mus
 - F19 — Bulk Screening Mode (regulator / law-firm / insurer journeys) — approved — in-progress (owner-approved 2026-07-28 with the three adjustments in changelog 0.2)
 - F20 — Partner Portal (Deliverable 3: white-label channel, real backend) — approved — in-progress (owner-approved 2026-07-28 with the refinements in changelog 0.2)
 - F21 — Quarterly Global Privacy Intelligence Report (Deliverable 4, v1 BASELINE) — approved — in-progress (owner-approved 2026-07-28 with authoritative S4 catalog; changelog 0.2)
+- F23 — Internal Third-Party Assessment Workspace — shipped backend; live demo-profile activation blocked by Supabase gateway HTTP 402 (2026-09-03)
+- F26 — Firm RBAC & Audit Log — shipped — audit-only phase (2026-09-03)
 <!-- END GENERATED: SPEC INDEX -->
 
 ## Stack facts

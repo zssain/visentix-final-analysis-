@@ -1,20 +1,8 @@
-"""Local auth router — password login, local JWT issuance.
-
-Users are stored in local_users.json at the project root (never committed with
-real credentials; gitignored in production).  Passwords are PBKDF2-SHA256
-(260 000 iterations).  Tokens are HS256 JWTs accepted by get_current_user.
-
-To add or change users run:
-    python scripts/setup_local_auth.py
-"""
+"""Supabase credential login with application-session JWT issuance."""
 
 import datetime
-import hashlib
-import hmac
-import json
 import time
 from collections import deque
-from pathlib import Path
 from threading import Lock
 
 import jwt
@@ -23,12 +11,12 @@ from pydantic import BaseModel
 
 from app.config import settings
 from app.logging import get_logger
+from app.services.authentication import LoginIdentity, authenticate_with_supabase
 
 log = get_logger(__name__)
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 _TOKEN_TTL_HOURS = 24
-_USERS_FILE = Path(__file__).parent.parent.parent / "local_users.json"
 
 
 # ── Login rate limiting (per-account + per-IP) ──────────────────────
@@ -86,26 +74,15 @@ def _rl_clear(email: str, ip: str) -> None:
         _rl_fail.pop(f"ip:{ip}", None)
 
 
-def _load_users() -> list[dict]:
-    if not _USERS_FILE.exists():
-        return []
-    return json.loads(_USERS_FILE.read_text())
-
-
-def _verify_password(password: str, salt: str, stored_hash: str) -> bool:
-    candidate = hashlib.pbkdf2_hmac(
-        "sha256", password.encode(), salt.encode(), 260_000
-    ).hex()
-    return hmac.compare_digest(candidate, stored_hash)
-
-
-def _mint_token(user: dict) -> str:
+def _mint_token(user: LoginIdentity) -> str:
     now = datetime.datetime.now(datetime.UTC)
     payload = {
-        "sub": user["id"],
-        "email": user["email"],
-        "app_role": user["role"],
-        "organization_id": user.get("organization_id"),
+        "sub": user.user_id,
+        "email": user.email,
+        "app_role": user.role,
+        "organization_id": user.organization_id,
+        "partner_id": user.partner_id,
+        "third_party_assessment_enabled": user.third_party_assessment_enabled,
         "aud": "authenticated",
         "iat": now,
         "exp": now + datetime.timedelta(hours=_TOKEN_TTL_HOURS),
@@ -142,22 +119,20 @@ async def login(body: LoginRequest, request: Request) -> TokenResponse:
             headers={"Retry-After": str(retry_after)},
         )
 
-    users = _load_users()
-    user = next((u for u in users if u["email"] == body.email), None)
-
-    if user is None or not _verify_password(body.password, user["salt"], user["password_hash"]):
+    user = await authenticate_with_supabase(body.email, body.password)
+    if user is None:
         _rl_record_failure(body.email, ip)
-        log.warning("Failed login attempt for: %s", body.email)
+        log.warning("Failed login attempt")
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
 
     _rl_clear(body.email, ip)  # success resets the counters
     token = _mint_token(user)
-    log.info("Login OK: %s (%s)", user["email"], user["role"])
+    log.info("Login succeeded for user %s", user.user_id)
 
     return TokenResponse(
         access_token=token,
-        user_id=user["id"],
-        email=user["email"],
-        role=user["role"],
-        organization_id=user.get("organization_id"),
+        user_id=user.user_id,
+        email=user.email,
+        role=user.role,
+        organization_id=user.organization_id,
     )

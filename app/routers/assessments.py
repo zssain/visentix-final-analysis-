@@ -14,6 +14,10 @@ from app.auth import AuthenticatedUser, require_role
 from app.db import supabase_rest_get, supabase_rest_patch, supabase_rest_post
 from app.logging import get_logger
 from app.services.ratelimit import check_rate_limit, client_key
+from app.services.tenancy import (
+    customer_can_access_workspace_row,
+    customer_workspace_scope,
+)
 
 # SEC-005: intake is the most expensive path (extract → decompose → LLM classify →
 # score). Throttle creates per-authenticated-user. ~10/min balances a legit user
@@ -30,6 +34,7 @@ from app.services.intake.extract import (
     extract_from_url,
     looks_like_privacy_policy,
 )
+from app.services.intake.entity_scan import scan_notice_entities
 from app.services.intake.persist import classify_clauses, persist_notice
 from app.services.intake.ssrf import SSRFError
 
@@ -50,13 +55,16 @@ async def list_assessments(
     `sme`/`admin` see all. A customer with no organization sees nothing (never
     the whole corpus).
     """
-    select = ("notice_id,organization_id,notice_type,effective_date,content_hash,"
+    select = ("notice_id,organization_id,workspace_organization_id,notice_type,effective_date,content_hash,"
               "organization(name,domain,industry,size,geography)")
     filters = ""
     if user.role == "customer":
         if not user.organization_id:
             return []
-        filters = f"organization_id=eq.{user.organization_id}"
+        scope = customer_workspace_scope(user)
+        if not scope.allowed:
+            return []
+        filters = scope.clause.removeprefix("&")
     r = await supabase_rest_get("privacy_notice", select=select, filters=filters, limit=100)
     notices = r.json()
     if not isinstance(notices, list) or not notices:
@@ -111,11 +119,10 @@ async def finding_evidence(
     """The frozen evidence stack for a finding (served from the store, never
     re-assembled at render). Org-scoped: a customer may only read its own."""
     if user.role == "customer":
-        r = await supabase_rest_get("privacy_notice", select="organization_id",
+        r = await supabase_rest_get("privacy_notice", select="organization_id,workspace_organization_id",
                                     filters=f"notice_id=eq.{assessment_id}", limit=1)
         rows = r.json() if r.status_code == 200 else []
-        owner = rows[0]["organization_id"] if rows else None
-        if not owner or owner != user.organization_id:
+        if not rows or not customer_can_access_workspace_row(user, rows[0]):
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not your assessment.")
     from app.services.evidence import get_evidence
     ev = await get_evidence(assessment_id, finding_id)
@@ -129,11 +136,10 @@ async def _assert_owns(assessment_id: str, user: AuthenticatedUser) -> None:
     """Customer may only touch its own assessment (403 otherwise)."""
     if user.role != "customer":
         return
-    r = await supabase_rest_get("privacy_notice", select="organization_id",
+    r = await supabase_rest_get("privacy_notice", select="organization_id,workspace_organization_id",
                                 filters=f"notice_id=eq.{assessment_id}", limit=1)
     rows = r.json() if r.status_code == 200 else []
-    owner = rows[0]["organization_id"] if rows else None
-    if not owner or owner != user.organization_id:
+    if not rows or not customer_can_access_workspace_row(user, rows[0]):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not your assessment.")
 
 
@@ -265,7 +271,12 @@ async def _run_intake_job(
             file=upload, on_stage=on_stage,
         )
         await intake_jobs.complete_job(
-            job_id, assessment_id=result.get("assessment_id"), result=result)
+            job_id,
+            assessment_id=result.get("assessment_id"),
+            result=result,
+            organization_id=result.get("target_organization_id"),
+            workspace_organization_id=result.get("workspace_organization_id"),
+        )
     except HTTPException as e:
         await intake_jobs.fail_job(job_id, f"{e.status_code}: {e.detail}")
     except Exception as e:  # noqa: BLE001 — record honestly; never crash the loop
@@ -300,8 +311,13 @@ async def create_assessment_async(
     poll `GET /assessments/{id}/status`. A repeat submit carrying the same
     `idempotency_key` returns the SAME job — no duplicate assessment.
     """
-    if idempotency_key:
-        existing = await intake_jobs.find_by_idempotency_key(idempotency_key)
+    idempotency_scope = user.organization_id or organization_id or user.user_id
+    stored_idempotency_key = (
+        hashlib.sha256(f"{idempotency_scope}|{idempotency_key}".encode()).hexdigest()
+        if idempotency_key else None
+    )
+    if stored_idempotency_key:
+        existing = await intake_jobs.find_by_idempotency_key(stored_idempotency_key)
         if existing:
             # An idempotent replay does no new work → don't spend the caller's budget.
             return {"assessment_id": existing["job_id"], "status": existing["status"],
@@ -327,7 +343,11 @@ async def create_assessment_async(
     org_for_job = user.organization_id if user.role == "customer" else organization_id
     job = await intake_jobs.create_job(
         organization_id=org_for_job, created_by=user.user_id,
-        idempotency_key=idempotency_key)
+        idempotency_key=stored_idempotency_key,
+        workspace_organization_id=(
+            user.organization_id if user.role == "customer" else None
+        ),
+    )
     job_id = job["job_id"]
     if job.get("_idempotent_replay"):
         return {"assessment_id": job_id, "status": job["status"],
@@ -362,7 +382,10 @@ async def assessment_status(
     # Org ownership (mirrors the rest of the tenant boundary): a customer may only
     # poll a job belonging to its own organization.
     if user.role == "customer" and (
-        not user.organization_id or job.get("organization_id") != user.organization_id
+        not user.organization_id
+        or (
+            job.get("workspace_organization_id") or job.get("organization_id")
+        ) != user.organization_id
     ):
         raise HTTPException(status_code=403, detail="Not permitted")
     return {
@@ -495,6 +518,7 @@ async def _persist_intake_scope(
     organization_size: Optional[str], public_private: Optional[str],
     geography: Optional[str], state_footprint: list[str], selected_laws: list[str],
     data_categories: list[str], business_practices: list[str],
+    workspace_organization_id: str | None = None,
 ) -> None:
     """Freeze optional declared inputs once per notice (migration 0048)."""
     values = {
@@ -515,7 +539,13 @@ async def _persist_intake_scope(
     }
     response = await supabase_rest_post(
         "assessment_intake_scope",
-        {"notice_id": notice_id, "organization_id": org_id, **values, "provenance": provenance},
+        {
+            "notice_id": notice_id,
+            "organization_id": org_id,
+            "workspace_organization_id": workspace_organization_id,
+            **values,
+            "provenance": provenance,
+        },
     )
     # Scope is frozen per notice. An idempotent replay may meet the unique key,
     # but it must never merge new values into the already-recorded scope.
@@ -523,6 +553,31 @@ async def _persist_intake_scope(
         return
     if response.status_code >= 400:
         raise RuntimeError(f"assessment intake scope persist failed: HTTP {response.status_code}")
+
+
+async def _persist_entity_flag(notice_id: str, entity_scan) -> bool:
+    """Persist a score-neutral multi-notice flag; never store raw notice text."""
+    if not entity_scan.flagged:
+        return False
+    response = await supabase_rest_post(
+        "submission_entity_flag",
+        {
+            "assessment_id": notice_id,
+            "detected_entities": list(entity_scan.detected_entities),
+            "evidence": list(entity_scan.evidence),
+            # Honest absence until an expert-owned calibration exists.
+            "confidence": None,
+        },
+    )
+    if response.status_code == 409:
+        return True
+    if response.status_code >= 400:
+        log.warning(
+            "Submission entity flag could not be stored for assessment %s (HTTP %s)",
+            notice_id[:12], response.status_code,
+        )
+        return False
+    return True
 
 
 async def run_assessment_intake(
@@ -663,8 +718,24 @@ async def run_assessment_intake(
     # organization — a client-supplied organization_id/name can never redirect a
     # customer's notice (URL, paste, or upload) into another tenant. Admins may
     # target a specific org / derive one from the assessed URL.
+    workspace_org_id: str | None = None
     if user.role == "customer" and user.organization_id:
-        org_id = user.organization_id
+        workspace_org_id = user.organization_id
+        if user.third_party_assessment_enabled and source_url:
+            from app.services.internal_demo import resolve_internal_demo_target
+            try:
+                org_id = await resolve_internal_demo_target(
+                    user,
+                    source_url=source_url,
+                    organization_name=organization_name,
+                )
+            except (ValueError, RuntimeError) as exc:
+                raise HTTPException(
+                    status_code=status.HTTP_502_BAD_GATEWAY,
+                    detail="Could not register the assessment target.",
+                ) from exc
+        else:
+            org_id = user.organization_id
     else:
         org_id = organization_id
         if not org_id and organization_name:
@@ -690,6 +761,7 @@ async def run_assessment_intake(
     # ── 3. DECOMPOSE ─────────────────────────────────────────
     await _stage("segmenting")
     notice = decompose(extracted_text)
+    entity_scan = scan_notice_entities(notice)
 
     # ── 4. LLM CLASSIFY (bounded concurrency) ────────────────
     await _stage("classifying")
@@ -711,13 +783,16 @@ async def run_assessment_intake(
         upload_filename=upload_filename,
         upload_mime=upload_mime,
         upload_file_hash=upload_file_hash,
+        workspace_organization_id=workspace_org_id,
     )
+    entity_flag_persisted = await _persist_entity_flag(notice_id, entity_scan)
     await _persist_intake_scope(
         notice_id, org_id, organization_name=organization_name,
         organization_size=organization_size, public_private=public_private,
         geography=geography, state_footprint=footprint_list,
         selected_laws=selected_laws_list or jurisdictions_list,
         data_categories=data_categories_list, business_practices=business_practices_list,
+        workspace_organization_id=workspace_org_id,
     )
 
     # ── 6. SCORE (live scoring — Prompt 6 adds the module) ───
@@ -727,7 +802,12 @@ async def run_assessment_intake(
     try:
         from app.services.live_scoring import score_and_persist
         result = await score_and_persist(
-            org_id, notice_id, notice, refresh_profile=profile_inputs_changed)
+            org_id,
+            notice_id,
+            notice,
+            refresh_profile=profile_inputs_changed,
+            workspace_organization_id=workspace_org_id,
+        )
         scoring_summary = result.get("summary")
     except ImportError:
         # live_scoring module not yet created (Prompt 6)
@@ -743,6 +823,8 @@ async def run_assessment_intake(
     response: dict = {
         "assessment_id": notice_id,
         "organization_id": org_id,
+        "target_organization_id": org_id,
+        "workspace_organization_id": workspace_org_id,
         "status": "scored" if scoring_summary else "decomposed",
         "sections": len(notice.sections),
         "clauses": len(notice.clauses),  # total extracted units (incl. flagged noise)
@@ -761,6 +843,13 @@ async def run_assessment_intake(
         "classification": {
             "llm": llm_classified,
             "keyword_fallback": keyword_fallback,
+        },
+        "submission_entity_flag": {
+            "flagged": entity_scan.flagged,
+            "detected_entities": list(entity_scan.detected_entities),
+            "evidence": list(entity_scan.evidence),
+            "confidence": None,
+            "persisted": entity_flag_persisted,
         },
     }
     if scoring_summary:

@@ -10,6 +10,7 @@ from httpx import ASGITransport, AsyncClient
 
 from app.config import settings
 from app.main import app
+from app.services.authentication import LoginIdentity
 
 # ---------- helpers ----------
 
@@ -205,20 +206,72 @@ async def test_login_rate_limited_after_repeated_failures():
     import app.routers.auth as A
     A._rl_fail.clear()  # isolate from other tests
 
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as c:
-        bad = {"email": "ratelimit@example.com", "password": "wrong-password"}
-        # First _RL_MAX_PER_ACCOUNT attempts fail with 401.
-        for _ in range(A._RL_MAX_PER_ACCOUNT):
+    with patch("app.routers.auth.authenticate_with_supabase", new_callable=AsyncMock, return_value=None):
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as c:
+            bad = {"email": "ratelimit@example.com", "password": "wrong-password"}
+            # First _RL_MAX_PER_ACCOUNT attempts fail with 401.
+            for _ in range(A._RL_MAX_PER_ACCOUNT):
+                r = await c.post("/auth/login", json=bad)
+                assert r.status_code == 401
+            # The next one is locked out.
             r = await c.post("/auth/login", json=bad)
-            assert r.status_code == 401
-        # The next one is locked out.
-        r = await c.post("/auth/login", json=bad)
-        assert r.status_code == 429
-        assert "Retry-After" in r.headers
-        detail = r.json()["detail"].lower()
-        assert "too many sign-in attempts" in detail
-        # Register-safe: no security jargon / attack-class names.
-        for jargon in ("brute", "attack", "lockout", "ip address", "rate limit"):
-            assert jargon not in detail
+            assert r.status_code == 429
+            assert "Retry-After" in r.headers
+            detail = r.json()["detail"].lower()
+            assert "too many sign-in attempts" in detail
+            # Register-safe: no security jargon / attack-class names.
+            for jargon in ("brute", "attack", "lockout", "ip address", "rate limit"):
+                assert jargon not in detail
+    A._rl_fail.clear()
+
+
+@pytest.mark.anyio
+async def test_login_uses_supabase_identity_and_keeps_response_contract():
+    import app.routers.auth as A
+    A._rl_fail.clear()
+    identity = LoginIdentity(
+        user_id=_TEST_USER_ID,
+        email="demo@example.com",
+        role="customer",
+        organization_id=_TEST_ORG_ID,
+        partner_id=None,
+        third_party_assessment_enabled=True,
+    )
+    with patch(
+        "app.routers.auth.authenticate_with_supabase",
+        new_callable=AsyncMock,
+        return_value=identity,
+    ) as authenticate:
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as c:
+            r = await c.post(
+                "/auth/login",
+                json={"email": " Demo@Example.com ", "password": "not-logged"},
+            )
+    assert r.status_code == 200
+    assert r.json()["token_type"] == "bearer"
+    assert r.json()["user_id"] == _TEST_USER_ID
+    assert r.json()["organization_id"] == _TEST_ORG_ID
+    assert r.json()["access_token"]
+    authenticate.assert_awaited_once_with(" Demo@Example.com ", "not-logged")
+
+
+@pytest.mark.anyio
+async def test_login_rejections_have_one_generic_response():
+    import app.routers.auth as A
+    A._rl_fail.clear()
+    with patch(
+        "app.routers.auth.authenticate_with_supabase",
+        new_callable=AsyncMock,
+        return_value=None,
+    ):
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as c:
+            r = await c.post(
+                "/auth/login",
+                json={"email": "unknown@example.com", "password": "not-logged"},
+            )
+    assert r.status_code == 401
+    assert r.json() == {"detail": "Invalid credentials"}
     A._rl_fail.clear()

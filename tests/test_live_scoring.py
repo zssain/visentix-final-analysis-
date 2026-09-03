@@ -85,7 +85,10 @@ def _mock_httpx_client():
             resp.json.return_value = []
         return resp
 
+    posted = []
+
     async def mock_post(url, **kwargs):
+        posted.append((url, kwargs.get("json")))
         resp = MagicMock()
         resp.status_code = 201
         resp.text = "Created"
@@ -94,8 +97,59 @@ def _mock_httpx_client():
 
     client.get = mock_get
     client.post = mock_post
+    client.posted = posted
 
     return client
+
+
+@pytest.mark.anyio
+async def test_workspace_owner_is_persisted_on_every_customer_result_table():
+    notice = _make_notice()
+    mock_client = _mock_httpx_client()
+    workspace_id = "workspace-test"
+
+    with patch("app.services.live_scoring.httpx.AsyncClient") as MockClass, \
+         patch("app.services.review.get_or_create_review"):
+        MockClass.return_value.__aenter__ = AsyncMock(return_value=mock_client)
+        MockClass.return_value.__aexit__ = AsyncMock(return_value=False)
+        with patch(
+            "app.services.benchmark.population.build_population",
+            new_callable=AsyncMock,
+        ) as mock_pop:
+            mock_pop.return_value = {
+                "population_key": "test",
+                "members": [
+                    {"organization_id": f"p{i}", "pgms": 50,
+                     "benchmark_weight": 0.8, "similarity": 0.7}
+                    for i in range(10)
+                ],
+                "cohort_size": 10,
+                "relaxations": [],
+                "benchmark_population_version": 1,
+                "confidence_penalty": 0.1,
+                "band": "broad",
+            }
+            await score_and_persist(
+                "target-test",
+                "notice-test",
+                notice,
+                workspace_organization_id=workspace_id,
+            )
+
+    by_table = {
+        url.rsplit("/", 1)[-1]: payload
+        for url, payload in mock_client.posted
+        if url.rsplit("/", 1)[-1] in {
+            "derived_data_item", "report_snapshot", "risk_finding"
+        }
+    }
+    assert set(by_table) == {"derived_data_item", "report_snapshot", "risk_finding"}
+    for table, payload in by_table.items():
+        rows = payload if isinstance(payload, list) else [payload]
+        assert rows and all(
+            row["workspace_organization_id"] == workspace_id for row in rows
+        ), table
+        assert all(row["organization_id"] == "target-test" for row in rows), table
 
 
 # ── Object type mapping ──────────────────────────────────────

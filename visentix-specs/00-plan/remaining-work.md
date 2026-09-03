@@ -1,6 +1,6 @@
 # Remaining Work — what is left, and who unblocks it
 
-**Version:** 2.0 · 2026-09-01 · Branch `feat/shadcn-ui-system`
+**Version:** 2.1 · 2026-09-03 · Branch `feat/F22-F24-F25-F26-implementation-pack`
 
 **This file holds only open items.** Nothing here is done. When something
 closes, delete its row — a list that only grows stops being read. What was
@@ -27,22 +27,7 @@ Nothing below needs anyone's approval.
 
 ---
 
-## 2. Needs you — one command
-
-| Item | Action |
-|---|---|
-| **Migration 0049** (`assessment_job.kind`) | `python3 scripts/db/apply_and_record.py` |
-
-Additive, idempotent, registered in `APPLY_NOW`. **The two async endpoints
-(`/admin/trigger-assessment/async`, `/admin/quarterly/build/async`) cannot run
-until it lands.** Two ledger tests stay deselected meanwhile — the same test name
-exists in `tests/test_migrations.py` *and* `tests/test_f02_ingestion_foundation.py`,
-so deselecting one leaves the other failing. They are deselected, never weakened:
-the guard is working, and it should keep failing until the ledger is real.
-
----
-
-## 3. Needs the expert
+## 2. Needs the expert
 
 Ordered by how much damage each does while open.
 
@@ -59,7 +44,7 @@ Ordered by how much damage each does while open.
 
 ---
 
-## 4. Needs the owner — naming and structure
+## 3. Needs the owner — naming and structure
 
 The ⬥ items from `route-and-surface-plan.md`. Mechanical once decided; none is
 technically hard. ~3 days in total.
@@ -77,7 +62,7 @@ technically hard. ~3 days in total.
 
 ---
 
-## 5. Needs a product decision
+## 4. Needs a product decision
 
 Each is a gap the language research found against every assurance-report
 skeleton it verified. None can be built without the decision, because building
@@ -96,7 +81,7 @@ it would mean inventing the missing value.
 
 ---
 
-## 6. Blocked on a dependency we own
+## 5. Blocked on a dependency we own
 
 | Item | Blocked on |
 |---|---|
@@ -105,7 +90,7 @@ it would mean inventing the missing value.
 
 ---
 
-## 7. Known-failing, and not remaining work
+## 6. Known-failing, and not remaining work
 
 Recorded so a green-run claim is never made on a tree that is not.
 
@@ -115,7 +100,7 @@ Recorded so a green-run claim is never made on a tree that is not.
 
 ---
 
-## 8. Loose ends worth closing
+## 7. Loose ends worth closing
 
 Small, and each is a real inconsistency rather than a preference.
 
@@ -139,6 +124,12 @@ spec that cites it.
 
 ## Changelog
 
+- 2.1 (2026-09-03): Removed migration 0049 from open work after live
+  introspection confirmed `assessment_job.kind`, its `(kind, status, created_at)`
+  index, and the checksum-ledger row. Re-running the additive applier completed
+  without changing the ledger. The implementation pack's claimed pytest
+  deselections were not present at commit `d26f410`, so no test configuration was
+  removed.
 - 2.0 (2026-09-01): Trimmed to open items only. Removed the completed UI-migration
   ledger (every route is on the component system; legacy CSS 2,562 → 276 lines),
   the guard inventory, and the closed-item history — all of it now lives in

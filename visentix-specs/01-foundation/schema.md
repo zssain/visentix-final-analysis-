@@ -1,6 +1,6 @@
 # Schema — Canonical Data Model
 
-**Version:** 1.3.10 · 2026-08-21 · Authority: this file supersedes prose in the source docs; physical DDL lives in migrations, but no table/field may exist that isn't described here or in a feature spec that amends this file.
+**Version:** 1.3.12 · 2026-09-03 · Authority: this file supersedes prose in the source docs; physical DDL lives in migrations, but no table/field may exist that isn't described here or in a feature spec that amends this file.
 **Storage:** Postgres (Supabase-hosted). Embeddings via pgvector (`all-MiniLM-L6-v2`, 384-dim). Hybrid graph/vector semantics expressed relationally for MVP.
 
 ---
@@ -20,6 +20,7 @@
 |---|---|---|
 | `tenant` | tenant_id, name, plan_tier, created_at | Customer account / partner workspace |
 | `local_users` / `user_profile` | user_id, tenant_id, email, role (customer, sme, admin, partner), created_at | Custom JWT auth (ES256); roles drive routing |
+| `workspace_target` | workspace_target_id, workspace_organization_id, target_organization_id, normalized_domain, registered_by, created_at | **F23 internal-demo ownership edge (migration 0052).** A workspace may assess an isolated target without treating the target as its tenant. Backend-only and deny-by-default. |
 | `platform_setting` | key, value, updated_by, updated_at | e.g. gate_mode, LOW_CONFIDENCE_COHORT_N |
 
 ### 2.2 Source & corpus layer
@@ -83,6 +84,8 @@
 | `gold_label` | label_id (pk), clause_id (fk → disclosure_clause), `labeler` (NOT NULL), labeled_at, gold_domain (category_v2 vocabulary: 8 slugs + other), verdict (correct/incorrect/ambiguous), note, gold_set_version | **F17 eval harness (migration 0036).** Human gold-standard labels for classifier/VCI evaluation. `labeler` is NOT NULL — the harness pre-fills nothing; a label can never be written without a human. Read-only measurement input; never feeds scoring. |
 | `monitoring_event` | event_id, trigger_type (notice_changed/score_moved/regulator_signal/cohort_rebenchmarked), source_id, prior_value, current_value, material_change_indicator, severity, ts; **F07 (0037) additive:** `organization_id` (fk, nullable), `event_type` (same 4-value CHECK), `payload` (jsonb) | Powers change feed. **F07** jobs write org-attributed events with typed payloads via the additive columns; old rows keep them NULL and stay URL-scoped (§5.4). Event-type vocabulary unchanged — the four §2.8 values only. |
 | `alert` | alert_id, tenant_id, finding/risk refs, escalation_score (F-013), severity (high/medium), status | Powers alert center |
+| `audit_event` | id, organization_id, user_id, action, resource_type, resource_id, at, request_id, expires_at | **F26 phase 1.** Append-only metadata for authenticated requests. Stores no body, notice text, credential, token, query string, or raw URL. `expires_at` records the 12-month retention boundary; physical expiry remains an ops-owned follow-up because destructive jobs require separate approval under AGENTS.md §2. |
+| `submission_entity_flag` | id, assessment_id, detected_entities (jsonb), evidence (jsonb), confidence (nullable), flagged_at | **F01 abuse/data-quality signal.** Deterministic evidence that one submission may contain several notices. Flag-only until an expert-owned blocking policy exists; never changes a score and never calls an LLM. |
 
 ### 2.9 Ingestion, connector & external-signal layer (new in v1.3)
 
@@ -159,6 +162,8 @@ Applying migrations **0014 and 0017 to live is authorized as an explicit Phase-1
 The `monitoring_event` and `formula_version` tables remain on the read-only-inputs list (AGENTS.md §2); this pass added no columns to them.
 
 ## 6. Changelog
+- 1.3.12 (2026-09-03): Added the F23 internal-demo workspace/target model: `workspace_target`, nullable `profiles.third_party_assessment_enabled`, and nullable `workspace_organization_id` ownership columns on new assessment/result rows. Existing rows remain untouched and use an explicit legacy read fallback. Demo targets are private, unmonitored, and excluded from benchmark/quarterly output. Source: owner selected Option 1, 2026-09-03.
+- 1.3.11 (2026-09-03): Added the F26 phase-1 append-only `audit_event` catalog entry and the F01 flag-only `submission_entity_flag` entry. Both are backend-only, deny-by-default tables; no protected corpus row is changed. Audit rows carry an explicit 12-month expiry date without authorizing a destructive purge job. Source: owner product direction, 2026-09-03.
 - 1.3.10 (2026-08-21): **F01 assessment intake scope (migration 0048).** Added backend-only `assessment_intake_scope`, one immutable row per notice, for optional organization profile, footprint, selected-law scope, declared data categories/practices, and per-field provenance. The table is additive, RLS deny-by-default, and does not rewrite protected corpus rows. Source: engineer (F01/F05 QA remediation).
 - 1.3.9 (2026-08-18): **§2.4 — Phase 2 obligation taxonomy (breach + sector laws; all 50 states + DC assessable).** Documented four new `requirement_type`s (`security_practices_disclosure` [new `security` domain], `biometric_disclosure`, `consumer_health_data_disclosure`, `data_broker_disclosure`), the broadening of `retention_disclosure` (secure-disposal) and `childrens_data_restrictions` (AADC), and the explicit exclusion of post-incident duties (scored only as F05 reference context). Recorded that this does NOT trigger OD-06 (models breach/sector *laws* as obligations, not breach *incidents* into F-004) and adds no scoring formula. New finding code **SEC-006** is marked **proposed — needs expert confirmation**. Taxonomy only; code/DB implementation follows on approval. Source: operator decision (Phase 2), verified vs primary-source breach/sector research.
 - 1.3.8 (2026-07-29): **§5.2 governance rule 4 — RLS on every public table (migration 0042 + incident).** Every migration creating a public table must `ENABLE ROW LEVEL SECURITY` + `REVOKE ALL … FROM anon, authenticated` (deny-by-default; the API uses the service-role key which bypasses RLS, the client never uses the anon key for data). Client-anon-readable tables additionally get F10-pattern per-org policies with cross-tenant tests. Enforced by `tests/test_rls_enabled.py` + `db/migrations/_TEMPLATE.sql`. Closes the RLS-disabled exposure of 38/56 public tables (0042). Lesson L-008. Source: engineer (security incident 2026-07-29).

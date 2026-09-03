@@ -93,12 +93,18 @@ def _sb_get(path: str) -> list[dict]:
 def assessment_org_id(assessment_id: str) -> str | None:
     """Resolve the organization that owns an assessment (by notice_id, then by
     a snapshot, then treating the id itself as an organization_id)."""
-    rows = _sb_get(f"privacy_notice?select=organization_id&notice_id=eq.{assessment_id}&limit=1")
+    rows = _sb_get(
+        f"privacy_notice?select=organization_id,workspace_organization_id"
+        f"&notice_id=eq.{assessment_id}&limit=1"
+    )
     if rows:
-        return rows[0].get("organization_id")
-    rows = _sb_get(f"report_snapshot?select=organization_id&notice_id=eq.{assessment_id}&limit=1")
+        return rows[0].get("workspace_organization_id") or rows[0].get("organization_id")
+    rows = _sb_get(
+        f"report_snapshot?select=organization_id,workspace_organization_id"
+        f"&notice_id=eq.{assessment_id}&limit=1"
+    )
     if rows:
-        return rows[0].get("organization_id")
+        return rows[0].get("workspace_organization_id") or rows[0].get("organization_id")
     rows = _sb_get(f"organization?select=organization_id&organization_id=eq.{assessment_id}&limit=1")
     return rows[0].get("organization_id") if rows else None
 
@@ -428,8 +434,12 @@ def _store_snapshot(assessment_id: str, report_dict: dict) -> str:
     report_dict["_content_hash"] = ch
 
     # Resolve org_id
-    notices = _sb_get(f"privacy_notice?select=organization_id&notice_id=eq.{assessment_id}&limit=1")
+    notices = _sb_get(
+        f"privacy_notice?select=organization_id,workspace_organization_id"
+        f"&notice_id=eq.{assessment_id}&limit=1"
+    )
     org_id = notices[0]["organization_id"] if notices else ""
+    workspace_org_id = notices[0].get("workspace_organization_id") if notices else None
 
     sections_by_number = {
         section.get("number"): section.get("content", {})
@@ -441,6 +451,7 @@ def _store_snapshot(assessment_id: str, report_dict: dict) -> str:
     payload = {
         "snapshot_id": snapshot_id,
         "organization_id": org_id,
+        "workspace_organization_id": workspace_org_id,
         "notice_id": assessment_id,
         "rendered_report": json.dumps(report_dict, sort_keys=True, default=str),
         "content_hash": ch,
@@ -609,6 +620,26 @@ def _recommendation_basis_label(finding: dict, selected_laws: set[str]) -> str:
     return "Basis not recorded"
 
 
+def _validate_finding_catalog_codes(findings: list[dict]) -> None:
+    """Fail closed when a stored finding lacks an authored catalog entry."""
+    codes = sorted({
+        str(row.get("finding_type_code") or "").strip()
+        for row in findings
+        if row.get("finding_type_code")
+    })
+    if not codes:
+        return
+    encoded = ",".join(f'"{code}"' for code in codes)
+    catalog_rows = _sb_get(f"finding_type?select=code&code=in.({encoded})&limit={len(codes)}")
+    known = {str(row.get("code") or "") for row in catalog_rows}
+    if set(codes) - known:
+        log.error("Report build stopped: stored finding code is absent from the authored catalog")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="The report could not be assembled from the stored finding catalog.",
+        )
+
+
 def _assemble_from_live(assessment_id: str) -> ReportPayload:
     """Assemble report from live DB data. Used when no snapshot exists."""
 
@@ -684,6 +715,7 @@ def _assemble_from_live(assessment_id: str) -> ReportPayload:
             f"formula_version_id,benchmark_deviation_score"
             f"&organization_id=eq.{org_id}&order=finding_type_code.asc&limit=20"
         )
+    _validate_finding_catalog_codes(findings_raw)
 
     finding_ids = [str(row.get("finding_id")) for row in findings_raw if row.get("finding_id")]
     finding_clause_map: dict[str, list[str]] = {}
@@ -744,7 +776,7 @@ def _assemble_from_live(assessment_id: str) -> ReportPayload:
                 "code": code,
                 "domain": f.get("domain", ""),
                 "severity": f.get("severity", "medium"),
-                "score": f.get("score", 0),
+                "score": f.get("score"),
                 "confidence": frozen.get("confidence") or f.get("confidence_score"),
                 "formula_version": frozen.get("formula_version_id") or f.get("formula_version_id"),
                 "clause_ids": clause_ids,
@@ -851,19 +883,27 @@ def _assemble_from_live(assessment_id: str) -> ReportPayload:
     } if population_key or population_version else {}
 
     # Narrative — frozen at assembly time
-    overall_score = scores.get("f010", {}).get("score", 0)
-    overall_band = _maturity_band(overall_score) if overall_score > 0 else ""
-    percentile = scores.get("f011", {}).get("score", 0)
+    overall_score = scores.get("f010", {}).get("score")
+    overall_band = (
+        _maturity_band(overall_score)
+        if isinstance(overall_score, (int, float)) else ""
+    )
+    percentile = scores.get("f011", {}).get("score")
 
-    if scores:
+    if isinstance(overall_score, (int, float)):
         cohort_desc = f"n={cohort_size} peers" if cohort_size > 0 else "cohort not yet constructed"
+        percentile_clause = (
+            f", placing it at the {percentile:.1f}th percentile "
+            f"within its peer cohort ({cohort_desc}"
+            f"{f', as of {cohort_date}' if cohort_date else ''})"
+            if isinstance(percentile, (int, float)) else
+            ". No peer percentile is recorded"
+        )
         exec_summary = (
             f"{org_name} presents an overall privacy intelligence score of "
             f"{overall_score:.1f} out of 100"
             f"{f' ({overall_band})' if overall_band else ''}"
-            f", placing it at the {percentile:.1f}th percentile "
-            f"within its peer cohort ({cohort_desc}"
-            f"{f', as of {cohort_date}' if cohort_date else ''}). "
+            f"{percentile_clause}. "
             f"The assessment identified {len(findings)} areas of elevated exposure. "
             f"Confidence level: {vci_label}."
         )
@@ -882,9 +922,13 @@ def _assemble_from_live(assessment_id: str) -> ReportPayload:
     takeaways = []
     for f in top_findings:
         sev = "elevated" if f["severity"] == "high" else "moderate"
+        score_clause = (
+            f", score {f['score']:.1f}/100"
+            if isinstance(f.get("score"), (int, float)) else ", score not recorded"
+        )
         takeaways.append(
             f"The {f['domain'].replace('_', ' ')} domain presents {sev} exposure "
-            f"(finding {f['code']}, score {f['score']:.1f}/100)."
+            f"(finding {f['code']}{score_clause})."
         )
 
     # Load real recommendations from recommendation_library

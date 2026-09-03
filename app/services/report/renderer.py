@@ -37,6 +37,7 @@ import re
 from pathlib import Path
 
 from app.services.report.assembly import ReportPayload, ReportSection
+from app.services.report.report_tokens import REPORT_COLORS
 
 # ── Design assets (read once at import → deterministic) ─────────────────────
 _HERE = Path(__file__).resolve().parent
@@ -64,13 +65,14 @@ _CSS = _read_text(_HERE / "report.css")
 # Reversed/white wordmark for the dark cover + back panels. If the asset is
 # missing the cover falls back to a text wordmark (documented owner-asset gap).
 _WORDMARK_DARK = _data_uri("wordmark-dark.png", "image/png")
+_WORDMARK_LIGHT = _data_uri("wordmark-light.png", "image/png")
 
 # ── Risk ramp (one ramp, used everywhere) ───────────────────────────────────
 _RAMP = {
-    "low": "#2E9E6B",
-    "moderate": "#E9A23B",
-    "high": "#D9534F",
-    "elevated": "#C0392B",
+    "low": REPORT_COLORS["standing_good"],
+    "moderate": REPORT_COLORS["standing_mid"],
+    "high": REPORT_COLORS["standing_bad"],
+    "elevated": REPORT_COLORS["standing_bad"],
 }
 
 _DOMAIN_LABELS = {
@@ -151,7 +153,7 @@ _REPORT_PARTS: list[tuple[int | None, str, str, list[int]]] = [
 
 # SEC-006: default brand color used whenever the partner-supplied value fails
 # strict validation. Must NEVER be replaced by an unvalidated raw value.
-_DEFAULT_BRAND_COLOR = "#0f3460"
+_DEFAULT_BRAND_COLOR = REPORT_COLORS["brand"]
 
 # SEC-006: strict CSS color allowlist. Only hex (#rgb / #rrggbb / #rrggbbaa)
 # and rgb()/rgba() with numeric args. Anchored to the whole string so a payload
@@ -313,7 +315,7 @@ def _ramp_key(value, invert: bool = False) -> str:
 
 
 def _ramp_hex(value, invert: bool = False) -> str:
-    return _RAMP.get(_ramp_key(value, invert), "#AEBBC9")
+    return _RAMP.get(_ramp_key(value, invert), REPORT_COLORS["ring"])
 
 
 def _ordinal(value) -> str:
@@ -391,8 +393,8 @@ def _gauge(value, caption: str, invert: bool = False) -> str:
     if v is None:
         return (
             f'<svg class="gauge" viewBox="0 0 100 60" preserveAspectRatio="xMidYMid meet">'
-            f'<path d="{bg}" fill="none" stroke="#E3E9EF" stroke-width="9" stroke-linecap="round"/>'
-            f'<text x="50" y="44" text-anchor="middle" font-size="7.5" fill="#5B6B7F" '
+            f'<path d="{bg}" fill="none" stroke="{REPORT_COLORS["border"]}" stroke-width="9" stroke-linecap="round"/>'
+            f'<text x="50" y="44" text-anchor="middle" font-size="7.5" fill="{REPORT_COLORS["muted_foreground"]}" '
             f'font-style="italic">Not recorded</text></svg>'
             f'<div class="gauge-cap">{cap}</div>'
         )
@@ -402,15 +404,15 @@ def _gauge(value, caption: str, invert: bool = False) -> str:
     color = _ramp_hex(v, invert)
     return (
         f'<svg class="gauge" viewBox="0 0 100 60" preserveAspectRatio="xMidYMid meet">'
-        f'<path d="{bg}" fill="none" stroke="#E3E9EF" stroke-width="9" stroke-linecap="round"/>'
+        f'<path d="{bg}" fill="none" stroke="{REPORT_COLORS["border"]}" stroke-width="9" stroke-linecap="round"/>'
         f'<path d="{val}" fill="none" stroke="{color}" stroke-width="9" stroke-linecap="round"/>'
         f'<text x="50" y="42" text-anchor="middle" font-size="17" font-weight="bold" '
-        f'fill="#12365B">{v:.1f}</text></svg>'
+        f'fill="{REPORT_COLORS["primary"]}">{v:.1f}</text></svg>'
         f'<div class="gauge-cap">{cap}</div>'
     )
 
 
-def _glyph(kind: str = "diamond", color: str = "#2FB3A0") -> str:
+def _glyph(kind: str = "diamond", color: str = REPORT_COLORS["brand"]) -> str:
     if kind == "alert":
         inner = (f'<path d="M8 1.5 L15 14 L1 14 Z" fill="none" stroke="{color}" stroke-width="1.4" '
                  f'stroke-linejoin="round"/><line x1="8" y1="6" x2="8" y2="10" stroke="{color}" '
@@ -477,8 +479,8 @@ def render_html(report: ReportPayload, branding: dict | None = None) -> str:
     # and nothing else (byte-identical body).
     band = _branding_band(branding)
     body_html = band + body
-    # Closing bookend before the back cover (revised DDR-007) — kept in the same
-    # order as the web report so PDF parity holds.
+    # Additive closing presentation; governed section-N ids remain untouched.
+    body_html += _render_next_steps()
     body_html += _render_disclosure(report)
     back = _render_back_cover(report)
 
@@ -506,11 +508,11 @@ def _render_cover(section: ReportSection) -> str:
     org = _esc(c.get("organization", "")) or "Organization"
     date = _esc(c.get("date", "")) or "Not recorded"
     atype = _esc(c.get("report_title", "")) or "Privacy Intelligence Assessment"
-    if _WORDMARK_DARK:
-        logo = f'<img class="cover-logo" src="{_WORDMARK_DARK}" alt="Visentix">'
+    if _WORDMARK_LIGHT:
+        logo = f'<img class="cover-logo" src="{_WORDMARK_LIGHT}" alt="Visentix">'
     else:
         logo = ('<div class="cover-logo" style="font-size:24pt;font-weight:bold;'
-                'letter-spacing:2px;color:#fff;">VISENTIX</div>')
+                f'letter-spacing:2px;color:{REPORT_COLORS["primary_foreground"]};">VISENTIX</div>')
     scope = c.get("assessment_scope") or {}
     scope_html = ""
     if scope:
@@ -548,9 +550,8 @@ def _render_cover(section: ReportSection) -> str:
   <div class="cover-panel"></div>
   <div class="cover-accent"></div>
   {logo}
-  <div class="cover-kicker">Privacy Intelligence Report</div>
-  <div class="cover-org">{org}</div>
-  <div class="cover-title">Executive Benchmark &amp; Regulatory Risk Analysis</div>
+  <div class="cover-title">Privacy Notice<br>Intelligence Assessment</div>
+  <div class="cover-subtitle">Executive Benchmark &amp; Regulatory Risk Analysis</div>
   <div class="cover-meta"><table>
     <tr><td><div class="ml">Prepared For</div><div class="mv">{org}</div></td>
         <td><div class="ml">Report Date</div><div class="mv">{date}</div></td>
@@ -559,6 +560,27 @@ def _render_cover(section: ReportSection) -> str:
   <div class="cover-badge"><b>CONFIDENTIAL</b> &middot; This report contains proprietary
     Visentix intelligence and is intended solely for the use of the named recipient.</div>
 </section>{scope_html}"""
+
+
+def _render_next_steps() -> str:
+    """Authored operating steps; no score, deadline, owner, or outcome invented."""
+    steps = (
+        ("Share findings internally", "Distribute the frozen report to the people responsible for privacy, product, and review."),
+        ("Prioritize the action list", "Use stored severity, evidence, and confidence to decide which items to examine first."),
+        ("Review disclosure updates", "Have the appropriate owner and counsel review any proposed notice-language changes."),
+        ("Create the next snapshot", "Run a new assessment after changes so the prior report remains immutable and comparable."),
+    )
+    rows = "".join(
+        f'<li><b>{_esc(title)}</b><div>{_esc(body)}</div></li>'
+        for title, body in steps
+    )
+    return (
+        '<section class="report-section next-steps" id="section-next-steps">'
+        '<div class="sec-head"><div class="sec-num">&nbsp;</div>'
+        '<div class="sec-title-wrap"><div class="sec-kicker">Operationalizing the report</div>'
+        '<div class="sec-title">Next Steps</div></div></div>'
+        f'<ol class="next-step-list">{rows}</ol></section>'
+    )
 
 
 def _render_disclosure(report: ReportPayload) -> str:
@@ -605,7 +627,8 @@ def _render_back_cover(report: ReportPayload) -> str:
     if _WORDMARK_DARK:
         logo = f'<img src="{_WORDMARK_DARK}" alt="Visentix">'
     else:
-        logo = '<div style="font-size:26pt;font-weight:bold;letter-spacing:2px;color:#fff;">VISENTIX</div>'
+        logo = (f'<div style="font-size:26pt;font-weight:bold;letter-spacing:2px;'
+                f'color:{REPORT_COLORS["primary_foreground"]};">VISENTIX</div>')
     return f"""<section class="back">
   <div class="back-accent"></div>
   <div class="back-logo">{logo}</div>
@@ -701,7 +724,8 @@ def _sec_exec(c: dict) -> str:
     if not reg_tier:
         k3 = _kpi("Regulatory Exposure", "Not recorded", "Not yet measured", value_absent=True)
     else:
-        color = _ramp_hex(reg) if _num(reg) is not None else _RAMP.get(reg_tier, "#5B6B7F")
+        color = (_ramp_hex(reg) if _num(reg) is not None
+                 else _RAMP.get(reg_tier, REPORT_COLORS["muted_foreground"]))
         sub = f"exposure score {reg:.1f}" if _num(reg) is not None else "level assessed"
         k3 = _kpi("Regulatory Exposure",
                   f'<span style="color:{color};">{_esc(reg_tier).title()}</span>', _esc(sub))
@@ -718,7 +742,7 @@ def _sec_exec(c: dict) -> str:
             f'<div class="tx">{_prose(t)}</div></div>'
             for t in takeaways if _prose(t)
         )
-        tk_html = (f'<h3 style="margin-top:12pt;color:#12365B;font-size:10pt;">'
+        tk_html = (f'<h3 style="margin-top:12pt;color:{REPORT_COLORS["primary"]};font-size:10pt;">'
                    f'Key Intelligence Takeaways</h3><div class="takeaways">{rows}</div>')
     else:
         tk_html = _empty_state("Key takeaways not recorded",
@@ -791,7 +815,7 @@ def _sec_dashboard(c: dict) -> str:
         fill = f"f-{_ramp_key(val, inv)}" if _num(val) is not None else "f-muted"
         direction = _direction(inv)
         bars += _bar(f"{_esc(label)} <span class=\"caption\">{direction}</span>", val, fill)
-    bars_html = (f'<h3 style="margin-top:14pt;color:#12365B;font-size:10pt;">'
+    bars_html = (f'<h3 style="margin-top:14pt;color:{REPORT_COLORS["primary"]};font-size:10pt;">'
                  f'Risk Dimension Summary</h3>{bars}')
 
     return quality_notice + gauges + strip + bars_html
@@ -822,11 +846,11 @@ def _sec_benchmark(c: dict) -> str:
         )
 
     # Overall vs top-quartile (real: F-003 lineage)
-    head = ('<h3 style="margin-top:14pt;color:#12365B;font-size:10pt;">'
+    head = (f'<h3 style="margin-top:14pt;color:{REPORT_COLORS["primary"]};font-size:10pt;">'
             f'{measure} Comparison</h3>')
     if _num(org_score) is not None and _num(tq) is not None:
-        legend = ('<div class="legend"><span class="sw" style="background:#12365B;"></span>Your score'
-                  '<span class="sw" style="background:#2FB3A0;"></span>Top quartile</div>')
+        legend = (f'<div class="legend"><span class="sw" style="background:{REPORT_COLORS["primary"]};"></span>Your score'
+                  f'<span class="sw" style="background:{REPORT_COLORS["brand"]};"></span>Top quartile</div>')
         cmp_bars = (
             _bar(f"Your {measure} score · higher is better", org_score, "f-navy")
             + _bar(f"Peer top-quartile {measure} threshold", tq, "f-teal")
@@ -963,7 +987,7 @@ def _sec_regulator(c: dict) -> str:
                 row_html += f'<td class="{band}">&middot;</td>'
         body_rows += f"<tr>{row_html}</tr>"
     grid = (
-        f'<h3 style="margin-top:12pt;color:#12365B;font-size:10pt;">Regulator Sensitivity Heatmap</h3>'
+        f'<h3 style="margin-top:12pt;color:{REPORT_COLORS["primary"]};font-size:10pt;">Regulator Sensitivity Heatmap</h3>'
         f'<table class="heat-grid"><tr><th class="rowh">Domain</th>{colh}</tr>{body_rows}</table>'
         f'<div class="heat-legend">'
         f'<span class="sw heat-l1"></span>Low<span class="sw heat-l2"></span>Moderate'
@@ -981,7 +1005,7 @@ def _sec_regulator(c: dict) -> str:
             f'<li><b>{_esc(name)}</b> &middot; {dom} — exposure {score:.1f}</li>'
             for score, name, dom in top_drivers[:5]
         )
-        drivers = (f'<h3 style="margin-top:12pt;color:#12365B;font-size:10pt;">'
+        drivers = (f'<h3 style="margin-top:12pt;color:{REPORT_COLORS["primary"]};font-size:10pt;">'
                    f'Top Regulator Risk Drivers</h3><ol class="numbered-driver">{items}</ol>')
     else:
         drivers = _empty_state(
@@ -1004,32 +1028,31 @@ def _sec_findings(c: dict) -> str:
     rows = ""
     for f in findings:
         sev = (f.get("severity") or "").lower()
-        sev_cls = f"sev-{sev}" if sev in {"high", "medium", "low"} else ""
         chip_cls = {"high": "chip-high", "medium": "chip-moderate", "low": "chip-low"}.get(sev, "chip-na")
         conf = _esc(f.get("confidence", "") or "Not recorded")
         evidence = f.get("evidence") or []
         if evidence:
-            evidence_html = "".join(
-                '<div class="caption" style="margin-top:4pt;">'
-                f'<b>Clause {_esc(item.get("clause_id") or "Not recorded")}</b>'
-                f'{" · " + _esc(item.get("section_reference")) if item.get("section_reference") else ""}'
-                f'<div class="quote you">{_esc(item.get("excerpt") or "")}</div></div>'
-                for item in evidence
+            first = evidence[0]
+            evidence_html = (
+                f'<b>{_esc(first.get("section_reference") or "Stored clause")}</b>'
+                f'<div class="caption">{_esc(first.get("excerpt") or "")}</div>'
             )
         else:
-            evidence_html = ('<div class="caption" style="margin-top:4pt;">'
-                             'No triggering clause reference is stored for this finding.</div>')
+            evidence_html = '<span class="absent">No clause reference stored.</span>'
         rows += (
-            f'<div class="finding-row {sev_cls}">'
-            f'<div class="fr-main"><span class="fr-id">{_esc(f.get("id", ""))}</span> '
-            f'<span class="fr-domain">&middot; {_domain_html(f.get("domain", ""))}</span>'
-            f'<div class="fr-meta"><span class="chip {chip_cls}">{_esc(sev or "n/a").upper()}</span> '
-            f'&nbsp; Confidence: {conf}</div></div>'
-            f'<div class="fr-side"><div class="fr-score">{_fmt(f.get("score"))}</div>'
-            f'<div class="caption">exposure</div></div>'
-            f'</div>{evidence_html}</div>'
+            f'<tr><td><b>{_esc(f.get("id", ""))}</b></td>'
+            f'<td>{_domain_html(f.get("domain", ""))}</td>'
+            f'<td><span class="chip {chip_cls}">{_esc(sev or "n/a").upper()}</span></td>'
+            f'<td>{_fmt(f.get("score"))}</td><td>{conf}</td>'
+            f'<td>{evidence_html}</td></tr>'
         )
-    return head + rows
+    table = (
+        '<table class="data-table findings-table"><thead><tr>'
+        '<th>Finding</th><th>Disclosure area</th><th>Exposure</th><th>Score</th>'
+        '<th>Confidence</th><th>Notice evidence</th></tr></thead>'
+        f'<tbody>{rows}</tbody></table>'
+    )
+    return head + table
 
 
 # ── Section 7: Compound Risk ────────────────────────────────────────────────
@@ -1074,7 +1097,7 @@ def _sec_compound(c: dict) -> str:
                 items += f'<li><b>{label}</b>{f" — {extra}" if extra else ""}</li>'
             else:
                 items += f'<li>{_esc(d)}</li>'
-        drivers = (f'<h3 style="margin-top:6pt;color:#12365B;font-size:10pt;">'
+        drivers = (f'<h3 style="margin-top:6pt;color:{REPORT_COLORS["primary"]};font-size:10pt;">'
                    f'Top Compound Risk Drivers</h3><ol class="numbered-driver">{items}</ol>')
     else:
         drivers = _empty_state("Driver breakdown not recorded",
@@ -1292,7 +1315,7 @@ def _sec_traceability(c: dict) -> str:
         '<tr><td colspan="7"><span class="absent">No finding evidence is recorded.</span></td></tr>'
     )
     finding_table = (
-        '<h3 style="margin-top:10pt;color:#12365B;font-size:10pt;">Finding evidence lineage</h3>'
+        f'<h3 style="margin-top:10pt;color:{REPORT_COLORS["primary"]};font-size:10pt;">Finding evidence lineage</h3>'
         '<table class="data-table"><tr><th>Finding</th><th>Clause</th><th>Section</th>'
         '<th>Excerpt</th><th>Source</th><th>Formula</th><th>Confidence</th></tr>'
         f'{evidence_body}'

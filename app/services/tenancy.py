@@ -60,3 +60,41 @@ def customer_org_scope(
         return OrgScope(clause=f"&{column}=eq.{user.organization_id}", allowed=True)
     # sme / admin (and any non-customer platform role) → platform-wide view.
     return OrgScope(clause="", allowed=True)
+
+
+def customer_workspace_scope(
+    user: "AuthenticatedUser",
+    *,
+    workspace_column: str = "workspace_organization_id",
+    legacy_column: str = "organization_id",
+) -> OrgScope:
+    """Scope new workspace-owned rows while preserving untouched legacy rows.
+
+    New rows match the explicit workspace column. A row may use the legacy org
+    owner only when its workspace column is NULL; this prevents a target's
+    ``organization_id`` from becoming an alternate cross-workspace access path.
+    The workspace id still comes exclusively from ``customer_org_scope``.
+    """
+    base = customer_org_scope(user)
+    if not base.allowed or user.role != "customer":
+        return base
+    workspace_id = user.organization_id
+    return OrgScope(
+        clause=(
+            f"&or=({workspace_column}.eq.{workspace_id},"
+            f"and({workspace_column}.is.null,{legacy_column}.eq.{workspace_id}))"
+        ),
+        allowed=True,
+    )
+
+
+def customer_can_access_workspace_row(user: "AuthenticatedUser", row: dict) -> bool:
+    """Apply the same new-row/legacy-row ownership rule to one loaded row."""
+    if user.role != "customer":
+        return True
+    if not user.organization_id:
+        return False
+    workspace_id = row.get("workspace_organization_id")
+    if workspace_id is not None:
+        return workspace_id == user.organization_id
+    return row.get("organization_id") == user.organization_id

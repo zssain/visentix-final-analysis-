@@ -58,6 +58,7 @@ async def score_and_persist(
     notice: DecomposedNotice,
     *,
     refresh_profile: bool = False,
+    workspace_organization_id: str | None = None,
 ) -> dict:
     """Score a decomposed notice and persist all intelligence objects.
 
@@ -159,6 +160,7 @@ async def score_and_persist(
                 "item_code": f"{formula_version_id}|{notice_id[:8]}",
                 "object_type": object_type,
                 "organization_id": organization_id,
+                "workspace_organization_id": workspace_organization_id,
                 "notice_id": notice_id,
                 "score": score_data["score"],
                 "value": score_data["score"],
@@ -236,6 +238,7 @@ async def score_and_persist(
         snapshot_payload = {
             "snapshot_id": snapshot_id,
             "organization_id": organization_id,
+            "workspace_organization_id": workspace_organization_id,
             "notice_id": notice_id,
             "payload": json.dumps({
                 "findings_count": len(findings),
@@ -274,6 +277,7 @@ async def score_and_persist(
             finding_rows.append({
                 "finding_id": finding_id,
                 "organization_id": organization_id,
+                "workspace_organization_id": workspace_organization_id,
                 "notice_id": notice_id,
                 "finding_type_code": f["code"],
                 "severity": f["severity"],
