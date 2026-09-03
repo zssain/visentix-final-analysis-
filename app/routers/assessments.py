@@ -55,8 +55,11 @@ async def list_assessments(
     `sme`/`admin` see all. A customer with no organization sees nothing (never
     the whole corpus).
     """
+    # Disambiguate the embed: privacy_notice has TWO FKs to organization
+    # (organization_id and workspace_organization_id, the latter from F23). Name the
+    # owning-org FK explicitly or PostgREST returns PGRST201 and the list breaks.
     select = ("notice_id,organization_id,workspace_organization_id,notice_type,effective_date,content_hash,"
-              "organization(name,domain,industry,size,geography)")
+              "organization!privacy_notice_organization_id_fkey(name,domain,industry,size,geography)")
     filters = ""
     if user.role == "customer":
         if not user.organization_id:
