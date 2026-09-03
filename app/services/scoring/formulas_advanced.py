@@ -176,6 +176,65 @@ def compute_f011(
     )
 
 
+# ── F-015: Peer-position density + confidence interval ───────
+#   (PROPOSED — awaiting expert ratification; see intelligence-logic.md)
+#
+# F-015 does NOT replace F-011. F-011 above remains the authoritative stored
+# position. F-015 adds, around that position, the cohort's reliability-weighted
+# density, the individual peer points (the rug) and a Clopper–Pearson interval on
+# the rank — so a reader sees spread and uncertainty, not a bare percentile. This
+# LOWERS the confidence of an existing customer-facing claim, which is why the
+# proposal can ship ahead of expert ratification; the z-score half (which RAISES a
+# claim) is deliberately gated — see the open-decisions register.
+#
+# The `proposed=True` marking is emitted in the payload so the caveat travels WITH
+# the number, not only in the spec (the OD-23 lesson).
+
+def compute_f015(
+    org_score: float,
+    peer_scores: list[dict],
+    cohort_size: int,
+    cohort_date: str = "2026-06-18",
+    alpha: float = 0.05,
+) -> FormulaResult:
+    """F-015 (PROPOSED) = reflected weighted peer density + Clopper–Pearson CI.
+
+    peer_scores: [{score, weight}] — the SAME shape F-011 reads. The pure maths
+    (n_eff, reliability-weighted σ, reflected KDE, Beta-quantile interval) lives in
+    `peer_distribution`; this wrapper just packages a lineage-carrying
+    FormulaResult. `score` is the position marker (identical to F-011's rank);
+    the full grid/density/rug/interval ride in source_lineage and are stored
+    verbatim (presentation never recalculates — DIR-008).
+    """
+    from app.services.scoring.peer_distribution import compute_peer_distribution
+
+    res = compute_peer_distribution(org_score, peer_scores, alpha=alpha)
+    payload = res.to_payload()
+    payload["cohort_size"] = cohort_size
+    payload["cohort_date"] = cohort_date
+
+    # Confidence LADDER on n_eff, not cohort_size — and capped below F-011's so the
+    # added interval never reads as more settled than the position it annotates.
+    if res.suppressed:
+        conf = 0.3
+    elif res.n_eff_int < 20:
+        conf = 0.35
+    elif res.n_eff_int < 50:
+        conf = 0.45
+    elif res.n_eff_int < 100:
+        conf = 0.55
+    else:
+        conf = 0.7
+
+    return FormulaResult(
+        formula_version_id="F-015_v1",
+        object_type="peer_distribution",
+        score=round(res.percentile, 2),
+        source_lineage=payload,
+        confidence_score=conf,
+    )
+
+
 # ── F-012: Trend Delta ──────────────────────────────────────
 #
 # Definition: F-012 = (current - prior) / prior

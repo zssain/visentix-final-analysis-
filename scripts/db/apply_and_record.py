@@ -96,6 +96,7 @@ APPLY_NOW = [
     "0050_f26_audit_event.sql",                  # F26 — append-only per-user request metadata (backend-only)
     "0051_submission_entity_flag.sql",           # F01 — deterministic multi-notice submission flag (score-neutral)
     "0052_f23_internal_demo_workspace.sql",      # F23 — private workspace/target ownership split for internal demo assessments
+    "0053_peer_distribution.sql",                # F-015 (PROPOSED) — reflected weighted peer density + Clopper–Pearson CI (append-only, score-neutral)
 ]
 
 # ── DB-001: migration numbering & ordering (documented) ──────────────────────

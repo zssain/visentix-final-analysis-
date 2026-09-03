@@ -122,6 +122,7 @@ def test_apply_now_order_and_step_a_first():
         "0050_f26_audit_event.sql",
         "0051_submission_entity_flag.sql",
         "0052_f23_internal_demo_workspace.sql",
+        "0053_peer_distribution.sql",
     ]
 
 

@@ -307,6 +307,12 @@ def assemble_report(
         "formula_ids": {"comparison": "F-003", "percentile": "F-011"},
         "methodology": cohort_methodology,
         "extraction_quality": extraction_quality,
+        # F-015 (PROPOSED): the weighted peer-position density + rug + Clopper–Pearson
+        # interval that ANNOTATES the F-011 percentile with spread and uncertainty.
+        # Read-only from the stored payload — presentation never recalculates
+        # (DIR-008). None/suppressed → the renderer shows honest absence, never a
+        # fabricated curve. Suppressed below the cohort floor by construction.
+        "peer_distribution": None if suppress_parse_dependent else scores.get("f015", {}).get("lineage"),
     })
 
     # Section 5: Regulator Exposure Heatmap

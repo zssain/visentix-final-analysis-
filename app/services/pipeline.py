@@ -35,6 +35,7 @@ from app.services.scoring.formulas_advanced import (
     compute_f012,
     compute_f013,
     compute_f014,
+    compute_f015,
 )
 from app.services.scoring.vci import compute_vci
 from app.services.scoring.findings import FindingInput, select_findings
@@ -129,6 +130,10 @@ def score_notice(
     # F-011: Benchmark Percentile
     f011 = compute_f011(org_pgms, peer_scores, len(peer_scores) + 1)
 
+    # F-015 (PROPOSED): peer-position density + Clopper–Pearson interval AROUND
+    # the F-011 position. Does not alter F-011. Same peer_scores/weights input.
+    f015 = compute_f015(org_pgms, peer_scores, len(peer_scores) + 1)
+
     # VCI
     vci = compute_vci(
         nlp_confidence=avg_conf if len(clauses) > 0 else 0.3,
@@ -197,6 +202,10 @@ def score_notice(
         "f009": {"score": f009.score, "lineage": f009.source_lineage},
         "f010": {"score": f010.score, "lineage": f010.source_lineage},
         "f011": {"score": f011.score, "lineage": f011.source_lineage},
+        # F-015 (PROPOSED) — peer-position density + CI. lineage carries the full
+        # grid/density/rug/interval payload, stored verbatim; presentation never
+        # recalculates (DIR-008).
+        "f015": {"score": f015.score, "lineage": f015.source_lineage},
     }
     # Include f004 when computed externally
     if f004_score is not None:

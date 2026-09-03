@@ -68,7 +68,7 @@ A normalized corpus already lives in Supabase. You did not create it and you mus
 ## Current versions
 - schema.md: v1.3.12 (2026-09-03)
 - business-logic.md: v1.3 (2026-08-31)
-- intelligence-logic.md: v1.7 (2026-08-31)
+- intelligence-logic.md: v1.8 (2026-09-03)
 - design-system.md: v1.14 (2026-09-01)
 - Formula registry: F-001–F-014 (see intelligence-logic.md §7)
 - Score bands: see web/src/lib/scoreBands.ts (single source of truth)

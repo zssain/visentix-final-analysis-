@@ -158,6 +158,7 @@ def test_object_type_mapping_covers_all_formulas():
     """Every formula in the pipeline produces a known object_type."""
     expected = {
         "f002", "f003", "f005", "f006", "f007", "f008", "f009", "f010", "f011",
+        "f015",  # F-015 (PROPOSED) peer-position density — annotates F-011
     }
     assert set(_FORMULA_OBJECT_TYPE.keys()) == expected
 
@@ -168,6 +169,7 @@ def test_object_types_are_valid():
         "regulatory_exposure", "benchmark_deviation", "disclosure_maturity",
         "transparency", "ai_transparency", "compound_risk",
         "confidence_weighted", "overall_intelligence", "benchmark_percentile",
+        "peer_distribution",  # F-015 (PROPOSED)
     }
     actual_types = {ot for ot, _ in _FORMULA_OBJECT_TYPE.values()}
     assert actual_types == expected_types

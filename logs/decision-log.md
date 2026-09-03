@@ -2,6 +2,7 @@
 
 Format: `YYYY-MM-DD · who · decision · one-line why`
 
+- 2026-09-03 · engineer (D8 ruling) · Add F-015 peer-position density + Clopper–Pearson interval as PROPOSED (intelligence-logic §7); gate the z-score half as OD-29 (expert-owned N_min/α/skew) · the density/interval *lowers* an existing percentile claim so it may ship pre-ratification, the z-score *raises* one so it may not
 - 2026-09-03 · engineer · Supabase Auth/REST HTTP 402 blocks live demo-user provisioning; no direct SQL insertion into the Auth schema will be used as a bypass · the supported Auth API is the credential authority, and bypassing it would create unsafe or unusable identities
 - 2026-09-03 · owner + engineer · Seven internal demo identities use Supabase Auth as ordinary customers in one `Visentix Demo` organization; different public-company URLs are test inputs but all stored results stay demo-tenant scoped · exercises the engine without granting cross-tenant access; no application password store
 - 2026-09-03 · owner + engineer · Build audit capture and retain its purpose as accountability only; defer audit-based behavioral learning, firm-role hierarchy, plans/quotas, scheduled billing behavior, shared rate-limit infrastructure and crawler egress changes · owner wants durable history now and explicitly asked not to disturb plans or scanning infrastructure

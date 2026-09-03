@@ -1,6 +1,6 @@
 # Intelligence Logic — Classification, Benchmarking, Scoring
 
-**Version:** 1.7 · 2026-08-31 · Consolidates VICBNF v2.0, the Derived Intelligence Catalog v1, and the Intelligence Engine Framework. All weights are **initial policy settings**, configurable in `formula_version` / lookup tables, subject to calibration governance — never hardcoded.
+**Version:** 1.8 · 2026-09-03 · Consolidates VICBNF v2.0, the Derived Intelligence Catalog v1, and the Intelligence Engine Framework. All weights are **initial policy settings**, configurable in `formula_version` / lookup tables, subject to calibration governance — never hardcoded.
 
 ## 1. Pipeline (Porter value chain)
 
@@ -62,7 +62,7 @@ Five corpus populations: Market Reality, Regulatory Resilience, Enforcement, Gol
 Normalization Score = Industry sim 20% + Regulatory sim 20% + Governance sim 15% + Sophistication sim 15% + Data-sensitivity sim 15% + AI-maturity sim 10% + Freshness sim 5% (tier match = 1.0, adjacent = 0.75, non-adjacent = 0.4–0.5; freshness ≤12mo = 1.0, 13–24 = 0.75, >24 = 0.4).
 Benchmark Weight = product of relevance factors × freshness. **Never compute percentiles from raw unweighted peer sets.**
 
-## 7. Formula registry (F-001 – F-014)
+## 7. Formula registry (F-001 – F-014, plus F-015 PROPOSED)
 
 Shared variables: JW jurisdiction weight, RPW regulator priority weight, DS disclosure severity 0–100, BD benchmark deviation, ES enforcement similarity 0–1, EFW enforcement frequency weight, NC NLP confidence, SR source reliability, IV interpretive variance, CM correlation multiplier 1.00–2.50.
 
@@ -82,6 +82,9 @@ Shared variables: JW jurisdiction weight, RPW regulator priority weight, DS disc
 | F-012 | Trend Delta | (Current − Prior) / Prior |
 | F-013 | Alert Escalation | Risk increase × Enforcement correlation × Monitoring priority × Confidence |
 | F-014 | Report Confidence Index | (Validated / Total findings) × avg SR × avg NC |
+| F-015 | Peer-position Density & Confidence Interval **(PROPOSED — awaiting expert ratification)** | Around the **F-011** position: reflected weighted kernel density on [0,100], the individual peer points (rug), effective size `n_eff = (Σw)²/Σw²`, and a **Clopper–Pearson** interval on the rank. Bandwidth `h = 0.9·min(σ_w, IQR_w/1.34)·n_eff^(−1/5)` (Silverman), σ_w reliability-weight corrected. Suppressed when `n_eff < LOW_CONFIDENCE_COHORT_N` (OD-05) or dispersion is zero |
+
+**F-015 is PROPOSED (may ship ahead of ratification — it *lowers* an existing claim).** It does **not** replace F-011; F-011 remains the authoritative stored position (`benchmark_percentile`, `F-011_v1`). F-015 (`peer_distribution`, `F-015_v1`) only *annotates* that position with the cohort's actual spread and the uncertainty on the rank, which **lowers** the confidence a reader should read into a bare percentile rather than raising a new claim — hence it is shippable before expert sign-off, unlike the z-score half of the same decision (which would *raise* a claim and is gated, **OD-29**). The renderer shows the **curve, marker, rug, interval, `n_eff` and as-of date only** — no comparative peer-position word (OD-14) and **no standard-deviation language** (OD-29). The `(PROPOSED)` marking is carried in the emitted payload (`proposed=true`), not only here, so the caveat travels with the number (the OD-23 lesson). `n_eff`, not `cohort_size`, drives the bandwidth and the interval.
 
 ## 8. Visentix Confidence Index (VCI)
 
@@ -140,6 +143,7 @@ A privacy signal is not one thing. A bill that may never pass, a law in force to
 **Guardrail note.** Horizon language is squarely in verdict-adjacent territory. A horizon describes the **landscape**, never the organization's legal position: "this area is under active enforcement" is intelligence; "you are exposed to enforcement" is a verdict dressed as one. Every horizon statement passes the same banned-term filter as all other generated prose.
 
 ## 14. Changelog
+- 1.8 (2026-09-03): **§7 adds F-015 Peer-position Density & Confidence Interval (PROPOSED — awaiting expert ratification).** Around the existing F-011 position it computes the cohort's reflected reliability-weighted density, the individual peer points (rug), effective size `n_eff`, and a Clopper–Pearson interval on the rank. It **does not replace F-011** and introduces no new weight, threshold, or band — it *lowers* the confidence a reader draws from a bare percentile, which is why it may ship ahead of expert sign-off. The **z-score half** of the same decision (which would *raise* a claim — "n SD below the mean") is **deliberately not added**; its release thresholds (`N_min`, Shapiro–Wilk α, skew bound) are expert-owned under Hard Rule 3 and are registered as **OD-29** (proposal only). No comparative peer-position word (OD-14) and no standard-deviation language renders. Source: engineer implementing the D8 ruling (P5.1).
 - 1.7 (2026-08-31): **Owner feedback pass — presentation register and risk horizons.** §2 adds **PROPOSED customer-facing plain-English dimension names** (OD-14) so house acronyms stop being customer labels. §3 adds the **band-leads-the-number presentation rule** (cut-points unchanged), the **PROPOSED peer-position comparative vocabulary** (OD-14 — words proposed, percentile cut-points expressly left to the expert, nothing implementable yet), and the **paraphrase-but-never-fabricate rule** for cohort statements (Hard Rule 7 restated, not relaxed). New **§13 Risk horizons** (PROPOSED, OD-15) naming Emerging / Scheduled / Current / Demonstrated / Contested as *context and sequencing only* — no formula, weight, threshold, or finding code, and nothing feeding a score. Source: owner (product) verbal notes.
 - 1.6 (2026-08-18): **§4 — Phase 2 taxonomy note (breach + sector laws).** Added the code-level `security` domain slug backing `security_practices_disclosure`, surfacing via a **proposed** finding **SEC-006** (needs expert confirmation before `DOMAIN_TO_FINDING` is wired); mapped `biometric_disclosure`/`consumer_health_data_disclosure` → SEC-002 and `data_broker_disclosure` → SH-002. No formula, weight, or scoring change — obligations stay exposure context, not scores. Companion to schema.md §2.4 (v1.3.9). Source: operator decision (Phase 2).
 - 1.5 (2026-07-28): §5 records that the **dynamic population and demo-cohort job share one CQS eligibility gate** (F03 AC-5), and the honest **operational note** that both currently use the `open_web`-notice freshness proxy (excluding the CQS-failing 2019 Princeton corpus) until per-org `corpus_quality.cqs` is populated; CQS hold-outs are disclosed on the cohort label. No weight/threshold/taxonomy change — a Rule-6 consistency fix surfaced by the Stage-3 rehearsal. Source: engineer.

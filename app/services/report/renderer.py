@@ -821,6 +821,91 @@ def _sec_dashboard(c: dict) -> str:
     return quality_notice + gauges + strip + bars_html
 
 
+# ── F-015 (PROPOSED): peer-position density (static SVG, WeasyPrint-safe) ────
+#
+# Reads STORED values only (grid/density/rug/interval frozen by the engine); no
+# statistics here (DIR-008). Returns "" when the block is absent so Section 4 is
+# byte-identical for reports that carry no F-015 payload. No comparative
+# peer-position word (OD-14) and no standard-deviation language (OD-29).
+
+def _peer_distribution_svg(pd: dict | None) -> str:
+    if not pd:
+        return ""
+    if pd.get("suppressed") or not pd.get("grid") or not pd.get("density"):
+        reason = pd.get("suppression_reason") or ""
+        if reason.startswith("n_eff_below_cohort_floor"):
+            msg = ("The peer cohort is too small to draw a reliable distribution, so the curve "
+                   "is withheld. The percentile above still stands, read with the low-confidence label.")
+        elif reason == "zero_dispersion":
+            msg = ("Every comparable peer scored identically here, so there is no spread to plot. "
+                   "The curve is withheld rather than drawn as a fabricated shape.")
+        else:
+            return ""
+        return f'<div class="caption" style="margin-top:6pt;">{msg}</div>'
+
+    W, H = 420.0, 150.0
+    PAD_L, PAD_R, PAD_T, PAD_B = 12.0, 12.0, 14.0, 22.0
+    grid = pd["grid"]
+    density = pd["density"]
+    peers = pd.get("peers") or []
+    base_y = H - PAD_B
+    max_d = max(density) or 1.0
+
+    def xs(x: float) -> float:
+        return PAD_L + (max(0.0, min(100.0, float(x))) / 100.0) * (W - PAD_L - PAD_R)
+
+    def ys(d: float) -> float:
+        return base_y - (float(d) / max_d) * (H - PAD_T - PAD_B)
+
+    pts = " ".join(
+        f'{"M" if i == 0 else "L"} {xs(gx):.2f} {ys(density[i]):.2f}'
+        for i, gx in enumerate(grid)
+    )
+    area = f'{pts} L {xs(grid[-1]):.2f} {base_y:.2f} L {xs(grid[0]):.2f} {base_y:.2f} Z'
+
+    prim = REPORT_COLORS["primary"]
+    brand = REPORT_COLORS["brand"]
+    muted = REPORT_COLORS["muted_foreground"]
+    border = REPORT_COLORS["border"]
+
+    ci_lo, ci_hi = pd.get("ci_lower"), pd.get("ci_upper")
+    pct = pd.get("percentile")
+    parts = [f'<svg viewBox="0 0 {W:.0f} {H:.0f}" width="100%" style="max-width:520px;display:block;">']
+    if _num(ci_lo) is not None and _num(ci_hi) is not None:
+        parts.append(
+            f'<rect x="{xs(ci_lo):.2f}" y="{PAD_T:.2f}" width="{max(0.0, xs(ci_hi) - xs(ci_lo)):.2f}" '
+            f'height="{base_y - PAD_T:.2f}" fill="{brand}" fill-opacity="0.12" />'
+        )
+    parts.append(f'<path d="{area}" fill="{prim}" fill-opacity="0.08" />')
+    parts.append(f'<path d="{pts}" fill="none" stroke="{prim}" stroke-width="1.5" />')
+    parts.append(f'<line x1="{PAD_L:.2f}" y1="{base_y:.2f}" x2="{W - PAD_R:.2f}" y2="{base_y:.2f}" stroke="{border}" stroke-width="1" />')
+    for p in peers:
+        px = xs(p.get("x", 0))
+        parts.append(f'<line x1="{px:.2f}" y1="{base_y:.2f}" x2="{px:.2f}" y2="{base_y + 6:.2f}" stroke="{muted}" stroke-width="1" />')
+    if _num(pct) is not None:
+        parts.append(f'<line x1="{xs(pct):.2f}" y1="{PAD_T:.2f}" x2="{xs(pct):.2f}" y2="{base_y + 6:.2f}" stroke="{prim}" stroke-width="2" />')
+    parts.append('</svg>')
+
+    n_eff = pd.get("n_eff_int") or int(pd.get("n_eff") or 0)
+    as_of = _esc(str(pd.get("cohort_date") or "—"))
+    alpha = pd.get("alpha")
+    conf = int(round((1 - alpha) * 100)) if _num(alpha) is not None else 95
+    if _num(ci_lo) is not None and _num(ci_hi) is not None:
+        interval = (f'The shaded band is the {conf}% confidence interval on this position '
+                    f'({ci_lo:.1f}th&ndash;{ci_hi:.1f}th percentile). ')
+    else:
+        interval = ""
+    caption = (
+        f'<div class="caption" style="margin-top:4pt;">{interval}'
+        f'The ticks below the curve are the individual comparable organizations. '
+        f'Based on {n_eff} effective peers, as of {as_of}. '
+        f'This distribution is a provisional view pending expert ratification.</div>'
+    )
+    title = ('<div class="caption" style="margin-top:8pt;font-weight:700;">'
+             'Where this organization sits in its peer cohort</div>')
+    return title + "".join(parts) + caption
+
+
 # ── Section 4: Benchmark Intelligence ───────────────────────────────────────
 
 def _sec_benchmark(c: dict) -> str:
@@ -891,12 +976,15 @@ def _sec_benchmark(c: dict) -> str:
         method_html = _empty_state("Cohort methodology not recorded",
                                    "No stored peer-population definition is available for this assessment.")
 
+    # F-015 (PROPOSED): peer-position density around the percentile. "" when absent.
+    peer_dist = _peer_distribution_svg(c.get("peer_distribution"))
+
     cohort = _esc(c.get("cohort_label", ""))
     cn = f'<div class="snapline">{cohort}</div>' if cohort else ""
     formula_ids = c.get("formula_ids") or {}
     lineage = (f'<div class="caption">Comparison: {_esc(formula_ids.get("comparison", "F-003"))} · '
                f'percentile: {_esc(formula_ids.get("percentile", "F-011"))}.</div>')
-    return pbar + head + dims + method_html + lineage + cn
+    return pbar + peer_dist + head + dims + method_html + lineage + cn
 
 
 # ── Section 5: Regulator Exposure ───────────────────────────────────────────

@@ -3,6 +3,7 @@ import { ScoreCell }      from "../../components/ScoreCell";
 import { maturityBandColor } from "../../lib/scoreBands";
 import type { ReportSection } from "../types";
 import { SectionHeading } from "../SectionHeading";
+import { PeerDistribution, type PeerDistributionPayload } from "./PeerDistribution";
 
 export function BenchmarkIntelligence({ content }: { content: ReportSection["content"] }) {
   const orgScore   = content.org_score as number | null | undefined;
@@ -114,6 +115,13 @@ export function BenchmarkIntelligence({ content }: { content: ReportSection["con
         <div style={{ padding: "14px 16px", background: "var(--soft-white)", color: "var(--text-muted)" }}>
           A stored peer comparison is not available for this assessment.
         </div>
+      )}
+
+      {/* F-015 (PROPOSED): peer-position density + interval around the percentile.
+          Renders from stored values only; suppressed → honest absence. Rendered
+          only when a payload is present, so reports without F-015 are unchanged. */}
+      {content.peer_distribution != null && (
+        <PeerDistribution data={content.peer_distribution as PeerDistributionPayload} />
       )}
 
       {/* Honest cohort label */}

@@ -42,6 +42,7 @@ _FORMULA_OBJECT_TYPE = {
     "f009": ("confidence_weighted",  "F-009_v1"),
     "f010": ("overall_intelligence", "F-010_v1"),
     "f011": ("benchmark_percentile", "F-011_v1"),
+    "f015": ("peer_distribution",    "F-015_v1"),  # PROPOSED — annotates F-011, never replaces it
 }
 
 # Documented fallback defaults (logged when used)
