@@ -1,5 +1,18 @@
 # Visentix Azure Deployment Guide
 
+> ⚠️ **STALE — do not follow verbatim (2026-09-03).** This guide describes an
+> earlier *aspirational* stack (Azure **Container Apps** + Azure **PostgreSQL**)
+> that is **not** what runs. The live stack is an **Azure VM + Caddy + docker
+> compose**, with **Supabase** as the database (not Azure Postgres) and a
+> **Cloudflare Worker** frontend (not Pages). Deploy the backend with
+> `deploy/azure/deploy.sh <git-tag>` **on the VM**; the real hosts are in
+> `PILOT-DAY-RUNBOOK.md`:
+> - Frontend: `https://visentix-v2-mvp.zssaincoding.workers.dev` (Worker — `web/wrangler.jsonc`, `npm run deploy`)
+> - API: `https://visentix-api.westeurope.cloudapp.azure.com` (VM + Caddy, `deploy/azure/`)
+>
+> The Container-Apps and Azure-Postgres instructions below are superseded; the
+> ACR/image-build steps are still broadly accurate.
+
 Step-by-step guide to deploy the Visentix Privacy Intelligence Platform on Azure + Cloudflare, matching the Technical Architecture v2.0.
 
 ## Architecture Overview
