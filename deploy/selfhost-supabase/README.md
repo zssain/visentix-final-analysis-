@@ -21,6 +21,30 @@ JWT verifier already falls back to **HS256 with the shared `SUPABASE_JWT_SECRET`
 
 ---
 
+## Gotchas hit in a real run (2026-09-04) — read these
+
+1. **Match the Postgres major version to Cloud.** Cloud was PG17.6; a PG15 self-host
+   made `pg_dump` refuse ("server version mismatch") and PG17→PG15 restore is unsafe.
+   `.env` `POSTGRES_IMAGE` is pinned to `supabase/postgres:17.6.1.168`. Check yours
+   with `SELECT version();` on Cloud and match the major version.
+2. **Export via the POOLER, not the direct host.** `db.<ref>.supabase.co` is
+   **IPv6-only**; a Docker container can't reach it ("Network is unreachable"). Use
+   the **session pooler** (`aws-<region>.pooler.supabase.com:5432`, user
+   `postgres.<ref>`) — it's IPv4 and supports `pg_dump` (the 6543 transaction pooler
+   does not).
+3. **Set the internal role passwords after the first boot.** `supabase/postgres`
+   creates `authenticator` / `supabase_auth_admin` / `supabase_storage_admin` but
+   does **not** set their passwords to `POSTGRES_PASSWORD`, so rest/auth/storage
+   crash-loop with "password authentication failed". Fix once per fresh db volume
+   with `scripts/fix-role-passwords.sh` (must run as `supabase_admin`, the true
+   superuser — `postgres` is not).
+4. **Restore from a file inside the container, not a pipe.** Custom-format archives
+   don't restore reliably from a non-seekable pipe — `docker cp` the dump into the
+   db container and `pg_restore` the file.
+5. **Disk.** The stack images (~5 GB) + the DB volume + pgvector indexes on hundreds
+   of thousands of embeddings are large. On a 29 GB VM this runs at ~90% — plan to
+   resize the disk as the corpus grows.
+
 ## Prerequisites
 
 - SSH access to the VM (`visentix-api.westeurope.cloudapp.azure.com`).
