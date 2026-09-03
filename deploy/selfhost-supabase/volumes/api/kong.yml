@@ -1,0 +1,99 @@
+# Kong declarative config for the self-hosted Supabase gateway.
+# The kong service expands ${VARS} at start (envsubst-style eval — see
+# docker-compose.yml), so $ANON_KEY / $SERVICE_ROLE_KEY come from the env.
+#
+# Routes the single SUPABASE_URL (http://kong:8000) to the sub-services the
+# Visentix app uses:
+#   /auth/v1/*    -> GoTrue      (login: /auth/v1/token)
+#   /rest/v1/*    -> PostgREST   (all data access)
+#   /storage/v1/* -> Storage API (raw-artifacts bucket)
+# Key auth: the `apikey` header must be the anon or service_role key.
+
+_format_version: "2.1"
+_transform: true
+
+consumers:
+  - username: anon
+    keyauth_credentials:
+      - key: $ANON_KEY
+  - username: service_role
+    keyauth_credentials:
+      - key: $SERVICE_ROLE_KEY
+
+acls:
+  - consumer: anon
+    group: anon
+  - consumer: service_role
+    group: admin
+
+services:
+  # ── GoTrue: open endpoints (verify/callback/authorize) need no apikey ───────
+  - name: auth-v1-open
+    url: http://auth:9999/verify
+    routes:
+      - name: auth-v1-open
+        strip_path: true
+        paths: [/auth/v1/verify]
+    plugins:
+      - name: cors
+  - name: auth-v1-open-callback
+    url: http://auth:9999/callback
+    routes:
+      - name: auth-v1-open-callback
+        strip_path: true
+        paths: [/auth/v1/callback]
+    plugins:
+      - name: cors
+  # ── GoTrue: everything else (/token, /user, admin) requires a key ───────────
+  - name: auth-v1
+    _comment: "GoTrue: /auth/v1/* -> http://auth:9999/*"
+    url: http://auth:9999/
+    routes:
+      - name: auth-v1-all
+        strip_path: true
+        paths: [/auth/v1/]
+    plugins:
+      - name: cors
+      - name: key-auth
+        config:
+          hide_credentials: false
+      - name: acl
+        config:
+          hide_groups_header: true
+          allow: [anon, admin]
+
+  # ── PostgREST: all data access ──────────────────────────────────────────────
+  - name: rest-v1
+    _comment: "PostgREST: /rest/v1/* -> http://rest:3000/*"
+    url: http://rest:3000/
+    routes:
+      - name: rest-v1-all
+        strip_path: true
+        paths: [/rest/v1/]
+    plugins:
+      - name: cors
+      - name: key-auth
+        config:
+          hide_credentials: true
+      - name: acl
+        config:
+          hide_groups_header: true
+          allow: [anon, admin]
+
+  # ── Storage: the raw-artifacts bucket ───────────────────────────────────────
+  - name: storage-v1
+    _comment: "Storage: /storage/v1/* -> http://storage:5000/*"
+    url: http://storage:5000/
+    routes:
+      - name: storage-v1-all
+        strip_path: true
+        paths: [/storage/v1/]
+    plugins:
+      - name: cors
+      - name: key-auth
+        config:
+          hide_credentials: false
+      - name: acl
+        config:
+          hide_groups_header: true
+          allow: [anon, admin]
