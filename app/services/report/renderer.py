@@ -446,9 +446,11 @@ def _bar(label: str, value, fill: str, *, maxv: float = 100.0, suffix: str = "",
 
 
 def _kpi(label: str, value_html: str, sub_html: str, *, accent: str = "navy",
-         value_absent: bool = False) -> str:
+         value_absent: bool = False, value_class: str = "") -> str:
     cls = "kpi-card accent-teal" if accent == "teal" else "kpi-card"
     vcls = "kpi-value absent" if value_absent else "kpi-value"
+    if value_class:
+        vcls += " " + value_class
     return (
         f'<td><div class="{cls}"><div class="kpi-label">{label}</div>'
         f'<div class="{vcls}">{value_html}</div>'
@@ -728,7 +730,8 @@ def _sec_exec(c: dict) -> str:
                  else _RAMP.get(reg_tier, REPORT_COLORS["muted_foreground"]))
         sub = f"exposure score {reg:.1f}" if _num(reg) is not None else "level assessed"
         k3 = _kpi("Regulatory Exposure",
-                  f'<span style="color:{color};">{_esc(reg_tier).title()}</span>', _esc(sub))
+                  f'<span style="color:{color};">{_esc(reg_tier).title()}</span>', _esc(sub),
+                  value_class="tier")
 
     kpis = f'<table class="strip"><tr>{k1}{k2}{k3}</tr></table>'
 

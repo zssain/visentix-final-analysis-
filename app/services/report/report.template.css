@@ -154,7 +154,9 @@ p { margin: 0 0 6pt; }
 }
 .kpi-card.accent-teal { border-top-color: var(--teal); }
 .kpi-label { font-size: 6.5pt; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); }
-.kpi-value { font-size: 26pt; font-weight: bold; color: var(--navy); line-height: 1.05; margin-top: 2pt; }
+.kpi-value { font-size: 26pt; font-weight: bold; color: var(--navy); line-height: 1.05; margin-top: 2pt; overflow-wrap: anywhere; }
+/* Tier words ("Moderate"/"Elevated") in a KPI slot are text, not a 26pt number — render smaller so they never overflow the card. */
+.kpi-value.tier { font-size: 15pt; line-height: 1.15; }
 .kpi-value .unit { font-size: 11pt; color: var(--muted); font-weight: normal; }
 .kpi-sub { font-size: 7.5pt; color: var(--ink); margin-top: 2pt; }
 .kpi-value.absent, .kpi-sub.absent { font-size: 12pt; }
@@ -285,7 +287,7 @@ p { margin: 0 0 6pt; }
 /* ── Severity columns (Risk Reduction) ──────────────────────── */
 .sev-cols { width: 100%; table-layout: fixed; border-collapse: separate; border-spacing: 8pt 0; }
 .sev-cols td { vertical-align: top; }
-.sev-col { border: 0.75pt solid var(--hair); border-radius: 4pt; overflow: hidden; }
+.sev-col { border: 0.75pt solid var(--hair); border-radius: 4pt; overflow: hidden; break-inside: avoid; }
 .sev-col .hd { padding: 6pt 8pt; font-weight: bold; font-size: 8.5pt; color: var(--white); }
 .sev-col.high .hd { background: var(--risk-high); }
 .sev-col.moderate .hd { background: var(--risk-moderate); }
@@ -303,7 +305,7 @@ p { margin: 0 0 6pt; }
 
 /* ── Plain data table ───────────────────────────────────────── */
 .data-table { border-collapse: collapse; width: 100%; margin: 8pt 0; font-size: 7.5pt; }
-.data-table th, .data-table td { border: 0.5pt solid var(--hair); padding: 5pt 7pt; text-align: left; vertical-align: top; }
+.data-table th, .data-table td { border: 0.5pt solid var(--hair); padding: 5pt 7pt; text-align: left; vertical-align: top; overflow-wrap: anywhere; word-break: break-word; }
 .data-table th { background: var(--navy); color: var(--white); font-size: 7pt; letter-spacing: 0.4px; }
 .data-table tr:nth-child(even) td { background: var(--panel); }
 .data-table thead { display: table-header-group; }
