@@ -97,12 +97,14 @@ export function Cover({ content }: { content: ReportSection["content"] }) {
 
       {Object.keys(scope).length > 0 && <div className="cover-scope-block" data-testid="assessment-scope">
         <div className="cover-scope-label">Assessment Scope</div>
+        <div className="overflow-x-auto">
         <table className="w-full border-collapse text-xs">
           <tbody>{Object.entries(scopeLabels).map(([key, label]) => {
             const item = scope[key] ?? {};
-            return <tr key={key}><th className="px-1.5 py-1 text-left">{label}</th><td className="px-1.5 py-1">{displayValue(item.value)}</td><td className="px-1.5 py-1 text-muted-foreground">{humanize(item.provenance ?? "not recorded")}</td></tr>;
+            return <tr key={key}><th className="px-1.5 py-1 text-left align-top">{label}</th><td className="px-1.5 py-1 break-all">{displayValue(item.value)}</td><td className="px-1.5 py-1 text-muted-foreground align-top">{humanize(item.provenance ?? "not recorded")}</td></tr>;
           })}</tbody>
         </table>
+        </div>
         <p className="cover-scope-text">Unconfirmed values are shown as assumptions; legacy assessments are not back-filled.</p>
       </div>}
 

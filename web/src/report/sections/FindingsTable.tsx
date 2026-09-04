@@ -51,7 +51,7 @@ export function FindingsTable({ content }: { content: ReportSection["content"] }
       </p>
 
       {/* Summary table */}
-      <table className="mb-4 w-full border-collapse text-sm">
+      <div className="mb-4 overflow-x-auto"><table className="w-full border-collapse text-sm">
         <thead>
           <tr className="bg-muted/40">
             <th style={th}>Code</th>
@@ -166,7 +166,7 @@ export function FindingsTable({ content }: { content: ReportSection["content"] }
             );
           })}
         </tbody>
-      </table>
+      </table></div>
     </div>
   );
 }

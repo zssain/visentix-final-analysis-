@@ -97,7 +97,7 @@ export function RegulatorExposure({ content }: { content: ReportSection["content
           </div>
         </div>
       ) : regulators.length > 0 ? (
-        <table className="w-full border-collapse text-sm">
+        <div className="overflow-x-auto"><table className="w-full border-collapse text-sm">
           <thead>
             <tr className="bg-muted/40">
               <th style={th}>Regulator</th>
@@ -139,7 +139,7 @@ export function RegulatorExposure({ content }: { content: ReportSection["content
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       ) : (
         <div style={{
           padding: "14px 16px", background: "var(--soft-white)",
