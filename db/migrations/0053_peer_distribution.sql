@@ -41,3 +41,17 @@ CREATE INDEX IF NOT EXISTS idx_peer_distribution_assessment
 
 ALTER TABLE public.peer_distribution ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.peer_distribution FROM anon, authenticated;
+
+-- F-015 MUST be registered in formula_version, or every scoring run fails: live
+-- scoring always emits an F-015_v1 `peer_distribution` derived_data_item, and
+-- derived_data_item.formula_version_id has a FK to formula_version. Without this
+-- seed the whole derived-item batch insert is rejected (FK 23503) and NO scores
+-- persist — the report then shows 0. Idempotent.
+INSERT INTO public.formula_version
+    (formula_version_id, formula_id, name, definition, effective_date, description)
+VALUES
+    ('F-015_v1', 'F-015', 'Peer-position Density & Confidence Interval',
+     'Reflected weighted peer density + Clopper-Pearson interval around the F-011 position (PROPOSED).',
+     '2026-09-04',
+     'Shows the peer cohort spread and the uncertainty on this position, not just a point percentile. PROPOSED — awaiting expert ratification.')
+ON CONFLICT (formula_version_id) DO NOTHING;
