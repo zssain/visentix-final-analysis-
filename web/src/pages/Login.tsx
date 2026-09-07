@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Eye, EyeOff } from "lucide-react";
 import { ThemeToggle } from "@/theme/ThemeToggle";
+import { PoweredByTeclusion } from "@/components/PoweredByTeclusion";
 
 function roleLanding(role: string): string {
   switch (role) {
@@ -140,9 +141,12 @@ export function Login() {
           </p>
         </div>
 
-        <span className="text-xs text-muted-foreground">
-          © Visentix · Privacy Intelligence Platform
-        </span>
+        <div className="flex flex-col gap-1">
+          <span className="text-xs text-muted-foreground">
+            © Visentix · Privacy Intelligence Platform
+          </span>
+          <PoweredByTeclusion />
+        </div>
       </div>
 
       {/* Artwork pane — hidden below lg; it is decoration, not content. */}

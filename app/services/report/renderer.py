@@ -66,6 +66,8 @@ _CSS = _read_text(_HERE / "report.css")
 # missing the cover falls back to a text wordmark (documented owner-asset gap).
 _WORDMARK_DARK = _data_uri("wordmark-dark.png", "image/png")
 _WORDMARK_LIGHT = _data_uri("wordmark-light.png", "image/png")
+# Teclusion AI (parent) — "Powered by" mark, base64-inlined like the wordmarks.
+_TECLUSION_LOGO = _data_uri("teclusion-logo.png", "image/png")
 
 # ── Risk ramp (one ramp, used everywhere) ───────────────────────────────────
 _RAMP = {
@@ -631,16 +633,26 @@ def _render_back_cover(report: ReportPayload) -> str:
     else:
         logo = (f'<div style="font-size:26pt;font-weight:bold;letter-spacing:2px;'
                 f'color:{REPORT_COLORS["primary_foreground"]};">VISENTIX</div>')
-    return f"""<section class="back">
+    return """<section class="back">
   <div class="back-accent"></div>
   <div class="back-logo">{logo}</div>
   <div class="back-thanks">Thank you for your trust.</div>
   <div class="back-contact">
     Visentix &middot; Privacy Intelligence Platform
   </div>
+  {powered}
   <div class="back-conf">This report contains proprietary Visentix intelligence and is
     intended solely for the use of the named recipient. &copy; Visentix.</div>
-</section>"""
+</section>""".format(
+        logo=logo,
+        powered=(
+            f'<div class="back-powered"><span class="tec-chip">'
+            f'<img src="{_TECLUSION_LOGO}" alt="Teclusion AI"></span>'
+            f'<span class="tec-label">Powered by Teclusion AI</span></div>'
+            if _TECLUSION_LOGO else
+            '<div class="back-powered"><span class="tec-label">Powered by Teclusion AI</span></div>'
+        ),
+    )
 
 
 # ── Section frame ───────────────────────────────────────────────────────────

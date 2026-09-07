@@ -81,6 +81,14 @@
     vertical-align: top;
     padding-top: 3mm;
   }
+  @bottom-center {
+    content: "Powered by Teclusion AI";
+    font-family: "DejaVu Sans", sans-serif;
+    font-size: 7pt;
+    color: var(--pdf-muted-foreground);
+    vertical-align: top;
+    padding-top: 3mm;
+  }
   @bottom-right {
     content: "Page " counter(page);
     font-family: "DejaVu Sans", sans-serif;
@@ -429,3 +437,9 @@ p { margin: 0 0 6pt; }
 .back-thanks { position: absolute; top: 128mm; left: 0; right: 0; text-align: center; font-size: 18pt; font-weight: bold; color: var(--white); }
 .back-contact { position: absolute; top: 150mm; left: 0; right: 0; text-align: center; font-size: 9pt; color: var(--pdf-brand-pale); line-height: 1.7; }
 .back-conf { position: absolute; bottom: 14mm; left: 24mm; right: 24mm; text-align: center; font-size: 7pt; color: var(--pdf-primary); }
+/* Powered-by Teclusion AI badge on the dark back panel. The logo art is on a
+   white ground, so it sits in a small white chip to read as an intentional mark. */
+.back-powered { position: absolute; top: 168mm; left: 0; right: 0; text-align: center; }
+.back-powered .tec-chip { display: inline-block; background: var(--white); border-radius: 5pt; padding: 3pt 4pt; vertical-align: middle; }
+.back-powered .tec-chip img { height: 15pt; display: block; }
+.back-powered .tec-label { display: inline-block; margin-left: 6pt; font-size: 8.5pt; letter-spacing: 0.5px; color: var(--pdf-brand-pale); vertical-align: middle; }

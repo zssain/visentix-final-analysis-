@@ -11,6 +11,7 @@
 import { useEffect, useState } from "react";
 import type { ReportPayload } from "./types";
 import { api } from "../lib/api";
+import { PoweredByTeclusion } from "../components/PoweredByTeclusion";
 import { useExplain } from "./explain/ExplainContext";
 import "./explain/explain.css";
 import { Cover }              from "./sections/Cover";
@@ -206,6 +207,7 @@ export function ReportView({ report }: ReportViewProps) {
         &nbsp;·&nbsp;{report.generated_date}
         &nbsp;·&nbsp;Assessment: {report.assessment_id?.slice(0, 12)}
         &nbsp;·&nbsp;Cohort: n={report.cohort_size} as of {report.cohort_date}
+        <div className="mt-2"><PoweredByTeclusion /></div>
       </div>
     </div>
 
