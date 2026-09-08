@@ -8,6 +8,15 @@ Visentix turns public privacy notices into benchmark-driven privacy **INTELLIGEN
 
 The project contains a **FastAPI backend** (Python) and a **React + TypeScript + Vite frontend**.
 
+The single `web/` frontend serves the public website at `/` and the authenticated
+workspace entry at `/workspace`. Login preserves the existing role-based landing
+pages. The website was adapted from the sibling `visentix` working tree and redesigned
+with an independent editorial visual system. No separate website package or build
+is required. Run `cd web && pnpm run dev` and open `http://localhost:5173/`.
+
+See the [2026-09-08 UI and app-truth audit](logs/audits/2026-09-08-ui-and-app-truth.md)
+for verified behavior, remaining inconsistencies, and validation limits.
+
 ### 1. Run the Backend (FastAPI)
 
 1. **Verify Configuration**:

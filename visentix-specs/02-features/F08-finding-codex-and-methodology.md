@@ -27,5 +27,6 @@ Codex reads `finding_type` (canonical definition, exposure signal, anonymised ex
 Codex API contract test, report-code↔codex integrity test, search/empty-state vitest.
 
 ## Changelog
+- 2026-09-08: Owner approved incorporating the public website into `web/`, with `/workspace` as the authenticated home. See [public-site amendment](F08-amendment-2026-09-08-public-site.md); website visual redesign is deferred. Existing dictionary and methodology gaps are recorded in the September audit, not marked resolved.
 - 2026-07-16 (audit): Status trued up — M-11 verified **Replaced**: FindingCodex and CodexTooltip both read the real `/findings/codex` route (`app/routers/findings.py`). Also fixed the Methodology page's hardcoded "n=30 as of 2026-06-19" line inside the honest-benchmarking copy (M-12 discipline).
 - 2026-07-16: Added Changelog section for template conformance; no behavioral change. (Mock M-11 tracked in [`00-plan/mock-tracker.md`](../00-plan/mock-tracker.md).)

@@ -15,7 +15,7 @@
  *   - `roles: undefined` means public (no auth). Otherwise the listed roles.
  *   - `surface` names the build flag that masks it; undefined = always present.
  *   - `title` must match the page's PageHeader title, and `navLabel` its eyebrow
- *     (DDR-008), except for the two editorial pages that carry their own cover.
+ *     (DDR-008), except for editorial pages and public website heroes that carry their own cover.
  *
  * scripts/check_routes.py compares this file against design-system §6 and fails
  * on any disagreement, so the spec and the code cannot drift again.
@@ -64,6 +64,18 @@ const F_PARTNER   = import.meta.env.VITE_SURFACE_PARTNER   === "true" || PREVIEW
 const F_BULK      = import.meta.env.VITE_SURFACE_BULK      === "true" || PREVIEW;
 
 export const ROUTES: RouteDef[] = [
+  { path: "/", title: "Home", editorialCover: true, purpose: "Public website page." },
+  { path: "/pricing", title: "Plans & Subscriptions", editorialCover: true, purpose: "Product plans and contact pricing." },
+  { path: "/solutions/continuous-monitoring", title: "Continuous Monitoring", editorialCover: true, purpose: "Monitoring subscription overview." },
+  { path: "/solutions/white-label", title: "White-Label Intelligence", editorialCover: true, purpose: "Partner product overview." },
+  { path: "/platform", title: "The Visentix Platform", editorialCover: true, purpose: "Public website page." },
+  { path: "/solutions", title: "Solutions", editorialCover: true, purpose: "Public website page." },
+  { path: "/solutions/notice-assessment", title: "Privacy Notice Intelligence Assessment", editorialCover: true, purpose: "Public website page." },
+  { path: "/solutions/quarterly-report", title: "Quarterly Report Overview", editorialCover: true, purpose: "Public website page." },
+  { path: "/resources", title: "Resources & Insights", editorialCover: true, purpose: "Public website page." },
+  { path: "/about", title: "About Visentix", editorialCover: true, purpose: "Public website page." },
+  { path: "/contact", title: "Contact", editorialCover: true, purpose: "Public website page." },
+
   // ── Workspace ────────────────────────────────────────────────────────────
   {
     path: "/assessments", title: "Your Assessments",
@@ -165,7 +177,7 @@ export const ROUTES: RouteDef[] = [
   { path: "/terms",        title: "Terms",         purpose: "Our own terms (legal, public)." },
   { path: "/unauthorized", title: "Not permitted", purpose: "Shown when a role reaches a screen it may not see." },
   {
-    path: "/", title: "Home",
+    path: "/workspace", title: "Workspace",
     roles: ["customer", "sme", "admin", "partner_admin"],
     purpose: "Role-based redirect to the right home screen.",
   },

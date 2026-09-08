@@ -1,0 +1,1862 @@
+{
+  "notice": "Isolated browser fixtures; not live customer data. Dark report screenshots have watermark disabled for diagnosis; measurements record original layout.",
+  "light": [
+    {
+      "width": 375,
+      "path": "/",
+      "role": "public",
+      "headings": [
+        "Privacy Intelligence. Benchmarking. Visibility.",
+        "A notice. Its peers. The evidence.",
+        "One intelligence engine.",
+        "Privacy Notice Intelligence Assessment",
+        "Continuous Monitoring & Intelligence",
+        "White-Label Privacy Intelligence",
+        "Quarterly Intelligence Report"
+      ],
+      "overflow": false,
+      "scrollWidth": 375,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2"
+      ],
+      "screenshot": "375-_.png",
+      "finalPath": "/"
+    },
+    {
+      "width": 375,
+      "path": "/platform",
+      "role": "public",
+      "headings": [
+        "Purpose-built for privacy intelligence. Built around evidence.",
+        "The intelligence engine",
+        "Continuous monitoring"
+      ],
+      "overflow": false,
+      "scrollWidth": 375,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2"
+      ],
+      "screenshot": "375-_platform.png",
+      "finalPath": "/platform"
+    },
+    {
+      "width": 375,
+      "path": "/solutions",
+      "role": "public",
+      "headings": [
+        "Privacy intelligence for your next decision.",
+        "Privacy Notice Intelligence Assessment",
+        "Continuous Monitoring & Intelligence",
+        "White-Label Privacy Intelligence",
+        "Quarterly Intelligence Report"
+      ],
+      "overflow": false,
+      "scrollWidth": 375,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2"
+      ],
+      "screenshot": "375-_solutions.png",
+      "finalPath": "/solutions"
+    },
+    {
+      "width": 375,
+      "path": "/solutions/notice-assessment",
+      "role": "public",
+      "headings": [
+        "One-Time Privacy Notice Intelligence Assessment",
+        "An evidence-led report",
+        "Organizations seeking an initial or ad-hoc privacy posture evaluation."
+      ],
+      "overflow": false,
+      "scrollWidth": 375,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2"
+      ],
+      "screenshot": "375-_solutions_notice-assessment.png",
+      "finalPath": "/solutions/notice-assessment"
+    },
+    {
+      "width": 375,
+      "path": "/solutions/quarterly-report",
+      "role": "public",
+      "headings": [
+        "Quarterly Privacy Intelligence Report",
+        "Published evidence only"
+      ],
+      "overflow": false,
+      "scrollWidth": 375,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2"
+      ],
+      "screenshot": "375-_solutions_quarterly-report.png",
+      "finalPath": "/solutions/quarterly-report"
+    },
+    {
+      "width": 375,
+      "path": "/resources",
+      "role": "public",
+      "headings": [
+        "Explore the evidence behind the intelligence.",
+        "Methodology",
+        "Finding definitions",
+        "Quarterly publication"
+      ],
+      "overflow": false,
+      "scrollWidth": 375,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2"
+      ],
+      "screenshot": "375-_resources.png",
+      "finalPath": "/resources"
+    },
+    {
+      "width": 375,
+      "path": "/about",
+      "role": "public",
+      "headings": [
+        "About Visentix",
+        "Domain knowledge",
+        "Technology"
+      ],
+      "overflow": false,
+      "scrollWidth": 375,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2"
+      ],
+      "screenshot": "375-_about.png",
+      "finalPath": "/about"
+    },
+    {
+      "width": 375,
+      "path": "/contact",
+      "role": "public",
+      "headings": [
+        "Let\u2019s talk privacy intelligence.",
+        "Online enquiries are not available yet"
+      ],
+      "overflow": false,
+      "scrollWidth": 375,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2"
+      ],
+      "screenshot": "375-_contact.png",
+      "finalPath": "/contact"
+    },
+    {
+      "width": 375,
+      "path": "/login",
+      "role": "public",
+      "headings": [
+        "Sign in",
+        "Compared to whom, with what exposure, at what confidence."
+      ],
+      "overflow": false,
+      "scrollWidth": 375,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2"
+      ],
+      "screenshot": "375-_login.png",
+      "finalPath": "/login"
+    },
+    {
+      "width": 375,
+      "path": "/methodology",
+      "role": "public",
+      "headings": [
+        "How Visentix Works",
+        "Method Version",
+        "14 Versioned Formulas",
+        "Intelligence, Not Legal Verdicts",
+        "Human Expert Review Gate",
+        "Reproducibility & Lineage",
+        "About Visentix"
+      ],
+      "overflow": false,
+      "scrollWidth": 375,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2"
+      ],
+      "screenshot": "375-_methodology.png",
+      "finalPath": "/methodology"
+    },
+    {
+      "width": 375,
+      "path": "/finding-codes",
+      "role": "public",
+      "headings": [
+        "Finding Code Definitions"
+      ],
+      "overflow": false,
+      "scrollWidth": 375,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2"
+      ],
+      "screenshot": "375-_finding-codes.png",
+      "finalPath": "/finding-codes"
+    },
+    {
+      "width": 375,
+      "path": "/quarterly",
+      "role": "public",
+      "headings": [
+        "Global Privacy Intelligence Report"
+      ],
+      "overflow": false,
+      "scrollWidth": 375,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2",
+        "/quarterly/latest"
+      ],
+      "screenshot": "375-_quarterly.png",
+      "finalPath": "/quarterly"
+    },
+    {
+      "width": 375,
+      "path": "/privacy",
+      "role": "public",
+      "headings": [
+        "Privacy Notice",
+        "Who we are",
+        "What we collect",
+        "How we use it",
+        "Who we share it with (subprocessors)",
+        "How long we keep it",
+        "Your rights",
+        "Security",
+        "International transfers",
+        "Changes to this notice",
+        "Contact"
+      ],
+      "overflow": false,
+      "scrollWidth": 375,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2"
+      ],
+      "screenshot": "375-_privacy.png",
+      "finalPath": "/privacy"
+    },
+    {
+      "width": 375,
+      "path": "/terms",
+      "role": "public",
+      "headings": [
+        "Terms of Service",
+        "Agreement to these terms",
+        "What Visentix is \u2014 and is not",
+        "Accounts",
+        "Your content",
+        "Acceptable use",
+        "Pilot / availability",
+        "No warranty; limitation of liability",
+        "Termination",
+        "Changes",
+        "Contact"
+      ],
+      "overflow": false,
+      "scrollWidth": 375,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2"
+      ],
+      "screenshot": "375-_terms.png",
+      "finalPath": "/terms"
+    },
+    {
+      "width": 375,
+      "path": "/unauthorized",
+      "role": "customer",
+      "headings": [
+        "403 \u2014 Access Denied"
+      ],
+      "overflow": false,
+      "scrollWidth": 375,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2"
+      ],
+      "screenshot": "375-_unauthorized.png",
+      "finalPath": "/unauthorized"
+    },
+    {
+      "width": 375,
+      "path": "/assessments",
+      "role": "customer",
+      "headings": [
+        "Your Assessments"
+      ],
+      "overflow": false,
+      "scrollWidth": 375,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2",
+        "/api/monitoring/trend",
+        "/api/monitoring/events",
+        "/api/monitoring/alerts",
+        "/api/monitoring/deliveries",
+        "/assessments/",
+        "/findings/dashboard-stats",
+        "/orgs/audit-org/notifications"
+      ],
+      "screenshot": "375-_assessments.png",
+      "finalPath": "/assessments"
+    },
+    {
+      "width": 375,
+      "path": "/intake",
+      "role": "customer",
+      "headings": [
+        "Submit a Privacy Notice"
+      ],
+      "overflow": false,
+      "scrollWidth": 375,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2",
+        "/config/intake-options"
+      ],
+      "screenshot": "375-_intake.png",
+      "finalPath": "/intake"
+    },
+    {
+      "width": 375,
+      "path": "/reports/audit-fixture",
+      "role": "customer",
+      "headings": [
+        "TestCo",
+        "What is in this report",
+        "Executive Summary",
+        "Where You Stand",
+        "What We Found",
+        "What Peers Do, What We Recommend",
+        "What's Changing",
+        "Appendix \u00b7 Traceability & Method",
+        "Disclosure"
+      ],
+      "overflow": true,
+      "scrollWidth": 2680,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2",
+        "/reports/audit-fixture",
+        "/findings/codex",
+        "/findings/codex",
+        "/api/formulas",
+        "/reports/test-assess-001/explain/all"
+      ],
+      "screenshot": "375-_reports_audit-fixture.png",
+      "finalPath": "/reports/audit-fixture"
+    },
+    {
+      "width": 375,
+      "path": "/workbench",
+      "role": "sme",
+      "headings": [
+        "SME Workbench"
+      ],
+      "overflow": false,
+      "scrollWidth": 375,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2",
+        "/review/queue",
+        "/admin/training-stats"
+      ],
+      "screenshot": "375-_workbench.png",
+      "finalPath": "/workbench"
+    },
+    {
+      "width": 375,
+      "path": "/admin",
+      "role": "admin",
+      "headings": [
+        "Admin Console",
+        "Scheduled Jobs"
+      ],
+      "overflow": false,
+      "scrollWidth": 375,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2",
+        "/admin/training-stats",
+        "/health",
+        "/review/gate-mode",
+        "/admin/jobs",
+        "/admin/status"
+      ],
+      "screenshot": "375-_admin.png",
+      "finalPath": "/admin"
+    },
+    {
+      "width": 375,
+      "path": "/screening",
+      "role": "admin",
+      "headings": [
+        "Bulk Screening"
+      ],
+      "overflow": false,
+      "scrollWidth": 375,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2",
+        "/bulk/jobs"
+      ],
+      "screenshot": "375-_screening.png",
+      "finalPath": "/screening"
+    },
+    {
+      "width": 375,
+      "path": "/partner",
+      "role": "partner_admin",
+      "headings": [
+        "Partner Workspace"
+      ],
+      "overflow": false,
+      "scrollWidth": 375,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2",
+        "/partner/industries",
+        "/partner/workspaces"
+      ],
+      "screenshot": "375-_partner.png",
+      "finalPath": "/partner"
+    },
+    {
+      "width": 375,
+      "path": "/rewrite",
+      "role": "sme",
+      "headings": [
+        "Illustrative Clause Rewrite"
+      ],
+      "overflow": false,
+      "scrollWidth": 375,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2"
+      ],
+      "screenshot": "375-_rewrite.png",
+      "finalPath": "/rewrite"
+    },
+    {
+      "width": 375,
+      "path": "/vendors",
+      "role": "admin",
+      "headings": [
+        "Vendor Due Diligence"
+      ],
+      "overflow": false,
+      "scrollWidth": 375,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2",
+        "/findings/codex",
+        "/findings/codex"
+      ],
+      "screenshot": "375-_vendors.png",
+      "finalPath": "/vendors"
+    },
+    {
+      "width": 375,
+      "path": "/crosswalk",
+      "role": "admin",
+      "headings": [
+        "Framework Crosswalk"
+      ],
+      "overflow": false,
+      "scrollWidth": 375,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2"
+      ],
+      "screenshot": "375-_crosswalk.png",
+      "finalPath": "/crosswalk"
+    },
+    {
+      "width": 375,
+      "path": "/trust",
+      "role": "admin",
+      "headings": [
+        "Intelligence you can check, line by line.",
+        "What we claim \u2014 and what we don't",
+        "Your data",
+        "How the intelligence is made",
+        "The traceability guarantee"
+      ],
+      "overflow": false,
+      "scrollWidth": 375,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2"
+      ],
+      "screenshot": "375-_trust.png",
+      "finalPath": "/trust"
+    },
+    {
+      "width": 768,
+      "path": "/",
+      "role": "public",
+      "headings": [
+        "Privacy Intelligence. Benchmarking. Visibility.",
+        "A notice. Its peers. The evidence.",
+        "One intelligence engine.",
+        "Privacy Notice Intelligence Assessment",
+        "Continuous Monitoring & Intelligence",
+        "White-Label Privacy Intelligence",
+        "Quarterly Intelligence Report"
+      ],
+      "overflow": false,
+      "scrollWidth": 768,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2"
+      ],
+      "screenshot": "768-_.png",
+      "finalPath": "/"
+    },
+    {
+      "width": 768,
+      "path": "/platform",
+      "role": "public",
+      "headings": [
+        "Purpose-built for privacy intelligence. Built around evidence.",
+        "The intelligence engine",
+        "Continuous monitoring"
+      ],
+      "overflow": false,
+      "scrollWidth": 768,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2"
+      ],
+      "screenshot": "768-_platform.png",
+      "finalPath": "/platform"
+    },
+    {
+      "width": 768,
+      "path": "/solutions",
+      "role": "public",
+      "headings": [
+        "Privacy intelligence for your next decision.",
+        "Privacy Notice Intelligence Assessment",
+        "Continuous Monitoring & Intelligence",
+        "White-Label Privacy Intelligence",
+        "Quarterly Intelligence Report"
+      ],
+      "overflow": false,
+      "scrollWidth": 768,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2"
+      ],
+      "screenshot": "768-_solutions.png",
+      "finalPath": "/solutions"
+    },
+    {
+      "width": 768,
+      "path": "/solutions/notice-assessment",
+      "role": "public",
+      "headings": [
+        "One-Time Privacy Notice Intelligence Assessment",
+        "An evidence-led report",
+        "Organizations seeking an initial or ad-hoc privacy posture evaluation."
+      ],
+      "overflow": false,
+      "scrollWidth": 768,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2"
+      ],
+      "screenshot": "768-_solutions_notice-assessment.png",
+      "finalPath": "/solutions/notice-assessment"
+    },
+    {
+      "width": 768,
+      "path": "/solutions/quarterly-report",
+      "role": "public",
+      "headings": [
+        "Quarterly Privacy Intelligence Report",
+        "Published evidence only"
+      ],
+      "overflow": false,
+      "scrollWidth": 768,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2"
+      ],
+      "screenshot": "768-_solutions_quarterly-report.png",
+      "finalPath": "/solutions/quarterly-report"
+    },
+    {
+      "width": 768,
+      "path": "/resources",
+      "role": "public",
+      "headings": [
+        "Explore the evidence behind the intelligence.",
+        "Methodology",
+        "Finding definitions",
+        "Quarterly publication"
+      ],
+      "overflow": false,
+      "scrollWidth": 768,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2"
+      ],
+      "screenshot": "768-_resources.png",
+      "finalPath": "/resources"
+    },
+    {
+      "width": 768,
+      "path": "/about",
+      "role": "public",
+      "headings": [
+        "About Visentix",
+        "Domain knowledge",
+        "Technology"
+      ],
+      "overflow": false,
+      "scrollWidth": 768,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2"
+      ],
+      "screenshot": "768-_about.png",
+      "finalPath": "/about"
+    },
+    {
+      "width": 768,
+      "path": "/contact",
+      "role": "public",
+      "headings": [
+        "Let\u2019s talk privacy intelligence.",
+        "Online enquiries are not available yet"
+      ],
+      "overflow": false,
+      "scrollWidth": 768,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2"
+      ],
+      "screenshot": "768-_contact.png",
+      "finalPath": "/contact"
+    },
+    {
+      "width": 768,
+      "path": "/login",
+      "role": "public",
+      "headings": [
+        "Sign in",
+        "Compared to whom, with what exposure, at what confidence."
+      ],
+      "overflow": false,
+      "scrollWidth": 768,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2"
+      ],
+      "screenshot": "768-_login.png",
+      "finalPath": "/login"
+    },
+    {
+      "width": 768,
+      "path": "/methodology",
+      "role": "public",
+      "headings": [
+        "How Visentix Works",
+        "Method Version",
+        "14 Versioned Formulas",
+        "Intelligence, Not Legal Verdicts",
+        "Human Expert Review Gate",
+        "Reproducibility & Lineage",
+        "About Visentix"
+      ],
+      "overflow": false,
+      "scrollWidth": 768,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2"
+      ],
+      "screenshot": "768-_methodology.png",
+      "finalPath": "/methodology"
+    },
+    {
+      "width": 768,
+      "path": "/finding-codes",
+      "role": "public",
+      "headings": [
+        "Finding Code Definitions"
+      ],
+      "overflow": false,
+      "scrollWidth": 768,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2"
+      ],
+      "screenshot": "768-_finding-codes.png",
+      "finalPath": "/finding-codes"
+    },
+    {
+      "width": 768,
+      "path": "/quarterly",
+      "role": "public",
+      "headings": [
+        "Global Privacy Intelligence Report"
+      ],
+      "overflow": false,
+      "scrollWidth": 768,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2",
+        "/quarterly/latest"
+      ],
+      "screenshot": "768-_quarterly.png",
+      "finalPath": "/quarterly"
+    },
+    {
+      "width": 768,
+      "path": "/privacy",
+      "role": "public",
+      "headings": [
+        "Privacy Notice",
+        "Who we are",
+        "What we collect",
+        "How we use it",
+        "Who we share it with (subprocessors)",
+        "How long we keep it",
+        "Your rights",
+        "Security",
+        "International transfers",
+        "Changes to this notice",
+        "Contact"
+      ],
+      "overflow": false,
+      "scrollWidth": 768,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2"
+      ],
+      "screenshot": "768-_privacy.png",
+      "finalPath": "/privacy"
+    },
+    {
+      "width": 768,
+      "path": "/terms",
+      "role": "public",
+      "headings": [
+        "Terms of Service",
+        "Agreement to these terms",
+        "What Visentix is \u2014 and is not",
+        "Accounts",
+        "Your content",
+        "Acceptable use",
+        "Pilot / availability",
+        "No warranty; limitation of liability",
+        "Termination",
+        "Changes",
+        "Contact"
+      ],
+      "overflow": false,
+      "scrollWidth": 768,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2"
+      ],
+      "screenshot": "768-_terms.png",
+      "finalPath": "/terms"
+    },
+    {
+      "width": 768,
+      "path": "/unauthorized",
+      "role": "customer",
+      "headings": [
+        "403 \u2014 Access Denied"
+      ],
+      "overflow": false,
+      "scrollWidth": 768,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2"
+      ],
+      "screenshot": "768-_unauthorized.png",
+      "finalPath": "/unauthorized"
+    },
+    {
+      "width": 768,
+      "path": "/assessments",
+      "role": "customer",
+      "headings": [
+        "Your Assessments"
+      ],
+      "overflow": false,
+      "scrollWidth": 768,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2",
+        "/api/monitoring/trend",
+        "/api/monitoring/events",
+        "/api/monitoring/alerts",
+        "/api/monitoring/deliveries",
+        "/assessments/",
+        "/findings/dashboard-stats",
+        "/orgs/audit-org/notifications"
+      ],
+      "screenshot": "768-_assessments.png",
+      "finalPath": "/assessments"
+    },
+    {
+      "width": 768,
+      "path": "/intake",
+      "role": "customer",
+      "headings": [
+        "Submit a Privacy Notice"
+      ],
+      "overflow": false,
+      "scrollWidth": 768,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2",
+        "/config/intake-options"
+      ],
+      "screenshot": "768-_intake.png",
+      "finalPath": "/intake"
+    },
+    {
+      "width": 768,
+      "path": "/reports/audit-fixture",
+      "role": "customer",
+      "headings": [
+        "TestCo",
+        "What is in this report",
+        "Executive Summary",
+        "Where You Stand",
+        "What We Found",
+        "What Peers Do, What We Recommend",
+        "What's Changing",
+        "Appendix \u00b7 Traceability & Method",
+        "Disclosure"
+      ],
+      "overflow": true,
+      "scrollWidth": 2922,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2",
+        "/reports/audit-fixture",
+        "/findings/codex",
+        "/findings/codex",
+        "/api/formulas",
+        "/reports/test-assess-001/explain/all"
+      ],
+      "screenshot": "768-_reports_audit-fixture.png",
+      "finalPath": "/reports/audit-fixture"
+    },
+    {
+      "width": 768,
+      "path": "/workbench",
+      "role": "sme",
+      "headings": [
+        "SME Workbench"
+      ],
+      "overflow": false,
+      "scrollWidth": 768,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2",
+        "/review/queue",
+        "/admin/training-stats"
+      ],
+      "screenshot": "768-_workbench.png",
+      "finalPath": "/workbench"
+    },
+    {
+      "width": 768,
+      "path": "/admin",
+      "role": "admin",
+      "headings": [
+        "Admin Console",
+        "Scheduled Jobs"
+      ],
+      "overflow": false,
+      "scrollWidth": 768,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2",
+        "/health",
+        "/admin/training-stats",
+        "/review/gate-mode",
+        "/admin/jobs",
+        "/admin/status"
+      ],
+      "screenshot": "768-_admin.png",
+      "finalPath": "/admin"
+    },
+    {
+      "width": 768,
+      "path": "/screening",
+      "role": "admin",
+      "headings": [
+        "Bulk Screening"
+      ],
+      "overflow": false,
+      "scrollWidth": 768,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2",
+        "/bulk/jobs"
+      ],
+      "screenshot": "768-_screening.png",
+      "finalPath": "/screening"
+    },
+    {
+      "width": 768,
+      "path": "/partner",
+      "role": "partner_admin",
+      "headings": [
+        "Partner Workspace"
+      ],
+      "overflow": false,
+      "scrollWidth": 768,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2",
+        "/partner/industries",
+        "/partner/workspaces"
+      ],
+      "screenshot": "768-_partner.png",
+      "finalPath": "/partner"
+    },
+    {
+      "width": 768,
+      "path": "/rewrite",
+      "role": "sme",
+      "headings": [
+        "Illustrative Clause Rewrite"
+      ],
+      "overflow": false,
+      "scrollWidth": 768,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2"
+      ],
+      "screenshot": "768-_rewrite.png",
+      "finalPath": "/rewrite"
+    },
+    {
+      "width": 768,
+      "path": "/vendors",
+      "role": "admin",
+      "headings": [
+        "Vendor Due Diligence"
+      ],
+      "overflow": false,
+      "scrollWidth": 768,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2",
+        "/findings/codex",
+        "/findings/codex"
+      ],
+      "screenshot": "768-_vendors.png",
+      "finalPath": "/vendors"
+    },
+    {
+      "width": 768,
+      "path": "/crosswalk",
+      "role": "admin",
+      "headings": [
+        "Framework Crosswalk"
+      ],
+      "overflow": false,
+      "scrollWidth": 768,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2"
+      ],
+      "screenshot": "768-_crosswalk.png",
+      "finalPath": "/crosswalk"
+    },
+    {
+      "width": 768,
+      "path": "/trust",
+      "role": "admin",
+      "headings": [
+        "Intelligence you can check, line by line.",
+        "What we claim \u2014 and what we don't",
+        "Your data",
+        "How the intelligence is made",
+        "The traceability guarantee"
+      ],
+      "overflow": false,
+      "scrollWidth": 768,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2"
+      ],
+      "screenshot": "768-_trust.png",
+      "finalPath": "/trust"
+    },
+    {
+      "width": 1280,
+      "path": "/",
+      "role": "public",
+      "headings": [
+        "Privacy Intelligence. Benchmarking. Visibility.",
+        "A notice. Its peers. The evidence.",
+        "One intelligence engine.",
+        "Privacy Notice Intelligence Assessment",
+        "Continuous Monitoring & Intelligence",
+        "White-Label Privacy Intelligence",
+        "Quarterly Intelligence Report"
+      ],
+      "overflow": false,
+      "scrollWidth": 1280,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2"
+      ],
+      "screenshot": "1280-_.png",
+      "finalPath": "/"
+    },
+    {
+      "width": 1280,
+      "path": "/platform",
+      "role": "public",
+      "headings": [
+        "Purpose-built for privacy intelligence. Built around evidence.",
+        "The intelligence engine",
+        "Continuous monitoring"
+      ],
+      "overflow": false,
+      "scrollWidth": 1280,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2"
+      ],
+      "screenshot": "1280-_platform.png",
+      "finalPath": "/platform"
+    },
+    {
+      "width": 1280,
+      "path": "/solutions",
+      "role": "public",
+      "headings": [
+        "Privacy intelligence for your next decision.",
+        "Privacy Notice Intelligence Assessment",
+        "Continuous Monitoring & Intelligence",
+        "White-Label Privacy Intelligence",
+        "Quarterly Intelligence Report"
+      ],
+      "overflow": false,
+      "scrollWidth": 1280,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2"
+      ],
+      "screenshot": "1280-_solutions.png",
+      "finalPath": "/solutions"
+    },
+    {
+      "width": 1280,
+      "path": "/solutions/notice-assessment",
+      "role": "public",
+      "headings": [
+        "One-Time Privacy Notice Intelligence Assessment",
+        "An evidence-led report",
+        "Organizations seeking an initial or ad-hoc privacy posture evaluation."
+      ],
+      "overflow": false,
+      "scrollWidth": 1280,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2"
+      ],
+      "screenshot": "1280-_solutions_notice-assessment.png",
+      "finalPath": "/solutions/notice-assessment"
+    },
+    {
+      "width": 1280,
+      "path": "/solutions/quarterly-report",
+      "role": "public",
+      "headings": [
+        "Quarterly Privacy Intelligence Report",
+        "Published evidence only"
+      ],
+      "overflow": false,
+      "scrollWidth": 1280,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2"
+      ],
+      "screenshot": "1280-_solutions_quarterly-report.png",
+      "finalPath": "/solutions/quarterly-report"
+    },
+    {
+      "width": 1280,
+      "path": "/resources",
+      "role": "public",
+      "headings": [
+        "Explore the evidence behind the intelligence.",
+        "Methodology",
+        "Finding definitions",
+        "Quarterly publication"
+      ],
+      "overflow": false,
+      "scrollWidth": 1280,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2"
+      ],
+      "screenshot": "1280-_resources.png",
+      "finalPath": "/resources"
+    },
+    {
+      "width": 1280,
+      "path": "/about",
+      "role": "public",
+      "headings": [
+        "About Visentix",
+        "Domain knowledge",
+        "Technology"
+      ],
+      "overflow": false,
+      "scrollWidth": 1280,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2"
+      ],
+      "screenshot": "1280-_about.png",
+      "finalPath": "/about"
+    },
+    {
+      "width": 1280,
+      "path": "/contact",
+      "role": "public",
+      "headings": [
+        "Let\u2019s talk privacy intelligence.",
+        "Online enquiries are not available yet"
+      ],
+      "overflow": false,
+      "scrollWidth": 1280,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2"
+      ],
+      "screenshot": "1280-_contact.png",
+      "finalPath": "/contact"
+    },
+    {
+      "width": 1280,
+      "path": "/login",
+      "role": "public",
+      "headings": [
+        "Sign in",
+        "Compared to whom, with what exposure, at what confidence."
+      ],
+      "overflow": false,
+      "scrollWidth": 1280,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2"
+      ],
+      "screenshot": "1280-_login.png",
+      "finalPath": "/login"
+    },
+    {
+      "width": 1280,
+      "path": "/methodology",
+      "role": "public",
+      "headings": [
+        "How Visentix Works",
+        "Method Version",
+        "14 Versioned Formulas",
+        "Intelligence, Not Legal Verdicts",
+        "Human Expert Review Gate",
+        "Reproducibility & Lineage",
+        "About Visentix"
+      ],
+      "overflow": false,
+      "scrollWidth": 1280,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2"
+      ],
+      "screenshot": "1280-_methodology.png",
+      "finalPath": "/methodology"
+    },
+    {
+      "width": 1280,
+      "path": "/finding-codes",
+      "role": "public",
+      "headings": [
+        "Finding Code Definitions"
+      ],
+      "overflow": false,
+      "scrollWidth": 1280,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2"
+      ],
+      "screenshot": "1280-_finding-codes.png",
+      "finalPath": "/finding-codes"
+    },
+    {
+      "width": 1280,
+      "path": "/quarterly",
+      "role": "public",
+      "headings": [
+        "Global Privacy Intelligence Report"
+      ],
+      "overflow": false,
+      "scrollWidth": 1280,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2",
+        "/quarterly/latest"
+      ],
+      "screenshot": "1280-_quarterly.png",
+      "finalPath": "/quarterly"
+    },
+    {
+      "width": 1280,
+      "path": "/privacy",
+      "role": "public",
+      "headings": [
+        "Privacy Notice",
+        "Who we are",
+        "What we collect",
+        "How we use it",
+        "Who we share it with (subprocessors)",
+        "How long we keep it",
+        "Your rights",
+        "Security",
+        "International transfers",
+        "Changes to this notice",
+        "Contact"
+      ],
+      "overflow": false,
+      "scrollWidth": 1280,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2"
+      ],
+      "screenshot": "1280-_privacy.png",
+      "finalPath": "/privacy"
+    },
+    {
+      "width": 1280,
+      "path": "/terms",
+      "role": "public",
+      "headings": [
+        "Terms of Service",
+        "Agreement to these terms",
+        "What Visentix is \u2014 and is not",
+        "Accounts",
+        "Your content",
+        "Acceptable use",
+        "Pilot / availability",
+        "No warranty; limitation of liability",
+        "Termination",
+        "Changes",
+        "Contact"
+      ],
+      "overflow": false,
+      "scrollWidth": 1280,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2"
+      ],
+      "screenshot": "1280-_terms.png",
+      "finalPath": "/terms"
+    },
+    {
+      "width": 1280,
+      "path": "/unauthorized",
+      "role": "customer",
+      "headings": [
+        "403 \u2014 Access Denied"
+      ],
+      "overflow": false,
+      "scrollWidth": 1280,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2"
+      ],
+      "screenshot": "1280-_unauthorized.png",
+      "finalPath": "/unauthorized"
+    },
+    {
+      "width": 1280,
+      "path": "/assessments",
+      "role": "customer",
+      "headings": [
+        "Your Assessments"
+      ],
+      "overflow": false,
+      "scrollWidth": 1280,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2",
+        "/api/monitoring/trend",
+        "/api/monitoring/events",
+        "/api/monitoring/alerts",
+        "/api/monitoring/deliveries",
+        "/assessments/",
+        "/findings/dashboard-stats",
+        "/orgs/audit-org/notifications"
+      ],
+      "screenshot": "1280-_assessments.png",
+      "finalPath": "/assessments"
+    },
+    {
+      "width": 1280,
+      "path": "/intake",
+      "role": "customer",
+      "headings": [
+        "Submit a Privacy Notice"
+      ],
+      "overflow": false,
+      "scrollWidth": 1280,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2",
+        "/config/intake-options"
+      ],
+      "screenshot": "1280-_intake.png",
+      "finalPath": "/intake"
+    },
+    {
+      "width": 1280,
+      "path": "/reports/audit-fixture",
+      "role": "customer",
+      "headings": [
+        "TestCo",
+        "What is in this report",
+        "Executive Summary",
+        "Where You Stand",
+        "What We Found",
+        "What Peers Do, What We Recommend",
+        "What's Changing",
+        "Appendix \u00b7 Traceability & Method",
+        "Disclosure"
+      ],
+      "overflow": true,
+      "scrollWidth": 3056,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2",
+        "/reports/audit-fixture",
+        "/findings/codex",
+        "/findings/codex",
+        "/api/formulas",
+        "/reports/test-assess-001/explain/all"
+      ],
+      "screenshot": "1280-_reports_audit-fixture.png",
+      "finalPath": "/reports/audit-fixture"
+    },
+    {
+      "width": 1280,
+      "path": "/workbench",
+      "role": "sme",
+      "headings": [
+        "SME Workbench"
+      ],
+      "overflow": false,
+      "scrollWidth": 1280,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2",
+        "/review/queue",
+        "/admin/training-stats"
+      ],
+      "screenshot": "1280-_workbench.png",
+      "finalPath": "/workbench"
+    },
+    {
+      "width": 1280,
+      "path": "/admin",
+      "role": "admin",
+      "headings": [
+        "Admin Console",
+        "Scheduled Jobs"
+      ],
+      "overflow": false,
+      "scrollWidth": 1280,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2",
+        "/health",
+        "/admin/training-stats",
+        "/review/gate-mode",
+        "/admin/jobs",
+        "/admin/status"
+      ],
+      "screenshot": "1280-_admin.png",
+      "finalPath": "/admin"
+    },
+    {
+      "width": 1280,
+      "path": "/screening",
+      "role": "admin",
+      "headings": [
+        "Bulk Screening"
+      ],
+      "overflow": false,
+      "scrollWidth": 1280,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2",
+        "/bulk/jobs"
+      ],
+      "screenshot": "1280-_screening.png",
+      "finalPath": "/screening"
+    },
+    {
+      "width": 1280,
+      "path": "/partner",
+      "role": "partner_admin",
+      "headings": [
+        "Partner Workspace"
+      ],
+      "overflow": false,
+      "scrollWidth": 1280,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2",
+        "/partner/industries",
+        "/partner/workspaces"
+      ],
+      "screenshot": "1280-_partner.png",
+      "finalPath": "/partner"
+    },
+    {
+      "width": 1280,
+      "path": "/rewrite",
+      "role": "sme",
+      "headings": [
+        "Illustrative Clause Rewrite"
+      ],
+      "overflow": false,
+      "scrollWidth": 1280,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2"
+      ],
+      "screenshot": "1280-_rewrite.png",
+      "finalPath": "/rewrite"
+    },
+    {
+      "width": 1280,
+      "path": "/vendors",
+      "role": "admin",
+      "headings": [
+        "Vendor Due Diligence"
+      ],
+      "overflow": false,
+      "scrollWidth": 1280,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2",
+        "/findings/codex",
+        "/findings/codex"
+      ],
+      "screenshot": "1280-_vendors.png",
+      "finalPath": "/vendors"
+    },
+    {
+      "width": 1280,
+      "path": "/crosswalk",
+      "role": "admin",
+      "headings": [
+        "Framework Crosswalk"
+      ],
+      "overflow": false,
+      "scrollWidth": 1280,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2"
+      ],
+      "screenshot": "1280-_crosswalk.png",
+      "finalPath": "/crosswalk"
+    },
+    {
+      "width": 1280,
+      "path": "/trust",
+      "role": "admin",
+      "headings": [
+        "Intelligence you can check, line by line.",
+        "What we claim \u2014 and what we don't",
+        "Your data",
+        "How the intelligence is made",
+        "The traceability guarantee"
+      ],
+      "overflow": false,
+      "scrollWidth": 1280,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2"
+      ],
+      "screenshot": "1280-_trust.png",
+      "finalPath": "/trust"
+    }
+  ],
+  "dark": [
+    {
+      "width": 375,
+      "path": "/assessments",
+      "role": "customer",
+      "headings": [
+        "Your Assessments"
+      ],
+      "overflow": false,
+      "scrollWidth": 375,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2",
+        "/api/monitoring/trend",
+        "/api/monitoring/events",
+        "/api/monitoring/alerts",
+        "/api/monitoring/deliveries",
+        "/assessments/",
+        "/findings/dashboard-stats",
+        "/orgs/audit-org/notifications"
+      ],
+      "screenshot": "375-_assessments.png",
+      "finalPath": "/assessments"
+    },
+    {
+      "width": 375,
+      "path": "/intake",
+      "role": "customer",
+      "headings": [
+        "Submit a Privacy Notice"
+      ],
+      "overflow": false,
+      "scrollWidth": 375,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2",
+        "/config/intake-options"
+      ],
+      "screenshot": "375-_intake.png",
+      "finalPath": "/intake"
+    },
+    {
+      "width": 375,
+      "path": "/reports/audit-fixture",
+      "role": "customer",
+      "headings": [
+        "TestCo",
+        "What is in this report",
+        "Executive Summary",
+        "Where You Stand",
+        "What We Found",
+        "What Peers Do, What We Recommend",
+        "What's Changing",
+        "Appendix \u00b7 Traceability & Method",
+        "Disclosure"
+      ],
+      "overflow": true,
+      "scrollWidth": 2680,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2",
+        "/reports/audit-fixture",
+        "/findings/codex",
+        "/findings/codex",
+        "/api/formulas",
+        "/reports/test-assess-001/explain/all"
+      ],
+      "screenshot": "375-_reports_audit-fixture.png",
+      "finalPath": "/reports/audit-fixture"
+    },
+    {
+      "width": 375,
+      "path": "/partner",
+      "role": "partner_admin",
+      "headings": [
+        "Partner Workspace"
+      ],
+      "overflow": false,
+      "scrollWidth": 375,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2",
+        "/partner/industries",
+        "/partner/workspaces"
+      ],
+      "screenshot": "375-_partner.png",
+      "finalPath": "/partner"
+    },
+    {
+      "width": 1280,
+      "path": "/assessments",
+      "role": "customer",
+      "headings": [
+        "Your Assessments"
+      ],
+      "overflow": false,
+      "scrollWidth": 1280,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2",
+        "/api/monitoring/trend",
+        "/api/monitoring/events",
+        "/api/monitoring/alerts",
+        "/api/monitoring/deliveries",
+        "/assessments/",
+        "/findings/dashboard-stats",
+        "/orgs/audit-org/notifications"
+      ],
+      "screenshot": "1280-_assessments.png",
+      "finalPath": "/assessments"
+    },
+    {
+      "width": 1280,
+      "path": "/intake",
+      "role": "customer",
+      "headings": [
+        "Submit a Privacy Notice"
+      ],
+      "overflow": false,
+      "scrollWidth": 1280,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2",
+        "/config/intake-options"
+      ],
+      "screenshot": "1280-_intake.png",
+      "finalPath": "/intake"
+    },
+    {
+      "width": 1280,
+      "path": "/reports/audit-fixture",
+      "role": "customer",
+      "headings": [
+        "TestCo",
+        "What is in this report",
+        "Executive Summary",
+        "Where You Stand",
+        "What We Found",
+        "What Peers Do, What We Recommend",
+        "What's Changing",
+        "Appendix \u00b7 Traceability & Method",
+        "Disclosure"
+      ],
+      "overflow": true,
+      "scrollWidth": 3056,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2",
+        "/reports/audit-fixture",
+        "/findings/codex",
+        "/findings/codex",
+        "/api/formulas",
+        "/reports/test-assess-001/explain/all"
+      ],
+      "screenshot": "1280-_reports_audit-fixture.png",
+      "finalPath": "/reports/audit-fixture"
+    },
+    {
+      "width": 1280,
+      "path": "/partner",
+      "role": "partner_admin",
+      "headings": [
+        "Partner Workspace"
+      ],
+      "overflow": false,
+      "scrollWidth": 1280,
+      "unnamedButtons": 0,
+      "errors": [],
+      "apiRequests": [
+        "/css2",
+        "/css2",
+        "/partner/industries",
+        "/partner/workspaces"
+      ],
+      "screenshot": "1280-_partner.png",
+      "finalPath": "/partner"
+    }
+  ]
+}

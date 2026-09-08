@@ -72,6 +72,18 @@ const ROUTE_ICONS: Record<string, typeof Activity> = {
   ...(S_BULK      ? { "/screening": ScanSearch } : {}),
 };
 
+import { PublicLayout } from "./pages/public/PublicLayout";
+import { Home } from "./pages/public/Home";
+import { Platform } from "./pages/public/Platform";
+import { Solutions } from "./pages/public/Solutions";
+import { Resources } from "./pages/public/Resources";
+import { About } from "./pages/public/About";
+import { Contact } from "./pages/public/Contact";
+import { NoticeAssessment } from "./pages/public/NoticeAssessment";
+import { Pricing } from "./pages/public/Pricing";
+import { ContinuousMonitoring } from "./pages/public/ContinuousMonitoring";
+import { WhiteLabel } from "./pages/public/WhiteLabel";
+import { QuarterlyOverview } from "./pages/public/QuarterlyOverview";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -199,9 +211,9 @@ function AppRoutes() {
   const [railHidden, setRailHidden] = useState(() => {
     try { return localStorage.getItem(RAIL_KEY) === "hidden"; } catch { return false; }
   });
-  // Login is the only full-bleed route; everything else (including the public
-  // /codex and /methodology pages) gets the standard content container.
+  // Website pages use PublicLayout; login is full-bleed within the app shell.
   const fullBleed = location.pathname === "/login";
+  const isWebsite = ["/", "/platform", "/solutions", "/resources", "/about", "/contact", "/solutions/notice-assessment", "/solutions/quarterly-report", "/solutions/continuous-monitoring", "/solutions/white-label", "/pricing"].includes(location.pathname);
 
   const closeNav = () => setNavOpen(false);
 
@@ -227,6 +239,20 @@ function AppRoutes() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [session, toggleRail]);
+
+  if (isWebsite) return <PublicLayout><Routes>
+    <Route path="/" element={<Home />} />
+    <Route path="/platform" element={<Platform />} />
+    <Route path="/solutions" element={<Solutions />} />
+    <Route path="/solutions/notice-assessment" element={<NoticeAssessment />} />
+    <Route path="/pricing" element={<Pricing />} />
+    <Route path="/solutions/continuous-monitoring" element={<ContinuousMonitoring />} />
+    <Route path="/solutions/white-label" element={<WhiteLabel />} />
+    <Route path="/solutions/quarterly-report" element={<QuarterlyOverview />} />
+    <Route path="/resources" element={<Resources />} />
+    <Route path="/about" element={<About />} />
+    <Route path="/contact" element={<Contact />} />
+  </Routes>{session && <TaskTracker />}</PublicLayout>;
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -431,11 +457,8 @@ function AppRoutes() {
             </div>
           } />
 
-          {/* Root → role-based landing */}
-          {/* `/` is a redirect, never a screen. It used to render
-              CustomerDashboard directly, which made it a second URL for the
-              same screen as /assessments — two addresses for one thing. */}
-          <Route path="/" element={<Guarded path="/"><RoleBasedHome /></Guarded>} />
+          {/* Authenticated workspace → role-based landing */}
+          <Route path="/workspace" element={<Guarded path="/workspace"><RoleBasedHome /></Guarded>} />
 
           {/* Monitor (was /assessments — the nav and the title both said Monitor,
               only the URL said assessments) */}

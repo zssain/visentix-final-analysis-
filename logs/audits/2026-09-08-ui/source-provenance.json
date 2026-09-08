@@ -1,0 +1,43 @@
+{
+  "repository": "sibling visentix",
+  "head": "d181a9fe334cc6288cb3bd0198e2fa639cd59701",
+  "working_tree": "Had uncommitted and untracked source changes; read as working tree and left intact.",
+  "route_files": [
+    {
+      "path": "src/routes/__root.tsx",
+      "sha256": "c2f97cd812cd4286028d96dbd1180f9d4fb9259d277d08e516414d999b7dec99"
+    },
+    {
+      "path": "src/routes/about.tsx",
+      "sha256": "9ee1b3e8608762355163612c6e7c2ad6732fd9a4528d53c35b14889cc4bb1e6d"
+    },
+    {
+      "path": "src/routes/contact.tsx",
+      "sha256": "9d3f7be1ab3e3492d344f92980ce5ddc2fde7dbc5446eae0b8c8bae76627387d"
+    },
+    {
+      "path": "src/routes/index.tsx",
+      "sha256": "30c1cffec3123b70daff9a9d41a7d1655cc608f597a78d45171b01919c9ac8e8"
+    },
+    {
+      "path": "src/routes/platform.tsx",
+      "sha256": "c899b2d2b956c740930b2e0f2cfd192f6c10968edc9ec134b01679f10c70c4e6"
+    },
+    {
+      "path": "src/routes/resources.tsx",
+      "sha256": "41f5563499cf317a269197c8306178e86a8453b3674db22ff943f39290110258"
+    },
+    {
+      "path": "src/routes/solutions/notice-assessment.tsx",
+      "sha256": "83a9da9d396a12888b8aef8e20e0403b15b4febeff46212b2ee786dd15405ad1"
+    },
+    {
+      "path": "src/routes/solutions/quarterly-report.tsx",
+      "sha256": "9940c7d3772231c345b555d60f2d01a8cec93599219612f56aeb155e98edf09d"
+    },
+    {
+      "path": "src/routes/solutions.tsx",
+      "sha256": "e905d679399cd8d044fe55b8702a06d6faa26f333a8a54ad9d985eca35d4f706"
+    }
+  ]
+}
