@@ -646,8 +646,8 @@ def _render_back_cover(report: ReportPayload) -> str:
 </section>""".format(
         logo=logo,
         powered=(
-            f'<div class="back-powered"><span class="tec-chip">'
-            f'<img src="{_TECLUSION_LOGO}" alt="Teclusion AI"></span>'
+            f'<div class="back-powered">'
+            f'<img class="tec-logo" src="{_TECLUSION_LOGO}" alt="Teclusion AI">'
             f'<span class="tec-label">Powered by Teclusion AI</span></div>'
             if _TECLUSION_LOGO else
             '<div class="back-powered"><span class="tec-label">Powered by Teclusion AI</span></div>'
