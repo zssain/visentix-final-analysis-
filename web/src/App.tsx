@@ -2,6 +2,7 @@
  * App — uses AuthProvider context for all auth state.
  * No imperative navigate() after sign-in. All redirects are declarative.
  */
+import { VisentixWordmark } from "./components/VisentixWordmark";
 import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import { BrowserRouter, Link, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import {
@@ -273,8 +274,7 @@ function AppRoutes() {
             >
               {navOpen ? "✕" : "☰"}
             </button>
-            <img src="/wordmark logo for white background.png" alt="Visentix" className="h-6 w-auto dark:hidden" />
-            <img src="/wordmark logo for dark background.png" alt="Visentix" className="h-6 w-auto hidden dark:block" />
+            <VisentixWordmark className="text-sidebar-foreground" />
             <div className="ml-auto"><ThemeToggle /></div>
           </div>
 
@@ -335,8 +335,7 @@ function AppRoutes() {
             />
 
             <div className="h-16 flex items-center px-5 border-b border-sidebar-border shrink-0 md:mx-3 md:px-2">
-              <img src="/wordmark logo for white background.png" alt="Visentix" className="h-7 w-auto dark:hidden" />
-              <img src="/wordmark logo for dark background.png" alt="Visentix" className="h-7 w-auto hidden dark:block" />
+              <VisentixWordmark className="text-sidebar-foreground" />
               <Button
                 onClick={toggleRail}
                 variant="ghost"

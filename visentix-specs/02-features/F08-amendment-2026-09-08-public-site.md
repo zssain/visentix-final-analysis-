@@ -122,3 +122,11 @@ surfaces. Extend the identity to the login page: typographic wordmark, matching
 artwork, accessible form, password visibility and existing reset-help messaging.
 Preserve signIn, error handling and protected-route/role redirects. No auth,
 account provisioning, billing, schema or application-score palette changes.
+
+## F10 workspace wordmark — owner-approved 2026-09-08
+
+Use the new typographic Visentix identity in the desktop workspace rail and
+mobile header, adapting to existing light/dark foreground tokens. The owner
+also requested advice on further visual alignment; broader shell, header and
+card restyling is proposed separately, not included in this logo-only change.
+No changes to report branding, score semantics, authentication or data.
