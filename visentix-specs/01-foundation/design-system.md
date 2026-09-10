@@ -1,6 +1,6 @@
 # Design System — Tokens, Furniture, DDR Summary
 
-**Version:** 1.14 · 2026-09-01 · Condenses the Brand Guide, DDRs, and UI_SPEC §0 into one authority. Design principle: **legal-and-regulator "premium" is confident stillness plus evidence everywhere.**
+**Version:** 1.15 · 2026-09-08 · Condenses the Brand Guide, DDRs, and UI_SPEC §0 into one authority. Design principle: **legal-and-regulator "premium" is confident stillness plus evidence everywhere.**
 
 **Motion — amended 2026-08-31 (owner).** The previous rule read *"Motion exists only to reveal evidence."* The owner has asked for figures and charts that animate to their value. This is a deliberate reversal, recorded as such rather than allowed to drift in. Motion is now permitted for **arrival** only, under four binding constraints (§7).
 
@@ -145,6 +145,17 @@ the guard exists because the two silently diverged before.
 | `/screening` | Screening | Bulk Screening |
 | `/reports/:assessmentId` | — | Report |
 | `/` | — | Home |
+| `/workspace` | — | Workspace |
+| `/pricing` | — | Plans & Subscriptions |
+| `/solutions/continuous-monitoring` | — | Continuous Monitoring |
+| `/solutions/white-label` | — | White-Label Intelligence |
+| `/platform` | — | The Visentix Platform |
+| `/solutions` | — | Solutions |
+| `/solutions/notice-assessment` | — | Privacy Notice Intelligence Assessment |
+| `/solutions/quarterly-report` | — | Quarterly Report Overview |
+| `/resources` | — | Resources & Insights |
+| `/about` | — | About Visentix |
+| `/contact` | — | Contact |
 | `/login` | — | Sign in |
 | `/privacy` | — | Privacy |
 | `/terms` | — | Terms |
@@ -157,6 +168,8 @@ Nav is a grouped sidebar: **Workspace** (Assessments, Intake, Rewrite, Vendors, 
 **Two naming corrections, both 2026-08-31.** `/monitor` was adopted and reverted the same day: the screen lists assessments, while the continuous-monitoring capability renders nothing whenever its endpoints are unpopulated, so the route promised what the screen does not deliver. **"Monitor" is now reserved and deliberately unused** until that feature can populate. `/codex` → `/finding-codes` because "Codex" was a house coinage on a reader-facing page — the same class of vendor jargon as the acronyms removed under §2.
 
 \* **Recorded DDR-008 exception:** the two public *editorial* pages (`/quarterly`, `/trust`) open with a full-bleed editorial cover/hero instead of the shared PageHeader — like the report reader, they are documents, not workflow screens. Every other routed screen keeps PageHeader with eyebrow = nav label.
+
+**Public website integration (owner-approved 2026-09-08):** the eight website pages use a separate public header and footer within the same React application. `/workspace` owns the authenticated role redirect. The imported marketing heroes are a recorded PageHeader exception; a website redesign is explicitly deferred. Existing workflow screens retain their shared PageHeader. See the F08 public-site amendment.
 
 ## 7. Motion (amended 2026-08-31, owner)
 
@@ -183,6 +196,8 @@ scores, which would render the wrong figure. The decorative wash carries no
 meaning and is `aria-hidden`.
 
 ## Changelog
+
+- 1.15 (2026-09-08): Owner-approved public website integration into `web/`; added website routes and `/workspace`, recorded the imported-hero exception. Website visual redesign deferred.
 
 - 1.14 (2026-09-01): **DDR-010 amended (owner): the rail can be hidden on demand.** §3 furniture row and §4 DDR-010 gain the hide/show toggle — hide control in the rail header, floating restore control at the rail's former edge, Ctrl/Cmd+B, preference persisted per browser (`visentix.rail`). This is two states, not three: the icon-only collapsed rail stays rejected for the reason originally recorded. Mobile drawer behavior unchanged. Source: owner (product) verbal request.
 - 1.13 (2026-09-01): **The serif is the report's voice, not the app's**, and **elevation is reserved for things that float.** 1.11 had put the display face on every heading in the product; wearing it in the application chrome made each screen look like a document it is not, and a serif page title at display size outweighed the content beneath it. The report keeps Fraunces (cover, part heads, sub-heads, the DDR-002 Advisor lede); the application is on the UI sans. Separately, cards lost their shadow — border plus the new ground already separate them, and a third cue read as chrome competing with the content — along with a density pass (card padding 24 -> 16, page title 2.125 -> 1.55rem, report section padding 28/32 -> 22/24). Shadow now means dialog, popover, dropdown, sheet, sidebar or sticky header.

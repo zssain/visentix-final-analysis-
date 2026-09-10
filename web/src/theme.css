@@ -217,3 +217,24 @@
   * { @apply border-border outline-ring/50; }
   body { @apply bg-background text-foreground font-sans; }
 }
+
+/* F08/F10 owner-approved website and login identity. */
+.public-site {
+  --site-paper: #f5f7f7;
+  --site-ink: #102b48;
+  --site-muted: #536475;
+  --site-line: #d3dce0;
+  --site-forest: #09234f;
+  --site-deep: #071d38;
+  --site-lime: #c9ad77;
+  --site-sage: #e1ecec;
+  --site-white: #fffefa;
+  --site-sky: #e1eaf3;
+  --site-art-mid: #428c98;
+  --site-art-light: #aac9cc;
+  --site-art-shadow: #081c35;
+  --site-blue: #dce8f2;
+  --site-peach: #eee5d4;
+  --site-lilac: #e2e7ef;
+  --site-teal: #00767d;
+}
